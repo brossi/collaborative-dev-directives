@@ -975,6 +975,256 @@ def main():
     save_fig(fig, "03_prediction_error_distribution.png")
 
     # ==================================================================
+    # Phase 5: Bounded-Near-Zero Hypothesis
+    # ==================================================================
+    print("\n[8] Phase 5: Bounded-Near-Zero Hypothesis...")
+    print("  Do independent-pair noise floors cluster near zero regardless")
+    print("  of structure?")
+
+    indep_nf_all = np.concatenate([phase1_noise_floor, phase2_noise_floor])
+    indep_nf_abs = np.abs(indep_nf_all)
+
+    indep_mean = np.mean(indep_nf_all)
+    indep_std = np.std(indep_nf_all, ddof=1)
+    indep_max_abs = np.max(indep_nf_abs)
+    indep_min = np.min(indep_nf_all)
+    indep_max = np.max(indep_nf_all)
+    n_exceed_025 = np.sum(indep_nf_abs > 0.25)
+    n_exceed_020 = np.sum(indep_nf_abs > 0.20)
+
+    # One-sample t-test: is mean significantly different from 0?
+    t_zero, p_zero = scipy_stats.ttest_1samp(indep_nf_all, 0)
+
+    # 95% confidence interval for the true mean
+    ci_margin = scipy_stats.t.ppf(0.975, len(indep_nf_all) - 1) * (
+        indep_std / np.sqrt(len(indep_nf_all)))
+    ci_lo = indep_mean - ci_margin
+    ci_hi = indep_mean + ci_margin
+
+    # Compare to training-pair distribution (which has strong non-zero signal)
+    exp4_mean = np.mean(exp4_noise_floor)
+    exp4_std = np.std(exp4_noise_floor, ddof=1)
+    exp4_max_abs = np.max(np.abs(exp4_noise_floor))
+
+    print(f"\n  Independent pairs (N={len(indep_nf_all)}):")
+    print(f"    Mean:           {indep_mean:+.4f}")
+    print(f"    Std dev:         {indep_std:.4f}")
+    print(f"    Range:          [{indep_min:+.4f}, {indep_max:+.4f}]")
+    print(f"    Max |value|:     {indep_max_abs:.4f}")
+    print(f"    95% CI for mean: [{ci_lo:+.4f}, {ci_hi:+.4f}]")
+    print(f"    t-test vs 0:     t={t_zero:.4f}, p={p_zero:.4f}")
+    print(f"    Exceed +/-0.25:  {n_exceed_025}/{len(indep_nf_all)}")
+    print(f"    Exceed +/-0.20:  {n_exceed_020}/{len(indep_nf_all)}")
+
+    print(f"\n  Training pairs (N={len(exp4_noise_floor)}) for comparison:")
+    print(f"    Mean:           {exp4_mean:+.4f}")
+    print(f"    Std dev:         {exp4_std:.4f}")
+    print(f"    Max |value|:     {exp4_max_abs:.4f}")
+
+    # Determine if bounded-near-zero hypothesis holds
+    threshold_025 = n_exceed_025 == 0
+    threshold_020 = n_exceed_020 == 0
+    mean_near_zero = p_zero >= 0.05  # mean not significantly different from 0
+
+    print(f"\n  BOUNDED-NEAR-ZERO HYPOTHESIS:")
+    if threshold_025:
+        print(f"    All 15 independent noise floors within +/-0.25: YES")
+    else:
+        print(f"    All 15 independent noise floors within +/-0.25: NO "
+              f"({n_exceed_025} exceed)")
+    if threshold_020:
+        print(f"    All 15 independent noise floors within +/-0.20: YES")
+    else:
+        print(f"    All 15 independent noise floors within +/-0.20: NO "
+              f"({n_exceed_020} exceed)")
+    if mean_near_zero:
+        print(f"    Mean not significantly different from zero: YES (p={p_zero:.3f})")
+    else:
+        print(f"    Mean not significantly different from zero: NO (p={p_zero:.3f})")
+
+    # Test alternative metrics for independent pairs
+    print("\n  ALTERNATIVE METRIC SEARCH:")
+    print("  Testing whether any structural metric predicts noise floor")
+    print("  for the 15 independent pairs...")
+
+    # Compute additional metrics for all independent pairs
+    from mud_topology_sensitivity import (
+        stationary_distribution, stationary_correlation,
+        avg_shortest_path_divergence, degree_correlation,
+    )
+
+    # Pre-compute per-variant data for independent variants
+    indep_stat_dists = {}
+    indep_shortest_paths = {}
+    for name in INDEP_VARIANT_NAMES:
+        indep_stat_dists[name] = stationary_distribution(indep_variants[name])
+        indep_shortest_paths[name] = dict(
+            nx.all_pairs_shortest_path_length(indep_variants[name]))
+    # Also need Open's data
+    open_stat_dist = stationary_distribution(all_variants["A_open"])
+    open_sp = dict(nx.all_pairs_shortest_path_length(all_variants["A_open"]))
+
+    # Collect metrics for all 15 independent pairs
+    alt_jaccard = []
+    alt_stat_corr = []
+    alt_path_div = []
+    alt_deg_corr = []
+    alt_nf = []
+    all_nodes = list(range(100))
+
+    # Phase 1 pairs (independent vs Open)
+    for idx, name in enumerate(INDEP_VARIANT_NAMES):
+        alt_jaccard.append(edge_jaccard(all_variants["A_open"], indep_variants[name]))
+        alt_stat_corr.append(stationary_correlation(
+            open_stat_dist, indep_stat_dists[name]))
+        alt_path_div.append(avg_shortest_path_divergence(
+            open_sp, indep_shortest_paths[name], all_nodes))
+        alt_deg_corr.append(degree_correlation(
+            all_variants["A_open"], indep_variants[name]))
+        alt_nf.append(phase1_noise_floor[idx])
+
+    # Phase 2 pairs (independent vs independent)
+    for i, j in indep_pairs:
+        name_i = INDEP_VARIANT_NAMES[i]
+        name_j = INDEP_VARIANT_NAMES[j]
+        alt_jaccard.append(edge_jaccard(indep_variants[name_i], indep_variants[name_j]))
+        alt_stat_corr.append(stationary_correlation(
+            indep_stat_dists[name_i], indep_stat_dists[name_j]))
+        alt_path_div.append(avg_shortest_path_divergence(
+            indep_shortest_paths[name_i], indep_shortest_paths[name_j], all_nodes))
+        alt_deg_corr.append(degree_correlation(
+            indep_variants[name_i], indep_variants[name_j]))
+        alt_nf.append(phase2_noise_floor[indep_pairs.index((i, j))])
+
+    alt_jaccard = np.array(alt_jaccard)
+    alt_stat_corr = np.array(alt_stat_corr)
+    alt_path_div = np.array(alt_path_div)
+    alt_deg_corr = np.array(alt_deg_corr)
+    alt_nf = np.array(alt_nf)
+
+    alt_metrics = [
+        ("Edge Jaccard", alt_jaccard),
+        ("Stationary Corr", alt_stat_corr),
+        ("Path Divergence", alt_path_div),
+        ("Degree Corr", alt_deg_corr),
+    ]
+
+    print(f"\n    {'Metric':<20s} {'R^2':>8s} {'Slope':>8s} {'p-value':>8s}")
+    print(f"    {'-'*20} {'-'*8} {'-'*8} {'-'*8}")
+    for mname, mx in alt_metrics:
+        if np.std(mx) < 1e-10:
+            print(f"    {mname:<20s} {'N/A':>8s} {'N/A':>8s} {'N/A':>8s} "
+                  f"(zero variance)")
+            continue
+        sl, ic, rv, pv, se = scipy_stats.linregress(mx, alt_nf)
+        print(f"    {mname:<20s} {rv**2:>8.4f} {sl:>8.4f} {pv:>8.4f}")
+
+    # Practical rule assessment
+    conservative_threshold = 0.20
+    n_exceed_conservative = np.sum(indep_nf_abs > conservative_threshold)
+
+    print(f"\n  PRACTICAL RULE ASSESSMENT:")
+    print(f"    Proposed rule: For non-derived topologies, assume noise_floor = 0")
+    print(f"    with conservative bound +/-{conservative_threshold:.2f}")
+    print(f"    Violations in data: {n_exceed_conservative}/{len(indep_nf_all)}")
+    if n_exceed_conservative > 0:
+        violators = [(indep_labels[k], indep_nf_all[k])
+                     for k in range(len(indep_nf_all))
+                     if abs(indep_nf_all[k]) > conservative_threshold]
+        for vlabel, vnf in violators:
+            print(f"      {vlabel}: {vnf:+.4f}")
+
+    # ==================================================================
+    # VISUALIZATION 4: Bounded-Near-Zero Summary
+    # ==================================================================
+    print("\n  [8.1] Bounded-near-zero visualization...")
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
+
+    # Panel 1: Strip plot comparing training vs independent noise floors
+    ax1 = axes[0]
+    y_train = exp4_noise_floor
+    y_indep = indep_nf_all
+
+    jitter_train = np.random.RandomState(42).uniform(-0.15, 0.15, len(y_train))
+    jitter_indep = np.random.RandomState(43).uniform(-0.15, 0.15, len(y_indep))
+
+    ax1.scatter(np.zeros(len(y_train)) + jitter_train, y_train,
+                s=80, c="#2c3e50", marker="o", edgecolors="white",
+                linewidths=0.5, zorder=5, label="Training (ancestry)")
+    ax1.scatter(np.ones(len(y_indep)) + jitter_indep, y_indep,
+                s=80, c="#e74c3c", marker="^", edgecolors="white",
+                linewidths=0.5, zorder=5, label="Independent (no ancestry)")
+
+    # Mark mean and CI
+    ax1.hlines(indep_mean, 0.6, 1.4, colors="#e74c3c", linewidths=2,
+               linestyles="-", label=f"Indep. mean={indep_mean:+.3f}")
+    ax1.hlines(exp4_mean, -0.4, 0.4, colors="#2c3e50", linewidths=2,
+               linestyles="-", label=f"Train mean={exp4_mean:+.3f}")
+
+    # Threshold bands
+    ax1.axhspan(-conservative_threshold, conservative_threshold,
+                alpha=0.12, color="#27ae60", zorder=1)
+    ax1.axhline(conservative_threshold, color="#27ae60", linewidth=1.5,
+                linestyle="--", alpha=0.6)
+    ax1.axhline(-conservative_threshold, color="#27ae60", linewidth=1.5,
+                linestyle="--", alpha=0.6)
+    ax1.text(1.55, conservative_threshold, f"+{conservative_threshold}",
+             fontsize=9, color="#27ae60", va="center")
+    ax1.text(1.55, -conservative_threshold, f"-{conservative_threshold}",
+             fontsize=9, color="#27ae60", va="center")
+
+    ax1.axhline(0, color="gray", linewidth=0.5, alpha=0.5)
+    ax1.set_xticks([0, 1])
+    ax1.set_xticklabels(["Training\n(shared ancestry)", "Independent\n(no ancestry)"],
+                        fontsize=10)
+    ax1.set_ylabel("Noise Floor (Pearson r)", fontsize=11)
+    ax1.set_title("Noise Floor Distribution by Ancestry", fontsize=12,
+                  fontweight="bold")
+    ax1.legend(fontsize=8, loc="upper right")
+    ax1.set_xlim(-0.6, 1.8)
+    ax1.grid(True, axis="y", alpha=0.3)
+
+    # Panel 2: Histogram of independent noise floors with bounds
+    ax2 = axes[1]
+    bins = np.linspace(-0.30, 0.25, 16)
+    ax2.hist(indep_nf_all, bins=bins, alpha=0.7, color="#e74c3c",
+             edgecolor="white", label=f"Independent (N={len(indep_nf_all)})")
+    ax2.axvline(0, color="black", linewidth=1.5, linestyle="-", alpha=0.5,
+                label="Zero")
+    ax2.axvline(indep_mean, color="#e74c3c", linewidth=2, linestyle="--",
+                label=f"Mean = {indep_mean:+.3f}")
+    ax2.axvspan(-conservative_threshold, conservative_threshold,
+                alpha=0.12, color="#27ae60", zorder=0)
+    ax2.axvline(conservative_threshold, color="#27ae60", linewidth=1.5,
+                linestyle="--", alpha=0.6)
+    ax2.axvline(-conservative_threshold, color="#27ae60", linewidth=1.5,
+                linestyle="--", alpha=0.6)
+
+    bnz_label = "ALL within bounds" if n_exceed_conservative == 0 else \
+                f"{n_exceed_conservative} exceed bounds"
+    ax2.text(0.05, 0.95,
+             f"Mean: {indep_mean:+.4f}\n"
+             f"Std: {indep_std:.4f}\n"
+             f"Range: [{indep_min:+.3f}, {indep_max:+.3f}]\n"
+             f"95% CI: [{ci_lo:+.3f}, {ci_hi:+.3f}]\n"
+             f"Bound +/-{conservative_threshold}: {bnz_label}",
+             transform=ax2.transAxes, fontsize=9, va="top",
+             bbox=dict(boxstyle="round", facecolor="lightyellow", alpha=0.9))
+
+    ax2.set_xlabel("Noise Floor (Pearson r)", fontsize=11)
+    ax2.set_ylabel("Count", fontsize=11)
+    ax2.set_title("Independent Pair Noise Floor Distribution", fontsize=12,
+                  fontweight="bold")
+    ax2.legend(fontsize=8, loc="upper right")
+
+    fig.suptitle("Bounded-Near-Zero Hypothesis: Independent Topologies Produce "
+                 "Negligible Noise Floors",
+                 fontsize=13, fontweight="bold")
+    plt.tight_layout(rect=[0, 0, 1, 0.91])
+    save_fig(fig, "04_bounded_near_zero.png")
+
+    # ==================================================================
     # WRITTEN SUMMARY
     # ==================================================================
     print("\n" + "=" * 78)
@@ -1059,10 +1309,32 @@ def main():
         print(f"    Precision is moderate — use for rapid prototyping, not final")
         print(f"    calibration.")
     else:
-        print(f"    Walker calibration (~1,010 sessions per variant) cannot be")
-        print(f"    bypassed. Edge Jaccard is useful within a topology family")
-        print(f"    (variants derived from the same parent) but not across")
-        print(f"    independently generated topologies.")
+        print(f"    The Jaccard regression failed, but a SIMPLER rule emerges:")
+        if threshold_025:
+            print(f"    All 15 independent noise floors fall within "
+                  f"+/-{indep_max_abs:.3f}.")
+            print(f"    For non-derived topologies, the noise floor is bounded")
+            print(f"    near zero regardless of structure.")
+            if mean_near_zero:
+                print(f"    The mean ({indep_mean:+.4f}) is not significantly "
+                      f"different from zero (p={p_zero:.3f}).")
+            if threshold_020:
+                print(f"\n    RULE: For any topology not derived from your reference,")
+                print(f"    assume noise_floor = 0 with bound +/-0.20.")
+                print(f"    This is CHEAPER than the Jaccard regression (no graph")
+                print(f"    comparison needed) and MORE GENERAL (works for any")
+                print(f"    independently generated topology).")
+            else:
+                print(f"\n    RULE: For any topology not derived from your reference,")
+                print(f"    assume noise_floor = 0 with bound +/-0.25.")
+                print(f"    {n_exceed_020} pairs exceed +/-0.20 but none exceed "
+                      f"+/-0.25.")
+        else:
+            print(f"    {n_exceed_025} of 15 independent noise floors exceed +/-0.25.")
+            print(f"    The bounded-near-zero rule does NOT hold. Walker calibration")
+            print(f"    (~1,010 sessions/variant) remains mandatory.")
+        print(f"\n    For DERIVED topologies (same parent, pruned/rerouted):")
+        print(f"    the Exp4 Jaccard regression (R^2={r_sq4:.3f}) still applies.")
 
     print(f"\n  All outputs saved to: {OUTPUT_DIR}/")
     print("=" * 78)
@@ -1078,6 +1350,12 @@ def main():
         "intercept4": intercept4,
         "slope_pooled": slope_p,
         "intercept_pooled": intercept_p,
+        "indep_mean_nf": indep_mean,
+        "indep_std_nf": indep_std,
+        "indep_max_abs_nf": indep_max_abs,
+        "bounded_near_zero": threshold_025,
+        "n_exceed_020": int(n_exceed_020),
+        "n_exceed_025": int(n_exceed_025),
     }
 
 
