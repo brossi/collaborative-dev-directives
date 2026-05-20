@@ -1,0 +1,25 @@
+{
+  "name": "@ago/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./protocol": "./src/protocol.ts",
+    "./bus": "./src/bus.ts",
+    "./cdp-electron": "./src/cdp-electron.ts",
+    "./logger": "./src/logger.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chrome-remote-interface": "^0.34.0",
+    "devtools-protocol": "^0.0.1632630",
+    "mdns": "^2.7.2",
+    "bonjour-service": "^1.2.1",
+    "execa": "^9.5.1"
+  },
+  "devDependencies": {
+    "@types/chrome-remote-interface": "^0.31.14"
+  }
+}

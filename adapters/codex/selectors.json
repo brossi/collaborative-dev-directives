@@ -1,0 +1,11 @@
+{
+  "appName": "Codex",
+  "debugPort": 9223,
+  "targetUrlIncludes": "index.html",
+  "transcriptSelector": "[data-testid=\"thread-transcript\"]",
+  "messageSelector": "[data-testid=\"message\"]",
+  "roleAttribute": "data-role",
+  "promptInputSelector": "[data-testid=\"composer-input\"]",
+  "submitKey": "Cmd+Enter",
+  "_note": "Placeholders. Verify in DevTools: launch Codex with --remote-debugging-port=9223, open chrome://inspect, inspect the window, and update selectors against the actual DOM."
+}

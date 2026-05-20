@@ -1,0 +1,11 @@
+{
+  "appName": "Antigravity",
+  "debugPort": 9224,
+  "targetUrlIncludes": "workbench.html",
+  "transcriptSelector": ".manager-view .agent-transcript",
+  "messageSelector": ".transcript-message",
+  "roleAttribute": "data-role",
+  "promptInputSelector": ".manager-composer textarea",
+  "submitKey": "Cmd+Enter",
+  "_note": "Placeholders for Google Antigravity (VS Code/Windsurf fork). Verify against the live DOM via chrome://inspect once the app is launched with --remote-debugging-port=9224."
+}

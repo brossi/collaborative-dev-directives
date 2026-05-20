@@ -1,0 +1,13 @@
+{
+  "name": "@ago/adapter-claude-code",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ago/shared": "workspace:*"
+  }
+}
