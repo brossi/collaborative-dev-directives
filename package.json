@@ -1,0 +1,23 @@
+{
+  "name": "agent-orchestrator",
+  "version": "0.0.1",
+  "private": true,
+  "description": "macOS PoC: orchestrate Claude Code CLI, Codex, Antigravity, and Cursor through OS-level channels (Bonjour + CDP + PTY).",
+  "scripts": {
+    "broker": "pnpm --filter @ago/broker dev",
+    "adapter:claude-code": "pnpm --filter @ago/adapter-claude-code dev",
+    "adapter:codex": "pnpm --filter @ago/adapter-codex dev",
+    "adapter:antigravity": "pnpm --filter @ago/adapter-antigravity dev",
+    "adapter:cursor": "pnpm --filter @ago/adapter-cursor dev",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.7.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.4"
+}

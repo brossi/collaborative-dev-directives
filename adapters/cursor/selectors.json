@@ -1,0 +1,11 @@
+{
+  "appName": "Cursor",
+  "debugPort": 9225,
+  "targetUrlIncludes": "workbench.html",
+  "transcriptSelector": ".composer-conversation",
+  "messageSelector": ".composer-message",
+  "roleAttribute": "data-role",
+  "promptInputSelector": ".composer-input [contenteditable=\"true\"]",
+  "submitKey": "Enter",
+  "_note": "Placeholders. Cursor is a VS Code fork; the chat surface lives in a webview iframe, so `targetUrlIncludes` may need to be the webview's vscode-webview:// URL rather than workbench.html. Verify via chrome://inspect."
+}
