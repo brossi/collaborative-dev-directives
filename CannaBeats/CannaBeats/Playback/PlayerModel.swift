@@ -19,6 +19,7 @@ protocol PlayerBackendDelegate: AnyObject {
     func backendDidConnect()
     func backendDidDisconnect(error: String?)
     func backendPlaybackChanged(isPaused: Bool)
+    func backendCommandFailed(_ message: String)
 }
 
 @MainActor
@@ -31,7 +32,18 @@ final class PlayerModel: ObservableObject {
 
     let usingStub: Bool
     private let backend: PlayerBackend
-    private var pendingAction: (() -> Void)?
+    private var pendingAction: (queued: Date, run: () -> Void)?
+    private var connectTimeoutTask: Task<Void, Never>?
+    /// Set on the auth-bounce return leg; the handshake leaves the warm-up
+    /// track playing, so the next successful connect pauses it (unless a
+    /// pending action is about to play a deck song anyway).
+    private var didAuthBounce = false
+
+    private static let placeholderClientID = "YOUR_SPOTIFY_CLIENT_ID"
+    /// Discard a queued action older than this — a play request from a
+    /// failed reconnect minutes ago must not fire out of nowhere.
+    private static let pendingActionMaxAge: TimeInterval = 15
+    private static let connectTimeoutSeconds: TimeInterval = 15
 
     init() {
         #if canImport(SpotifyiOS)
@@ -49,11 +61,18 @@ final class PlayerModel: ObservableObject {
             status = .connected
             return
         }
-        status = .connecting
-        backend.connect(warmupURI: SpotifyConfig.warmupTrackURI)
+        // The stub ignores the client ID; the real backend can never
+        // connect with the placeholder — refuse loudly instead of hanging.
+        guard usingStub || SpotifyConfig.clientID != Self.placeholderClientID else {
+            lastError = "Missing Spotify client ID — add Resources/SpotifyClientID.txt"
+            status = .disconnected
+            return
+        }
+        beginConnecting()
     }
 
     func handleAuthCallback(url: URL) {
+        didAuthBounce = true
         backend.handleAuthCallback(url: url)
     }
 
@@ -64,14 +83,14 @@ final class PlayerModel: ObservableObject {
     func play(uri: String) {
         perform { [self] in
             backend.play(uri: uri)
-            isPaused = false
         }
     }
 
     func togglePlayPause() {
+        // isPaused is written by the player-state subscription
+        // (backendPlaybackChanged), not optimistically here.
         perform { [self] in
             if isPaused { backend.resume() } else { backend.pause() }
-            isPaused.toggle()
         }
     }
 
@@ -84,9 +103,26 @@ final class PlayerModel: ObservableObject {
         if status == .connected, backend.isConnected {
             action()
         } else {
-            pendingAction = action
-            status = .connecting
-            backend.connect(warmupURI: SpotifyConfig.warmupTrackURI)
+            pendingAction = (Date(), action)
+            beginConnecting()
+        }
+    }
+
+    private func beginConnecting() {
+        status = .connecting
+        scheduleConnectTimeout()
+        backend.connect(warmupURI: SpotifyConfig.warmupTrackURI)
+    }
+
+    /// If nothing answers within the window, stop showing an eternal
+    /// spinner. Cancelled by any connect/disconnect callback.
+    private func scheduleConnectTimeout() {
+        connectTimeoutTask?.cancel()
+        connectTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(Self.connectTimeoutSeconds * 1_000_000_000))
+            guard let self, !Task.isCancelled, self.status == .connecting else { return }
+            self.status = .disconnected
+            self.lastError = "Spotify didn't respond — is the Spotify app installed and logged in?"
         }
     }
 }
@@ -94,15 +130,25 @@ final class PlayerModel: ObservableObject {
 extension PlayerModel: PlayerBackendDelegate {
     nonisolated func backendDidConnect() {
         Task { @MainActor in
+            connectTimeoutTask?.cancel()
             status = .connected
             lastError = nil
-            pendingAction?()
+            let pending = pendingAction
             pendingAction = nil
+            if let pending, Date().timeIntervalSince(pending.queued) < Self.pendingActionMaxAge {
+                pending.run()
+            } else if didAuthBounce {
+                // Handshake finished with nothing to play — stop the
+                // warm-up track it left running.
+                backend.pause()
+            }
+            didAuthBounce = false
         }
     }
 
     nonisolated func backendDidDisconnect(error: String?) {
         Task { @MainActor in
+            connectTimeoutTask?.cancel()
             status = .disconnected
             if let error { lastError = error }
         }
@@ -111,6 +157,12 @@ extension PlayerModel: PlayerBackendDelegate {
     nonisolated func backendPlaybackChanged(isPaused: Bool) {
         Task { @MainActor in
             self.isPaused = isPaused
+        }
+    }
+
+    nonisolated func backendCommandFailed(_ message: String) {
+        Task { @MainActor in
+            lastError = message
         }
     }
 }

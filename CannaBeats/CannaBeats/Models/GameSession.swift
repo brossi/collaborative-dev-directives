@@ -25,12 +25,26 @@ final class GameSession: ObservableObject {
     var songsRemaining: Int { max(0, deck.count - (index + 1)) }
     var deckExhausted: Bool { index >= deck.count - 1 }
 
+    /// "Deck: N songs, YYYY–YYYY" for the connect pane; nil for an empty deck.
+    var deckSummary: String? {
+        guard let first = deck.map(\.year).min(),
+              let last = deck.map(\.year).max() else { return nil }
+        return "Deck: \(deck.count) songs, \(first)–\(last)"
+    }
+
     /// Advances to the next hidden song. Returns nil when the deck is done.
     func drawNext() -> Song? {
         guard !deckExhausted else { return nil }
         revealed = false
         index += 1
         return currentSong
+    }
+
+    /// Skip the current hidden song: advance exactly like drawNext, never
+    /// revealing it. A skipped card simply goes back in the box — the song
+    /// is consumed for this session, not re-queued.
+    func skipCurrent() -> Song? {
+        drawNext()
     }
 
     func reshuffle() {

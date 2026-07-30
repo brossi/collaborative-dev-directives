@@ -34,7 +34,7 @@ enum Catalog {
     static func loadBundled() -> [Song] {
         guard let root = Bundle.main.resourceURL else { return [] }
         let decoder = JSONDecoder()
-        var seen = Set<String>()
+        var indexByKey: [String: Int] = [:]
         var songs: [Song] = []
         let files = FileManager.default
             .enumerator(at: root, includingPropertiesForKeys: nil)?
@@ -46,7 +46,14 @@ enum Catalog {
             else { continue }
             for song in module.songs {
                 let key = song.id.lowercased()
-                if seen.insert(key).inserted {
+                if let existing = indexByKey[key] {
+                    // First-wins, except a URI-less copy yields to a later
+                    // playable one (keeps its position — deterministic).
+                    if songs[existing].uri == nil, song.uri != nil {
+                        songs[existing] = song
+                    }
+                } else {
+                    indexByKey[key] = songs.count
                     songs.append(song)
                 }
             }

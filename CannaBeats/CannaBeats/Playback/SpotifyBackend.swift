@@ -12,6 +12,13 @@ final class SpotifyBackend: NSObject, PlayerBackend {
         didSet { appRemote.connectionParameters.accessToken = accessToken }
     }
 
+    /// True while a plain `connect()` (no auth bounce) is in flight. A plain
+    /// connect cannot wake a killed Spotify app, so if it fails we drop the
+    /// token and the next `connect()` falls back to `authorizeAndPlayURI`
+    /// (the only wake path). The first-ever connect has no token and goes
+    /// straight to `authorizeAndPlayURI` as before.
+    private var hasTriedPlainConnect = false
+
     private lazy var appRemote: SPTAppRemote = {
         let configuration = SPTConfiguration(
             clientID: SpotifyConfig.clientID,
@@ -27,9 +34,10 @@ final class SpotifyBackend: NSObject, PlayerBackend {
     func connect(warmupURI: String) {
         if accessToken != nil {
             // Already authorized this launch — plain reconnect, no bounce.
+            hasTriedPlainConnect = true
             appRemote.connect()
         } else {
-            // One-time handshake: bounces to the Spotify app, which briefly
+            // Handshake: bounces to the Spotify app, which briefly
             // shows (and plays) the warm-up track, then returns via the
             // redirect URI handled in handleAuthCallback below.
             appRemote.authorizeAndPlayURI(warmupURI)
@@ -40,6 +48,7 @@ final class SpotifyBackend: NSObject, PlayerBackend {
         let parameters = appRemote.authorizationParameters(from: url)
         if let token = parameters?[SPTAppRemoteAccessTokenKey] {
             accessToken = token
+            hasTriedPlainConnect = true
             appRemote.connect()
         } else if let message = parameters?[SPTAppRemoteErrorDescriptionKey] {
             delegate?.backendDidDisconnect(error: message)
@@ -48,20 +57,42 @@ final class SpotifyBackend: NSObject, PlayerBackend {
 
     func appDidBecomeActive() {
         if accessToken != nil, !appRemote.isConnected {
+            hasTriedPlainConnect = true
             appRemote.connect()
         }
     }
 
     func play(uri: String) {
-        appRemote.playerAPI?.play(uri, callback: logErrors)
+        guard let playerAPI = appRemote.playerAPI else {
+            delegate?.backendCommandFailed("Spotify not ready — play failed")
+            return
+        }
+        playerAPI.play(uri, callback: commandCallback("Play"))
     }
 
     func pause() {
-        appRemote.playerAPI?.pause(logErrors)
+        guard let playerAPI = appRemote.playerAPI else {
+            delegate?.backendCommandFailed("Spotify not ready — pause failed")
+            return
+        }
+        playerAPI.pause(commandCallback("Pause"))
     }
 
     func resume() {
-        appRemote.playerAPI?.resume(logErrors)
+        guard let playerAPI = appRemote.playerAPI else {
+            delegate?.backendCommandFailed("Spotify not ready — resume failed")
+            return
+        }
+        playerAPI.resume(commandCallback("Resume"))
+    }
+
+    /// Command result handler: logs and surfaces failures to the delegate.
+    private func commandCallback(_ command: String) -> SPTAppRemoteCallback {
+        { [weak self] _, error in
+            guard let error else { return }
+            print("[SpotifyBackend] \(command): \(error.localizedDescription)")
+            self?.delegate?.backendCommandFailed("\(command) failed: \(error.localizedDescription)")
+        }
     }
 
     private let logErrors: SPTAppRemoteCallback = { _, error in
@@ -73,16 +104,25 @@ final class SpotifyBackend: NSObject, PlayerBackend {
 
 extension SpotifyBackend: SPTAppRemoteDelegate {
     func appRemoteDidEstablishConnection(_ appRemote: SPTAppRemote) {
+        hasTriedPlainConnect = false
         appRemote.playerAPI?.delegate = self
         appRemote.playerAPI?.subscribe(toPlayerState: logErrors)
         delegate?.backendDidConnect()
     }
 
     func appRemote(_ appRemote: SPTAppRemote, didFailConnectionAttemptWithError error: Error?) {
+        if hasTriedPlainConnect {
+            hasTriedPlainConnect = false
+            accessToken = nil
+        }
         delegate?.backendDidDisconnect(error: error?.localizedDescription)
     }
 
     func appRemote(_ appRemote: SPTAppRemote, didDisconnectWithError error: Error?) {
+        if hasTriedPlainConnect {
+            hasTriedPlainConnect = false
+            accessToken = nil
+        }
         delegate?.backendDidDisconnect(error: error?.localizedDescription)
     }
 }

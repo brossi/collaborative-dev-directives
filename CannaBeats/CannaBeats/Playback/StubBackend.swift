@@ -22,15 +22,20 @@ final class StubBackend: PlayerBackend {
 
     func appDidBecomeActive() {}
 
+    // PlayerModel no longer sets isPaused optimistically, so the stub
+    // reports playback state the way the real player-state subscription does.
     func play(uri: String) {
         print("[StubBackend] play \(uri)")
+        delegate?.backendPlaybackChanged(isPaused: false)
     }
 
     func pause() {
         print("[StubBackend] pause")
+        delegate?.backendPlaybackChanged(isPaused: true)
     }
 
     func resume() {
         print("[StubBackend] resume")
+        delegate?.backendPlaybackChanged(isPaused: false)
     }
 }

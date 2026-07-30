@@ -8,15 +8,25 @@ struct GameView: View {
         VStack(spacing: 24) {
             header
             Spacer()
-            switch player.status {
-            case .disconnected, .connecting:
-                connectPane
-            case .connected:
-                if session.currentSong == nil {
-                    bigButton("Next Song", systemImage: "shuffle") { drawAndPlay() }
-                } else {
-                    playPane
+            if session.currentSong != nil {
+                // Round in progress: keep the game pane mounted even if the
+                // connection drops — a compact banner handles reconnecting
+                // instead of swapping the whole screen for the connect pane.
+                if player.status != .connected {
+                    connectionBanner
                 }
+                playPane
+            } else if player.status == .connected {
+                if session.deck.isEmpty {
+                    Text("Deck is empty — no playable songs in the bundled catalog")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                } else {
+                    bigButton("Next Song", systemImage: "shuffle") { drawAndPlay() }
+                }
+            } else {
+                connectPane
             }
             Spacer()
             footer
@@ -38,6 +48,11 @@ struct GameView: View {
 
     private var connectPane: some View {
         VStack(spacing: 16) {
+            if let summary = session.deckSummary {
+                Text(summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Button {
                 player.connect()
             } label: {
@@ -49,11 +64,34 @@ struct GameView: View {
             .buttonStyle(.borderedProminent)
             .disabled(player.status == .connecting)
 
-            Text("Bounces to Spotify once and plays a warm-up track — no deck songs are revealed.")
+            Text("Bounces to Spotify to link up (first play each launch) and plays a warm-up track — no deck songs are revealed.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
+    }
+
+    private var connectionBanner: some View {
+        HStack(spacing: 8) {
+            if player.status == .connecting {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Reconnecting Spotify…")
+            } else {
+                Text("Spotify disconnected — tap Connect")
+                Button("Connect") { player.connect() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+        .padding(8)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
 
     @ViewBuilder
@@ -85,6 +123,10 @@ struct GameView: View {
                     session.revealed = true
                 }
                 .buttonStyle(.bordered)
+                if !session.deckExhausted {
+                    Button("Skip song") { skipAndPlay() }
+                        .buttonStyle(.bordered)
+                }
             }
         }
     }
@@ -104,6 +146,12 @@ struct GameView: View {
 
     private func drawAndPlay() {
         guard let uri = session.drawNext()?.uri else { return }
+        player.play(uri: uri)
+    }
+
+    private func skipAndPlay() {
+        // Same path as drawAndPlay, but the skipped song is never revealed.
+        guard let uri = session.skipCurrent()?.uri else { return }
         player.play(uri: uri)
     }
 
