@@ -1,0 +1,295 @@
+{
+  "module": "year-1949",
+  "name": "Hits of 1949",
+  "source": "Billboard year-end top singles of 1949 plus weekly Best Sellers chart",
+  "songs": [
+    {
+      "title": "Riders in the Sky (A Cowboy Legend)",
+      "artist": "Vaughn Monroe",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That Lucky Old Sun",
+      "artist": "Frankie Laine",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:0APjAcgAmWQUn9lAn6Ep5B"
+    },
+    {
+      "title": "Mule Train",
+      "artist": "Frankie Laine",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:5JfBJxARIfhyjXOaBwSt2t"
+    },
+    {
+      "title": "Some Enchanted Evening",
+      "artist": "Perry Como",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:0MVjP6RWqGXygcgxRYfP3V"
+    },
+    {
+      "title": "You're Breaking My Heart",
+      "artist": "Vic Damone",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5Hh8DCpwYLGMc9Pe14J8GO"
+    },
+    {
+      "title": "Cruising Down the River",
+      "artist": "Russ Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": "spotify:track:4Z9IwRqjZvB8r1n8CbrOm6"
+    },
+    {
+      "title": "A Little Bird Told Me",
+      "artist": "Evelyn Knight",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4kLzeK6snErmNUofhzucrX"
+    },
+    {
+      "title": "Powder Your Face with Sunshine",
+      "artist": "Evelyn Knight",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1lsZeigPRtUHbz2G1eeD8H"
+    },
+    {
+      "title": "Again",
+      "artist": "Doris Day",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:0qB213IfGN0JXXm9aRjldF"
+    },
+    {
+      "title": "Forever and Ever",
+      "artist": "Russ Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": "spotify:track:6u3I4aG23SV4bcAhQPen7I"
+    },
+    {
+      "title": "Baby, It's Cold Outside",
+      "artist": "Dinah Shore & Buddy Clark",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:1pdr3SamlwMCGYmkdVkBgO"
+    },
+    {
+      "title": "Careless Hands",
+      "artist": "Mel Torme",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3WWASkrFBFTj6eKj7PH3Ji"
+    },
+    {
+      "title": "Red Roses for a Blue Lady",
+      "artist": "Vaughn Monroe",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": "spotify:track:59NH1vZlEw3I5IXbKiMA5O"
+    },
+    {
+      "title": "Far Away Places",
+      "artist": "Bing Crosby",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:68RZDUmG9WIVt3RX4FM4XG"
+    },
+    {
+      "title": "Slipping Around",
+      "artist": "Margaret Whiting & Jimmy Wakely",
+      "year": 1949,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:6w5UdrgXgzoEEX6LRxwqQv"
+    },
+    {
+      "title": "I Can Dream, Can't I?",
+      "artist": "The Andrews Sisters",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:6poiUBH2JatorSqrrQWnYJ"
+    },
+    {
+      "title": "Dear Hearts and Gentle People",
+      "artist": "Bing Crosby",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:28IBsttOK2aG9Cb4QtqhMr"
+    },
+    {
+      "title": "I've Got a Lovely Bunch of Coconuts",
+      "artist": "Freddy Martin feat. Merv Griffin",
+      "year": 1949,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": "spotify:track:3WvStSCnYKzwyYnGCG5eQR"
+    },
+    {
+      "title": "Room Full of Roses",
+      "artist": "Sammy Kaye",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": "spotify:track:7LEB0soqZq8JGlwP61pBtd"
+    },
+    {
+      "title": "Lavender Blue (Dilly Dilly)",
+      "artist": "Dinah Shore",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:5bb3EJ4Hgmkrf7FMMQHE89"
+    },
+    {
+      "title": "Jealous Heart",
+      "artist": "Al Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:3Uvsuvb1iW3vsmdGMJq2ld"
+    },
+    {
+      "title": "So Tired",
+      "artist": "Russ Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": "spotify:track:6oDfNRCtgSYtQe1y3HXloc"
+    },
+    {
+      "title": "Don't Cry, Joe",
+      "artist": "Gordon Jenkins",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5ffn1ybL7IYHChByWZQRDs"
+    },
+    {
+      "title": "Someday (You'll Want Me to Want You)",
+      "artist": "Vaughn Monroe",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": "spotify:track:6Ze4Hi1BhVfdEAgPxwrB5R"
+    },
+    {
+      "title": "A Dreamer's Holiday",
+      "artist": "Perry Como",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4V4hfhAK4RKXVWkQz0CQO8"
+    },
+    {
+      "title": "Maybe It's Because",
+      "artist": "Dick Haymes",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1NGEvIoCw3HbJlp0u30dRF"
+    },
+    {
+      "title": "The Huckle-Buck",
+      "artist": "Paul Williams",
+      "year": 1949,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:0UXRDuYhl963Ifi8QwoXnI"
+    },
+    {
+      "title": "Saturday Night Fish Fry",
+      "artist": "Louis Jordan",
+      "year": 1949,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:2jPlhMe0ptZPA6Of2mwKEZ"
+    },
+    {
+      "title": "Candy Kisses",
+      "artist": "George Morgan",
+      "year": 1949,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:5uk16q41do9sCLiiMkfJV3"
+    },
+    {
+      "title": "Bali Ha'i",
+      "artist": "Perry Como",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:55gKp1u4rczvA93y39dLV0"
+    }
+  ]
+}

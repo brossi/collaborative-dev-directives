@@ -1,0 +1,305 @@
+{
+  "module": "year-1937",
+  "name": "Hits of 1937",
+  "source": "Whitburn-style Pop Memories 1890-1954 pre-Billboard chart research, period record-sales compilations, and Your Hit Parade rankings (late decade)",
+  "songs": [
+    {
+      "title": "Sweet Leilani",
+      "artist": "Bing Crosby",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:199NXfUWExODiacGpmUpI0"
+    },
+    {
+      "title": "Remember Me?",
+      "artist": "Bing Crosby",
+      "year": 1937,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bob White (Whatcha Gonna Swing Tonight?)",
+      "artist": "Bing Crosby and Connee Boswell",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blue Hawaii",
+      "artist": "Bing Crosby",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Moon Got in My Eyes",
+      "artist": "Bing Crosby",
+      "year": 1937,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1VTIxBcvzDco1ulOLiPnNp"
+    },
+    {
+      "title": "Marie",
+      "artist": "Tommy Dorsey",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": "spotify:track:4er6DOjO0UT3gsYEbJDLAK"
+    },
+    {
+      "title": "Song of India",
+      "artist": "Tommy Dorsey",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": "spotify:track:52JqrSzJCrQNp4FUrgmroB"
+    },
+    {
+      "title": "Once in a While",
+      "artist": "Tommy Dorsey",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": "spotify:track:2I1ju2vQN5ulDMA8BgD48p"
+    },
+    {
+      "title": "The Dipsy Doodle",
+      "artist": "Tommy Dorsey",
+      "year": 1937,
+      "genres": [
+        "swing",
+        "novelty"
+      ],
+      "uri": "spotify:track:5xL5UikEuneu8sJsSqUaha"
+    },
+    {
+      "title": "They Can't Take That Away from Me",
+      "artist": "Fred Astaire",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:5hYzwCwCPZZR7dgfb3GPR6"
+    },
+    {
+      "title": "Let's Call the Whole Thing Off",
+      "artist": "Fred Astaire",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:0K4EFVqPaD9cpx7h42YycE"
+    },
+    {
+      "title": "Nice Work If You Can Get It",
+      "artist": "Fred Astaire",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:3soY2GxudATQ20iik7d8du"
+    },
+    {
+      "title": "A Foggy Day",
+      "artist": "Fred Astaire",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:08lJmPVOz79Hmu3CkzldZz"
+    },
+    {
+      "title": "The Merry-Go-Round Broke Down",
+      "artist": "Shep Fields",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "novelty"
+      ],
+      "uri": "spotify:track:4NFPXZlCUy7h1Uh1qcWpMs"
+    },
+    {
+      "title": "That Old Feeling",
+      "artist": "Shep Fields",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": "spotify:track:4eQVbQLQ9WbpAktuAJWaR3"
+    },
+    {
+      "title": "It Looks Like Rain in Cherry Blossom Lane",
+      "artist": "Guy Lombardo",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": "spotify:track:32GpkW4A5JZp1113pBabTo"
+    },
+    {
+      "title": "September in the Rain",
+      "artist": "Guy Lombardo",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": "spotify:track:76q1R9lMawIJ1kVnFuEAOq"
+    },
+    {
+      "title": "Boo-Hoo",
+      "artist": "Guy Lombardo",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "novelty"
+      ],
+      "uri": "spotify:track:3gm49V42PJOQiK9u8culYW"
+    },
+    {
+      "title": "Harbor Lights",
+      "artist": "Frances Langford",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:6gaZiTWvXbKZ7NkQbZc3wu"
+    },
+    {
+      "title": "Where or When",
+      "artist": "Hal Kemp",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": "spotify:track:17GZtVn7S7K3ZxEAS1rqcN"
+    },
+    {
+      "title": "Whispers in the Dark",
+      "artist": "Bob Crosby",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": "spotify:track:16w2H5BwcHEDjXVenxZjNE"
+    },
+    {
+      "title": "Vieni, Vieni",
+      "artist": "Rudy Vallee",
+      "year": 1937,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:2rMvX5dbXmAnhN3kJJVhzJ"
+    },
+    {
+      "title": "Caravan",
+      "artist": "Duke Ellington",
+      "year": 1937,
+      "genres": [
+        "jazz",
+        "big band"
+      ],
+      "uri": "spotify:track:3Jw4lBWbcznhlitliEMW0x"
+    },
+    {
+      "title": "One O'Clock Jump",
+      "artist": "Count Basie",
+      "year": 1937,
+      "genres": [
+        "swing",
+        "jazz"
+      ],
+      "uri": "spotify:track:6DDhXGwCHmzT3EVoXr9lS2"
+    },
+    {
+      "title": "Sing, Sing, Sing",
+      "artist": "Benny Goodman",
+      "year": 1937,
+      "genres": [
+        "swing",
+        "big band"
+      ],
+      "uri": "spotify:track:5L8ta4ECl5zeA6bGqY7G38"
+    },
+    {
+      "title": "Goodnight, My Love",
+      "artist": "Benny Goodman feat. Ella Fitzgerald",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": "spotify:track:1Ha9LXG4rgSLjl6EVmxW01"
+    },
+    {
+      "title": "Rosalie",
+      "artist": "Sammy Kaye",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": "spotify:track:2PSL8gyge0hlNeJHI3GGt0"
+    },
+    {
+      "title": "Bei Mir Bist Du Schoen",
+      "artist": "The Andrews Sisters",
+      "year": 1937,
+      "genres": [
+        "swing",
+        "pop"
+      ],
+      "uri": "spotify:track:42PYGUaVeHC7voXRdNarA9"
+    },
+    {
+      "title": "It's De-Lovely",
+      "artist": "Eddy Duchin",
+      "year": 1937,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": "spotify:track:3XZJmdgvcPNCD5xMRAlYj2"
+    },
+    {
+      "title": "A Sailboat in the Moonlight",
+      "artist": "Billie Holiday",
+      "year": 1937,
+      "genres": [
+        "jazz",
+        "standards"
+      ],
+      "uri": "spotify:track:2p77uME3lMujc6RVyZGSy7"
+    }
+  ]
+}

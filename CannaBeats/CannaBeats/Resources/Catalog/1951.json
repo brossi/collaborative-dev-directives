@@ -1,0 +1,300 @@
+{
+  "module": "year-1951",
+  "name": "Hits of 1951",
+  "source": "Billboard year-end top 30 singles chart, 1951 (Best Sellers)",
+  "songs": [
+    {
+      "title": "Too Young",
+      "artist": "Nat King Cole",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:0zII0Soax7wbm3Avw7iVAd"
+    },
+    {
+      "title": "Because of You",
+      "artist": "Tony Bennett",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:1hVEHu6SemMvlYAP5MWkDj"
+    },
+    {
+      "title": "How High the Moon",
+      "artist": "Les Paul & Mary Ford",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": "spotify:track:0onHzLoj8yQbjbHtJzwjBx"
+    },
+    {
+      "title": "Come On-a My House",
+      "artist": "Rosemary Clooney",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:3GVyT9fBXuEkGs1STo2WHZ"
+    },
+    {
+      "title": "Be My Love",
+      "artist": "Mario Lanza",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:78Ln13w0UXFF5ARRnxxRMF"
+    },
+    {
+      "title": "On Top of Old Smoky",
+      "artist": "The Weavers",
+      "year": 1951,
+      "genres": [
+        "folk"
+      ],
+      "uri": "spotify:track:2vZpRZhFI7x4qnfBB0jJGF"
+    },
+    {
+      "title": "Cold, Cold Heart",
+      "artist": "Tony Bennett",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:6U5Iv1vX8qUOVCMijAgZhL"
+    },
+    {
+      "title": "If",
+      "artist": "Perry Como",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:1TB5ijzlCHRv1DtkIbucP2"
+    },
+    {
+      "title": "The Loveliest Night of the Year",
+      "artist": "Mario Lanza",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:25gqOMprQb36j40sbD4hLA"
+    },
+    {
+      "title": "Tennessee Waltz",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:4W0sbtVR0pqOo2d7qAHhGr"
+    },
+    {
+      "title": "Jezebel",
+      "artist": "Frankie Laine",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1YNs0Fsi0LAduAEswmqd6h"
+    },
+    {
+      "title": "I Get Ideas",
+      "artist": "Tony Martin",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:337MjXbvx4dDSgOYSfawii"
+    },
+    {
+      "title": "Mockin' Bird Hill",
+      "artist": "Les Paul & Mary Ford",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:62GWHE0tcoW9kJrscFn6k3"
+    },
+    {
+      "title": "Mockin' Bird Hill",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:31Rc2l5UOectXRMIKQxJVT"
+    },
+    {
+      "title": "My Heart Cries for You",
+      "artist": "Guy Mitchell",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0URpgtSGmBb5RWXs6UdEwq"
+    },
+    {
+      "title": "(It's No) Sin",
+      "artist": "Eddy Howard",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:4cyPBIYP1z47ZIdT7fgDxu"
+    },
+    {
+      "title": "Sound Off",
+      "artist": "Vaughn Monroe",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:6m9cY12GkHR8TDdMeS9v6B"
+    },
+    {
+      "title": "Sweet Violets",
+      "artist": "Dinah Shore",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:05ifAxjJZYzDwC8iyQWChD"
+    },
+    {
+      "title": "The World Is Waiting for the Sunrise",
+      "artist": "Les Paul & Mary Ford",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": "spotify:track:36JEJ923q81GkE88VP5WAD"
+    },
+    {
+      "title": "My Truly, Truly Fair",
+      "artist": "Guy Mitchell",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5UKcLXMxnK07HqmnHCi1C7"
+    },
+    {
+      "title": "(It's No) Sin",
+      "artist": "The Four Aces",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:3eNTnFXB3g3NI2hcJSgTzj"
+    },
+    {
+      "title": "Aba Daba Honeymoon",
+      "artist": "Debbie Reynolds & Carleton Carpenter",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:6stLnIm84oaY2tKgWyxUr8"
+    },
+    {
+      "title": "Rose, Rose, I Love You",
+      "artist": "Frankie Laine",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0CLeeKSZqkgeoVze6W5Iyk"
+    },
+    {
+      "title": "Down Yonder",
+      "artist": "Del Wood",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:3UYeTr8hsTPi5rfKd7zUsm"
+    },
+    {
+      "title": "I Apologize",
+      "artist": "Billy Eckstine",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards",
+        "jazz"
+      ],
+      "uri": "spotify:track:184kqbmjYJoWXwaqNk7BWT"
+    },
+    {
+      "title": "Would I Love You (Love You, Love You)",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0R3wkS8CrDTw3AlpNs3Vvo"
+    },
+    {
+      "title": "You're Just in Love",
+      "artist": "Perry Como & The Fontane Sisters",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:0jVYsBfsxGA7zPurjqnlH8"
+    },
+    {
+      "title": "Undecided",
+      "artist": "The Ames Brothers",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "swing"
+      ],
+      "uri": "spotify:track:2c1VzfHFF9Fzs7KcWNizIJ"
+    },
+    {
+      "title": "Shanghai",
+      "artist": "Doris Day",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6Jw7b9ustOhVYdEOLp7pWh"
+    },
+    {
+      "title": "Mister and Mississippi",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3yuntJ51mc7ue8txWXEfEG"
+    }
+  ]
+}

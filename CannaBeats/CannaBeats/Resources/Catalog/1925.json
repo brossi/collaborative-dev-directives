@@ -1,0 +1,302 @@
+{
+  "module": "year-1925",
+  "name": "Hits of 1925",
+  "source": "Joel Whitburn's Pop Memories 1890-1954 pre-Billboard chart research plus period record-sales and sheet-music popularity compilations",
+  "songs": [
+    {
+      "title": "The Prisoner's Song",
+      "artist": "Vernon Dalhart",
+      "year": 1925,
+      "genres": [
+        "country",
+        "folk"
+      ],
+      "uri": "spotify:track:0uV86vVGZmne3hrTYYPgO8"
+    },
+    {
+      "title": "The Death of Floyd Collins",
+      "artist": "Vernon Dalhart",
+      "year": 1925,
+      "genres": [
+        "country",
+        "folk"
+      ],
+      "uri": "spotify:track:2V9AAqduGyKgj5PIXE6oiq"
+    },
+    {
+      "title": "Yes Sir, That's My Baby",
+      "artist": "Gene Austin",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:2TTdF16Bk3ZBqVj1zwIeEi"
+    },
+    {
+      "title": "Yearning (Just for You)",
+      "artist": "Gene Austin",
+      "year": 1925,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:40eaWDQkDBCxAwRoyvJInw"
+    },
+    {
+      "title": "Sweet Georgia Brown",
+      "artist": "Ben Bernie and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:2sIRuLFWvxktIexVjm1hts"
+    },
+    {
+      "title": "Oh! How I Miss You Tonight",
+      "artist": "Ben Bernie and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:05otO46hmwst2di0TsUhVh"
+    },
+    {
+      "title": "Sleepy Time Gal",
+      "artist": "Ben Bernie and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:0LyD24wWRXAwR1LsPEOKiK"
+    },
+    {
+      "title": "If You Knew Susie",
+      "artist": "Eddie Cantor",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:3U54L1Lr8uF8SKbm7yijgO"
+    },
+    {
+      "title": "Alabamy Bound",
+      "artist": "Al Jolson",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:2A6h4NLScnKZbpDzfLi0n4"
+    },
+    {
+      "title": "All Alone",
+      "artist": "Al Jolson",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:5cxQ0GQfSA0vAkyNvauQsR"
+    },
+    {
+      "title": "I'll See You in My Dreams",
+      "artist": "Isham Jones and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:6BDS8iBwAMBfuBhxJDyS6l"
+    },
+    {
+      "title": "Remember",
+      "artist": "Isham Jones and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tea for Two",
+      "artist": "Marion Harris",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:4GkVod4p1dVG9vHck9OoC2"
+    },
+    {
+      "title": "I Want to Be Happy",
+      "artist": "Vincent Lopez and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:5dTKcAJ21QNNdrWfqlptt4"
+    },
+    {
+      "title": "Show Me the Way to Go Home",
+      "artist": "Vincent Lopez and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:6BDZ7gY8WT9BaVQAljmuWM"
+    },
+    {
+      "title": "Oh, Lady Be Good",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Indian Love Call",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:49CBAob5lITuKnDqjT1AjH"
+    },
+    {
+      "title": "Fascinating Rhythm",
+      "artist": "Cliff Edwards",
+      "year": 1925,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:6VeUBNwlEQvrjiBIYjGAet"
+    },
+    {
+      "title": "Paddlin' Madelin' Home",
+      "artist": "Cliff Edwards",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:0okehB0J7nw7tkcB8EnsRx"
+    },
+    {
+      "title": "Collegiate",
+      "artist": "Fred Waring's Pennsylvanians",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:2EB2Nyj2L4u3ZTiWoOBF02"
+    },
+    {
+      "title": "Don't Bring Lulu",
+      "artist": "Billy Murray",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:4iQMeBeYap4QWkojvHFLxo"
+    },
+    {
+      "title": "Ukulele Lady",
+      "artist": "Vaughn De Leath",
+      "year": 1925,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:29k8IdZteyMerFdedFmmn9"
+    },
+    {
+      "title": "St. Louis Blues",
+      "artist": "Bessie Smith with Louis Armstrong",
+      "year": 1925,
+      "genres": [
+        "blues",
+        "jazz"
+      ],
+      "uri": "spotify:track:4uu1F4n3svGBToDxcnjC0V"
+    },
+    {
+      "title": "See See Rider Blues",
+      "artist": "Ma Rainey",
+      "year": 1925,
+      "genres": [
+        "blues"
+      ],
+      "uri": "spotify:track:5IaL2keUnZoNf1qcp9NdiQ"
+    },
+    {
+      "title": "Brown Eyes, Why Are You Blue?",
+      "artist": "Nick Lucas",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:54W23vfbZEHm9dYjuxZQHR"
+    },
+    {
+      "title": "My Best Girl",
+      "artist": "Nick Lucas",
+      "year": 1925,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6TjjF8yjYJRTP5XUuefdtv"
+    },
+    {
+      "title": "Moonlight and Roses",
+      "artist": "John McCormack",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:6taJ1qB1imHgkxkL307ooV"
+    },
+    {
+      "title": "Manhattan",
+      "artist": "Ben Selvin and His Orchestra",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:7nhVNuAQXvmFycknY24Q7Q"
+    },
+    {
+      "title": "O Katharina!",
+      "artist": "Ted Lewis and His Band",
+      "year": 1925,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": "spotify:track:0qNTnAh28iQp5VgwurcKHH"
+    },
+    {
+      "title": "When You and I Were Seventeen",
+      "artist": "Gene Austin",
+      "year": 1925,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}
