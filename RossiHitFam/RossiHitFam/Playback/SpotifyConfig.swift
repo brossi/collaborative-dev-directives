@@ -6,7 +6,7 @@ enum SpotifyConfig {
 
     /// Must match a Redirect URI registered in the dashboard AND the
     /// URL scheme declared in Config/Info.plist.
-    static let redirectURL = URL(string: "hitsterfam://spotify-callback")!
+    static let redirectURL = URL(string: "rossihitfam://spotify-callback")!
 
     /// Played (briefly visible in the Spotify app) during the one-time
     /// connect handshake. Never a deck song — the Spotify screen shows

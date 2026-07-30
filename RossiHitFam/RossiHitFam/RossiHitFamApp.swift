@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct HitsterFamApp: App {
+struct RossiHitFamApp: App {
     @StateObject private var session = GameSession()
     @StateObject private var player = PlayerModel()
     @Environment(\.scenePhase) private var scenePhase

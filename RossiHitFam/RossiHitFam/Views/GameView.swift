@@ -26,7 +26,7 @@ struct GameView: View {
 
     private var header: some View {
         VStack(spacing: 4) {
-            Text("HITSTER — Family Edition")
+            Text("RossiHitFam")
                 .font(.headline)
             if player.usingStub {
                 Text("STUB PLAYER — add SpotifyiOS.xcframework for real audio")

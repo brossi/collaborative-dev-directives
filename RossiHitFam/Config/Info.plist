@@ -9,10 +9,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.rossinet.hitsterfam.spotify-auth</string>
+			<string>com.rossinet.rossihitfam.spotify-auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>hitsterfam</string>
+				<string>rossihitfam</string>
 			</array>
 		</dict>
 	</array>

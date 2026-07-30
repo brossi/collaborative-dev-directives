@@ -7,17 +7,17 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		CAFE00000000000000000004 /* HitsterFam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HitsterFam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAFE00000000000000000004 /* RossiHitFam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RossiHitFam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CAFE00000000000000000002 /* HitsterFam */ = {
+		CAFE00000000000000000002 /* RossiHitFam */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			explicitFileTypes = {
 			};
 			explicitFolders = (
 			);
-			path = HitsterFam;
+			path = RossiHitFam;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -36,7 +36,7 @@
 		CAFE00000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				CAFE00000000000000000002 /* HitsterFam */,
+				CAFE00000000000000000002 /* RossiHitFam */,
 				CAFE00000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -44,7 +44,7 @@
 		CAFE00000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CAFE00000000000000000004 /* HitsterFam.app */,
+				CAFE00000000000000000004 /* RossiHitFam.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -52,9 +52,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CAFE00000000000000000005 /* HitsterFam */ = {
+		CAFE00000000000000000005 /* RossiHitFam */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "HitsterFam" */;
+			buildConfigurationList = CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "RossiHitFam" */;
 			buildPhases = (
 				CAFE00000000000000000006 /* Sources */,
 				CAFE00000000000000000007 /* Frameworks */,
@@ -65,13 +65,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				CAFE00000000000000000002 /* HitsterFam */,
+				CAFE00000000000000000002 /* RossiHitFam */,
 			);
-			name = HitsterFam;
+			name = RossiHitFam;
 			packageProductDependencies = (
 			);
-			productName = HitsterFam;
-			productReference = CAFE00000000000000000004 /* HitsterFam.app */;
+			productName = RossiHitFam;
+			productReference = CAFE00000000000000000004 /* RossiHitFam.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -89,7 +89,7 @@
 					};
 				};
 			};
-			buildConfigurationList = CAFE0000000000000000000A /* Build configuration list for PBXProject "HitsterFam" */;
+			buildConfigurationList = CAFE0000000000000000000A /* Build configuration list for PBXProject "RossiHitFam" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -103,7 +103,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				CAFE00000000000000000005 /* HitsterFam */,
+				CAFE00000000000000000005 /* RossiHitFam */,
 			);
 		};
 /* End PBXProject section */
@@ -207,7 +207,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.rossinet.hitsterfam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rossinet.rossihitfam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -235,7 +235,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.rossinet.hitsterfam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rossinet.rossihitfam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -246,7 +246,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CAFE0000000000000000000A /* Build configuration list for PBXProject "HitsterFam" */ = {
+		CAFE0000000000000000000A /* Build configuration list for PBXProject "RossiHitFam" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CAFE0000000000000000000B /* Debug */,
@@ -255,7 +255,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "HitsterFam" */ = {
+		CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "RossiHitFam" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CAFE0000000000000000000E /* Debug */,

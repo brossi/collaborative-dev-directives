@@ -1,0 +1,1032 @@
+{
+  "module": "theme-oscar-songs",
+  "name": "Oscar-Winning Songs",
+  "source": "Academy Award Best Original Song winners (1960-2026 ceremonies) plus iconic losing nominees; year = release of the famous film/single recording",
+  "songs": [
+    {
+      "title": "High Hopes",
+      "artist": "Frank Sinatra",
+      "year": 1960,
+      "genres": [
+        "soundtrack",
+        "standards",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Never on Sunday",
+      "artist": "Melina Mercouri",
+      "year": 1960,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moon River",
+      "artist": "Audrey Hepburn",
+      "year": 1961,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Days of Wine and Roses",
+      "artist": "Andy Williams",
+      "year": 1963,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Call Me Irresponsible",
+      "artist": "Frank Sinatra",
+      "year": 1963,
+      "genres": [
+        "soundtrack",
+        "standards",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Chim Chim Cher-ee",
+      "artist": "Dick Van Dyke, Julie Andrews",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Shadow of Your Smile",
+      "artist": "Tony Bennett",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "standards",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Born Free",
+      "artist": "Matt Monro",
+      "year": 1966,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Talk to the Animals",
+      "artist": "Sammy Davis Jr.",
+      "year": 1967,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Windmills of Your Mind",
+      "artist": "Noel Harrison",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Raindrops Keep Fallin' on My Head",
+      "artist": "B.J. Thomas",
+      "year": 1969,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "For All We Know",
+      "artist": "Carpenters",
+      "year": 1971,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Theme from Shaft",
+      "artist": "Isaac Hayes",
+      "year": 1971,
+      "genres": [
+        "soundtrack",
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Morning After",
+      "artist": "Maureen McGovern",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Way We Were",
+      "artist": "Barbra Streisand",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We May Never Love Like This Again",
+      "artist": "Maureen McGovern",
+      "year": 1974,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Easy",
+      "artist": "Keith Carradine",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Evergreen (Love Theme from A Star Is Born)",
+      "artist": "Barbra Streisand",
+      "year": 1976,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Light Up My Life",
+      "artist": "Debby Boone",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Dance",
+      "artist": "Donna Summer",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It Goes Like It Goes",
+      "artist": "Jennifer Warnes",
+      "year": 1979,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fame",
+      "artist": "Irene Cara",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Arthur's Theme (Best That You Can Do)",
+      "artist": "Christopher Cross",
+      "year": 1981,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Up Where We Belong",
+      "artist": "Joe Cocker, Jennifer Warnes",
+      "year": 1982,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Flashdance... What a Feeling",
+      "artist": "Irene Cara",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Just Called to Say I Love You",
+      "artist": "Stevie Wonder",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Say You, Say Me",
+      "artist": "Lionel Richie",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take My Breath Away",
+      "artist": "Berlin",
+      "year": 1986,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(I've Had) The Time of My Life",
+      "artist": "Bill Medley, Jennifer Warnes",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let the River Run",
+      "artist": "Carly Simon",
+      "year": 1988,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Under the Sea",
+      "artist": "Samuel E. Wright",
+      "year": 1989,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sooner or Later",
+      "artist": "Madonna",
+      "year": 1990,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Beauty and the Beast",
+      "artist": "Celine Dion, Peabo Bryson",
+      "year": 1991,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Whole New World",
+      "artist": "Peabo Bryson, Regina Belle",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Streets of Philadelphia",
+      "artist": "Bruce Springsteen",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can You Feel the Love Tonight",
+      "artist": "Elton John",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Colors of the Wind",
+      "artist": "Vanessa Williams",
+      "year": 1995,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Must Love Me",
+      "artist": "Madonna",
+      "year": 1996,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Heart Will Go On",
+      "artist": "Celine Dion",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When You Believe",
+      "artist": "Whitney Houston, Mariah Carey",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You'll Be in My Heart",
+      "artist": "Phil Collins",
+      "year": 1999,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Things Have Changed",
+      "artist": "Bob Dylan",
+      "year": 2000,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If I Didn't Have You",
+      "artist": "Billy Crystal, John Goodman",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "standards",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lose Yourself",
+      "artist": "Eminem",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Into the West",
+      "artist": "Annie Lennox",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Al Otro Lado del Rio",
+      "artist": "Jorge Drexler",
+      "year": 2004,
+      "genres": [
+        "soundtrack",
+        "latin",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's Hard out Here for a Pimp",
+      "artist": "Three 6 Mafia",
+      "year": 2005,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Need to Wake Up",
+      "artist": "Melissa Etheridge",
+      "year": 2006,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Falling Slowly",
+      "artist": "Glen Hansard, Marketa Irglova",
+      "year": 2007,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jai Ho",
+      "artist": "A.R. Rahman, Sukhwinder Singh",
+      "year": 2008,
+      "genres": [
+        "soundtrack",
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Weary Kind",
+      "artist": "Ryan Bingham",
+      "year": 2009,
+      "genres": [
+        "soundtrack",
+        "country",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Belong Together",
+      "artist": "Randy Newman",
+      "year": 2010,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Man or Muppet",
+      "artist": "Jason Segel, Walter",
+      "year": 2011,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Skyfall",
+      "artist": "Adele",
+      "year": 2012,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let It Go",
+      "artist": "Idina Menzel",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Glory",
+      "artist": "Common, John Legend",
+      "year": 2014,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "gospel"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Writing's on the Wall",
+      "artist": "Sam Smith",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "City of Stars",
+      "artist": "Ryan Gosling, Emma Stone",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Remember Me (Duo)",
+      "artist": "Miguel, Natalia Lafourcade",
+      "year": 2017,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shallow",
+      "artist": "Lady Gaga, Bradley Cooper",
+      "year": 2018,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(I'm Gonna) Love Me Again",
+      "artist": "Elton John, Taron Egerton",
+      "year": 2019,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fight for You",
+      "artist": "H.E.R.",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No Time to Die",
+      "artist": "Billie Eilish",
+      "year": 2020,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Naatu Naatu",
+      "artist": "Rahul Sipligunj, Kaala Bhairava",
+      "year": 2022,
+      "genres": [
+        "soundtrack",
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What Was I Made For?",
+      "artist": "Billie Eilish",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "El Mal",
+      "artist": "Zoe Saldana, Karla Sofia Gascon",
+      "year": 2024,
+      "genres": [
+        "soundtrack",
+        "latin",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Golden",
+      "artist": "HUNTR/X, EJAE, AUDREY NUNA, REI AMI",
+      "year": 2025,
+      "genres": [
+        "soundtrack",
+        "k-pop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What's New Pussycat?",
+      "artist": "Tom Jones",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Georgy Girl",
+      "artist": "The Seekers",
+      "year": 1966,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Bare Necessities",
+      "artist": "Phil Harris, Bruce Reitherman",
+      "year": 1967,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ben",
+      "artist": "Michael Jackson",
+      "year": 1972,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Live and Let Die",
+      "artist": "Paul McCartney & Wings",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Theme from Mahogany (Do You Know Where You're Going To)",
+      "artist": "Diana Ross",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gonna Fly Now (Theme from Rocky)",
+      "artist": "Bill Conti",
+      "year": 1976,
+      "genres": [
+        "soundtrack",
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nobody Does It Better",
+      "artist": "Carly Simon",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hopelessly Devoted to You",
+      "artist": "Olivia Newton-John",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Rainbow Connection",
+      "artist": "Kermit the Frog",
+      "year": 1979,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "9 to 5",
+      "artist": "Dolly Parton",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "On the Road Again",
+      "artist": "Willie Nelson",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Endless Love",
+      "artist": "Diana Ross, Lionel Richie",
+      "year": 1981,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Eye of the Tiger",
+      "artist": "Survivor",
+      "year": 1982,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Maniac",
+      "artist": "Michael Sembello",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Footloose",
+      "artist": "Kenny Loggins",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ghostbusters",
+      "artist": "Ray Parker Jr.",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Against All Odds (Take a Look at Me Now)",
+      "artist": "Phil Collins",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Power of Love",
+      "artist": "Huey Lewis & The News",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nothing's Gonna Stop Us Now",
+      "artist": "Starship",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Everything I Do) I Do It for You",
+      "artist": "Bryan Adams",
+      "year": 1991,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Have Nothing",
+      "artist": "Whitney Houston",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Circle of Life",
+      "artist": "Elton John",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Miss a Thing",
+      "artist": "Aerosmith",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Happy",
+      "artist": "Pharrell Williams",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Stop the Feeling!",
+      "artist": "Justin Timberlake",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Far I'll Go",
+      "artist": "Auli'i Cravalho",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Is Me",
+      "artist": "Keala Settle",
+      "year": 2017,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All the Stars",
+      "artist": "Kendrick Lamar, SZA",
+      "year": 2018,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Just Ken",
+      "artist": "Ryan Gosling",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}
