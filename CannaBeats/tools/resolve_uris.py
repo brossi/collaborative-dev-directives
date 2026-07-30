@@ -45,16 +45,23 @@ def get_token(client_id: str, client_secret: str) -> str:
 
 
 def api_get(token: str, url: str) -> dict:
-    for attempt in range(5):
+    for attempt in range(8):
         request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
         try:
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 return json.load(response)
         except urllib.error.HTTPError as error:
-            if error.code == 429:  # rate limited — honor Retry-After
-                time.sleep(int(error.headers.get("Retry-After", 2)) + 1)
+            if error.code == 429:  # rate limited — honor Retry-After, loudly
+                wait = int(error.headers.get("Retry-After", 5)) + 1
+                print(f"  rate limited; sleeping {wait}s (attempt {attempt + 1}/8)",
+                      file=sys.stderr, flush=True)
+                time.sleep(min(wait, 900))
                 continue
             raise
+        except (TimeoutError, OSError) as error:
+            print(f"  network hiccup ({error}); retrying in 10s (attempt {attempt + 1}/8)",
+                  file=sys.stderr, flush=True)
+            time.sleep(10)
     raise RuntimeError(f"gave up on {url}")
 
 
@@ -100,10 +107,16 @@ def main() -> None:
 
     total = resolved = failed = 0
     for path in args.files:
-        module = json.load(open(path))
-        for song in module["songs"]:
-            if song.get("uri"):
-                continue
+        out_path = out_dir / pathlib.Path(path).name
+        # Resume support: if this module was already (partly) resolved, work
+        # from the output file so finished lookups are never repeated.
+        module = json.load(open(out_path if out_path.exists() else path))
+        pending = [s for s in module["songs"] if not s.get("uri")]
+        if not pending:
+            print(f"skip {out_path} (already resolved)", file=sys.stderr, flush=True)
+            continue
+        print(f"resolving {path}: {len(pending)} songs", file=sys.stderr, flush=True)
+        for done, song in enumerate(pending, 1):
             total += 1
             track = best_match(token, song["title"], song["artist"])
             if track:
@@ -111,13 +124,15 @@ def main() -> None:
                 resolved += 1
             else:
                 failed += 1
-                print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}", file=sys.stderr)
-            time.sleep(0.15)  # stay well under rate limits
-        out_path = out_dir / pathlib.Path(path).name
+                print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}",
+                      file=sys.stderr, flush=True)
+            if done % 10 == 0:
+                print(f"  ...{done}/{len(pending)}", file=sys.stderr, flush=True)
+            time.sleep(0.5)  # ~2 req/s keeps clear of extended rate limiting
         with open(out_path, "w") as handle:
             json.dump(module, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
-        print(f"wrote {out_path}", file=sys.stderr)
+        print(f"wrote {out_path}", file=sys.stderr, flush=True)
     print(f"resolved {resolved}/{total} ({failed} need manual fixes)", file=sys.stderr)
 
 
