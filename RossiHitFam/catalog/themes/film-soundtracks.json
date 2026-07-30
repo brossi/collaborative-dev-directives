@@ -1,0 +1,1352 @@
+{
+  "module": "theme-film-soundtracks",
+  "name": "Movie Soundtracks & Cult Classics",
+  "source": "Curated: signature songs from cult-classic films and movies famous for their music (1960-2025); year is the release year of the recording heard in the film, not the film year",
+  "songs": [
+    {
+      "title": "Stand by Me",
+      "artist": "Ben E. King",
+      "year": 1961,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Green Onions",
+      "artist": "Booker T. & the M.G.'s",
+      "year": 1962,
+      "genres": [
+        "soundtrack",
+        "r&b",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Misirlou",
+      "artist": "Dick Dale & His Del-Tones",
+      "year": 1962,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Twist and Shout",
+      "artist": "The Beatles",
+      "year": 1963,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Goldfinger",
+      "artist": "Shirley Bassey",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Never Can Tell",
+      "artist": "Chuck Berry",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh, Pretty Woman",
+      "artist": "Roy Orbison",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Sound of Silence",
+      "artist": "Simon & Garfunkel",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unchained Melody",
+      "artist": "The Righteous Brothers",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Good, the Bad and the Ugly (Main Title)",
+      "artist": "Ennio Morricone",
+      "year": 1966,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't No Mountain High Enough",
+      "artist": "Marvin Gaye & Tammi Terrell",
+      "year": 1967,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mrs. Robinson",
+      "artist": "Simon & Garfunkel",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Born to Be Wild",
+      "artist": "Steppenwolf",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Weight",
+      "artist": "The Band",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Son of a Preacher Man",
+      "artist": "Dusty Springfield",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everybody's Talkin'",
+      "artist": "Harry Nilsson",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just Dropped In (To See What Condition My Condition Was In)",
+      "artist": "Kenny Rogers & The First Edition",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Raindrops Keep Fallin' on My Head",
+      "artist": "B.J. Thomas",
+      "year": 1969,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Green Bag",
+      "artist": "George Baker Selection",
+      "year": 1969,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Theme from Shaft",
+      "artist": "Isaac Hayes",
+      "year": 1971,
+      "genres": [
+        "soundtrack",
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tiny Dancer",
+      "artist": "Elton John",
+      "year": 1971,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Title Music from A Clockwork Orange",
+      "artist": "Wendy Carlos",
+      "year": 1972,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Superfly",
+      "artist": "Curtis Mayfield",
+      "year": 1972,
+      "genres": [
+        "soundtrack",
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Harder They Come",
+      "artist": "Jimmy Cliff",
+      "year": 1972,
+      "genres": [
+        "soundtrack",
+        "reggae"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stuck in the Middle with You",
+      "artist": "Stealers Wheel",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Live and Let Die",
+      "artist": "Wings",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hooked on a Feeling",
+      "artist": "Blue Swede",
+      "year": 1974,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Come and Get Your Love",
+      "artist": "Redbone",
+      "year": 1974,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bohemian Rhapsody",
+      "artist": "Queen",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Time Warp",
+      "artist": "The Rocky Horror Picture Show Original Cast",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gonna Fly Now (Theme from Rocky)",
+      "artist": "Bill Conti",
+      "year": 1976,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stayin' Alive",
+      "artist": "Bee Gees",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "disco",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Night Fever",
+      "artist": "Bee Gees",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Deep Is Your Love",
+      "artist": "Bee Gees",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lust for Life",
+      "artist": "Iggy Pop",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "punk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mr. Blue Sky",
+      "artist": "Electric Light Orchestra",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're the One That I Want",
+      "artist": "John Travolta & Olivia Newton-John",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Summer Nights",
+      "artist": "John Travolta & Olivia Newton-John",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Old Time Rock and Roll",
+      "artist": "Bob Seger & The Silver Bullet Band",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Call Me",
+      "artist": "Blondie",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "9 to 5",
+      "artist": "Dolly Parton",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everybody Needs Somebody to Love",
+      "artist": "The Blues Brothers",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sweet Home Chicago",
+      "artist": "The Blues Brothers",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Eye of the Tiger",
+      "artist": "Survivor",
+      "year": 1982,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Flashdance... What a Feeling",
+      "artist": "Irene Cara",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Maniac",
+      "artist": "Michael Sembello",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Footloose",
+      "artist": "Kenny Loggins",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Hear It for the Boy",
+      "artist": "Deniece Williams",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Holding Out for a Hero",
+      "artist": "Bonnie Tyler",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Purple Rain",
+      "artist": "Prince & The Revolution",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When Doves Cry",
+      "artist": "Prince & The Revolution",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Go Crazy",
+      "artist": "Prince & The Revolution",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ghostbusters",
+      "artist": "Ray Parker Jr.",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Axel F",
+      "artist": "Harold Faltermeyer",
+      "year": 1984,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't You (Forget About Me)",
+      "artist": "Simple Minds",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "new wave",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Power of Love",
+      "artist": "Huey Lewis & The News",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh Yeah",
+      "artist": "Yello",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "electronic",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Danger Zone",
+      "artist": "Kenny Loggins",
+      "year": 1986,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take My Breath Away",
+      "artist": "Berlin",
+      "year": 1986,
+      "genres": [
+        "soundtrack",
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If You Leave",
+      "artist": "Orchestral Manoeuvres in the Dark",
+      "year": 1986,
+      "genres": [
+        "soundtrack",
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "In Your Eyes",
+      "artist": "Peter Gabriel",
+      "year": 1986,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(I've Had) The Time of My Life",
+      "artist": "Bill Medley & Jennifer Warnes",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hungry Eyes",
+      "artist": "Eric Carmen",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "La Bamba",
+      "artist": "Los Lobos",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Like a Prayer",
+      "artist": "Madonna",
+      "year": 1989,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Everything I Do) I Do It for You",
+      "artist": "Bryan Adams",
+      "year": 1991,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Will Always Love You",
+      "artist": "Whitney Houston",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Have Nothing",
+      "artist": "Whitney Houston",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Streets of Philadelphia",
+      "artist": "Bruce Springsteen",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Regulate",
+      "artist": "Warren G & Nate Dogg",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss from a Rose",
+      "artist": "Seal",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bellbottoms",
+      "artist": "The Jon Spencer Blues Explosion",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gangsta's Paradise",
+      "artist": "Coolio",
+      "year": 1995,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Born Slippy (Nuxx)",
+      "artist": "Underworld",
+      "year": 1995,
+      "genres": [
+        "soundtrack",
+        "electronic",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You've Got a Friend in Me",
+      "artist": "Randy Newman",
+      "year": 1995,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lovefool",
+      "artist": "The Cardigans",
+      "year": 1996,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Heart Will Go On",
+      "artist": "Celine Dion",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Men in Black",
+      "artist": "Will Smith",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bitter Sweet Symphony",
+      "artist": "The Verve",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Miss a Thing",
+      "artist": "Aerosmith",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Iris",
+      "artist": "Goo Goo Dolls",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All Star",
+      "artist": "Smash Mouth",
+      "year": 1999,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bye Bye Bye",
+      "artist": "*NSYNC",
+      "year": 2000,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Am a Man of Constant Sorrow",
+      "artist": "The Soggy Bottom Boys",
+      "year": 2000,
+      "genres": [
+        "soundtrack",
+        "country",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Down to the River to Pray",
+      "artist": "Alison Krauss",
+      "year": 2000,
+      "genres": [
+        "soundtrack",
+        "gospel",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "New Slang",
+      "artist": "The Shins",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Anyone Else but You",
+      "artist": "The Moldy Peaches",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "indie",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mad World",
+      "artist": "Gary Jules & Michael Andrews",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm a Believer",
+      "artist": "Smash Mouth",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Murder on the Dancefloor",
+      "artist": "Sophie Ellis-Bextor",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lose Yourself",
+      "artist": "Eminem",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let Go",
+      "artist": "Frou Frou",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "electronic",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Falling Slowly",
+      "artist": "Glen Hansard & Marketa Irglova",
+      "year": 2007,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jai Ho",
+      "artist": "A.R. Rahman",
+      "year": 2008,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nightcall",
+      "artist": "Kavinsky",
+      "year": 2010,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Safe & Sound",
+      "artist": "Taylor Swift feat. The Civil Wars",
+      "year": 2011,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Skyfall",
+      "artist": "Adele",
+      "year": 2012,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Young and Beautiful",
+      "artist": "Lana Del Rey",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let It Go",
+      "artist": "Idina Menzel",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Happy",
+      "artist": "Pharrell Williams",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "See You Again",
+      "artist": "Wiz Khalifa feat. Charlie Puth",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Me like You Do",
+      "artist": "Ellie Goulding",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Heathens",
+      "artist": "Twenty One Pilots",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "alternative",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Stop the Feeling!",
+      "artist": "Justin Timberlake",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "City of Stars",
+      "artist": "Ryan Gosling & Emma Stone",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Another Day of Sun",
+      "artist": "La La Land Cast",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Is Me",
+      "artist": "Keala Settle & The Greatest Showman Ensemble",
+      "year": 2017,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rewrite the Stars",
+      "artist": "Zac Efron & Zendaya",
+      "year": 2017,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shallow",
+      "artist": "Lady Gaga & Bradley Cooper",
+      "year": 2018,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Always Remember Us This Way",
+      "artist": "Lady Gaga",
+      "year": 2018,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All the Stars",
+      "artist": "Kendrick Lamar & SZA",
+      "year": 2018,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sunflower",
+      "artist": "Post Malone & Swae Lee",
+      "year": 2018,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Husavik",
+      "artist": "Will Ferrell & My Marianne",
+      "year": 2020,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Don't Talk About Bruno",
+      "artist": "Encanto Cast",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Surface Pressure",
+      "artist": "Jessica Darrow",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold My Hand",
+      "artist": "Lady Gaga",
+      "year": 2022,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Ain't Worried",
+      "artist": "OneRepublic",
+      "year": 2022,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dance the Night",
+      "artist": "Dua Lipa",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What Was I Made For?",
+      "artist": "Billie Eilish",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Just Ken",
+      "artist": "Ryan Gosling",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't No Love in Oklahoma",
+      "artist": "Luke Combs",
+      "year": 2024,
+      "genres": [
+        "soundtrack",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Defying Gravity",
+      "artist": "Cynthia Erivo & Ariana Grande",
+      "year": 2024,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Popular",
+      "artist": "Ariana Grande",
+      "year": 2024,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Lied to You",
+      "artist": "Miles Caton",
+      "year": 2025,
+      "genres": [
+        "soundtrack",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lose My Mind",
+      "artist": "Don Toliver feat. Doja Cat",
+      "year": 2025,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Golden",
+      "artist": "HUNTR/X",
+      "year": 2025,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "k-pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Soda Pop",
+      "artist": "Saja Boys",
+      "year": 2025,
+      "genres": [
+        "soundtrack",
+        "k-pop",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}
