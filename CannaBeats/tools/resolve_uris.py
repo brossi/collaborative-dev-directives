@@ -35,13 +35,26 @@ API = "https://api.spotify.com/v1"
 
 def get_token(client_id: str, client_secret: str) -> str:
     credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
-    request = urllib.request.Request(
-        "https://accounts.spotify.com/api/token",
-        data=urllib.parse.urlencode({"grant_type": "client_credentials"}).encode(),
-        headers={"Authorization": f"Basic {credentials}"},
+    last_error = None
+    for attempt in range(4):
+        request = urllib.request.Request(
+            "https://accounts.spotify.com/api/token",
+            data=urllib.parse.urlencode({"grant_type": "client_credentials"}).encode(),
+            headers={"Authorization": f"Basic {credentials}"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.load(response)["access_token"]
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = error
+            print(f"token request failed ({error}); retrying in 5s (attempt {attempt + 1}/4)",
+                  file=sys.stderr, flush=True)
+            time.sleep(5)
+    raise SystemExit(
+        f"could not reach accounts.spotify.com: {last_error}\n"
+        "If you are behind a proxy/VPN, try disabling it for this run — "
+        "the resolver pins the US catalog via market=US and does not need a US IP."
     )
-    with urllib.request.urlopen(request) as response:
-        return json.load(response)["access_token"]
 
 
 def api_get(token: str, url: str) -> dict:
