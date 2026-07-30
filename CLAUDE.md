@@ -21,9 +21,16 @@ Rules for any script or feature that calls an external service in bulk:
 4. **Design for resume.** Bulk jobs write incremental output and skip
    completed work on restart, so an interruption (or penalty) never loses
    progress.
-5. **Assume penalties may outlive the credential.** Extended limiting can be
-   scoped to the account or IP, not just the API key — swapping keys is a
-   diagnostic, not a fix. The reliable fixes are gentler pacing and time.
-6. **Total the request count before running** (items × requests-per-item)
-   and sanity-check it against the service's daily quota; split or sample
-   the job if it's a meaningful fraction of the quota.
+5. **Distinguish rate limits from quotas.** A rate limit (rolling window)
+   is survived by pacing and short sleeps; a quota (daily/long-term budget)
+   is not — a quota 429 means STOP and save state, not sleep-and-retry.
+   Spotify marks these with "reason": "QUOTA_EXCEEDED" and a ~24 h
+   Retry-After; other services have equivalents. Budget-guard bulk jobs so
+   they stop cleanly *before* the quota trips.
+6. **Assume penalties/quotas may be scoped wider than the credential** —
+   per developer account (all its API keys share one budget; Spotify does
+   this as of July 2026) or per IP. Swapping keys within one account is a
+   diagnostic, not a fix.
+7. **Total the request count before running** (items × requests-per-item)
+   and sanity-check it against the service's daily quota; split the job
+   across days/accounts if it's a meaningful fraction of the quota.

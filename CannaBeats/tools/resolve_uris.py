@@ -2,19 +2,25 @@
 """Fill in Spotify track URIs for catalog module files (uri: null -> real URI).
 
 Usage:
-  SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=... \
-    python3 resolve_uris.py catalog/years/*.json --out CannaBeats/Resources/Catalog/
+  python3 resolve_uris.py catalog/years/*.json --out CannaBeats/Resources/Catalog/
 
-For each song with a null uri, searches the Spotify API (market=US) for
-"track:<title> artist:<artist>" and picks the most popular result whose
-title matches. Writes the resolved module to --out (same filename);
-already-resolved URIs are left untouched, so re-runs are incremental.
+Credentials come from SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET (env or .env).
 
-Songs that can't be resolved keep uri: null (the app skips them) and are
-listed on stderr for manual fixing — paste a track link from the Spotify
-app into the JSON as "spotify:track:<id>".
+QUOTA REALITY (researched 2026-07): Spotify development-mode apps have a
+DAILY REQUEST QUOTA, counted per developer account and shared across all of
+that account's client IDs (July 2026 change). Exceeding it returns a 429
+with "reason": "QUOTA_EXCEEDED" and a Retry-After near 24 hours. Pacing
+cannot beat a budget, so this script:
+  - spends at most --budget requests per run (default 400), then stops
+    cleanly; run it again tomorrow (or with another developer account's
+    credentials) and resume continues where it left off,
+  - detects quota-style 429s and exits immediately with state saved,
+    instead of sleeping on a 24-hour Retry-After,
+  - uses one search per song (pass --thorough for a fallback second query).
 
-Run this from a US network location (the deck is curated for US Spotify).
+Songs that can't be matched are marked "unresolved": true (skipped on
+re-runs unless --retry-unresolved) — paste a track link from the Spotify
+app into the JSON as "spotify:track:<id>" for those.
 """
 import argparse
 import base64
@@ -31,6 +37,13 @@ import urllib.request
 from env import load_dotenv
 
 API = "https://api.spotify.com/v1"
+
+requests_made = 0
+
+
+class QuotaExceeded(Exception):
+    def __init__(self, retry_after: int):
+        self.retry_after = retry_after
 
 
 def get_token(client_id: str, client_secret: str) -> str:
@@ -58,21 +71,31 @@ def get_token(client_id: str, client_secret: str) -> str:
 
 
 def api_get(token: str, url: str) -> dict:
-    for attempt in range(8):
+    global requests_made
+    for attempt in range(6):
         request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
         try:
+            requests_made += 1
             with urllib.request.urlopen(request, timeout=30) as response:
                 return json.load(response)
         except urllib.error.HTTPError as error:
-            if error.code == 429:  # rate limited — honor Retry-After, loudly
+            if error.code == 429:
                 wait = int(error.headers.get("Retry-After", 5)) + 1
-                print(f"  rate limited; sleeping {wait}s (attempt {attempt + 1}/8)",
+                body = b""
+                try:
+                    body = error.read()
+                except OSError:
+                    pass
+                # Daily quota, not the rolling rate limit: stop, don't sleep.
+                if b"QUOTA_EXCEEDED" in body or wait > 3600:
+                    raise QuotaExceeded(wait) from None
+                print(f"  rate limited; sleeping {wait}s (attempt {attempt + 1}/6)",
                       file=sys.stderr, flush=True)
-                time.sleep(min(wait, 900))
+                time.sleep(wait)
                 continue
             raise
         except (TimeoutError, OSError) as error:
-            print(f"  network hiccup ({error}); retrying in 10s (attempt {attempt + 1}/8)",
+            print(f"  network hiccup ({error}); retrying in 10s (attempt {attempt + 1}/6)",
                   file=sys.stderr, flush=True)
             time.sleep(10)
     raise RuntimeError(f"gave up on {url}")
@@ -85,11 +108,11 @@ def normalize(text: str) -> str:
     return " ".join(text.split())
 
 
-def best_match(token: str, title: str, artist: str):
+def best_match(token: str, title: str, artist: str, thorough: bool):
     query = urllib.parse.quote(f"track:{title} artist:{artist}")
     result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10")
     items = result.get("tracks", {}).get("items", [])
-    if not items:  # retry without the field filters (covers punctuation quirks)
+    if not items and thorough:  # fallback plain query costs a 2nd request
         query = urllib.parse.quote(f"{title} {artist}")
         result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10")
         items = result.get("tracks", {}).get("items", [])
@@ -107,10 +130,21 @@ def best_match(token: str, title: str, artist: str):
     return scored[0][2]
 
 
+def save(module: dict, out_path: pathlib.Path) -> None:
+    with open(out_path, "w") as handle:
+        json.dump(module, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("files", nargs="+", help="catalog module JSON files")
     parser.add_argument("--out", required=True, help="output directory for resolved modules")
+    parser.add_argument("--budget", type=int, default=400,
+                        help="max API requests this run (default 400 — stay under the "
+                             "per-developer-account daily quota, observed at ~600-1000)")
+    parser.add_argument("--thorough", action="store_true",
+                        help="allow a fallback second search per song (doubles worst-case cost)")
     parser.add_argument("--retry-unresolved", action="store_true",
                         help="re-attempt songs previously marked unresolved "
                              "(default: skip them so re-runs only do new work)")
@@ -126,10 +160,13 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     total = resolved = failed = 0
+    stop_reason = None
     for path in args.files:
+        if stop_reason:
+            break
         out_path = out_dir / pathlib.Path(path).name
-        # Resume support: if this module was already (partly) resolved, work
-        # from the output file so finished lookups are never repeated.
+        # Resume support: work from the output file when it exists so
+        # finished lookups are never repeated.
         module = json.load(open(out_path if out_path.exists() else path))
         pending = [s for s in module["songs"] if not s.get("uri")
                    and (args.retry_unresolved or not s.get("unresolved"))]
@@ -138,10 +175,22 @@ def main() -> None:
             note = f" ({skipped} known-unresolved skipped)" if skipped else ""
             print(f"skip {out_path} (done{note})", file=sys.stderr, flush=True)
             continue
-        print(f"resolving {path}: {len(pending)} songs", file=sys.stderr, flush=True)
+        print(f"resolving {path}: {len(pending)} songs "
+              f"[{requests_made}/{args.budget} requests spent]",
+              file=sys.stderr, flush=True)
         for done, song in enumerate(pending, 1):
+            per_song = 2 if args.thorough else 1
+            if requests_made + per_song > args.budget:
+                stop_reason = f"request budget ({args.budget}) reached"
+                break
             total += 1
-            track = best_match(token, song["title"], song["artist"])
+            try:
+                track = best_match(token, song["title"], song["artist"], args.thorough)
+            except QuotaExceeded as quota:
+                hours = quota.retry_after / 3600
+                stop_reason = (f"daily quota exhausted (Retry-After {quota.retry_after}s "
+                               f"~ {hours:.1f}h) — quota is per developer account")
+                break
             if track:
                 song["uri"] = track["uri"]
                 song.pop("unresolved", None)
@@ -153,12 +202,16 @@ def main() -> None:
                       file=sys.stderr, flush=True)
             if done % 10 == 0:
                 print(f"  ...{done}/{len(pending)}", file=sys.stderr, flush=True)
-            time.sleep(0.5)  # ~2 req/s keeps clear of extended rate limiting
-        with open(out_path, "w") as handle:
-            json.dump(module, handle, indent=2, ensure_ascii=False)
-            handle.write("\n")
+            time.sleep(0.6)  # stay far inside the rolling 30s rate-limit window
+        save(module, out_path)  # partial progress is kept even on early stop
         print(f"wrote {out_path}", file=sys.stderr, flush=True)
-    print(f"resolved {resolved}/{total} ({failed} need manual fixes)", file=sys.stderr)
+    print(f"resolved {resolved}/{total} this run ({failed} marked unresolved; "
+          f"{requests_made} requests spent)", file=sys.stderr)
+    if stop_reason:
+        print(f"STOPPED: {stop_reason}\n"
+              "Progress is saved — re-run later (tomorrow, or with a different "
+              "developer account's credentials) to continue from here.",
+              file=sys.stderr)
 
 
 if __name__ == "__main__":
