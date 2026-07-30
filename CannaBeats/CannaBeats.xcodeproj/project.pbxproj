@@ -7,17 +7,17 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		CAFE00000000000000000004 /* RossiHitFam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RossiHitFam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAFE00000000000000000004 /* CannaBeats.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CannaBeats.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CAFE00000000000000000002 /* RossiHitFam */ = {
+		CAFE00000000000000000002 /* CannaBeats */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			explicitFileTypes = {
 			};
 			explicitFolders = (
 			);
-			path = RossiHitFam;
+			path = CannaBeats;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -36,7 +36,7 @@
 		CAFE00000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				CAFE00000000000000000002 /* RossiHitFam */,
+				CAFE00000000000000000002 /* CannaBeats */,
 				CAFE00000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -44,7 +44,7 @@
 		CAFE00000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CAFE00000000000000000004 /* RossiHitFam.app */,
+				CAFE00000000000000000004 /* CannaBeats.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -52,9 +52,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CAFE00000000000000000005 /* RossiHitFam */ = {
+		CAFE00000000000000000005 /* CannaBeats */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "RossiHitFam" */;
+			buildConfigurationList = CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "CannaBeats" */;
 			buildPhases = (
 				CAFE00000000000000000006 /* Sources */,
 				CAFE00000000000000000007 /* Frameworks */,
@@ -65,13 +65,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				CAFE00000000000000000002 /* RossiHitFam */,
+				CAFE00000000000000000002 /* CannaBeats */,
 			);
-			name = RossiHitFam;
+			name = CannaBeats;
 			packageProductDependencies = (
 			);
-			productName = RossiHitFam;
-			productReference = CAFE00000000000000000004 /* RossiHitFam.app */;
+			productName = CannaBeats;
+			productReference = CAFE00000000000000000004 /* CannaBeats.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -89,7 +89,7 @@
 					};
 				};
 			};
-			buildConfigurationList = CAFE0000000000000000000A /* Build configuration list for PBXProject "RossiHitFam" */;
+			buildConfigurationList = CAFE0000000000000000000A /* Build configuration list for PBXProject "CannaBeats" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -103,7 +103,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				CAFE00000000000000000005 /* RossiHitFam */,
+				CAFE00000000000000000005 /* CannaBeats */,
 			);
 		};
 /* End PBXProject section */
@@ -207,7 +207,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.rossinet.rossihitfam;
+				PRODUCT_BUNDLE_IDENTIFIER = social.cannabeats.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -235,7 +235,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.rossinet.rossihitfam;
+				PRODUCT_BUNDLE_IDENTIFIER = social.cannabeats.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -246,7 +246,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CAFE0000000000000000000A /* Build configuration list for PBXProject "RossiHitFam" */ = {
+		CAFE0000000000000000000A /* Build configuration list for PBXProject "CannaBeats" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CAFE0000000000000000000B /* Debug */,
@@ -255,7 +255,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "RossiHitFam" */ = {
+		CAFE0000000000000000000D /* Build configuration list for PBXNativeTarget "CannaBeats" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CAFE0000000000000000000E /* Debug */,

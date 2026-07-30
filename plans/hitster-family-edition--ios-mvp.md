@@ -9,7 +9,7 @@ next song.
 This is a personal-use app: sideloaded via Xcode, one host phone, no App Store
 release, no backend.
 
-**Status:** scaffolded in [`../RossiHitFam/`](../RossiHitFam/README.md) —
+**Status:** scaffolded in [`../CannaBeats/`](../CannaBeats/README.md) —
 milestone 1 complete (full game loop on a stub player) with the milestone 2/3
 Spotify backend pre-written behind `#if canImport(SpotifyiOS)`. Remaining
 on-Mac steps: signing team, Client ID, drop in the xcframework, verify deck
@@ -109,7 +109,7 @@ Bundle a single `songs.json` in the app:
 Deliberately tiny — three source files of logic, two of views:
 
 ```
-RossiHitFam/
+CannaBeats/
   Models/
     Song.swift            # Codable struct matching songs.json
     GameSession.swift     # ObservableObject: the shuffled deck + cursor
@@ -158,7 +158,7 @@ One screen, three states, big touch targets (this gets used at a dinner table):
 One-time setup (host developer account):
 
 1. Create an app at developer.spotify.com/dashboard → get **Client ID**.
-2. Add a **Redirect URI** (e.g. `rossihitfam://spotify-callback`) and the app's
+2. Add a **Redirect URI** (e.g. `cannabeats://spotify-callback`) and the app's
    **iOS Bundle ID** in the dashboard.
 3. Development mode is fine — only the host's own Premium account authorizes.
 
@@ -166,7 +166,7 @@ In Xcode:
 
 - Add the **SpotifyiOS** framework (xcframework from
   `spotify/ios-sdk` on GitHub; drag-in or SPM if available).
-- `Info.plist`: register the `rossihitfam` URL scheme (for the auth callback)
+- `Info.plist`: register the `cannabeats` URL scheme (for the auth callback)
   and add `spotify` to `LSApplicationQueriesSchemes` (so we can wake the
   Spotify app).
 
@@ -216,7 +216,7 @@ proxy).
 
 Three-stage pipeline:
 
-1. **Research** (`RossiHitFam/catalog/years/`): top ~30 US hit songs per year,
+1. **Research** (`CannaBeats/catalog/years/`): top ~30 US hit songs per year,
    1920–2026 (~3,200 songs; Billboard year-end charts where they exist,
    historical chart compilations for 1920–1945), with chart year and genre
    tags, `uri: null`. Produced by parallel research agents; spot-check the

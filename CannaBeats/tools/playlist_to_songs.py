@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export a Spotify playlist to songs.json rows for RossiHitFam.
+"""Export a Spotify playlist to songs.json rows for CannaBeats.
 
 Usage:
   SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=... \

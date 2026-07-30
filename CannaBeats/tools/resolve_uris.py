@@ -3,7 +3,7 @@
 
 Usage:
   SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=... \
-    python3 resolve_uris.py catalog/years/*.json --out RossiHitFam/Resources/Catalog/
+    python3 resolve_uris.py catalog/years/*.json --out CannaBeats/Resources/Catalog/
 
 For each song with a null uri, searches the Spotify API (market=US) for
 "track:<title> artist:<artist>" and picks the most popular result whose

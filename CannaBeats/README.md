@@ -1,4 +1,4 @@
-# RossiHitFam (iOS)
+# CannaBeats (iOS)
 
 A Hitster-style family music game for iOS: blind playback of
 a shuffled, no-repeat song deck via Spotify, with pause/resume, a game-master
@@ -8,13 +8,13 @@ reveal, and manual advance. Plan and rationale:
 ## Layout
 
 ```
-RossiHitFam.xcodeproj/       Xcode 16 project (folder-synced — files added on
+CannaBeats.xcodeproj/       Xcode 16 project (folder-synced — files added on
                             disk appear in Xcode automatically)
 Config/Info.plist           URL scheme for Spotify auth callback +
                             LSApplicationQueriesSchemes (merged into the
                             generated Info.plist at build time)
-RossiHitFam/
-  RossiHitFamApp.swift       App entry; routes auth callback + scene phase
+CannaBeats/
+  CannaBeatsApp.swift       App entry; routes auth callback + scene phase
   Models/Song.swift         One catalog row (title/artist/year/genres/uri)
   Models/Catalog.swift      Module discovery, dedupe, CatalogFilter (year/genre)
   Models/GameSession.swift  Shuffled no-repeat deck, built from a filter
@@ -35,7 +35,7 @@ tools/playlist_to_songs.py  Playlist → module rows exporter (alt. sourcing)
 
 **Stage A — game loop only (no Spotify needed, works in the simulator):**
 
-1. Open `RossiHitFam.xcodeproj` in **Xcode 16 or newer** (the project uses
+1. Open `CannaBeats.xcodeproj` in **Xcode 16 or newer** (the project uses
    folder-synced groups). Set your signing team under
    Signing & Capabilities.
 2. Run. The app uses the **stub player** (orange banner): the whole game loop —
@@ -43,20 +43,20 @@ tools/playlist_to_songs.py  Playlist → module rows exporter (alt. sourcing)
    to the console instead of making sound.
 
 *Fallback if the project file won't open:* create a fresh iOS App project named
-`RossiHitFam` in Xcode, delete its template sources, drag the `RossiHitFam/`
+`CannaBeats` in Xcode, delete its template sources, drag the `CannaBeats/`
 source folder in, and add the two keys from `Config/Info.plist` to the target's
 Info tab. ~2 minutes.
 
 **Stage B — real audio (device + Spotify app + Premium):**
 
 1. At [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-   create an app. Add Redirect URI `rossihitfam://spotify-callback` and, under
-   iOS settings, the bundle ID `com.rossinet.rossihitfam` (or whatever you
+   create an app. Add Redirect URI `cannabeats://spotify-callback` and, under
+   iOS settings, the bundle ID `social.cannabeats.app` (or whatever you
    changed it to). Development mode is fine.
 2. Paste the Client ID into `Playback/SpotifyConfig.swift`.
 3. Download `SpotifyiOS.xcframework` from the releases at
    [github.com/spotify/ios-sdk](https://github.com/spotify/ios-sdk) and drag it
-   into the project (target: RossiHitFam, **Embed & Sign**). `SpotifyBackend`
+   into the project (target: CannaBeats, **Embed & Sign**). `SpotifyBackend`
    compiles in automatically — the orange stub banner disappears.
 4. Run **on a real iPhone** with the Spotify app installed and logged in to
    Premium. (App Remote cannot work in the simulator — there's no Spotify app
@@ -98,7 +98,7 @@ e.g. a 1990–2026 range so younger players get an even field, per round.
 ```sh
 SPOTIFY_CLIENT_ID=xxx SPOTIFY_CLIENT_SECRET=yyy \
   python3 tools/resolve_uris.py catalog/years/*.json \
-  --out RossiHitFam/Resources/Catalog/
+  --out CannaBeats/Resources/Catalog/
 ```
 
    Unresolved songs stay `uri: null` (the app skips them) and are listed for
