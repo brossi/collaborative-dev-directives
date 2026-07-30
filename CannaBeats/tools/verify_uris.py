@@ -3,32 +3,33 @@
 credentials, no Web API, no developer quota.
 
 Usage:
-  python3 verify_uris.py CannaBeats/Resources/Catalog/*.json [--limit N]
+  python3 tools/verify_uris.py CannaBeats/Resources/Catalog/*.json [--limit N]
+
+Run from the CannaBeats/ directory (the folder containing catalog/ and
+tools/) — or any cwd, as long as the file paths resolve.
 
 For every song with a URI, fetches
 https://open.spotify.com/oembed?url=https://open.spotify.com/track/<id>
 and fuzzy-compares the returned title to ours. Prints MISMATCH and DEAD
 lines for anything suspicious; exits 0 either way (it's a report, not a
-gate). Results are cached in .verify_cache.json next to this script so
-re-runs only check new URIs. Paced at ~2 req/s.
+gate). Titles are cached in .verify_cache.json next to this script: the
+cache saves oEmbed requests on re-runs, but every song's verdict is
+recomputed and re-printed every run — a cached title can still MISMATCH,
+and songs sharing one track ID each get their own comparison. Paced at
+~2 req/s.
 """
 import argparse
 import difflib
 import json
 import pathlib
-import re
 import sys
 import time
 import urllib.parse
 import urllib.request
 
+from _common import norm
+
 CACHE = pathlib.Path(__file__).with_name(".verify_cache.json")
-
-
-def norm(text: str) -> str:
-    text = re.sub(r"[\(\[].*?[\)\]]", "", text.lower())
-    text = re.sub(r"[^a-z0-9 ]", "", text)
-    return " ".join(text.split())
 
 
 def oembed_title(track_id: str):
@@ -44,11 +45,13 @@ def oembed_title(track_id: str):
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("files", nargs="+")
-    parser.add_argument("--limit", type=int, default=0, help="stop after N checks (0 = all)")
+    parser.add_argument("--limit", type=int, default=0,
+                        help="stop after N oEmbed fetches (0 = all; cache hits are free)")
     args = parser.parse_args()
 
     cache = json.loads(CACHE.read_text()) if CACHE.exists() else {}
-    checked = mismatched = dead = 0
+    total = from_cache = fetched = mismatched = dead = 0
+    limit_hit = False
     try:
         for path in args.files:
             module = json.load(open(path))
@@ -58,31 +61,44 @@ def main() -> None:
                     continue
                 track_id = uri.rsplit(":", 1)[-1]
                 if track_id in cache:
+                    title = cache[track_id]
+                    title = None if title == "DEAD" else title
+                    from_cache += 1
+                else:
+                    if args.limit and fetched >= args.limit:
+                        limit_hit = True
+                        raise KeyboardInterrupt
+                    title = oembed_title(track_id)
+                    fetched += 1
+                    if title is None:
+                        cache[track_id] = "DEAD"
+                    elif not title.startswith("ERROR:"):
+                        cache[track_id] = title
+                    time.sleep(0.5)
+                # Verdicts are recomputed every run, cache hit or not — the
+                # cache saves requests, never silences results.
+                if isinstance(title, str) and title.startswith("ERROR:"):
+                    print(f"UNCHECKED {song['title']} — {title}", file=sys.stderr)
                     continue
-                if args.limit and checked >= args.limit:
-                    raise KeyboardInterrupt
-                title = oembed_title(track_id)
-                checked += 1
+                total += 1
                 if title is None:
                     dead += 1
                     print(f"DEAD      {song['year']}  {song['title']} / {song['artist']}  ({uri})")
-                    cache[track_id] = "DEAD"
-                elif isinstance(title, str) and title.startswith("ERROR:"):
-                    print(f"UNCHECKED {song['title']} — {title}", file=sys.stderr)
                 else:
                     ratio = difflib.SequenceMatcher(None, norm(song["title"]), norm(title)).ratio()
                     if ratio < 0.5:
                         mismatched += 1
                         print(f"MISMATCH  {song['year']}  {song['title']} / {song['artist']}"
                               f"  ->  {title}  ({uri})")
-                    cache[track_id] = title
-                time.sleep(0.5)
     except KeyboardInterrupt:
         pass
     finally:
         CACHE.write_text(json.dumps(cache))
-    print(f"checked {checked} new URIs: {mismatched} mismatches, {dead} dead",
-          file=sys.stderr)
+    summary = (f"checked {total} songs ({from_cache} from cache, {fetched} fetched): "
+               f"{mismatched} mismatches, {dead} dead")
+    if limit_hit:
+        summary += f" (stopped at --limit {args.limit})"
+    print(summary, file=sys.stderr)
 
 
 if __name__ == "__main__":

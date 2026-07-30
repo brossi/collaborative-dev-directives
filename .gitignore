@@ -1,0 +1,2 @@
+# Credentials — env.py reads cwd/.env first, so a repo-root .env (from running tools here) must never be committable
+.env

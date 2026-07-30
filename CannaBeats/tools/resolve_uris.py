@@ -2,7 +2,10 @@
 """Fill in Spotify track URIs for catalog module files (uri: null -> real URI).
 
 Usage:
-  python3 resolve_uris.py catalog/years/*.json --out CannaBeats/Resources/Catalog/
+  python3 tools/resolve_uris.py catalog/years/*.json catalog/themes/*.json \
+      --out CannaBeats/Resources/Catalog/
+
+Run from the CannaBeats/ directory (the folder containing catalog/ and tools/).
 
 Credentials come from SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET (env or .env).
 
@@ -18,122 +21,113 @@ cannot beat a budget, so this script:
     instead of sleeping on a 24-hour Retry-After,
   - uses one search per song (pass --thorough for a fallback second query).
 
+Resume is a MERGE: each run always reads the SOURCE file, then overlays any
+non-null URIs and "unresolved" markers from the existing output file (matched
+by title|artist|year, the same identity the app uses). Source edits and new
+songs are therefore always picked up, while previously-paid resolutions are
+never re-spent. Output is written even on crash/Ctrl-C, atomically.
+
 Songs that can't be matched are marked "unresolved": true (skipped on
 re-runs unless --retry-unresolved) — paste a track link from the Spotify
 app into the JSON as "spotify:track:<id>" for those.
 """
 import argparse
-import base64
 import difflib
 import json
 import os
 import pathlib
-import re
 import sys
 import time
 import urllib.parse
-import urllib.request
 
+from _common import (QuotaExceeded, TokenExpired, api_get, counter, get_token,
+                     norm as normalize, primary_artist)
 from env import load_dotenv
 
 API = "https://api.spotify.com/v1"
 
-requests_made = 0
+
+def artist_matches(track: dict, artist: str) -> bool:
+    """True when the candidate track shares at least one normalized artist
+    token with our catalog artist (or its primary artist matches). A wrong
+    artist is the wrong song no matter how well the title scores."""
+    want_tokens = set(normalize(artist).split())
+    want_primary = primary_artist(artist)
+    if not want_tokens and not want_primary:
+        return True  # nothing to compare against ("?" norms to "")
+    for candidate in track.get("artists", []):
+        got = normalize(candidate.get("name", ""))
+        if want_tokens & set(got.split()):
+            return True
+        if want_primary and (got == want_primary or primary_artist(candidate.get("name", "")) == want_primary):
+            return True
+    return False
 
 
-class QuotaExceeded(Exception):
-    def __init__(self, retry_after: int):
-        self.retry_after = retry_after
-
-
-def get_token(client_id: str, client_secret: str) -> str:
-    credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
-    last_error = None
-    for attempt in range(4):
-        request = urllib.request.Request(
-            "https://accounts.spotify.com/api/token",
-            data=urllib.parse.urlencode({"grant_type": "client_credentials"}).encode(),
-            headers={"Authorization": f"Basic {credentials}"},
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                return json.load(response)["access_token"]
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
-            last_error = error
-            print(f"token request failed ({error}); retrying in 5s (attempt {attempt + 1}/4)",
-                  file=sys.stderr, flush=True)
-            time.sleep(5)
-    raise SystemExit(
-        f"could not reach accounts.spotify.com: {last_error}\n"
-        "If you are behind a proxy/VPN, try disabling it for this run — "
-        "the resolver pins the US catalog via market=US and does not need a US IP."
-    )
-
-
-def api_get(token: str, url: str) -> dict:
-    global requests_made
-    for attempt in range(6):
-        request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-        try:
-            requests_made += 1
-            with urllib.request.urlopen(request, timeout=30) as response:
-                return json.load(response)
-        except urllib.error.HTTPError as error:
-            if error.code == 429:
-                wait = int(error.headers.get("Retry-After", 5)) + 1
-                body = b""
-                try:
-                    body = error.read()
-                except OSError:
-                    pass
-                # Daily quota, not the rolling rate limit: stop, don't sleep.
-                if b"QUOTA_EXCEEDED" in body or wait > 3600:
-                    raise QuotaExceeded(wait) from None
-                print(f"  rate limited; sleeping {wait}s (attempt {attempt + 1}/6)",
-                      file=sys.stderr, flush=True)
-                time.sleep(wait)
-                continue
-            raise
-        except (TimeoutError, OSError) as error:
-            print(f"  network hiccup ({error}); retrying in 10s (attempt {attempt + 1}/6)",
-                  file=sys.stderr, flush=True)
-            time.sleep(10)
-    raise RuntimeError(f"gave up on {url}")
-
-
-def normalize(text: str) -> str:
-    text = text.lower()
-    text = re.sub(r"[\(\[].*?[\)\]]", "", text)  # drop (remastered) etc.
-    text = re.sub(r"[^a-z0-9 ]", "", text)
-    return " ".join(text.split())
-
-
-def best_match(token: str, title: str, artist: str, thorough: bool):
-    query = urllib.parse.quote(f"track:{title} artist:{artist}")
-    result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10")
-    items = result.get("tracks", {}).get("items", [])
-    if not items and thorough:  # fallback plain query costs a 2nd request
-        query = urllib.parse.quote(f"{title} {artist}")
-        result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10")
-        items = result.get("tracks", {}).get("items", [])
+def score_items(items, title: str, artist: str):
     want = normalize(title)
     scored = []
     for track in items:
+        if not artist_matches(track, artist):
+            continue
         got = normalize(track["name"])
         similarity = difflib.SequenceMatcher(None, want, got).ratio()
         if similarity < 0.6:
             continue
         scored.append((similarity, track.get("popularity", 0), track))
+    return scored
+
+
+def best_match(token: str, title: str, artist: str, thorough: bool, budget: int):
+    # ':' and '"' are Spotify query syntax; stripped so a title like
+    # "Don't Stop: Part 2" can't break out of the field filter.
+    clean_title = title.replace(":", " ").replace('"', " ")
+    clean_artist = artist.replace(":", " ").replace('"', " ")
+    query = urllib.parse.quote(f"track:{clean_title} artist:{clean_artist}")
+    result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10",
+                     budget=budget)
+    scored = score_items(result.get("tracks", {}).get("items", []), title, artist)
+    if not scored and thorough:  # fallback plain query costs a 2nd request
+        query = urllib.parse.quote(f"{clean_title} {clean_artist}")
+        result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10",
+                         budget=budget)
+        scored = score_items(result.get("tracks", {}).get("items", []), title, artist)
     if not scored:
         return None
     scored.sort(key=lambda s: (round(s[0], 1), s[1]), reverse=True)
     return scored[0][2]
 
 
+def song_key(song: dict) -> str:
+    return f"{song['title']}|{song['artist']}|{song['year']}"
+
+
+def load_merged(path: str, out_path: pathlib.Path) -> dict:
+    """Always load the SOURCE module; overlay paid-for results (non-null
+    URIs, unresolved markers) from a previous output file when one exists."""
+    module = json.load(open(path))
+    if out_path.exists():
+        previous = {song_key(s): s for s in json.load(open(out_path))["songs"]}
+        for song in module["songs"]:
+            prev = previous.get(song_key(song))
+            if not prev:
+                continue
+            if prev.get("uri") and not song.get("uri"):
+                song["uri"] = prev["uri"]
+            if prev.get("unresolved"):
+                song["unresolved"] = True
+    for song in module["songs"]:
+        if song.get("uri"):
+            song.pop("unresolved", None)
+    return module
+
+
 def save(module: dict, out_path: pathlib.Path) -> None:
-    with open(out_path, "w") as handle:
+    tmp = out_path.with_name(out_path.name + ".tmp")
+    with open(tmp, "w") as handle:
         json.dump(module, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
+    os.replace(tmp, out_path)
 
 
 def main() -> None:
@@ -152,61 +146,81 @@ def main() -> None:
 
     load_dotenv()
     client_id = os.environ["SPOTIFY_CLIENT_ID"]
+    client_secret = os.environ["SPOTIFY_CLIENT_SECRET"]
     print(f"using client ID {client_id[:6]}...{client_id[-4:]} "
           "(shell env vars override .env — unset them to switch credentials)",
           file=sys.stderr, flush=True)
-    token = get_token(client_id, os.environ["SPOTIFY_CLIENT_SECRET"])
+    token = get_token(client_id, client_secret)
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     total = resolved = failed = 0
     stop_reason = None
-    for path in args.files:
-        if stop_reason:
-            break
-        out_path = out_dir / pathlib.Path(path).name
-        # Resume support: work from the output file when it exists so
-        # finished lookups are never repeated.
-        module = json.load(open(out_path if out_path.exists() else path))
-        pending = [s for s in module["songs"] if not s.get("uri")
-                   and (args.retry_unresolved or not s.get("unresolved"))]
-        if not pending:
-            skipped = sum(1 for s in module["songs"] if s.get("unresolved"))
-            note = f" ({skipped} known-unresolved skipped)" if skipped else ""
-            print(f"skip {out_path} (done{note})", file=sys.stderr, flush=True)
-            continue
-        print(f"resolving {path}: {len(pending)} songs "
-              f"[{requests_made}/{args.budget} requests spent]",
-              file=sys.stderr, flush=True)
-        for done, song in enumerate(pending, 1):
-            per_song = 2 if args.thorough else 1
-            if requests_made + per_song > args.budget:
-                stop_reason = f"request budget ({args.budget}) reached"
+    try:
+        for path in args.files:
+            if stop_reason:
                 break
-            total += 1
+            out_path = out_dir / pathlib.Path(path).name
+            module = load_merged(path, out_path)
+            pending = [s for s in module["songs"] if not s.get("uri")
+                       and (args.retry_unresolved or not s.get("unresolved"))]
+            if not pending:
+                skipped = sum(1 for s in module["songs"] if s.get("unresolved"))
+                note = f" ({skipped} known-unresolved skipped)" if skipped else ""
+                save(module, out_path)  # keep output in sync with source edits
+                print(f"skip {path} (done{note})", file=sys.stderr, flush=True)
+                continue
+            print(f"resolving {path}: {len(pending)} songs "
+                  f"[{counter.made}/{args.budget} requests spent]",
+                  file=sys.stderr, flush=True)
+            file_done = False
             try:
-                track = best_match(token, song["title"], song["artist"], args.thorough)
-            except QuotaExceeded as quota:
-                hours = quota.retry_after / 3600
-                stop_reason = (f"daily quota exhausted (Retry-After {quota.retry_after}s "
-                               f"~ {hours:.1f}h) — quota is per developer account")
-                break
-            if track:
-                song["uri"] = track["uri"]
-                song.pop("unresolved", None)
-                resolved += 1
-            else:
-                failed += 1
-                song["unresolved"] = True  # skip next run unless --retry-unresolved
-                print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}",
-                      file=sys.stderr, flush=True)
-            if done % 10 == 0:
-                print(f"  ...{done}/{len(pending)}", file=sys.stderr, flush=True)
-            time.sleep(0.6)  # stay far inside the rolling 30s rate-limit window
-        save(module, out_path)  # partial progress is kept even on early stop
-        print(f"wrote {out_path}", file=sys.stderr, flush=True)
+                for done, song in enumerate(pending, 1):
+                    per_song = 2 if args.thorough else 1
+                    if counter.made + per_song > args.budget:
+                        stop_reason = f"request budget ({args.budget}) reached"
+                        break
+                    total += 1
+                    try:
+                        track = best_match(token, song["title"], song["artist"],
+                                           args.thorough, args.budget)
+                    except TokenExpired:
+                        print("access token expired; refreshing", file=sys.stderr, flush=True)
+                        token = get_token(client_id, client_secret)
+                        track = best_match(token, song["title"], song["artist"],
+                                           args.thorough, args.budget)
+                    except QuotaExceeded as quota:
+                        if quota.retry_after == 0:
+                            stop_reason = f"request budget ({args.budget}) reached"
+                        else:
+                            hours = quota.retry_after / 3600
+                            stop_reason = (f"daily quota exhausted (Retry-After "
+                                           f"{quota.retry_after}s ~ {hours:.1f}h) — "
+                                           "quota is per developer account")
+                        break
+                    if track:
+                        song["uri"] = track["uri"]
+                        song.pop("unresolved", None)
+                        resolved += 1
+                    else:
+                        failed += 1
+                        song["unresolved"] = True  # skip next run unless --retry-unresolved
+                        print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}",
+                              file=sys.stderr, flush=True)
+                    if done % 10 == 0:
+                        print(f"  ...{done}/{len(pending)}", file=sys.stderr, flush=True)
+                    time.sleep(0.6)  # stay far inside the rolling 30s rate-limit window
+                else:
+                    file_done = True
+            finally:
+                # ALWAYS save — a crash or Ctrl-C must never lose paid lookups.
+                save(module, out_path)
+                suffix = "" if file_done else " (partial)"
+                print(f"wrote {out_path}{suffix}", file=sys.stderr, flush=True)
+    except KeyboardInterrupt:
+        stop_reason = "interrupted (Ctrl-C)"
     print(f"resolved {resolved}/{total} this run ({failed} marked unresolved; "
-          f"{requests_made} requests spent)", file=sys.stderr)
+          f"{counter.made} requests spent)", file=sys.stderr)
     if stop_reason:
         print(f"STOPPED: {stop_reason}\n"
               "Progress is saved — re-run later (tomorrow, or with a different "

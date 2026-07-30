@@ -2,49 +2,35 @@
 """Export a Spotify playlist to songs.json rows for CannaBeats.
 
 Usage:
-  SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=... \
-    python3 playlist_to_songs.py <playlist_url_or_id> > songs.json
+  python3 playlist_to_songs.py <playlist_url_or_id> > songs.json
 
-Client ID/secret come from the same app you registered at
+Credentials come from SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET (env or
+.env) — the same app you registered at
 https://developer.spotify.com/dashboard (client-credentials flow —
 no user login needed; the playlist must be public).
 
 CAVEAT: `year` is taken from Spotify's *album* release date, which is
-wrong for remasters and compilations. Hand-verify years before game
-night — that step is what makes the game good.
+wrong for remasters and compilations (and null when Spotify has no usable
+date). Hand-verify years before game night — that step is what makes the
+game good.
 """
-import base64
 import json
 import os
-import re
 import sys
+import time
 import urllib.parse
-import urllib.request
 
+from _common import TokenExpired, api_get, get_token, playlist_id
 from env import load_dotenv
-
-
-def get_token(client_id: str, client_secret: str) -> str:
-    credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
-    request = urllib.request.Request(
-        "https://accounts.spotify.com/api/token",
-        data=urllib.parse.urlencode({"grant_type": "client_credentials"}).encode(),
-        headers={"Authorization": f"Basic {credentials}"},
-    )
-    with urllib.request.urlopen(request) as response:
-        return json.load(response)["access_token"]
-
-
-def playlist_id(arg: str) -> str:
-    match = re.search(r"playlist[/:]([A-Za-z0-9]+)", arg)
-    return match.group(1) if match else arg
 
 
 def main() -> None:
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     load_dotenv()
-    token = get_token(os.environ["SPOTIFY_CLIENT_ID"], os.environ["SPOTIFY_CLIENT_SECRET"])
+    client_id = os.environ["SPOTIFY_CLIENT_ID"]
+    client_secret = os.environ["SPOTIFY_CLIENT_SECRET"]
+    token = get_token(client_id, client_secret)
     fields = "next,items(track(name,uri,artists(name),album(release_date)))"
     url = (
         f"https://api.spotify.com/v1/playlists/{playlist_id(sys.argv[1])}/tracks"
@@ -52,22 +38,31 @@ def main() -> None:
     )
     songs = []
     while url:
-        request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-        with urllib.request.urlopen(request) as response:
-            page = json.load(response)
+        try:
+            page = api_get(token, url)
+        except TokenExpired:
+            print("access token expired; refreshing", file=sys.stderr, flush=True)
+            token = get_token(client_id, client_secret)
+            page = api_get(token, url)
         for item in page["items"]:
             track = item.get("track")
             if not track or not track.get("uri", "").startswith("spotify:track:"):
                 continue  # skip local files / episodes / removed tracks
+            date = (track.get("album") or {}).get("release_date") or ""
+            year = int(date[:4]) if date[:4].isdigit() else None
+            if year is None:
+                print(f"WARNING: no release year for {track['name']} — kept with year: null",
+                      file=sys.stderr)
             songs.append(
                 {
                     "title": track["name"],
                     "artist": ", ".join(a["name"] for a in track["artists"]),
-                    "year": int(track["album"]["release_date"][:4]),
+                    "year": year,
                     "uri": track["uri"],
                 }
             )
         url = page.get("next")
+        time.sleep(0.6)  # stay far inside the rolling rate-limit window
     json.dump(songs, sys.stdout, indent=2, ensure_ascii=False)
     print()
 

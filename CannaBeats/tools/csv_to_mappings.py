@@ -6,13 +6,15 @@ Usage:
   python3 csv_to_mappings.py tracks.csv --title name --artist artists \
       --year year --id id > mappings/kaggle600k.jsonl
 
-Column arguments name CSV header columns. --year may instead name a date
-column (YYYY-MM-DD...); the leading year is extracted. --id accepts bare
-22-char IDs, spotify:track: URIs, or open.spotify.com/track/ URLs.
+Column arguments name CSV header columns and are validated against the
+file's actual header. --year may instead name a date column (YYYY-MM-DD...);
+the leading year is extracted. --id accepts bare 22-char IDs,
+spotify:track: URIs, or open.spotify.com/track/ URLs.
 
-Known-good datasets (download on a machine with normal internet):
+Expected columns (verify against your download's header — schemas drift):
   - Kaggle "Spotify Dataset 1921-2020, 600k+ Tracks" (yamaerenay):
       tracks.csv --title name --artist artists --year year --id id
+      (some versions have release_date instead of year — check the header)
   - Kaggle "Spotify Charts" (dhruvildave, 2017-2021 top-200):
       charts.csv --title title --artist artist --year date --id url
   - charts.spotify.com weekly CSV export (2017-present, free login):
@@ -20,12 +22,25 @@ Known-good datasets (download on a machine with normal internet):
       chart week via --fixed-year> --id uri
 """
 import argparse
+import ast
 import csv
 import json
 import re
 import sys
 
 ID = re.compile(r"([0-9A-Za-z]{22})")
+
+
+def flatten_artist(artist: str) -> str:
+    """Kaggle 600k stores artists as "['A', 'B']" — flatten to "A, B"."""
+    try:
+        parsed = ast.literal_eval(artist)
+        if isinstance(parsed, (list, tuple)):
+            return ", ".join(str(p) for p in parsed)
+    except (ValueError, SyntaxError):
+        pass
+    return ", ".join(p[0] or p[1] for p in
+                     re.findall(r"'([^']*)'|\"([^\"]*)\"", artist))
 
 
 def main() -> None:
@@ -42,14 +57,20 @@ def main() -> None:
 
     rows = skipped = 0
     reader = csv.DictReader(open(args.csv_file, encoding="utf-8", errors="replace"))
+    header = reader.fieldnames or []
+    wanted = {"--title": args.title, "--artist": args.artist, "--id": args.id_col}
+    if args.year:
+        wanted["--year"] = args.year
+    missing = [f"{flag} '{name}'" for flag, name in wanted.items() if name not in header]
+    if missing:
+        sys.exit(f"column(s) not in the CSV header: {', '.join(missing)}\n"
+                 f"actual header: {', '.join(header)}")
     for row in reader:
         match = ID.search(row.get(args.id_col) or "")
         title = (row.get(args.title) or "").strip()
         artist = (row.get(args.artist) or "").strip()
-        # Kaggle 600k stores artists as "['A', 'B']" — flatten to "A, B".
         if artist.startswith("[") and artist.endswith("]"):
-            artist = ", ".join(p[0] or p[1] for p in
-                               re.findall(r"'([^']*)'|\"([^\"]*)\"", artist))
+            artist = flatten_artist(artist)
         year = args.fixed_year
         if year is None and args.year:
             raw = (row.get(args.year) or "")[:4]

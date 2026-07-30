@@ -7,3 +7,4 @@ Frameworks/SpotifyiOS.xcframework
 .env
 CannaBeats/Resources/SpotifyClientID.txt
 __pycache__/
+tools/.verify_cache.json
