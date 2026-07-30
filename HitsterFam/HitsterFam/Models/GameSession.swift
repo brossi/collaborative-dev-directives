@@ -9,8 +9,13 @@ final class GameSession: ObservableObject {
     @Published private(set) var index: Int = -1
     @Published var revealed = false
 
-    init(songs: [Song] = Song.loadBundled()) {
-        deck = songs.shuffled()
+    /// The round constraints this session was built with. Future round
+    /// setup UI re-creates the session with a different filter.
+    let filter: CatalogFilter
+
+    init(filter: CatalogFilter = .all, songs: [Song]? = nil) {
+        self.filter = filter
+        deck = (songs ?? Catalog.playable(filter: filter)).shuffled()
     }
 
     var currentSong: Song? {

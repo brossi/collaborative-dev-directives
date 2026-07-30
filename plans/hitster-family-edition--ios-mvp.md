@@ -205,19 +205,31 @@ the corpus (4) is where the real effort and the fun is.
 
 ---
 
-## 7. Corpus building (data task, parallel to milestones 2–3)
+## 7. Corpus building — modular catalog + research pipeline
 
-Fastest workflow:
+The catalog is **modular**: any number of module JSONs in
+`Resources/Catalog/`, discovered and merged at launch. A `CatalogFilter`
+(year range and/or genres) narrows the deck at session build — the seam for
+the future per-round setup UI (date-range handicaps for younger players,
+genre packs). US Spotify availability is assumed (host runs a US-Virginia
+proxy).
 
-1. Build/choose Spotify **playlists** of candidate songs (one per decade works
-   well, and the family can contribute from their phones).
-2. One-off script (any language, Web API client-credentials flow) exports each
-   playlist to JSON rows: title, artist, album release year (as a *first
-   guess*), URI.
-3. **Hand-verify the years** — this is the step that makes the game good.
-   Wikipedia single/album release dates are the reference. Expect to correct
-   10–20% of them.
-4. Concatenate into `songs.json`.
+Three-stage pipeline:
+
+1. **Research** (`HitsterFam/catalog/years/`): top ~30 US hit songs per year,
+   1920–2026 (~3,200 songs; Billboard year-end charts where they exist,
+   historical chart compilations for 1920–1945), with chart year and genre
+   tags, `uri: null`. Produced by parallel research agents; spot-check the
+   pre-1950 years — sources there are thinner.
+2. **Resolve** (`tools/resolve_uris.py`): fills URIs via Spotify search
+   (market=US) using the dashboard app's credentials; unresolved songs stay
+   null (the app skips them) and are listed for manual fixes. Incremental on
+   re-runs.
+3. **Bundle**: copy the resolved module files for the years/themes wanted
+   into `Resources/Catalog/` and rebuild.
+
+`tools/playlist_to_songs.py` remains as an alternative source (family
+playlist → module rows), with the same hand-verify-the-years caveat.
 
 ---
 

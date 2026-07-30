@@ -1,0 +1,25 @@
+{
+  "module": "starter",
+  "name": "Starter Deck",
+  "source": "Hand-picked cross-decade starter set; URIs unverified — regenerate or verify before game night",
+  "songs": [
+    { "title": "Hey Jude", "artist": "The Beatles", "year": 1968, "genres": ["rock", "pop"], "uri": "spotify:track:0aym2LBJBk9DAYuHHutrIl" },
+    { "title": "Bohemian Rhapsody", "artist": "Queen", "year": 1975, "genres": ["rock"], "uri": "spotify:track:7tFiyTwD0nx5a1eklYtX2J" },
+    { "title": "Dancing Queen", "artist": "ABBA", "year": 1976, "genres": ["pop", "disco"], "uri": "spotify:track:0GjEhVFGZW8afUYGChu3Rr" },
+    { "title": "Hotel California", "artist": "Eagles", "year": 1976, "genres": ["rock"], "uri": "spotify:track:40riOy7x9W7GXjyGp4pjAv" },
+    { "title": "Billie Jean", "artist": "Michael Jackson", "year": 1982, "genres": ["pop", "r&b"], "uri": "spotify:track:5ChkMS8OtdzJeqyybCc9R5" },
+    { "title": "Africa", "artist": "Toto", "year": 1982, "genres": ["rock", "pop"], "uri": "spotify:track:2374M0fQpWi3dLnB54qaLX" },
+    { "title": "Take On Me", "artist": "a-ha", "year": 1985, "genres": ["pop", "new wave"], "uri": "spotify:track:2WfaOiMkCvy7F5fcp2zZ8L" },
+    { "title": "Sweet Child O' Mine", "artist": "Guns N' Roses", "year": 1987, "genres": ["rock", "metal"], "uri": "spotify:track:7o2CTH4ctstm8TNelqjb51" },
+    { "title": "Like a Prayer", "artist": "Madonna", "year": 1989, "genres": ["pop"], "uri": "spotify:track:1z3ugFmUKoCzGsI6jdY4Ci" },
+    { "title": "Smells Like Teen Spirit", "artist": "Nirvana", "year": 1991, "genres": ["rock", "grunge"], "uri": "spotify:track:5ghIJDpPoe3CfHMGu71E6T" },
+    { "title": "Losing My Religion", "artist": "R.E.M.", "year": 1991, "genres": ["alternative", "rock"], "uri": "spotify:track:31AOj9sFz2gM0O3hMARRBx" },
+    { "title": "Wonderwall", "artist": "Oasis", "year": 1995, "genres": ["rock", "alternative"], "uri": "spotify:track:5qqabIl2vWzo9ApSC317sa" },
+    { "title": "Hey Ya!", "artist": "OutKast", "year": 2003, "genres": ["hip-hop", "funk"], "uri": "spotify:track:2PpruBYCo4H7WOBJ7Q2EwM" },
+    { "title": "Mr. Brightside", "artist": "The Killers", "year": 2004, "genres": ["rock", "indie"], "uri": "spotify:track:003vvx7Niy0yvhvHt4a68B" },
+    { "title": "Rolling in the Deep", "artist": "Adele", "year": 2010, "genres": ["pop", "soul"], "uri": "spotify:track:4OSBTYWVwsQhGLF9NHvIbR" },
+    { "title": "Royals", "artist": "Lorde", "year": 2013, "genres": ["pop", "indie"], "uri": "spotify:track:2dLLR6qlu5UJ5gk0dKz0h3" },
+    { "title": "Uptown Funk", "artist": "Mark Ronson feat. Bruno Mars", "year": 2014, "genres": ["funk", "pop"], "uri": "spotify:track:32OlwWuMpZ6b0aN2RZOeMS" },
+    { "title": "Blinding Lights", "artist": "The Weeknd", "year": 2019, "genres": ["pop", "electronic"], "uri": "spotify:track:0VjIjW4GlUZAMYd2vXMi3b" }
+  ]
+}

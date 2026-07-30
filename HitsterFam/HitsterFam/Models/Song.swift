@@ -1,24 +1,19 @@
 import Foundation
 
-struct Song: Identifiable, Codable, Equatable {
+struct Song: Identifiable, Codable, Equatable, Hashable {
     let title: String
     let artist: String
-    /// Original release year — hand-verified, never trusted from Spotify
-    /// album metadata (remasters/compilations lie).
+    /// Original release / chart year — hand-verified, never trusted from
+    /// Spotify album metadata (remasters/compilations lie).
     let year: Int
+    /// Lowercase genre tags (e.g. "pop", "hip-hop") used for round filters.
+    let genres: [String]?
     /// Spotify track URI, e.g. "spotify:track:4uLU6hMCjMI75M1A2tKUQC".
-    let uri: String
+    /// nil in raw research catalogs; filled by tools/resolve_uris.py.
+    /// Songs without a URI are excluded from play (Catalog.playable).
+    let uri: String?
 
-    var id: String { uri }
+    var id: String { "\(title)|\(artist)|\(year)" }
 
-    static func loadBundled() -> [Song] {
-        guard let url = Bundle.main.url(forResource: "songs", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let songs = try? JSONDecoder().decode([Song].self, from: data)
-        else {
-            assertionFailure("songs.json missing or malformed")
-            return []
-        }
-        return songs
-    }
+    var genreSet: Set<String> { Set(genres ?? []) }
 }

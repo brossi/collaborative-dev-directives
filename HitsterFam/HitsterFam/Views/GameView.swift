@@ -103,8 +103,8 @@ struct GameView: View {
     }
 
     private func drawAndPlay() {
-        guard let song = session.drawNext() else { return }
-        player.play(uri: song.uri)
+        guard let uri = session.drawNext()?.uri else { return }
+        player.play(uri: uri)
     }
 
     private func bigButton(_ title: String,

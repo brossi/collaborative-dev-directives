@@ -15,16 +15,20 @@ Config/Info.plist           URL scheme for Spotify auth callback +
                             generated Info.plist at build time)
 HitsterFam/
   HitsterFamApp.swift       App entry; routes auth callback + scene phase
-  Models/Song.swift         Codable row of songs.json
-  Models/GameSession.swift  Shuffled no-repeat deck
+  Models/Song.swift         One catalog row (title/artist/year/genres/uri)
+  Models/Catalog.swift      Module discovery, dedupe, CatalogFilter (year/genre)
+  Models/GameSession.swift  Shuffled no-repeat deck, built from a filter
   Playback/PlayerModel.swift    UI-facing facade + reconnect-before-action guard
   Playback/StubBackend.swift    Fake player (logs) — active until SpotifyiOS added
   Playback/SpotifyBackend.swift Real App Remote backend (#if canImport(SpotifyiOS))
   Playback/SpotifyConfig.swift  ← paste your Client ID here
   Views/GameView.swift      The one screen (connect / hidden song / reveal)
   Views/RevealCard.swift    Title / artist / big year
-  Resources/songs.json      The starter deck (18 songs)
-tools/playlist_to_songs.py  Playlist → songs.json exporter (corpus building)
+  Resources/Catalog/        Playable module packs bundled into the app
+catalog/years/              Research output: top ~30 US hits per year,
+                            1920-2026, uri: null until resolved
+tools/resolve_uris.py       Fills URIs via Spotify search (market=US)
+tools/playlist_to_songs.py  Playlist → module rows exporter (alt. sourcing)
 ```
 
 ## Getting it running
@@ -62,27 +66,50 @@ First "Connect Spotify" bounces to the Spotify app once, plays the warm-up
 track, and returns. Every song after that starts in the background — the app
 never leaves the screen, so nothing is ever visible to cover.
 
-## The deck (`Resources/songs.json`)
+## The catalog (modular)
+
+The catalog is a set of **module files** — any number of JSONs in
+`Resources/Catalog/`; the app discovers, merges, and dedupes them at launch.
+A module is a per-year pack, a genre pack, a theme pack — same schema:
 
 ```json
-{ "title": "…", "artist": "…", "year": 1985, "uri": "spotify:track:…" }
+{
+  "module": "year-1985",
+  "name": "Hits of 1985",
+  "source": "Billboard Year-End Hot 100, 1985 (top 30)",
+  "songs": [
+    { "title": "…", "artist": "…", "year": 1985, "genres": ["pop"], "uri": "spotify:track:…" }
+  ]
+}
 ```
 
-- `year` must be the **original release year**, hand-verified (Wikipedia).
-  Never trust Spotify album dates — remasters and compilations lie.
-- ⚠️ **Verify the starter deck's URIs before game night.** They were filled in
-  from memory and some may be wrong or region-locked. Quickest check: play
-  through the deck once in stub-free mode; a wrong URI simply errors/skips.
-  Best fix: rebuild the deck from your own playlist:
+`CatalogFilter` (year range and/or genres) already narrows the deck at
+session build; the future round-setup UI is just controls over that filter —
+e.g. a 1990–2026 range so younger players get an even field, per round.
+
+### Pipeline: research → resolve → bundle
+
+1. **Research** (`catalog/years/`): top ~30 US hits per year, 1920–2026, with
+   hand-assigned years and genres, `uri: null`. This is source data — not
+   bundled directly.
+2. **Resolve** — fill URIs via Spotify search (run from a US IP; needs the
+   dashboard app's client ID/secret):
 
 ```sh
 SPOTIFY_CLIENT_ID=xxx SPOTIFY_CLIENT_SECRET=yyy \
-  python3 tools/playlist_to_songs.py https://open.spotify.com/playlist/XYZ \
-  > HitsterFam/Resources/songs.json
+  python3 tools/resolve_uris.py catalog/years/*.json \
+  --out HitsterFam/Resources/Catalog/
 ```
 
-then hand-fix the years. A good real deck is 150–300 songs spread across
-decades; family members can contribute to the playlist from their own phones.
+   Unresolved songs stay `uri: null` (the app skips them) and are listed for
+   manual fixing. Re-runs are incremental — already-resolved URIs are kept.
+3. **Bundle** — resolved modules land in `Resources/Catalog/`; rebuild the
+   app. Ship only the years you want by copying only those files.
+
+- `year` is the **chart year**, hand-verified. Never trust Spotify album
+  dates — remasters and compilations lie.
+- ⚠️ The starter module's URIs were filled in from memory — verify or replace
+  them (running the resolver over `starter.json` fixes them too).
 
 ## Game-night notes
 
