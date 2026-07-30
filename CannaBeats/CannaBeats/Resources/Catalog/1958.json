@@ -1,0 +1,302 @@
+{
+  "module": "year-1958",
+  "name": "Hits of 1958",
+  "source": "Billboard year-end top 50 singles chart, 1958 (top 30)",
+  "songs": [
+    {
+      "title": "Volare (Nel blu dipinto di blu)",
+      "artist": "Domenico Modugno",
+      "year": 1958,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All I Have to Do Is Dream",
+      "artist": "The Everly Brothers",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:7dblNGnRXEBrVJunazs2U5"
+    },
+    {
+      "title": "Don't",
+      "artist": "Elvis Presley",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Witch Doctor",
+      "artist": "David Seville",
+      "year": 1958,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Patricia",
+      "artist": "Perez Prado",
+      "year": 1958,
+      "genres": [
+        "latin",
+        "pop"
+      ],
+      "uri": "spotify:track:2bwhOdCOLgQ8v6xStAqnju"
+    },
+    {
+      "title": "Sail Along, Silv'ry Moon",
+      "artist": "Billy Vaughn",
+      "year": 1958,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Catch a Falling Star",
+      "artist": "Perry Como",
+      "year": 1958,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tequila",
+      "artist": "The Champs",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's All in the Game",
+      "artist": "Tommy Edwards",
+      "year": 1958,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:2lmPUdIdzlFH64PWJrw6Zb"
+    },
+    {
+      "title": "Return to Me",
+      "artist": "Dean Martin",
+      "year": 1958,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:6YAgmqaeo8Fm3pne8OJEBo"
+    },
+    {
+      "title": "It's Only Make Believe",
+      "artist": "Conway Twitty",
+      "year": 1958,
+      "genres": [
+        "country",
+        "rock"
+      ],
+      "uri": "spotify:track:1xVOttVNT27FBTD8iHjOfU"
+    },
+    {
+      "title": "The Purple People Eater",
+      "artist": "Sheb Wooley",
+      "year": 1958,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": "spotify:track:0WkZQPNC0c7yrsMX1arVAd"
+    },
+    {
+      "title": "Bird Dog",
+      "artist": "The Everly Brothers",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": "spotify:track:2ZCkqAo0tzzCVOth7ityh5"
+    },
+    {
+      "title": "Get a Job",
+      "artist": "The Silhouettes",
+      "year": 1958,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Star",
+      "artist": "The Elegants",
+      "year": 1958,
+      "genres": [
+        "doo-wop",
+        "pop"
+      ],
+      "uri": "spotify:track:3c7KT5CN8uYRaK3xThhdYt"
+    },
+    {
+      "title": "Twilight Time",
+      "artist": "The Platters",
+      "year": 1958,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stood Up",
+      "artist": "Ricky Nelson",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "rockabilly"
+      ],
+      "uri": null
+    },
+    {
+      "title": "He's Got the Whole World in His Hands",
+      "artist": "Laurie London",
+      "year": 1958,
+      "genres": [
+        "gospel",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Secretly",
+      "artist": "Jimmie Rodgers",
+      "year": 1958,
+      "genres": [
+        "pop",
+        "folk"
+      ],
+      "uri": "spotify:track:4jDVGv8E9MWWcVJJPl22t3"
+    },
+    {
+      "title": "At the Hop",
+      "artist": "Danny & The Juniors",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Yakety Yak",
+      "artist": "The Coasters",
+      "year": 1958,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": "spotify:track:7demHL0GXA6YmTNqw3Btz8"
+    },
+    {
+      "title": "Wear My Ring Around Your Neck",
+      "artist": "Elvis Presley",
+      "year": 1958,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rockin' Robin",
+      "artist": "Bobby Day",
+      "year": 1958,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": "spotify:track:4FlYcJnfkeBpowEHJ72Bmt"
+    },
+    {
+      "title": "Poor Little Fool",
+      "artist": "Ricky Nelson",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:5ayybTSXNwcarDtxQKqvWX"
+    },
+    {
+      "title": "A Wonderful Time Up There",
+      "artist": "Pat Boone",
+      "year": 1958,
+      "genres": [
+        "pop",
+        "gospel"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just a Dream",
+      "artist": "Jimmy Clanton",
+      "year": 1958,
+      "genres": [
+        "rock",
+        "r&b"
+      ],
+      "uri": "spotify:track:5wXrG4NXZV0GgvGtqOJdwl"
+    },
+    {
+      "title": "Sugartime",
+      "artist": "The McGuire Sisters",
+      "year": 1958,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tom Dooley",
+      "artist": "The Kingston Trio",
+      "year": 1958,
+      "genres": [
+        "folk"
+      ],
+      "uri": "spotify:track:2qLxtO0iaFGI9x19vU3bDI"
+    },
+    {
+      "title": "Sweet Little Sixteen",
+      "artist": "Chuck Berry",
+      "year": 1958,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Topsy II",
+      "artist": "Cozy Cole",
+      "year": 1958,
+      "genres": [
+        "jazz",
+        "r&b"
+      ],
+      "uri": "spotify:track:7wKOWJBWY9IVP04YB5L3Ms"
+    }
+  ]
+}

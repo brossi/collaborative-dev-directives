@@ -1,0 +1,310 @@
+{
+  "module": "year-1985",
+  "name": "Hits of 1985",
+  "source": "Billboard Year-End Hot 100, 1985 (top 30)",
+  "songs": [
+    {
+      "title": "Careless Whisper",
+      "artist": "Wham! featuring George Michael",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Like a Virgin",
+      "artist": "Madonna",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:1ZPlNanZsJSPK5h9YZZFbZ"
+    },
+    {
+      "title": "Wake Me Up Before You Go-Go",
+      "artist": "Wham!",
+      "year": 1985,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5XsMz0YfEaHZE0MTb1aujs"
+    },
+    {
+      "title": "I Want to Know What Love Is",
+      "artist": "Foreigner",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:1JLn8RhQzHz3qDqsChcmBl"
+    },
+    {
+      "title": "I Feel for You",
+      "artist": "Chaka Khan",
+      "year": 1985,
+      "genres": [
+        "r&b",
+        "funk",
+        "dance"
+      ],
+      "uri": "spotify:track:5yR9u8QiOt8hJaddv32oo7"
+    },
+    {
+      "title": "Out of Touch",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everybody Wants to Rule the World",
+      "artist": "Tears for Fears",
+      "year": 1985,
+      "genres": [
+        "new wave",
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:4RvWPyQ5RL0ao9LPZeSouE"
+    },
+    {
+      "title": "Money for Nothing",
+      "artist": "Dire Straits",
+      "year": 1985,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:4yqtwO7MQIIXqoiRBPHAgR"
+    },
+    {
+      "title": "Crazy for You",
+      "artist": "Madonna",
+      "year": 1985,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6B4oVElDIKRNcNUary0WG7"
+    },
+    {
+      "title": "Take On Me",
+      "artist": "a-ha",
+      "year": 1985,
+      "genres": [
+        "new wave",
+        "pop",
+        "electronic"
+      ],
+      "uri": "spotify:track:2WfaOiMkCvy7F5fcp2zZ8L"
+    },
+    {
+      "title": "Everytime You Go Away",
+      "artist": "Paul Young",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:0IpfTMKENGLJcULkMnU8Rb"
+    },
+    {
+      "title": "Easy Lover",
+      "artist": "Philip Bailey and Phil Collins",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "rock",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Fight This Feeling",
+      "artist": "REO Speedwagon",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:5WwqdeavrQrbeAMDxGawse"
+    },
+    {
+      "title": "We Built This City",
+      "artist": "Starship",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:6OnfBiiSc9RGKiBKKtZXgQ"
+    },
+    {
+      "title": "The Power of Love",
+      "artist": "Huey Lewis and the News",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:2olVm1lHicpveMAo4AUDRB"
+    },
+    {
+      "title": "Don't You (Forget About Me)",
+      "artist": "Simple Minds",
+      "year": 1985,
+      "genres": [
+        "new wave",
+        "rock",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:3fH4KjXFYMmljxrcGrbPj9"
+    },
+    {
+      "title": "Cherish",
+      "artist": "Kool & the Gang",
+      "year": 1985,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:5G518Bm1JGyFZx77nJIimf"
+    },
+    {
+      "title": "St. Elmo's Fire (Man in Motion)",
+      "artist": "John Parr",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:1A2PWRltFrX8iB8IP3CUgo"
+    },
+    {
+      "title": "The Heat Is On",
+      "artist": "Glenn Frey",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:0PXw9NKvolWTo7U9JkNzmc"
+    },
+    {
+      "title": "We Are the World",
+      "artist": "USA for Africa",
+      "year": 1985,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shout",
+      "artist": "Tears for Fears",
+      "year": 1985,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": "spotify:track:2gQaQUhDCNGfBVXTvxAmXQ"
+    },
+    {
+      "title": "Part-Time Lover",
+      "artist": "Stevie Wonder",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Saving All My Love for You",
+      "artist": "Whitney Houston",
+      "year": 1985,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:1lx8ddGT5wCD6W2xmLeRKG"
+    },
+    {
+      "title": "Heaven",
+      "artist": "Bryan Adams",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:7Ewz6bJ97vUqk5HdkvguFQ"
+    },
+    {
+      "title": "Everything She Wants",
+      "artist": "Wham!",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:5hXEcqQhEjfZdbIZLO8mf2"
+    },
+    {
+      "title": "Cool It Now",
+      "artist": "New Edition",
+      "year": 1985,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:5LkcAjqj5NOctNGi2qUjlw"
+    },
+    {
+      "title": "Miami Vice Theme",
+      "artist": "Jan Hammer",
+      "year": 1985,
+      "genres": [
+        "electronic",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:2UoF4VlADu3IkPCR6LGkpS"
+    },
+    {
+      "title": "Loverboy",
+      "artist": "Billy Ocean",
+      "year": 1985,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lovergirl",
+      "artist": "Teena Marie",
+      "year": 1985,
+      "genres": [
+        "r&b",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Belong to the City",
+      "artist": "Glenn Frey",
+      "year": 1985,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:0b8eSsBka9epA2J0wnPMax"
+    }
+  ]
+}

@@ -1,0 +1,293 @@
+{
+  "module": "year-2000",
+  "name": "Hits of 2000",
+  "source": "Billboard Year-End Hot 100, 2000 (top 30)",
+  "songs": [
+    {
+      "title": "Breathe",
+      "artist": "Faith Hill",
+      "year": 2000,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:3y4LxiYMgDl4RethdzpmNe"
+    },
+    {
+      "title": "Smooth",
+      "artist": "Santana featuring Rob Thomas",
+      "year": 2000,
+      "genres": [
+        "rock",
+        "latin"
+      ],
+      "uri": "spotify:track:0n2SEXB2qoRQg171q7XqeW"
+    },
+    {
+      "title": "Maria Maria",
+      "artist": "Santana featuring The Product G&B",
+      "year": 2000,
+      "genres": [
+        "latin",
+        "r&b"
+      ],
+      "uri": "spotify:track:3XKIUb7HzIF1Vu9usunMzc"
+    },
+    {
+      "title": "I Wanna Know",
+      "artist": "Joe",
+      "year": 2000,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:1m2xMsxbtxv21Brome189p"
+    },
+    {
+      "title": "Everything You Want",
+      "artist": "Vertical Horizon",
+      "year": 2000,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:4cKGldbhGJniI8BrB3K6tb"
+    },
+    {
+      "title": "Say My Name",
+      "artist": "Destiny's Child",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:7H6ev70Weq6DdpZyyTmUXk"
+    },
+    {
+      "title": "I Knew I Loved You",
+      "artist": "Savage Garden",
+      "year": 2000,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6nozDLxeL0TE4MS9GqYU1v"
+    },
+    {
+      "title": "Amazed",
+      "artist": "Lonestar",
+      "year": 2000,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:6iNcyWk5iUEY7P9zeTc5hm"
+    },
+    {
+      "title": "Bent",
+      "artist": "Matchbox Twenty",
+      "year": 2000,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:6fA7akEuTUL3dW1V0GELaZ"
+    },
+    {
+      "title": "He Wasn't Man Enough",
+      "artist": "Toni Braxton",
+      "year": 2000,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:7f1Dmr246cJ9uQYdbplTbh"
+    },
+    {
+      "title": "Higher",
+      "artist": "Creed",
+      "year": 2000,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:1ZozJfi8u9cO2Ob8KwiwNT"
+    },
+    {
+      "title": "Try Again",
+      "artist": "Aaliyah",
+      "year": 2000,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:52IKUZIr66lMvy7COxmG9x"
+    },
+    {
+      "title": "Jumpin', Jumpin'",
+      "artist": "Destiny's Child",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:4pmc2AxSEq6g7hPVlJCPyP"
+    },
+    {
+      "title": "Thong Song",
+      "artist": "Sisqó",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kryptonite",
+      "artist": "3 Doors Down",
+      "year": 2000,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:6ZOBP3NvffbU4SZcrnt1k6"
+    },
+    {
+      "title": "There You Go",
+      "artist": "Pink",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Music",
+      "artist": "Madonna",
+      "year": 2000,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:2BcOZ4vOeu2qZowIHrvTYy"
+    },
+    {
+      "title": "Doesn't Really Matter",
+      "artist": "Janet Jackson",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What a Girl Wants",
+      "artist": "Christina Aguilera",
+      "year": 2000,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:5bGmuxShUba9maPswDnhCs"
+    },
+    {
+      "title": "Back at One",
+      "artist": "Brian McKnight",
+      "year": 2000,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:6mwA6YiKDjAUG8kWvRRUPh"
+    },
+    {
+      "title": "Bye Bye Bye",
+      "artist": "NSYNC",
+      "year": 2000,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:62bOmKYxYg7dhrC6gH9vFn"
+    },
+    {
+      "title": "You Sang to Me",
+      "artist": "Marc Anthony",
+      "year": 2000,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:2dwhMQsFeHr2S787WxqAqW"
+    },
+    {
+      "title": "I Need to Know",
+      "artist": "Marc Anthony",
+      "year": 2000,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:7ffwRz8lZyDOE4Vj58Lo72"
+    },
+    {
+      "title": "Get It On Tonite",
+      "artist": "Montell Jordan",
+      "year": 2000,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:0AcLrSfAEBQcUnHOTm5pXg"
+    },
+    {
+      "title": "Incomplete",
+      "artist": "Sisqó",
+      "year": 2000,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Try",
+      "artist": "Macy Gray",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": "spotify:track:5TAf4lnZCZTLlZHNZMLFLi"
+    },
+    {
+      "title": "It's Gonna Be Me",
+      "artist": "NSYNC",
+      "year": 2000,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That's the Way It Is",
+      "artist": "Celine Dion",
+      "year": 2000,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5s4catxeZsaWFnOrvrXZHf"
+    },
+    {
+      "title": "Country Grammar",
+      "artist": "Nelly",
+      "year": 2000,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2Lg4kvhOrPhpGEZmSe7VAN"
+    },
+    {
+      "title": "Bring It All to Me",
+      "artist": "Blaque",
+      "year": 2000,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:1cjBan0t4eBk2Y5j17hdyf"
+    }
+  ]
+}

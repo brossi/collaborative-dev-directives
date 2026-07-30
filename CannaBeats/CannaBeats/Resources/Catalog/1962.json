@@ -1,0 +1,302 @@
+{
+  "module": "year-1962",
+  "name": "Hits of 1962",
+  "source": "Billboard Year-End Hot 100, 1962 (top 30)",
+  "songs": [
+    {
+      "title": "Stranger on the Shore",
+      "artist": "Mr. Acker Bilk",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": "spotify:track:39e0LjVC05qRY15TMmWGMN"
+    },
+    {
+      "title": "I Can't Stop Loving You",
+      "artist": "Ray Charles",
+      "year": 1962,
+      "genres": [
+        "soul",
+        "country"
+      ],
+      "uri": "spotify:track:79nJj5dMyTsUzKvN5jUXsJ"
+    },
+    {
+      "title": "Mashed Potato Time",
+      "artist": "Dee Dee Sharp",
+      "year": 1962,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:6jouZcdraQvsbh7SWkLEui"
+    },
+    {
+      "title": "Roses Are Red (My Love)",
+      "artist": "Bobby Vinton",
+      "year": 1962,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0qYok0f8O5DE8yJSo146dn"
+    },
+    {
+      "title": "The Stripper",
+      "artist": "David Rose",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Johnny Angel",
+      "artist": "Shelley Fabares",
+      "year": 1962,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5j4CGIpT35ipZrF93ejrhl"
+    },
+    {
+      "title": "The Loco-Motion",
+      "artist": "Little Eva",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:5xzdDMhFYiuUONB0Mha9VS"
+    },
+    {
+      "title": "Let Me In",
+      "artist": "The Sensations",
+      "year": 1962,
+      "genres": [
+        "r&b",
+        "doo-wop"
+      ],
+      "uri": "spotify:track:5akXAXqDNFpIUd4rHHTM7l"
+    },
+    {
+      "title": "Soldier Boy",
+      "artist": "The Shirelles",
+      "year": 1962,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:6g4Oyy8IwraOjPl7nqnROq"
+    },
+    {
+      "title": "Hey! Baby",
+      "artist": "Bruce Channel",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:0obIo2GEab6qqms6t3JaMY"
+    },
+    {
+      "title": "Duke of Earl",
+      "artist": "Gene Chandler",
+      "year": 1962,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": "spotify:track:6Hy22YDN9HJMRlJP1LwnJy"
+    },
+    {
+      "title": "Breaking Up Is Hard to Do",
+      "artist": "Neil Sedaka",
+      "year": 1962,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2x6pbpjVGjiWCcH89IK8AX"
+    },
+    {
+      "title": "Peppermint Twist",
+      "artist": "Joey Dee and the Starliters",
+      "year": 1962,
+      "genres": [
+        "rock",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sherry",
+      "artist": "The Four Seasons",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "rock",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Wanderer",
+      "artist": "Dion",
+      "year": 1962,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:4EoUALVwY4i7U6uKRhk8hr"
+    },
+    {
+      "title": "Ramblin' Rose",
+      "artist": "Nat King Cole",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:6bZlab0NrNteVppLu9C2Zy"
+    },
+    {
+      "title": "Midnight in Moscow",
+      "artist": "Kenny Ball and His Jazzmen",
+      "year": 1962,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:3dVZsNXZWhBDUSjV2RkEWP"
+    },
+    {
+      "title": "Palisades Park",
+      "artist": "Freddy Cannon",
+      "year": 1962,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:2qi7QEyfxL2Z2ez9Rd51e0"
+    },
+    {
+      "title": "The Wah Watusi",
+      "artist": "The Orlons",
+      "year": 1962,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:1txHbsMQPOPqjigbBXTULL"
+    },
+    {
+      "title": "Slow Twistin'",
+      "artist": "Chubby Checker",
+      "year": 1962,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:7iDgqnNiEjCLMcvErfT6zT"
+    },
+    {
+      "title": "Good Luck Charm",
+      "artist": "Elvis Presley",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sealed with a Kiss",
+      "artist": "Brian Hyland",
+      "year": 1962,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6oM4ryXpuZmbFfBv2sEe7v"
+    },
+    {
+      "title": "Twist and Shout",
+      "artist": "The Isley Brothers",
+      "year": 1962,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": "spotify:track:0URp9jOJtiWKR1AfMGH2Qj"
+    },
+    {
+      "title": "The One Who Really Loves You",
+      "artist": "Mary Wells",
+      "year": 1962,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:4Sz8zFchpHQVQVqVyGz5Jb"
+    },
+    {
+      "title": "It Keeps Right On a-Hurtin'",
+      "artist": "Johnny Tillotson",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wolverton Mountain",
+      "artist": "Claude King",
+      "year": 1962,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:7GjmzKbriJewFNDPJtVjey"
+    },
+    {
+      "title": "Can't Help Falling in Love",
+      "artist": "Elvis Presley",
+      "year": 1962,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3WjvOjzfkbaoAqshjIAtsp"
+    },
+    {
+      "title": "The Lion Sleeps Tonight",
+      "artist": "The Tokens",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "doo-wop"
+      ],
+      "uri": "spotify:track:2F4FNcz68howQWD4zaGJSi"
+    },
+    {
+      "title": "Monster Mash",
+      "artist": "Bobby \"Boris\" Pickett and the Crypt-Kickers",
+      "year": 1962,
+      "genres": [
+        "novelty",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Big Girls Don't Cry",
+      "artist": "The Four Seasons",
+      "year": 1962,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

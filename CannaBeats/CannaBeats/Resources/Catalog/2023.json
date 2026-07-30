@@ -1,0 +1,288 @@
+{
+  "module": "year-2023",
+  "name": "Hits of 2023",
+  "source": "Billboard Year-End Hot 100, 2023 (top 30)",
+  "songs": [
+    {
+      "title": "Last Night",
+      "artist": "Morgan Wallen",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Flowers",
+      "artist": "Miley Cyrus",
+      "year": 2023,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kill Bill",
+      "artist": "SZA",
+      "year": 2023,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Anti-Hero",
+      "artist": "Taylor Swift",
+      "year": 2023,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Creepin'",
+      "artist": "Metro Boomin, The Weeknd & 21 Savage",
+      "year": 2023,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Calm Down",
+      "artist": "Rema & Selena Gomez",
+      "year": 2023,
+      "genres": [
+        "afrobeats",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Die for You",
+      "artist": "The Weeknd & Ariana Grande",
+      "year": 2023,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fast Car",
+      "artist": "Luke Combs",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Snooze",
+      "artist": "SZA",
+      "year": 2023,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Good (Blue)",
+      "artist": "David Guetta & Bebe Rexha",
+      "year": 2023,
+      "genres": [
+        "dance",
+        "electronic",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unholy",
+      "artist": "Sam Smith & Kim Petras",
+      "year": 2023,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Proof",
+      "artist": "Morgan Wallen",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Something in the Orange",
+      "artist": "Zach Bryan",
+      "year": 2023,
+      "genres": [
+        "country",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rich Flex",
+      "artist": "Drake & 21 Savage",
+      "year": 2023,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock and a Hard Place",
+      "artist": "Bailey Zimmerman",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Under the Influence",
+      "artist": "Chris Brown",
+      "year": 2023,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Thinkin' Bout Me",
+      "artist": "Morgan Wallen",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Boy's a Liar Pt. 2",
+      "artist": "PinkPantheress & Ice Spice",
+      "year": 2023,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Favorite Song",
+      "artist": "Toosii",
+      "year": 2023,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Thought You Should Know",
+      "artist": "Morgan Wallen",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Thank God",
+      "artist": "Kane Brown & Katelyn Brown",
+      "year": 2023,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sure Thing",
+      "artist": "Miguel",
+      "year": 2023,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All My Life",
+      "artist": "Lil Durk feat. J. Cole",
+      "year": 2023,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ella Baila Sola",
+      "artist": "Eslabon Armado & Peso Pluma",
+      "year": 2023,
+      "genres": [
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Karma",
+      "artist": "Taylor Swift feat. Ice Spice",
+      "year": 2023,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just Wanna Rock",
+      "artist": "Lil Uzi Vert",
+      "year": 2023,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cuff It",
+      "artist": "Beyonce",
+      "year": 2023,
+      "genres": [
+        "r&b",
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Vampire",
+      "artist": "Olivia Rodrigo",
+      "year": 2023,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "FukUMean",
+      "artist": "Gunna",
+      "year": 2023,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lavender Haze",
+      "artist": "Taylor Swift",
+      "year": 2023,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

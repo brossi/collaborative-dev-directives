@@ -1,0 +1,295 @@
+{
+  "module": "year-1974",
+  "name": "Hits of 1974",
+  "source": "Billboard Year-End Hot 100, 1974 (top 30)",
+  "songs": [
+    {
+      "title": "The Way We Were",
+      "artist": "Barbra Streisand",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:1vZTgn4JXWMahR8r99ug5H"
+    },
+    {
+      "title": "Seasons in the Sun",
+      "artist": "Terry Jacks",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0X3d9gx7UDYgcwwkgTeNLR"
+    },
+    {
+      "title": "Love's Theme",
+      "artist": "Love Unlimited Orchestra",
+      "year": 1974,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:5csdrJ0JtFn0qvwlvSh2EI"
+    },
+    {
+      "title": "Come and Get Your Love",
+      "artist": "Redbone",
+      "year": 1974,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": "spotify:track:7GVUmCP00eSsqc4tzj1sDD"
+    },
+    {
+      "title": "Dancing Machine",
+      "artist": "The Jackson 5",
+      "year": 1974,
+      "genres": [
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Loco-Motion",
+      "artist": "Grand Funk Railroad",
+      "year": 1974,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "TSOP (The Sound of Philadelphia)",
+      "artist": "MFSB featuring The Three Degrees",
+      "year": 1974,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:6B9tR2OEurD4FsZM5btj3X"
+    },
+    {
+      "title": "The Streak",
+      "artist": "Ray Stevens",
+      "year": 1974,
+      "genres": [
+        "novelty",
+        "country"
+      ],
+      "uri": "spotify:track:3HiIBzaoBkOTLmRYkdsusv"
+    },
+    {
+      "title": "Bennie and the Jets",
+      "artist": "Elton John",
+      "year": 1974,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:0dBatXn1vVUl0jLgXRClwD"
+    },
+    {
+      "title": "One Hell of a Woman",
+      "artist": "Mac Davis",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:7Eq6uD4xcTs4Ddmyv6Ttjs"
+    },
+    {
+      "title": "Until You Come Back to Me (That's What I'm Gonna Do)",
+      "artist": "Aretha Franklin",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:3iX0BMs9dX9CsgrHhiB173"
+    },
+    {
+      "title": "Jungle Boogie",
+      "artist": "Kool & the Gang",
+      "year": 1974,
+      "genres": [
+        "funk"
+      ],
+      "uri": "spotify:track:3K0SJUQNbOkUprTFcwwAKN"
+    },
+    {
+      "title": "Midnight at the Oasis",
+      "artist": "Maria Muldaur",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": "spotify:track:5VBcEJ4mtXTmVEJtc7hx2g"
+    },
+    {
+      "title": "You Make Me Feel Brand New",
+      "artist": "The Stylistics",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:00CCi9yHJh7NjXcNT565Ja"
+    },
+    {
+      "title": "Show and Tell",
+      "artist": "Al Wilson",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:2vhW1OmaZDYi63Da9d8R5o"
+    },
+    {
+      "title": "Spiders & Snakes",
+      "artist": "Jim Stafford",
+      "year": 1974,
+      "genres": [
+        "country",
+        "novelty"
+      ],
+      "uri": "spotify:track:1VREN3iKxfXrN6koXcXWPM"
+    },
+    {
+      "title": "Rock On",
+      "artist": "David Essex",
+      "year": 1974,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0uPIwcT6OdJ5BAJdYkxVp9"
+    },
+    {
+      "title": "Sunshine on My Shoulders",
+      "artist": "John Denver",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": "spotify:track:3m8lTUL5GxGUNSaycI77ND"
+    },
+    {
+      "title": "Sideshow",
+      "artist": "Blue Magic",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:0fopVbPW7N5BK0sOybQCq2"
+    },
+    {
+      "title": "Hooked on a Feeling",
+      "artist": "Blue Swede",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:6Ac4NVYYl2U73QiTt11ZKd"
+    },
+    {
+      "title": "Billy Don't Be a Hero",
+      "artist": "Bo Donaldson and the Heywoods",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6ZqgJAbxuEUjazBLN5V0U4"
+    },
+    {
+      "title": "Band on the Run",
+      "artist": "Paul McCartney and Wings",
+      "year": 1974,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Most Beautiful Girl",
+      "artist": "Charlie Rich",
+      "year": 1974,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:542C7PqR1oEfl63hlhQO4V"
+    },
+    {
+      "title": "Time in a Bottle",
+      "artist": "Jim Croce",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:1pmYAWY7Kwaj84U3xZxLML"
+    },
+    {
+      "title": "Annie's Song",
+      "artist": "John Denver",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "country"
+      ],
+      "uri": "spotify:track:4J0DbyODwZJcmIAiTSJfMF"
+    },
+    {
+      "title": "Let Me Be There",
+      "artist": "Olivia Newton-John",
+      "year": 1974,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:5aI3ary3TADn6mG4n18FrK"
+    },
+    {
+      "title": "Sundown",
+      "artist": "Gordon Lightfoot",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:0SjnBEHZVXgCKvOrpvzL2k"
+    },
+    {
+      "title": "(You're) Having My Baby",
+      "artist": "Paul Anka",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock Me Gently",
+      "artist": "Andy Kim",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2qh2VGAOYFXLsMbdATRf6w"
+    },
+    {
+      "title": "Boogie Down",
+      "artist": "Eddie Kendricks",
+      "year": 1974,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:4rCzjErgNGgyFCMIKWlBcI"
+    }
+  ]
+}

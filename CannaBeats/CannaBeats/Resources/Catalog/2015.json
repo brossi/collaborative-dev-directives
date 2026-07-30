@@ -1,0 +1,295 @@
+{
+  "module": "year-2015",
+  "name": "Hits of 2015",
+  "source": "Billboard Year-End Hot 100, 2015 (top 30)",
+  "songs": [
+    {
+      "title": "Uptown Funk",
+      "artist": "Mark Ronson feat. Bruno Mars",
+      "year": 2015,
+      "genres": [
+        "funk",
+        "pop"
+      ],
+      "uri": "spotify:track:32OlwWuMpZ6b0aN2RZOeMS"
+    },
+    {
+      "title": "Thinking Out Loud",
+      "artist": "Ed Sheeran",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:34gCuhDGsG4bRPIf9bb02f"
+    },
+    {
+      "title": "See You Again",
+      "artist": "Wiz Khalifa feat. Charlie Puth",
+      "year": 2015,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:2JzZzZUQj3Qff7wapcbKjc"
+    },
+    {
+      "title": "Trap Queen",
+      "artist": "Fetty Wap",
+      "year": 2015,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2d8JP84HNLKhmd6IYOoupQ"
+    },
+    {
+      "title": "Sugar",
+      "artist": "Maroon 5",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2iuZJX9X9P0GKaE93xcPjk"
+    },
+    {
+      "title": "Shut Up and Dance",
+      "artist": "Walk the Moon",
+      "year": 2015,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:0kzw2tRyuL9rzipi5ntlIy"
+    },
+    {
+      "title": "Blank Space",
+      "artist": "Taylor Swift",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1kHEuJRasudLhjvnbfc4yS"
+    },
+    {
+      "title": "Watch Me (Whip/Nae Nae)",
+      "artist": "Silento",
+      "year": 2015,
+      "genres": [
+        "hip-hop",
+        "dance"
+      ],
+      "uri": "spotify:track:5RIVoVdkDLEygELLCniZFr"
+    },
+    {
+      "title": "Earned It",
+      "artist": "The Weeknd",
+      "year": 2015,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:4frLb7nWtsz2ymBE6k2GRP"
+    },
+    {
+      "title": "The Hills",
+      "artist": "The Weeknd",
+      "year": 2015,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:7fBv7CLKzipRk6EC6TWHOB"
+    },
+    {
+      "title": "Cheerleader",
+      "artist": "OMI",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "reggae"
+      ],
+      "uri": "spotify:track:023OVLNzXhX0j7CxswUt6D"
+    },
+    {
+      "title": "Can't Feel My Face",
+      "artist": "The Weeknd",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:22VdIZQfgXJea34mQxlt81"
+    },
+    {
+      "title": "Love Me Like You Do",
+      "artist": "Ellie Goulding",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2l8w0zZVn4AZNuzrht7MRT"
+    },
+    {
+      "title": "Take Me to Church",
+      "artist": "Hozier",
+      "year": 2015,
+      "genres": [
+        "indie",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:1CS7Sd1u5tWkstBhpssyjP"
+    },
+    {
+      "title": "Lean On",
+      "artist": "Major Lazer & DJ Snake feat. MO",
+      "year": 2015,
+      "genres": [
+        "electronic",
+        "dance"
+      ],
+      "uri": "spotify:track:1Lim1Py7xBgbAkAys3AGAG"
+    },
+    {
+      "title": "Want to Want Me",
+      "artist": "Jason Derulo",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:7oGZAicScQt96OAW4AruYy"
+    },
+    {
+      "title": "Style",
+      "artist": "Taylor Swift",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4lIxdJw6W3Fg4vUIYCB0S5"
+    },
+    {
+      "title": "Bad Blood",
+      "artist": "Taylor Swift feat. Kendrick Lamar",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:273dCMFseLcVsoSWx59IoE"
+    },
+    {
+      "title": "Fight Song",
+      "artist": "Rachel Platten",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:37f4ITSlgPX81ad2EvmVQr"
+    },
+    {
+      "title": "679",
+      "artist": "Fetty Wap feat. Remy Boyz",
+      "year": 2015,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:5NQbUaeTEOGdD6hHcre0dZ"
+    },
+    {
+      "title": "Uma Thurman",
+      "artist": "Fall Out Boy",
+      "year": 2015,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:5PUawWFG1oIS2NwEcyHaCr"
+    },
+    {
+      "title": "Hey Mama",
+      "artist": "David Guetta feat. Nicki Minaj, Bebe Rexha & Afrojack",
+      "year": 2015,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": "spotify:track:5b2bu6yyATC1zMXDGScJ2d"
+    },
+    {
+      "title": "Worth It",
+      "artist": "Fifth Harmony feat. Kid Ink",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:41Fflg7qHiVOD6dEPvsCzO"
+    },
+    {
+      "title": "GDFR",
+      "artist": "Flo Rida feat. Sage the Gemini & Lookas",
+      "year": 2015,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:26rdOwwjC2UnweK3xeS58u"
+    },
+    {
+      "title": "Honey, I'm Good.",
+      "artist": "Andy Grammer",
+      "year": 2015,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4MflGTO2ZTcSQ12bWcyRgI"
+    },
+    {
+      "title": "Jealous",
+      "artist": "Nick Jonas",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:4lSkNB2fp7roRthqwD7p8k"
+    },
+    {
+      "title": "Hotline Bling",
+      "artist": "Drake",
+      "year": 2015,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0wwPcA6wtMf6HUMpIRdeP7"
+    },
+    {
+      "title": "Where Are U Now",
+      "artist": "Skrillex & Diplo with Justin Bieber",
+      "year": 2015,
+      "genres": [
+        "electronic",
+        "dance"
+      ],
+      "uri": "spotify:track:1CjiAOoegmUDgbhKzAqSkl"
+    },
+    {
+      "title": "Centuries",
+      "artist": "Fall Out Boy",
+      "year": 2015,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:04aAxqtGp5pv12UXAg4pkq"
+    },
+    {
+      "title": "Time of Our Lives",
+      "artist": "Pitbull & Ne-Yo",
+      "year": 2015,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:2bJvI42r8EF3wxjOuDav4r"
+    }
+  ]
+}

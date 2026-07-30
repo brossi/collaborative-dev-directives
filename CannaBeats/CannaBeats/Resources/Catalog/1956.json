@@ -1,0 +1,302 @@
+{
+  "module": "year-1956",
+  "name": "Hits of 1956",
+  "source": "Billboard year-end top 50 singles chart, 1956 (top 30)",
+  "songs": [
+    {
+      "title": "Heartbreak Hotel",
+      "artist": "Elvis Presley",
+      "year": 1956,
+      "genres": [
+        "rock",
+        "rockabilly"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Be Cruel",
+      "artist": "Elvis Presley",
+      "year": 1956,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lisbon Antigua",
+      "artist": "Nelson Riddle",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Prayer",
+      "artist": "The Platters",
+      "year": 1956,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Wayward Wind",
+      "artist": "Gogi Grant",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hound Dog",
+      "artist": "Elvis Presley",
+      "year": 1956,
+      "genres": [
+        "rock",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Poor People of Paris",
+      "artist": "Les Baxter",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Que Sera, Sera (Whatever Will Be, Will Be)",
+      "artist": "Doris Day",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Memories Are Made of This",
+      "artist": "Dean Martin",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock and Roll Waltz",
+      "artist": "Kay Starr",
+      "year": 1956,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moonglow and Theme from Picnic",
+      "artist": "Morris Stoloff",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Great Pretender",
+      "artist": "The Platters",
+      "year": 1956,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Almost Lost My Mind",
+      "artist": "Pat Boone",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Want You, I Need You, I Love You",
+      "artist": "Elvis Presley",
+      "year": 1956,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Me Tender",
+      "artist": "Elvis Presley",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hot Diggity (Dog Ziggity Boom)",
+      "artist": "Perry Como",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Canadian Sunset",
+      "artist": "Hugo Winterhalter & Eddie Heywood",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blue Suede Shoes",
+      "artist": "Carl Perkins",
+      "year": 1956,
+      "genres": [
+        "rockabilly",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Green Door",
+      "artist": "Jim Lowe",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No, Not Much",
+      "artist": "The Four Lads",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Honky Tonk (Parts 1 & 2)",
+      "artist": "Bill Doggett",
+      "year": 1956,
+      "genres": [
+        "r&b",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ivory Tower",
+      "artist": "Cathy Carr",
+      "year": 1956,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just Walkin' in the Rain",
+      "artist": "Johnnie Ray",
+      "year": 1956,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Allegheny Moon",
+      "artist": "Patti Page",
+      "year": 1956,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm in Love Again",
+      "artist": "Fats Domino",
+      "year": 1956,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tonight You Belong to Me",
+      "artist": "Patience and Prudence",
+      "year": 1956,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Be-Bop-A-Lula",
+      "artist": "Gene Vincent",
+      "year": 1956,
+      "genres": [
+        "rockabilly",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Why Do Fools Fall in Love",
+      "artist": "Frankie Lymon & The Teenagers",
+      "year": 1956,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Standing on the Corner",
+      "artist": "The Four Lads",
+      "year": 1956,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blueberry Hill",
+      "artist": "Fats Domino",
+      "year": 1956,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

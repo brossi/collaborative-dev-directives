@@ -1,0 +1,301 @@
+{
+  "module": "year-1968",
+  "name": "Hits of 1968",
+  "source": "Billboard Year-End Hot 100, 1968 (top 30)",
+  "songs": [
+    {
+      "title": "Hey Jude",
+      "artist": "The Beatles",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:0aym2LBJBk9DAYuHHutrIl"
+    },
+    {
+      "title": "Love Is Blue",
+      "artist": "Paul Mauriat",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Honey",
+      "artist": "Bobby Goldsboro",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:2Qhvi6R73Zj3cpzRYzcAww"
+    },
+    {
+      "title": "(Sittin' On) The Dock of the Bay",
+      "artist": "Otis Redding",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:3zBhihYUHBmGd2bcQIobrF"
+    },
+    {
+      "title": "People Got to Be Free",
+      "artist": "The Rascals",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": "spotify:track:5tUEIByLWg1sYWajZ2x5zx"
+    },
+    {
+      "title": "Sunshine of Your Love",
+      "artist": "Cream",
+      "year": 1968,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:6FRwDxXsvSasw0y2eDArsz"
+    },
+    {
+      "title": "This Guy's in Love with You",
+      "artist": "Herb Alpert",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:7a3g7jILDCvADVN9NQIyYj"
+    },
+    {
+      "title": "The Good, the Bad and the Ugly",
+      "artist": "Hugo Montenegro",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": "spotify:track:3iEABTE7uVYkVQA8wCUnVZ"
+    },
+    {
+      "title": "Mrs. Robinson",
+      "artist": "Simon and Garfunkel",
+      "year": 1968,
+      "genres": [
+        "folk",
+        "rock"
+      ],
+      "uri": "spotify:track:0iOZM63lendWRTTeKhZBSC"
+    },
+    {
+      "title": "Tighten Up",
+      "artist": "Archie Bell and the Drells",
+      "year": 1968,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": "spotify:track:6IIcvtmuGpWIasqOpyGlyY"
+    },
+    {
+      "title": "Harper Valley P.T.A.",
+      "artist": "Jeannie C. Riley",
+      "year": 1968,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:4mjHSVgH9wLL1btWfqtxAl"
+    },
+    {
+      "title": "Little Green Apples",
+      "artist": "O. C. Smith",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mony Mony",
+      "artist": "Tommy James and the Shondells",
+      "year": 1968,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:23xk9Rf7oIHVUU1JvmXYFn"
+    },
+    {
+      "title": "Hello, I Love You",
+      "artist": "The Doors",
+      "year": 1968,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:3bWGaqVeYKMlLss40mPgNn"
+    },
+    {
+      "title": "Young Girl",
+      "artist": "Gary Puckett and the Union Gap",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cry Like a Baby",
+      "artist": "The Box Tops",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": "spotify:track:6e5dOtgCiKkITJxtWSuLBE"
+    },
+    {
+      "title": "Stoned Soul Picnic",
+      "artist": "The 5th Dimension",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:1bKQeepTAEYlpn8wpL7iDn"
+    },
+    {
+      "title": "Grazing in the Grass",
+      "artist": "Hugh Masekela",
+      "year": 1968,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:2P6Buc8kWRgShx7aHIadqu"
+    },
+    {
+      "title": "Midnight Confessions",
+      "artist": "The Grass Roots",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:7zAwAehFCw22pavwKME3V8"
+    },
+    {
+      "title": "Dance to the Music",
+      "artist": "Sly and the Family Stone",
+      "year": 1968,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": "spotify:track:1MQWtVcs0PKsY4PA6ZvLiy"
+    },
+    {
+      "title": "The Horse",
+      "artist": "Cliff Nobles and Co.",
+      "year": 1968,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": "spotify:track:2FCiuaXNE1kjwSoAvso4vT"
+    },
+    {
+      "title": "I Wish It Would Rain",
+      "artist": "The Temptations",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:1tjpccwiGZTMDfHr5VGCmT"
+    },
+    {
+      "title": "La-La (Means I Love You)",
+      "artist": "The Delfonics",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Turn Around, Look at Me",
+      "artist": "The Vogues",
+      "year": 1968,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6w8Pnj2aUSJysc0b5FSJyr"
+    },
+    {
+      "title": "Judy in Disguise (With Glasses)",
+      "artist": "John Fred and His Playboy Band",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Spooky",
+      "artist": "Classics IV",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:5z4iT44mMHyZozsTFy4A51"
+    },
+    {
+      "title": "Love Child",
+      "artist": "Diana Ross and the Supremes",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": "spotify:track:69EILuL34ggLWQsa626bes"
+    },
+    {
+      "title": "Angel of the Morning",
+      "artist": "Merrilee Rush and the Turnabouts",
+      "year": 1968,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:27QxL30kLR6RyIjLXCMFdU"
+    },
+    {
+      "title": "Green Tambourine",
+      "artist": "The Lemon Pipers",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:70jnaGaj1rtpyABfUURpvr"
+    },
+    {
+      "title": "A Beautiful Morning",
+      "artist": "The Rascals",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:3QwbKe0s8TcNclzXAXHeHy"
+    }
+  ]
+}

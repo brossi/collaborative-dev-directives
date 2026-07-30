@@ -1,0 +1,299 @@
+{
+  "module": "year-2005",
+  "name": "Hits of 2005",
+  "source": "Billboard Year-End Hot 100, 2005 (top 30)",
+  "songs": [
+    {
+      "title": "We Belong Together",
+      "artist": "Mariah Carey",
+      "year": 2005,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:3LmvfNUQtglbTrydsdIqFU"
+    },
+    {
+      "title": "Hollaback Girl",
+      "artist": "Gwen Stefani",
+      "year": 2005,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:0LzrhCZFXW94Y8nwtTuRlw"
+    },
+    {
+      "title": "Let Me Love You",
+      "artist": "Mario",
+      "year": 2005,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:3ibKnFDaa3GhpPGlOUj7ff"
+    },
+    {
+      "title": "Since U Been Gone",
+      "artist": "Kelly Clarkson",
+      "year": 2005,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:3xrn9i8zhNZsTtcoWgQEAd"
+    },
+    {
+      "title": "1, 2 Step",
+      "artist": "Ciara featuring Missy Elliott",
+      "year": 2005,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7uKcScNXuO3MWw6LowBjW1"
+    },
+    {
+      "title": "Gold Digger",
+      "artist": "Kanye West featuring Jamie Foxx",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:1PS1QMdUqOal0ai3Gt7sDQ"
+    },
+    {
+      "title": "Boulevard of Broken Dreams",
+      "artist": "Green Day",
+      "year": 2005,
+      "genres": [
+        "rock",
+        "punk"
+      ],
+      "uri": "spotify:track:5GorCbAP4aL0EJ16frG2hd"
+    },
+    {
+      "title": "Candy Shop",
+      "artist": "50 Cent featuring Olivia",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:5D2mYZuzcgjpchVY1pmTPh"
+    },
+    {
+      "title": "Don't Cha",
+      "artist": "The Pussycat Dolls featuring Busta Rhymes",
+      "year": 2005,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1gZ7i4qxXkHZb1r6eioaAP"
+    },
+    {
+      "title": "Behind These Hazel Eyes",
+      "artist": "Kelly Clarkson",
+      "year": 2005,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:0AKAxdNkwq9ZxRdW1DN9zW"
+    },
+    {
+      "title": "Disco Inferno",
+      "artist": "50 Cent",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:69bHJ9qs5FrUJbKP8xU8uZ"
+    },
+    {
+      "title": "You and Me",
+      "artist": "Lifehouse",
+      "year": 2005,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:0815caqt2Lytro5EIzMufT"
+    },
+    {
+      "title": "Don't Phunk with My Heart",
+      "artist": "The Black Eyed Peas",
+      "year": 2005,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:4MtDnnAJ1AtWit10FRmZdW"
+    },
+    {
+      "title": "Lose Control",
+      "artist": "Missy Elliott featuring Ciara and Fatman Scoop",
+      "year": 2005,
+      "genres": [
+        "hip-hop",
+        "dance"
+      ],
+      "uri": "spotify:track:0UaMYEvWZi0ZqiDOoHU3YI"
+    },
+    {
+      "title": "Shake It Off",
+      "artist": "Mariah Carey",
+      "year": 2005,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:4VKnkoNNM6yTb4cXXX3wqD"
+    },
+    {
+      "title": "Mr. Brightside",
+      "artist": "The Killers",
+      "year": 2005,
+      "genres": [
+        "rock",
+        "indie"
+      ],
+      "uri": "spotify:track:7oK9VyNzrYvRFo7nQEYkWN"
+    },
+    {
+      "title": "Just a Lil Bit",
+      "artist": "50 Cent",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4nva9EpKntUTs6CRSGBCn9"
+    },
+    {
+      "title": "Pon de Replay",
+      "artist": "Rihanna",
+      "year": 2005,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:4TsmezEQVSZNNPv5RJ65Ov"
+    },
+    {
+      "title": "How We Do",
+      "artist": "The Game featuring 50 Cent",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4PmMVdIFpJTB9WQbmILf4p"
+    },
+    {
+      "title": "Beverly Hills",
+      "artist": "Weezer",
+      "year": 2005,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:1yKu2MhpwzDXXH2tzG6xoa"
+    },
+    {
+      "title": "Oh",
+      "artist": "Ciara featuring Ludacris",
+      "year": 2005,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7i7UIbm5E0DD7aSOYvwp2v"
+    },
+    {
+      "title": "Lonely No More",
+      "artist": "Rob Thomas",
+      "year": 2005,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:4faFAhOflLzhfJECveRwva"
+    },
+    {
+      "title": "Drop It Like It's Hot",
+      "artist": "Snoop Dogg featuring Pharrell",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2NBQmPrOEEjA8VbeWOQGxO"
+    },
+    {
+      "title": "Hate It or Love It",
+      "artist": "The Game featuring 50 Cent",
+      "year": 2005,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2wGSgTmgSF3xjRrHkTc25R"
+    },
+    {
+      "title": "Lovers & Friends",
+      "artist": "Lil Jon & the East Side Boyz featuring Usher and Ludacris",
+      "year": 2005,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:41PWz0hAiU9FqsmjR9Wh62"
+    },
+    {
+      "title": "Soldier",
+      "artist": "Destiny's Child featuring T.I. and Lil Wayne",
+      "year": 2005,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4FTOpNYcGxnQdGNWSxIcio"
+    },
+    {
+      "title": "Breakaway",
+      "artist": "Kelly Clarkson",
+      "year": 2005,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:61Qhe2mHSLhUE04QeK4lkD"
+    },
+    {
+      "title": "Switch",
+      "artist": "Will Smith",
+      "year": 2005,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:2bmxx16hNi3W5FGzfFO9xX"
+    },
+    {
+      "title": "Let Me Hold You",
+      "artist": "Bow Wow featuring Omarion",
+      "year": 2005,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1oNToERLIN71YCPLbRIQGQ"
+    },
+    {
+      "title": "Like You",
+      "artist": "Bow Wow featuring Ciara",
+      "year": 2005,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:3jEqrIfwKO0M8ALu3TGilF"
+    }
+  ]
+}

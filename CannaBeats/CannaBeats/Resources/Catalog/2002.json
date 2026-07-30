@@ -1,0 +1,297 @@
+{
+  "module": "year-2002",
+  "name": "Hits of 2002",
+  "source": "Billboard Year-End Hot 100, 2002 (top 30)",
+  "songs": [
+    {
+      "title": "How You Remind Me",
+      "artist": "Nickelback",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0gmbgwZ8iqyMPmXefof8Yf"
+    },
+    {
+      "title": "Foolish",
+      "artist": "Ashanti",
+      "year": 2002,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:6zMUIb4uce1CzpbjR3vMdN"
+    },
+    {
+      "title": "Hot in Herre",
+      "artist": "Nelly",
+      "year": 2002,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:04KTF78FFg8sOHC1BADqbY"
+    },
+    {
+      "title": "Dilemma",
+      "artist": "Nelly featuring Kelly Rowland",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0ARK753YaiJbpLUk7z5yIM"
+    },
+    {
+      "title": "Wherever You Will Go",
+      "artist": "The Calling",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:5QpaGzWp0hwB5faV8dkbAz"
+    },
+    {
+      "title": "A Thousand Miles",
+      "artist": "Vanessa Carlton",
+      "year": 2002,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4w1lzcaoZ1IC2K5TwjalRP"
+    },
+    {
+      "title": "In the End",
+      "artist": "Linkin Park",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:60a0Rd6pjrkxjPbaKzXjfq"
+    },
+    {
+      "title": "What's Luv?",
+      "artist": "Fat Joe featuring Ashanti",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:2mKouqwAIdQnMP43zxR89r"
+    },
+    {
+      "title": "U Got It Bad",
+      "artist": "Usher",
+      "year": 2002,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:7J41dYQolQJEtj3UmKLu5r"
+    },
+    {
+      "title": "Blurry",
+      "artist": "Puddle of Mudd",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:6lSr3iZTC144PKhvbPFzMp"
+    },
+    {
+      "title": "Complicated",
+      "artist": "Avril Lavigne",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:5xEM5hIgJ1jjgcEBfpkt2F"
+    },
+    {
+      "title": "Always on Time",
+      "artist": "Ja Rule featuring Ashanti",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:4hrae8atte6cRlSC9a7VCO"
+    },
+    {
+      "title": "Ain't It Funny (Murder Remix)",
+      "artist": "Jennifer Lopez featuring Ja Rule",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:5ahFyKndeg1hqfmNumL3WF"
+    },
+    {
+      "title": "The Middle",
+      "artist": "Jimmy Eat World",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:6GG73Jik4jUlQCkKg9JuGO"
+    },
+    {
+      "title": "I Need a Girl (Part One)",
+      "artist": "P. Diddy featuring Usher and Loon",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "U Don't Have to Call",
+      "artist": "Usher",
+      "year": 2002,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:5PCJldueshnwqQVjS16543"
+    },
+    {
+      "title": "Family Affair",
+      "artist": "Mary J. Blige",
+      "year": 2002,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3aw9iWUQ3VrPQltgwvN9Xu"
+    },
+    {
+      "title": "I Need a Girl (Part Two)",
+      "artist": "P. Diddy and Ginuwine featuring Loon and Mario Winans",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gangsta Lovin'",
+      "artist": "Eve featuring Alicia Keys",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0WgLpgUdThEpA5L5K0SKq7"
+    },
+    {
+      "title": "My Sacrifice",
+      "artist": "Creed",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:2VSbEXqs6NbNiZSTcHlIDR"
+    },
+    {
+      "title": "Without Me",
+      "artist": "Eminem",
+      "year": 2002,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7lQ8MOhq6IN2w8EYcFNSUk"
+    },
+    {
+      "title": "Hero",
+      "artist": "Enrique Iglesias",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:24Gxm7Eh7tO83E26LG0CsY"
+    },
+    {
+      "title": "All You Wanted",
+      "artist": "Michelle Branch",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:0kr6d8wHDQPlzuET33NVn6"
+    },
+    {
+      "title": "Get the Party Started",
+      "artist": "Pink",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hero",
+      "artist": "Chad Kroeger featuring Josey Scott",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:779ooI3rBd0CLqCiiJmtVo"
+    },
+    {
+      "title": "Wasting My Time",
+      "artist": "Default",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:5dpAN1mjFPL38kh9kWsCiw"
+    },
+    {
+      "title": "One Last Breath",
+      "artist": "Creed",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:42T2QQv3xgBlpQxaSP7lnK"
+    },
+    {
+      "title": "Whenever, Wherever",
+      "artist": "Shakira",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:2lnzGkdtDj5mtlcOW2yRtG"
+    },
+    {
+      "title": "I'm Gonna Be Alright",
+      "artist": "Jennifer Lopez featuring Nas",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:2UbFyKS0gTj9NcGLO4NpyZ"
+    },
+    {
+      "title": "Oh Boy",
+      "artist": "Cam'ron featuring Juelz Santana",
+      "year": 2002,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3sgTiqsN5eNNGTBl1VsO44"
+    }
+  ]
+}

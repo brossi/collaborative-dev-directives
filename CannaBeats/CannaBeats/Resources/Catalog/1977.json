@@ -1,0 +1,299 @@
+{
+  "module": "year-1977",
+  "name": "Hits of 1977",
+  "source": "Billboard Year-End Hot 100, 1977 (top 30)",
+  "songs": [
+    {
+      "title": "Tonight's the Night (Gonna Be Alright)",
+      "artist": "Rod Stewart",
+      "year": 1977,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:10LRRKPmx8uHcSxLVWK0ct"
+    },
+    {
+      "title": "I Just Want to Be Your Everything",
+      "artist": "Andy Gibb",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": "spotify:track:5EdlwzcgIAYs2HGvOnczPN"
+    },
+    {
+      "title": "Best of My Love",
+      "artist": "The Emotions",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:2M2WJ7gBlcKNxdhyfPp9zY"
+    },
+    {
+      "title": "Evergreen (Love Theme from A Star Is Born)",
+      "artist": "Barbra Streisand",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:2IcqY68BxP1ONPi3ME6aje"
+    },
+    {
+      "title": "Angel in Your Arms",
+      "artist": "Hot",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:1qOwgAjki5VN0G2kXEUCLG"
+    },
+    {
+      "title": "I Like Dreamin'",
+      "artist": "Kenny Nolan",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4wlRO5dyyO7jYrzs2PltV8"
+    },
+    {
+      "title": "Don't Leave Me This Way",
+      "artist": "Thelma Houston",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:2rBBhFXtuMoGuwYTSDpAdF"
+    },
+    {
+      "title": "(Your Love Has Lifted Me) Higher and Higher",
+      "artist": "Rita Coolidge",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:39iKJpLPhsDTOzH2lXliWF"
+    },
+    {
+      "title": "Undercover Angel",
+      "artist": "Alan O'Day",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:21jOt25HxvWACZoPQkOzJ7"
+    },
+    {
+      "title": "Torn Between Two Lovers",
+      "artist": "Mary MacGregor",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "folk"
+      ],
+      "uri": "spotify:track:64PqvBqVyWABznKG6DXU6p"
+    },
+    {
+      "title": "I'm Your Boogie Man",
+      "artist": "KC and the Sunshine Band",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": "spotify:track:6mjlbRIgMTf2nqY0kq1rOJ"
+    },
+    {
+      "title": "Dancing Queen",
+      "artist": "ABBA",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": "spotify:track:4NtUY5IGzHCaqfZemmAu56"
+    },
+    {
+      "title": "You Make Me Feel Like Dancing",
+      "artist": "Leo Sayer",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "pop"
+      ],
+      "uri": "spotify:track:6gTrbqZnyljwXdYQTyBkSx"
+    },
+    {
+      "title": "Margaritaville",
+      "artist": "Jimmy Buffett",
+      "year": 1977,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": "spotify:track:4EEjMyQub6tgFVshlM9j1M"
+    },
+    {
+      "title": "Telephone Line",
+      "artist": "Electric Light Orchestra",
+      "year": 1977,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:3SPcBPzvbmWLl8NU5efx4W"
+    },
+    {
+      "title": "Whatcha Gonna Do?",
+      "artist": "Pablo Cruise",
+      "year": 1977,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:6SMR0XI8a1D6gEpMTIju2y"
+    },
+    {
+      "title": "Do You Wanna Make Love",
+      "artist": "Peter McCann",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5Ccx6DcIvnlQicMujqtqBf"
+    },
+    {
+      "title": "Sir Duke",
+      "artist": "Stevie Wonder",
+      "year": 1977,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": "spotify:track:4pNiE4LCVV74vfIBaUHm1b"
+    },
+    {
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "year": 1977,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:40riOy7x9W7GXjyGp4pjAv"
+    },
+    {
+      "title": "Got to Give It Up",
+      "artist": "Marvin Gaye",
+      "year": 1977,
+      "genres": [
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gonna Fly Now (Theme from Rocky)",
+      "artist": "Bill Conti",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "disco"
+      ],
+      "uri": "spotify:track:6C2PfemHQul77DVpnvuAIs"
+    },
+    {
+      "title": "Southern Nights",
+      "artist": "Glen Campbell",
+      "year": 1977,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:7kv7zBjMtVf0eIJle2VZxn"
+    },
+    {
+      "title": "Rich Girl",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:0qRR9d89hIS0MHRkQ0ejxX"
+    },
+    {
+      "title": "When I Need You",
+      "artist": "Leo Sayer",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2TcwEYyydQuEMJwdmSgVLD"
+    },
+    {
+      "title": "Hot Line",
+      "artist": "The Sylvers",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": "spotify:track:6SrvyfmAxkLt9CULhf9a49"
+    },
+    {
+      "title": "Car Wash",
+      "artist": "Rose Royce",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": "spotify:track:07RgAeKIlahtqeCw25SkTu"
+    },
+    {
+      "title": "You Don't Have to Be a Star (To Be in My Show)",
+      "artist": "Marilyn McCoo & Billy Davis Jr.",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:2JurHS80N98Yt3CdIBYz9M"
+    },
+    {
+      "title": "Fly Like an Eagle",
+      "artist": "Steve Miller Band",
+      "year": 1977,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0BTYL86ryKRHvAndNeoiuP"
+    },
+    {
+      "title": "Don't Give Up on Us",
+      "artist": "David Soul",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:23IWhAK0cYRwnBT5EE8i3u"
+    },
+    {
+      "title": "On and On",
+      "artist": "Stephen Bishop",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:0Vth3l4XAo8hNYmxjzhr2y"
+    }
+  ]
+}

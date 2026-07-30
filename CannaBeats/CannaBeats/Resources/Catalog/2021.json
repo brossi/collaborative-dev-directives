@@ -1,0 +1,292 @@
+{
+  "module": "year-2021",
+  "name": "Hits of 2021",
+  "source": "Billboard Year-End Hot 100, 2021 (top 30)",
+  "songs": [
+    {
+      "title": "Levitating",
+      "artist": "Dua Lipa",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Save Your Tears",
+      "artist": "The Weeknd & Ariana Grande",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:37BZB0z9T8Xu7U3e65qxFy"
+    },
+    {
+      "title": "Mood",
+      "artist": "24kGoldn feat. iann dior",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Good 4 U",
+      "artist": "Olivia Rodrigo",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:6PERP62TejQjgHu81OHxgM"
+    },
+    {
+      "title": "Kiss Me More",
+      "artist": "Doja Cat feat. SZA",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Leave the Door Open",
+      "artist": "Silk Sonic (Bruno Mars & Anderson .Paak)",
+      "year": 2021,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Drivers License",
+      "artist": "Olivia Rodrigo",
+      "year": 2021,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:7lPN2DXiMsVn7XUKtOW1CS"
+    },
+    {
+      "title": "Montero (Call Me by Your Name)",
+      "artist": "Lil Nas X",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:67BtfxlNbhBmCDR2L2l8qd"
+    },
+    {
+      "title": "Peaches",
+      "artist": "Justin Bieber feat. Daniel Caesar & Giveon",
+      "year": 2021,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Butter",
+      "artist": "BTS",
+      "year": 2021,
+      "genres": [
+        "k-pop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Deja Vu",
+      "artist": "Olivia Rodrigo",
+      "year": 2021,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:61KpQadow081I2AsbeLcsb"
+    },
+    {
+      "title": "Positions",
+      "artist": "Ariana Grande",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:35mvY5S1H3J2QZyna3TFe0"
+    },
+    {
+      "title": "Without You",
+      "artist": "The Kid LAROI",
+      "year": 2021,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:27OeeYzk6klgBh83TSvGMA"
+    },
+    {
+      "title": "Forever After All",
+      "artist": "Luke Combs",
+      "year": 2021,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:6IBcOGPsniK3Pso1wHIhew"
+    },
+    {
+      "title": "Go Crazy",
+      "artist": "Chris Brown & Young Thug",
+      "year": 2021,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:1IIKrJVP1C9N7iPtG6eOsK"
+    },
+    {
+      "title": "Astronaut in the Ocean",
+      "artist": "Masked Wolf",
+      "year": 2021,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3Ofmpyhv5UAQ70mENzB277"
+    },
+    {
+      "title": "34+35",
+      "artist": "Ariana Grande",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:3jjBPF4NDMCU51psU8JPpR"
+    },
+    {
+      "title": "What You Know Bout Love",
+      "artist": "Pop Smoke",
+      "year": 2021,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:1tkg4EHVoqnhR6iFEXb60y"
+    },
+    {
+      "title": "My Ex's Best Friend",
+      "artist": "Machine Gun Kelly feat. blackbear",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Therefore I Am",
+      "artist": "Billie Eilish",
+      "year": 2021,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": "spotify:track:54bFM56PmE4YLRnqpW6Tha"
+    },
+    {
+      "title": "Up",
+      "artist": "Cardi B",
+      "year": 2021,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:1XXimziG1uhM0eDNCZCrUl"
+    },
+    {
+      "title": "Fancy Like",
+      "artist": "Walker Hayes",
+      "year": 2021,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dakiti",
+      "artist": "Bad Bunny & Jhay Cortez",
+      "year": 2021,
+      "genres": [
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Best Friend",
+      "artist": "Saweetie feat. Doja Cat",
+      "year": 2021,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rapstar",
+      "artist": "Polo G",
+      "year": 2021,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:43PGPuHIlVOc04jrZVh9L6"
+    },
+    {
+      "title": "Heartbreak Anniversary",
+      "artist": "Giveon",
+      "year": 2021,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:3FAJ6O0NOHQV8Mc5Ri6ENp"
+    },
+    {
+      "title": "For the Night",
+      "artist": "Pop Smoke feat. Lil Baby & DaBaby",
+      "year": 2021,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Calling My Phone",
+      "artist": "Lil Tjay & 6LACK",
+      "year": 2021,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Beautiful Mistakes",
+      "artist": "Maroon 5 feat. Megan Thee Stallion",
+      "year": 2021,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Holy",
+      "artist": "Justin Bieber feat. Chance the Rapper",
+      "year": 2021,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

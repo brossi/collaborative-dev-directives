@@ -1,0 +1,312 @@
+{
+  "module": "year-1986",
+  "name": "Hits of 1986",
+  "source": "Billboard Year-End Hot 100, 1986 (top 30)",
+  "songs": [
+    {
+      "title": "That's What Friends Are For",
+      "artist": "Dionne and Friends",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1cOj24fUMnBSXhtp7waHVW"
+    },
+    {
+      "title": "Say You, Say Me",
+      "artist": "Lionel Richie",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:17CPezzLWzvGfpZW6X8XT0"
+    },
+    {
+      "title": "I Miss You",
+      "artist": "Klymaxx",
+      "year": 1986,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": "spotify:track:3d6UefBBvhqHxJLZdm8scF"
+    },
+    {
+      "title": "On My Own",
+      "artist": "Patti LaBelle and Michael McDonald",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:5HrVgmO1govSOrPUehW1VV"
+    },
+    {
+      "title": "Broken Wings",
+      "artist": "Mr. Mister",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:78FHUZRbFDCG6VkRAQdFLm"
+    },
+    {
+      "title": "How Will I Know",
+      "artist": "Whitney Houston",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:5tdKaKLnC4SgtDZ6RlWeal"
+    },
+    {
+      "title": "Party All the Time",
+      "artist": "Eddie Murphy",
+      "year": 1986,
+      "genres": [
+        "r&b",
+        "funk",
+        "pop"
+      ],
+      "uri": "spotify:track:6N5DRCQUSXT1qQqmqsO92B"
+    },
+    {
+      "title": "Burning Heart",
+      "artist": "Survivor",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:2VN7uPrbryJ7nE2MXX3f9a"
+    },
+    {
+      "title": "Kyrie",
+      "artist": "Mr. Mister",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:5BXj1QDRU77J1ngVavG1tI"
+    },
+    {
+      "title": "Addicted to Love",
+      "artist": "Robert Palmer",
+      "year": 1986,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:5izGeTxueiFX1UPFGohY9w"
+    },
+    {
+      "title": "Greatest Love of All",
+      "artist": "Whitney Houston",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:6yJxCltgtmGxIgKOS6ndnu"
+    },
+    {
+      "title": "Secret Lovers",
+      "artist": "Atlantic Starr",
+      "year": 1986,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": "spotify:track:4nKPgKXfFiPW7cNex5oDtt"
+    },
+    {
+      "title": "Friends and Lovers",
+      "artist": "Gloria Loring and Carl Anderson",
+      "year": 1986,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Glory of Love",
+      "artist": "Peter Cetera",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:1eyq8cjUQ2daFthW2PC2GM"
+    },
+    {
+      "title": "West End Girls",
+      "artist": "Pet Shop Boys",
+      "year": 1986,
+      "genres": [
+        "electronic",
+        "new wave",
+        "pop"
+      ],
+      "uri": "spotify:track:7FlwylpJSe3ea6m1IrkizS"
+    },
+    {
+      "title": "There'll Be Sad Songs (To Make You Cry)",
+      "artist": "Billy Ocean",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1mP8BJQBRZWjSQLVmxQEyG"
+    },
+    {
+      "title": "Alive and Kicking",
+      "artist": "Simple Minds",
+      "year": 1986,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": "spotify:track:2x5IXUFOcvvBUtEpnCBNlp"
+    },
+    {
+      "title": "Never",
+      "artist": "Heart",
+      "year": 1986,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:4yEMyaB6PGBpQvac2yD9wZ"
+    },
+    {
+      "title": "Kiss",
+      "artist": "Prince and the Revolution",
+      "year": 1986,
+      "genres": [
+        "funk",
+        "pop"
+      ],
+      "uri": "spotify:track:62LJFaYihsdVrrkgUOJC05"
+    },
+    {
+      "title": "Higher Love",
+      "artist": "Steve Winwood",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:2HcokWTBGI5EjGeNVLgd8Q"
+    },
+    {
+      "title": "Stuck with You",
+      "artist": "Huey Lewis and the News",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:2cFl7utlqyZjCXN1G5nRvA"
+    },
+    {
+      "title": "Holding Back the Years",
+      "artist": "Simply Red",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:1yg7fwwYmx9DQ2TdXUmfpJ"
+    },
+    {
+      "title": "Sledgehammer",
+      "artist": "Peter Gabriel",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "funk"
+      ],
+      "uri": "spotify:track:4AUS8KNz7zX8XFu9L38GT0"
+    },
+    {
+      "title": "Sara",
+      "artist": "Starship",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:0HzjKCZmFhwcO2vnnHpj9q"
+    },
+    {
+      "title": "Human",
+      "artist": "The Human League",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b",
+        "electronic"
+      ],
+      "uri": "spotify:track:3gE2Af7Tgd1iZOO1xbTqoh"
+    },
+    {
+      "title": "I Can't Wait",
+      "artist": "Nu Shooz",
+      "year": 1986,
+      "genres": [
+        "dance",
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:647q0KZHceDZTyLExHU0ue"
+    },
+    {
+      "title": "Take My Breath Away",
+      "artist": "Berlin",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "new wave",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:15MJ5NThPjj6xhPcts8MiY"
+    },
+    {
+      "title": "Rock Me Amadeus",
+      "artist": "Falco",
+      "year": 1986,
+      "genres": [
+        "new wave",
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:0DfG1ltJnZyq4Tx3ZLL7ZU"
+    },
+    {
+      "title": "Papa Don't Preach",
+      "artist": "Madonna",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:6A8OnjnpShshNpcqWtZRjr"
+    },
+    {
+      "title": "You Give Love a Bad Name",
+      "artist": "Bon Jovi",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "metal"
+      ],
+      "uri": "spotify:track:0rmGAIH9LNJewFw7nKzZnc"
+    }
+  ]
+}

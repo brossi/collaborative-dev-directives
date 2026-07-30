@@ -1,0 +1,293 @@
+{
+  "module": "year-2017",
+  "name": "Hits of 2017",
+  "source": "Billboard Year-End Hot 100, 2017 (top 30)",
+  "songs": [
+    {
+      "title": "Shape of You",
+      "artist": "Ed Sheeran",
+      "year": 2017,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:7qiZfU4dY1lWllzX7mPBI3"
+    },
+    {
+      "title": "Despacito",
+      "artist": "Luis Fonsi & Daddy Yankee feat. Justin Bieber",
+      "year": 2017,
+      "genres": [
+        "latin",
+        "pop"
+      ],
+      "uri": "spotify:track:6rPO02ozF3bM7NnOV4h6s2"
+    },
+    {
+      "title": "That's What I Like",
+      "artist": "Bruno Mars",
+      "year": 2017,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:0KKkJNfGyhkQ5aFogxQAPU"
+    },
+    {
+      "title": "Humble",
+      "artist": "Kendrick Lamar",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7KXjTSCq5nL1LoYtL7XAwS"
+    },
+    {
+      "title": "Something Just Like This",
+      "artist": "The Chainsmokers & Coldplay",
+      "year": 2017,
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:6RUKPb4LETWmmr3iAEQktW"
+    },
+    {
+      "title": "Bad and Boujee",
+      "artist": "Migos feat. Lil Uzi Vert",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4Km5HrUvYTaSUfiSGPJeQR"
+    },
+    {
+      "title": "Body Like a Back Road",
+      "artist": "Sam Hunt",
+      "year": 2017,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:7mldq42yDuxiUNn08nvzHO"
+    },
+    {
+      "title": "Believer",
+      "artist": "Imagine Dragons",
+      "year": 2017,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:0pqnGHJpmpxLKifKRmU6WP"
+    },
+    {
+      "title": "Congratulations",
+      "artist": "Post Malone feat. Quavo",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3a1lNhkSLSkpJE4MSHpDu9"
+    },
+    {
+      "title": "Say You Won't Let Go",
+      "artist": "James Arthur",
+      "year": 2017,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:5uCax9HTNlzGybIStD3vDh"
+    },
+    {
+      "title": "I'm the One",
+      "artist": "DJ Khaled feat. Justin Bieber, Quavo, Chance the Rapper & Lil Wayne",
+      "year": 2017,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:1jYiIOC5d6soxkJP81fxq2"
+    },
+    {
+      "title": "XO Tour Llif3",
+      "artist": "Lil Uzi Vert",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7GX5flRQZVHRAGd6B4TmDO"
+    },
+    {
+      "title": "Paris",
+      "artist": "The Chainsmokers",
+      "year": 2017,
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:15vzANxN8G9wWfwAJLLMCg"
+    },
+    {
+      "title": "Stay",
+      "artist": "Zedd & Alessia Cara",
+      "year": 2017,
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:6uBhi9gBXWjanegOb2Phh0"
+    },
+    {
+      "title": "It Ain't Me",
+      "artist": "Kygo x Selena Gomez",
+      "year": 2017,
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:12GEpg2XOPyqk03JZEZnJs"
+    },
+    {
+      "title": "Unforgettable",
+      "artist": "French Montana feat. Swae Lee",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3B54sVLJ402zGa6Xm4YGNe"
+    },
+    {
+      "title": "Mask Off",
+      "artist": "Future",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:0VgkVdmE4gld66l8iyGjgx"
+    },
+    {
+      "title": "Wild Thoughts",
+      "artist": "DJ Khaled feat. Rihanna & Bryson Tiller",
+      "year": 2017,
+      "genres": [
+        "pop",
+        "r&b",
+        "latin"
+      ],
+      "uri": "spotify:track:45XhKYRRkyeqoW3teSOkCM"
+    },
+    {
+      "title": "Issues",
+      "artist": "Julia Michaels",
+      "year": 2017,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:7vu0JkJh0ldukEYbTVcqd0"
+    },
+    {
+      "title": "iSpy",
+      "artist": "Kyle feat. Lil Yachty",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2EEeOnHehOozLq4aS0n6SL"
+    },
+    {
+      "title": "Attention",
+      "artist": "Charlie Puth",
+      "year": 2017,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5cF0dROlMOK5uNZtivgu50"
+    },
+    {
+      "title": "Look What You Made Me Do",
+      "artist": "Taylor Swift",
+      "year": 2017,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1JbR9RDP3ogVNEWFgNXAjh"
+    },
+    {
+      "title": "Bodak Yellow",
+      "artist": "Cardi B",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6KBYefIoo7KydImq1uUQlL"
+    },
+    {
+      "title": "Location",
+      "artist": "Khalid",
+      "year": 2017,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:152lZdxL1OR0ZMW6KquMif"
+    },
+    {
+      "title": "24K Magic",
+      "artist": "Bruno Mars",
+      "year": 2017,
+      "genres": [
+        "funk",
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:6b8Be6ljOzmkOmFslEb23P"
+    },
+    {
+      "title": "Black Beatles",
+      "artist": "Rae Sremmurd feat. Gucci Mane",
+      "year": 2017,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6fujklziTHa8uoM5OQSfIo"
+    },
+    {
+      "title": "Starboy",
+      "artist": "The Weeknd feat. Daft Punk",
+      "year": 2017,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:7MXVkk9YMctZqd1Srtv4MB"
+    },
+    {
+      "title": "Redbone",
+      "artist": "Childish Gambino",
+      "year": 2017,
+      "genres": [
+        "funk",
+        "r&b"
+      ],
+      "uri": "spotify:track:0wXuerDYiBnERgIpbb3JBR"
+    },
+    {
+      "title": "There's Nothing Holdin' Me Back",
+      "artist": "Shawn Mendes",
+      "year": 2017,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:7JJmb5XwzOO8jgpou264Ml"
+    },
+    {
+      "title": "Sorry Not Sorry",
+      "artist": "Demi Lovato",
+      "year": 2017,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:7gvd8xj4QgPqbQSsn5pV7d"
+    }
+  ]
+}

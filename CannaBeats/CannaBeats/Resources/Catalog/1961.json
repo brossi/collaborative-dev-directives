@@ -1,0 +1,301 @@
+{
+  "module": "year-1961",
+  "name": "Hits of 1961",
+  "source": "Billboard Year-End Hot 100, 1961 (top 30)",
+  "songs": [
+    {
+      "title": "Tossin' and Turnin'",
+      "artist": "Bobby Lewis",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": "spotify:track:79s3pSe1u6ggQBEwVPm58Z"
+    },
+    {
+      "title": "Big Bad John",
+      "artist": "Jimmy Dean",
+      "year": 1961,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:61uAY9xdzYiIbYJ07XvKso"
+    },
+    {
+      "title": "Runaway",
+      "artist": "Del Shannon",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:45Szkclj1lt4ubm7RFK68t"
+    },
+    {
+      "title": "Wonderland by Night",
+      "artist": "Bert Kaempfert",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:2SUe50SsXKH97zPwx1pnuL"
+    },
+    {
+      "title": "Pony Time",
+      "artist": "Chubby Checker",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": "spotify:track:2XPEv2sB6c44DSocT2TwAc"
+    },
+    {
+      "title": "Travelin' Man",
+      "artist": "Ricky Nelson",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:2jc4wyf3ys0zKCpxHRjEYx"
+    },
+    {
+      "title": "Blue Moon",
+      "artist": "The Marcels",
+      "year": 1961,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": "spotify:track:75ewj77lCHHLKOlyx5KvGw"
+    },
+    {
+      "title": "Runaround Sue",
+      "artist": "Dion",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "doo-wop"
+      ],
+      "uri": "spotify:track:1DndHckdH9m5rp6gYP086b"
+    },
+    {
+      "title": "Take Good Care of My Baby",
+      "artist": "Bobby Vee",
+      "year": 1961,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1MR7XamWS0XH6vZxeeRdE0"
+    },
+    {
+      "title": "Calcutta",
+      "artist": "Lawrence Welk",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:28l8JbAxOhIwGv7ecqFCWz"
+    },
+    {
+      "title": "Exodus",
+      "artist": "Ferrante and Teicher",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": "spotify:track:7MIzIo0Z9S8zmBiXdGwOeS"
+    },
+    {
+      "title": "Will You Love Me Tomorrow",
+      "artist": "The Shirelles",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0bwy3sGHeYwng2Ioicq6wf"
+    },
+    {
+      "title": "Michael",
+      "artist": "The Highwaymen",
+      "year": 1961,
+      "genres": [
+        "folk"
+      ],
+      "uri": "spotify:track:5pgq6Pzyr8iF2Rs7vzC1nd"
+    },
+    {
+      "title": "Quarter to Three",
+      "artist": "Gary U.S. Bonds",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Surrender",
+      "artist": "Elvis Presley",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Raindrops",
+      "artist": "Dee Clark",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:6CqTD9nWwf8R1yPVkIVdF5"
+    },
+    {
+      "title": "Wooden Heart",
+      "artist": "Joe Dowell",
+      "year": 1961,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2ELAMT68a78OGwhCgj9Kai"
+    },
+    {
+      "title": "Crying",
+      "artist": "Roy Orbison",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:6eLL7QTdMWdhhG4i3jHDR9"
+    },
+    {
+      "title": "Dedicated to the One I Love",
+      "artist": "The Shirelles",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:36f5xtZ2CXIc1WOirnnD3j"
+    },
+    {
+      "title": "Where the Boys Are",
+      "artist": "Connie Francis",
+      "year": 1961,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:70UvKFI48DAQ2suS58bu5l"
+    },
+    {
+      "title": "Mother-in-Law",
+      "artist": "Ernie K-Doe",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Boll Weevil Song",
+      "artist": "Brook Benton",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": "spotify:track:5gCkto8RSjGPynLo3GjOk0"
+    },
+    {
+      "title": "Hit the Road Jack",
+      "artist": "Ray Charles",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Night",
+      "artist": "The Mar-Keys",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Daddy's Home",
+      "artist": "Shep and the Limelites",
+      "year": 1961,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": "spotify:track:2Vr3XMnJyu60xBUUchWUrI"
+    },
+    {
+      "title": "A Hundred Pounds of Clay",
+      "artist": "Gene McDaniels",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:4s9qKAu0wMyIWVUB7Cuv3j"
+    },
+    {
+      "title": "I Like It Like That",
+      "artist": "Chris Kenner",
+      "year": 1961,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Apache",
+      "artist": "Jorgen Ingmann",
+      "year": 1961,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0FKNRNN2mcY9dBjenoxbeY"
+    },
+    {
+      "title": "Shop Around",
+      "artist": "The Miracles",
+      "year": 1961,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:47IRIQxGDe2Sc6F4pe2FMf"
+    },
+    {
+      "title": "Wheels",
+      "artist": "The String-A-Longs",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:789lq0oHhOa4pHh2y9rjkN"
+    }
+  ]
+}

@@ -1,0 +1,293 @@
+{
+  "module": "year-1976",
+  "name": "Hits of 1976",
+  "source": "Billboard Year-End Hot 100, 1976 (top 30)",
+  "songs": [
+    {
+      "title": "Silly Love Songs",
+      "artist": "Wings",
+      "year": 1976,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:3bC0IKk62yB6TDaratb1s2"
+    },
+    {
+      "title": "Don't Go Breaking My Heart",
+      "artist": "Elton John & Kiki Dee",
+      "year": 1976,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5pKJtX4wBeby9qIfFhyOJj"
+    },
+    {
+      "title": "Disco Lady",
+      "artist": "Johnnie Taylor",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:1tMyqN7bNCokdg7jWgKPc8"
+    },
+    {
+      "title": "December, 1963 (Oh, What a Night)",
+      "artist": "The Four Seasons",
+      "year": 1976,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Play That Funky Music",
+      "artist": "Wild Cherry",
+      "year": 1976,
+      "genres": [
+        "funk",
+        "disco"
+      ],
+      "uri": "spotify:track:5uuJruktM9fMdN9Va0DUMl"
+    },
+    {
+      "title": "Kiss and Say Goodbye",
+      "artist": "The Manhattans",
+      "year": 1976,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:0rHiGIRASJq8snJGFJMpnI"
+    },
+    {
+      "title": "Love Machine",
+      "artist": "The Miracles",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "50 Ways to Leave Your Lover",
+      "artist": "Paul Simon",
+      "year": 1976,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:6Qb7gtV6Q4MnUjSbkFcopl"
+    },
+    {
+      "title": "Love Is Alive",
+      "artist": "Gary Wright",
+      "year": 1976,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:5vVuiXoHyRGxJeCaHUpgae"
+    },
+    {
+      "title": "A Fifth of Beethoven",
+      "artist": "Walter Murphy & The Big Apple Band",
+      "year": 1976,
+      "genres": [
+        "disco"
+      ],
+      "uri": "spotify:track:1hR3TNe1neCWRQatSVOFfX"
+    },
+    {
+      "title": "Sara Smile",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1976,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:1qjrYozGqc7upUgfN776lZ"
+    },
+    {
+      "title": "Afternoon Delight",
+      "artist": "Starland Vocal Band",
+      "year": 1976,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:62hzQs9ygiEgudeWCUHcuJ"
+    },
+    {
+      "title": "I Write the Songs",
+      "artist": "Barry Manilow",
+      "year": 1976,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5VU6nvX3BqkqBmOJ2d9vhW"
+    },
+    {
+      "title": "Fly, Robin, Fly",
+      "artist": "Silver Convention",
+      "year": 1976,
+      "genres": [
+        "disco"
+      ],
+      "uri": "spotify:track:4Wr14AISsCuBGdkA6rids4"
+    },
+    {
+      "title": "Love Hangover",
+      "artist": "Diana Ross",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": "spotify:track:4UqPeeSyRt59KZmC0aA2Ni"
+    },
+    {
+      "title": "Get Closer",
+      "artist": "Seals and Crofts",
+      "year": 1976,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:5Eq0mobXSnyWu1dpE6lSdY"
+    },
+    {
+      "title": "More, More, More",
+      "artist": "Andrea True Connection",
+      "year": 1976,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bohemian Rhapsody",
+      "artist": "Queen",
+      "year": 1976,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:7tFiyTwD0nx5a1eklYtX2J"
+    },
+    {
+      "title": "Misty Blue",
+      "artist": "Dorothy Moore",
+      "year": 1976,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:20JcxdRw8gvqTY1EEpYxHb"
+    },
+    {
+      "title": "Boogie Fever",
+      "artist": "The Sylvers",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": "spotify:track:3FZB0xezeoc1ddx72eg7iF"
+    },
+    {
+      "title": "I'd Really Love to See You Tonight",
+      "artist": "England Dan & John Ford Coley",
+      "year": 1976,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2r008pcfVYc0zgQvSRqUJE"
+    },
+    {
+      "title": "You Sexy Thing",
+      "artist": "Hot Chocolate",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": "spotify:track:714hERk9U1W8FMYkoC83CO"
+    },
+    {
+      "title": "Love Hurts",
+      "artist": "Nazareth",
+      "year": 1976,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:1i5oEx2vFczQ2sCY3c6Kn5"
+    },
+    {
+      "title": "Get Up and Boogie",
+      "artist": "Silver Convention",
+      "year": 1976,
+      "genres": [
+        "disco"
+      ],
+      "uri": "spotify:track:6kkHnD5hJK75kHRRR2zUJG"
+    },
+    {
+      "title": "Take It to the Limit",
+      "artist": "Eagles",
+      "year": 1976,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": "spotify:track:2cWHN0WK52RGAWHgaDamUA"
+    },
+    {
+      "title": "(Shake, Shake, Shake) Shake Your Booty",
+      "artist": "KC and the Sunshine Band",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": "spotify:track:3Is0Nnz59rzbNZE491URlY"
+    },
+    {
+      "title": "Sweet Love",
+      "artist": "Commodores",
+      "year": 1976,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:7zqguUyS3LQxAdL8rRgXx2"
+    },
+    {
+      "title": "Right Back Where We Started From",
+      "artist": "Maxine Nightingale",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "pop"
+      ],
+      "uri": "spotify:track:00s8dO3RWrFkBqC9JIy6ag"
+    },
+    {
+      "title": "Theme from S.W.A.T.",
+      "artist": "Rhythm Heritage",
+      "year": 1976,
+      "genres": [
+        "disco",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Rollercoaster",
+      "artist": "Ohio Players",
+      "year": 1976,
+      "genres": [
+        "funk"
+      ],
+      "uri": "spotify:track:1hRDHWWealh2Pk3fnpIe75"
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "module": "year-1993",
+  "name": "Hits of 1993",
+  "source": "Billboard Year-End Hot 100, 1993 (top 30)",
+  "songs": [
+    {
+      "title": "I Will Always Love You",
+      "artist": "Whitney Houston",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:4eHbdreAnSOrDDsFfc4Fpm"
+    },
+    {
+      "title": "Whoomp! (There It Is)",
+      "artist": "Tag Team",
+      "year": 1993,
+      "genres": [
+        "hip-hop",
+        "dance"
+      ],
+      "uri": "spotify:track:70jtZsS59vhmyZSsln0std"
+    },
+    {
+      "title": "Can't Help Falling in Love",
+      "artist": "UB40",
+      "year": 1993,
+      "genres": [
+        "reggae",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That's the Way Love Goes",
+      "artist": "Janet Jackson",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:29rQJydAlO0uMyWvRIZxQg"
+    },
+    {
+      "title": "Freak Me",
+      "artist": "Silk",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:5CdJveJgiGXoGwDFqF6afp"
+    },
+    {
+      "title": "Weak",
+      "artist": "SWV",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:71EHOyEOhNx1SzTebRRyng"
+    },
+    {
+      "title": "If I Ever Fall in Love",
+      "artist": "Shai",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:1jCsCYgzQQHk3bDJDuFbNi"
+    },
+    {
+      "title": "Dreamlover",
+      "artist": "Mariah Carey",
+      "year": 1993,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:6HcQZfMrw3KwGyzrKw1Pjy"
+    },
+    {
+      "title": "Rump Shaker",
+      "artist": "Wreckx-n-Effect",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4dY4JVC0Q9CwpeZ6JAclIc"
+    },
+    {
+      "title": "Informer",
+      "artist": "Snow",
+      "year": 1993,
+      "genres": [
+        "reggae",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2LjiPAQOVazT8sRyXL3XRs"
+    },
+    {
+      "title": "Nuthin' but a 'G' Thang",
+      "artist": "Dr. Dre",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "In the Still of the Nite (I'll Remember)",
+      "artist": "Boyz II Men",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Walk Away",
+      "artist": "Jade",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:7tsRp7QKUBp6hc9bth0h7x"
+    },
+    {
+      "title": "Knockin' da Boots",
+      "artist": "H-Town",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:6x53SJOV1PAZ8ZUwH4NFXQ"
+    },
+    {
+      "title": "Lately",
+      "artist": "Jodeci",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:5hIljtQ1fRvDRc1aHdhwWK"
+    },
+    {
+      "title": "Dazzey Duks",
+      "artist": "Duice",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:26yQYGCXD9ypPW8eeXa1gx"
+    },
+    {
+      "title": "Show Me Love",
+      "artist": "Robin S.",
+      "year": 1993,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": "spotify:track:4t0UsYzmmmZRMTWn77jiGF"
+    },
+    {
+      "title": "A Whole New World",
+      "artist": "Peabo Bryson and Regina Belle",
+      "year": 1993,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:4tS8xQfyPGc7f4lJ1JP6BX"
+    },
+    {
+      "title": "If",
+      "artist": "Janet Jackson",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:0t414ewhjcIiuPVF3QECz2"
+    },
+    {
+      "title": "I'm So Into You",
+      "artist": "SWV",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:5A0aUvnfAEcmUx3hoXjI8R"
+    },
+    {
+      "title": "Love Is",
+      "artist": "Vanessa Williams and Brian McKnight",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Runaway Train",
+      "artist": "Soul Asylum",
+      "year": 1993,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:3TW48DvQ7ChwY1Yy1tkMaP"
+    },
+    {
+      "title": "I'll Never Get Over You (Getting Over Me)",
+      "artist": "Expose",
+      "year": 1993,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5jPgOjFotU05FAgA8Y9IFL"
+    },
+    {
+      "title": "Ditty",
+      "artist": "Paperboy",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2JaHnS7CcIPoc7Il4BkqdR"
+    },
+    {
+      "title": "Rhythm Is a Dancer",
+      "artist": "Snap!",
+      "year": 1993,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": "spotify:track:4RADreHMvMkZwsPgPr9z5c"
+    },
+    {
+      "title": "The River of Dreams",
+      "artist": "Billy Joel",
+      "year": 1993,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:30qVCFYKBtAENjTIBA8FPZ"
+    },
+    {
+      "title": "I'm Gonna Be (500 Miles)",
+      "artist": "The Proclaimers",
+      "year": 1993,
+      "genres": [
+        "rock",
+        "folk",
+        "alternative"
+      ],
+      "uri": "spotify:track:66S14BkJDxgkYxLl5DCqOz"
+    },
+    {
+      "title": "Two Princes",
+      "artist": "Spin Doctors",
+      "year": 1993,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:4ePP9So5xRzspjLFVVbj90"
+    },
+    {
+      "title": "Right Here (Human Nature)",
+      "artist": "SWV",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:7tUEDtHchueeUJTfEFEhii"
+    },
+    {
+      "title": "I Have Nothing",
+      "artist": "Whitney Houston",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:31er9IGsfFbwqy1pH4aiTP"
+    }
+  ]
+}

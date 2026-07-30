@@ -1,0 +1,293 @@
+{
+  "module": "year-1971",
+  "name": "Hits of 1971",
+  "source": "Billboard Year-End Hot 100, 1971 (top 30)",
+  "songs": [
+    {
+      "title": "Joy to the World",
+      "artist": "Three Dog Night",
+      "year": 1971,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:2ymeOsYijJz09LfKw3yM2x"
+    },
+    {
+      "title": "Maggie May",
+      "artist": "Rod Stewart",
+      "year": 1971,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's Too Late",
+      "artist": "Carole King",
+      "year": 1971,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Bad Apple",
+      "artist": "The Osmonds",
+      "year": 1971,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:50UoJUrslRVqG0cg6uboyn"
+    },
+    {
+      "title": "How Can You Mend a Broken Heart",
+      "artist": "Bee Gees",
+      "year": 1971,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:1jy0RbDHyBMTupSdc98XbG"
+    },
+    {
+      "title": "Indian Reservation (The Lament of the Cherokee Reservation Indian)",
+      "artist": "The Raiders",
+      "year": 1971,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:3mDOHVY9MWZOTODSNF5GBj"
+    },
+    {
+      "title": "Go Away Little Girl",
+      "artist": "Donny Osmond",
+      "year": 1971,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6SvOdNsEfi7EDB0oFtH3YG"
+    },
+    {
+      "title": "Take Me Home, Country Roads",
+      "artist": "John Denver",
+      "year": 1971,
+      "genres": [
+        "country",
+        "folk"
+      ],
+      "uri": "spotify:track:39q7xibBdRboeMKUbZEB6g"
+    },
+    {
+      "title": "Just My Imagination (Running Away with Me)",
+      "artist": "The Temptations",
+      "year": 1971,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:39Bd345OWEhRNyfayhp9gv"
+    },
+    {
+      "title": "Knock Three Times",
+      "artist": "Dawn",
+      "year": 1971,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6gvfXd7pEUSPuNEMWwOJUH"
+    },
+    {
+      "title": "Me and Bobby McGee",
+      "artist": "Janis Joplin",
+      "year": 1971,
+      "genres": [
+        "rock",
+        "blues"
+      ],
+      "uri": "spotify:track:1IqFh00G2kvvMm8pRMpehA"
+    },
+    {
+      "title": "Tired of Being Alone",
+      "artist": "Al Green",
+      "year": 1971,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:10vkYRKw6Jjr7try1ir50G"
+    },
+    {
+      "title": "Want Ads",
+      "artist": "Honey Cone",
+      "year": 1971,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Smiling Faces Sometimes",
+      "artist": "The Undisputed Truth",
+      "year": 1971,
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "uri": "spotify:track:5Vdg4tP25ffeGEC5GGmCwm"
+    },
+    {
+      "title": "Treat Her Like a Lady",
+      "artist": "Cornelius Brothers & Sister Rose",
+      "year": 1971,
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "uri": "spotify:track:75t6tcHkZDFKLKJwjXFMtq"
+    },
+    {
+      "title": "Brown Sugar",
+      "artist": "The Rolling Stones",
+      "year": 1971,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:61UuPxxYUvacEH6SHIK3sU"
+    },
+    {
+      "title": "You've Got a Friend",
+      "artist": "James Taylor",
+      "year": 1971,
+      "genres": [
+        "singer-songwriter",
+        "folk"
+      ],
+      "uri": "spotify:track:69l8nFPu0LWmnoJX7YSVYc"
+    },
+    {
+      "title": "Mr. Big Stuff",
+      "artist": "Jean Knight",
+      "year": 1971,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": "spotify:track:2Bls0igCm79XQQ95IoUbhq"
+    },
+    {
+      "title": "Do You Know What I Mean",
+      "artist": "Lee Michaels",
+      "year": 1971,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0X2ckklp0uln3TRUH7JTpN"
+    },
+    {
+      "title": "The Night They Drove Old Dixie Down",
+      "artist": "Joan Baez",
+      "year": 1971,
+      "genres": [
+        "folk"
+      ],
+      "uri": "spotify:track:0uHYplBhwLYey7f9qAmnSM"
+    },
+    {
+      "title": "What's Going On",
+      "artist": "Marvin Gaye",
+      "year": 1971,
+      "genres": [
+        "soul"
+      ],
+      "uri": "spotify:track:4RNHbYuRaZesMODlihhsUG"
+    },
+    {
+      "title": "Uncle Albert / Admiral Halsey",
+      "artist": "Paul & Linda McCartney",
+      "year": 1971,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't No Sunshine",
+      "artist": "Bill Withers",
+      "year": 1971,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:1k1Bqnv2R0uJXQN4u6LKYt"
+    },
+    {
+      "title": "Signs",
+      "artist": "Five Man Electrical Band",
+      "year": 1971,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:5KWXi2eCYsC6ofIILjvG4V"
+    },
+    {
+      "title": "She's a Lady",
+      "artist": "Tom Jones",
+      "year": 1971,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5JnHzjo25FY1fMQMQVOawB"
+    },
+    {
+      "title": "I've Found Someone of My Own",
+      "artist": "The Free Movement",
+      "year": 1971,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Superstar",
+      "artist": "Murray Head",
+      "year": 1971,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Amos Moses",
+      "artist": "Jerry Reed",
+      "year": 1971,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:7zVZF0OgDJkFJohnlKwEpa"
+    },
+    {
+      "title": "Temptation Eyes",
+      "artist": "The Grass Roots",
+      "year": 1971,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:6KYEtZi2zMlIULXzca9mjp"
+    },
+    {
+      "title": "Superstar",
+      "artist": "Carpenters",
+      "year": 1971,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

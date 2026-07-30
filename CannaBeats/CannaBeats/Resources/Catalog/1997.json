@@ -1,0 +1,294 @@
+{
+  "module": "year-1997",
+  "name": "Hits of 1997",
+  "source": "Billboard Year-End Hot 100, 1997 (top 30)",
+  "songs": [
+    {
+      "title": "Candle in the Wind 1997",
+      "artist": "Elton John",
+      "year": 1997,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Were Meant for Me",
+      "artist": "Jewel",
+      "year": 1997,
+      "genres": [
+        "pop",
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:14sVnTYvfzo9sQM4RkQTaq"
+    },
+    {
+      "title": "I'll Be Missing You",
+      "artist": "Puff Daddy and Faith Evans featuring 112",
+      "year": 1997,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0jKMnHAycHc9qO6R6UyhMc"
+    },
+    {
+      "title": "Un-Break My Heart",
+      "artist": "Toni Braxton",
+      "year": 1997,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:2o77J0lHibFJgnTGhiwTke"
+    },
+    {
+      "title": "Can't Nobody Hold Me Down",
+      "artist": "Puff Daddy featuring Mase",
+      "year": 1997,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Believe I Can Fly",
+      "artist": "R. Kelly",
+      "year": 1997,
+      "genres": [
+        "r&b",
+        "gospel",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Let Go (Love)",
+      "artist": "En Vogue",
+      "year": 1997,
+      "genres": [
+        "r&b",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:06TuMCjDEYjTOJScCRzmjf"
+    },
+    {
+      "title": "Return of the Mack",
+      "artist": "Mark Morrison",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:3jDdpx9PMlfMBS5tOBHFm9"
+    },
+    {
+      "title": "Wannabe",
+      "artist": "Spice Girls",
+      "year": 1997,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:1Je1IMUlBXcx1Fz0WE7oPT"
+    },
+    {
+      "title": "Quit Playing Games (With My Heart)",
+      "artist": "Backstreet Boys",
+      "year": 1997,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1nRwyxNsqCLeA17qR8Nfxx"
+    },
+    {
+      "title": "MMMBop",
+      "artist": "Hanson",
+      "year": 1997,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0lnxrQAd9ZxbhBBe7d8FO8"
+    },
+    {
+      "title": "For You I Will",
+      "artist": "Monica",
+      "year": 1997,
+      "genres": [
+        "r&b",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Make Me Wanna...",
+      "artist": "Usher",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:47TqCCnEliDp8NRDyIQoQq"
+    },
+    {
+      "title": "Bitch",
+      "artist": "Meredith Brooks",
+      "year": 1997,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:3i6qNxyVgIdUZTTi5m25EM"
+    },
+    {
+      "title": "Nobody",
+      "artist": "Keith Sweat featuring Athena Cage",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:4SF1747p541umnykBp352Q"
+    },
+    {
+      "title": "Semi-Charmed Life",
+      "artist": "Third Eye Blind",
+      "year": 1997,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:42et6fnHCw1HIPSrdPprMl"
+    },
+    {
+      "title": "Barely Breathing",
+      "artist": "Duncan Sheik",
+      "year": 1997,
+      "genres": [
+        "pop",
+        "rock",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:75HZ6Wxnw8xbgz6HU9kKCS"
+    },
+    {
+      "title": "Hard to Say I'm Sorry",
+      "artist": "Az Yet featuring Peter Cetera",
+      "year": 1997,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:2OWzR8QoH7KaLtiN65v32x"
+    },
+    {
+      "title": "Mo Money Mo Problems",
+      "artist": "The Notorious B.I.G. featuring Puff Daddy and Mase",
+      "year": 1997,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4INDiWSKvqSKDEu7mh8HFz"
+    },
+    {
+      "title": "The Freshmen",
+      "artist": "The Verve Pipe",
+      "year": 1997,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:21jEuMn2lf37715rwjow2M"
+    },
+    {
+      "title": "I Want You",
+      "artist": "Savage Garden",
+      "year": 1997,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3XorCFmcupSm5QS6hA9g4N"
+    },
+    {
+      "title": "No Diggity",
+      "artist": "Blackstreet featuring Dr. Dre",
+      "year": 1997,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6MdqqkQ8sSC0WB4i8PyRuQ"
+    },
+    {
+      "title": "I Belong to You (Every Time I See Your Face)",
+      "artist": "Rome",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:1nP6feYWJVpbO41aezFtm2"
+    },
+    {
+      "title": "Hypnotize",
+      "artist": "The Notorious B.I.G.",
+      "year": 1997,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7KwZNVEaqikRSBSpyhXK2j"
+    },
+    {
+      "title": "Every Time I Close My Eyes",
+      "artist": "Babyface",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:2ezqQeBiC72gwMJoO4w1hA"
+    },
+    {
+      "title": "In My Bed",
+      "artist": "Dru Hill",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:0IBgCsG8dRnUtveiIaoFHF"
+    },
+    {
+      "title": "Say You'll Be There",
+      "artist": "Spice Girls",
+      "year": 1997,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1yTQ39my3MoNROlFw3RDNy"
+    },
+    {
+      "title": "Do You Know (What It Takes)",
+      "artist": "Robyn",
+      "year": 1997,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:0idCpkJ2pspfAILbanmERu"
+    },
+    {
+      "title": "4 Seasons of Loneliness",
+      "artist": "Boyz II Men",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:027tq4cWr0kRxLTfdxvM1L"
+    },
+    {
+      "title": "G.H.E.T.T.O.U.T.",
+      "artist": "Changing Faces",
+      "year": 1997,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    }
+  ]
+}

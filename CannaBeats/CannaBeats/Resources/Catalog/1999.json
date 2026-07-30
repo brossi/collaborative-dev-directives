@@ -1,0 +1,296 @@
+{
+  "module": "year-1999",
+  "name": "Hits of 1999",
+  "source": "Billboard Year-End Hot 100, 1999 (top 30)",
+  "songs": [
+    {
+      "title": "Believe",
+      "artist": "Cher",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:2goLsvvODILDzeeiT4dAoR"
+    },
+    {
+      "title": "No Scrubs",
+      "artist": "TLC",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:1KGi9sZVMeszgZOWivFpxs"
+    },
+    {
+      "title": "Angel of Mine",
+      "artist": "Monica",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:1AM1o0mKbgAK5oMpY8B3Z7"
+    },
+    {
+      "title": "Heartbreak Hotel",
+      "artist": "Whitney Houston featuring Faith Evans and Kelly Price",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:4J9u7UsXH7F6sFI32KnYuP"
+    },
+    {
+      "title": "...Baby One More Time",
+      "artist": "Britney Spears",
+      "year": 1999,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3MjUtNVVq3C8Fn0MP3zhXa"
+    },
+    {
+      "title": "Kiss Me",
+      "artist": "Sixpence None the Richer",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": "spotify:track:754kgU5rWscRTfvlsuEwFp"
+    },
+    {
+      "title": "Genie in a Bottle",
+      "artist": "Christina Aguilera",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:11mwFrKvLXCbcVGNxffGyP"
+    },
+    {
+      "title": "Every Morning",
+      "artist": "Sugar Ray",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:2ouURa1AIXp3AvkS52Jry5"
+    },
+    {
+      "title": "Nobody's Supposed to Be Here",
+      "artist": "Deborah Cox",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:51QxenFmXlJXUN9mpvxlaL"
+    },
+    {
+      "title": "Livin' la Vida Loca",
+      "artist": "Ricky Martin",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:0Ph6L4l8dYUuXFmb71Ajnd"
+    },
+    {
+      "title": "Where My Girls At?",
+      "artist": "702",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:4VSyH8AkIt3kaR5xIPFVVi"
+    },
+    {
+      "title": "If You Had My Love",
+      "artist": "Jennifer Lopez",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:3x4yV0hW5Ve3TKhFkXSqFn"
+    },
+    {
+      "title": "Slide",
+      "artist": "Goo Goo Dolls",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:0nnwn7LWHCAu09jfuH1xTA"
+    },
+    {
+      "title": "Have You Ever?",
+      "artist": "Brandy",
+      "year": 1999,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:6tBD4yjOf9P8rWwUlXdJFm"
+    },
+    {
+      "title": "I Want It That Way",
+      "artist": "Backstreet Boys",
+      "year": 1999,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6e40mgJiCid5HRAGrbpGA6"
+    },
+    {
+      "title": "I'm Your Angel",
+      "artist": "R. Kelly and Celine Dion",
+      "year": 1999,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:0QWFiyhOqFu9RP8qzP6z5L"
+    },
+    {
+      "title": "All Star",
+      "artist": "Smash Mouth",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:3cfOd4CMv2snFaKAnMdnvK"
+    },
+    {
+      "title": "Angel",
+      "artist": "Sarah McLachlan",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:3xZMPZQYETEn4hjor3TR1A"
+    },
+    {
+      "title": "Steal My Sunshine",
+      "artist": "Len",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": "spotify:track:4agp6oHofabdUedr0B1krj"
+    },
+    {
+      "title": "Unpretty",
+      "artist": "TLC",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:0BUoLE4o9eVahDHvTqak67"
+    },
+    {
+      "title": "Bills, Bills, Bills",
+      "artist": "Destiny's Child",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:1Oi2zpmL81Q0yScF1zxaC0"
+    },
+    {
+      "title": "Save Tonight",
+      "artist": "Eagle-Eye Cherry",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:1t2Hq2WIBcZINOEnK6mdJG"
+    },
+    {
+      "title": "Last Kiss",
+      "artist": "Pearl Jam",
+      "year": 1999,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0QnONzv3TvHAWk294h6DaQ"
+    },
+    {
+      "title": "Fortunate",
+      "artist": "Maxwell",
+      "year": 1999,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": "spotify:track:0atAqF01mqwYOOfXVHu51F"
+    },
+    {
+      "title": "All I Have to Give",
+      "artist": "Backstreet Boys",
+      "year": 1999,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3hlhefxgyp4MDnN6C2dQ5H"
+    },
+    {
+      "title": "Bailamos",
+      "artist": "Enrique Iglesias",
+      "year": 1999,
+      "genres": [
+        "latin",
+        "pop"
+      ],
+      "uri": "spotify:track:2bbeNsFmjZqdoDhjLsKNWe"
+    },
+    {
+      "title": "What's It Gonna Be?!",
+      "artist": "Busta Rhymes featuring Janet Jackson",
+      "year": 1999,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0FpLfrOyHblbDlHUsrPN1N"
+    },
+    {
+      "title": "What It's Like",
+      "artist": "Everlast",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "hip-hop",
+        "alternative"
+      ],
+      "uri": "spotify:track:0nbuX7OZkEY5agMkpr98wS"
+    },
+    {
+      "title": "Fly Away",
+      "artist": "Lenny Kravitz",
+      "year": 1999,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:1OxcIUqVmVYxT6427tbhDW"
+    },
+    {
+      "title": "Someday",
+      "artist": "Sugar Ray",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:6NcHJ23mLQKnVxQcOmT7JW"
+    }
+  ]
+}

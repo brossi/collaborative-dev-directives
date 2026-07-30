@@ -1,0 +1,298 @@
+{
+  "module": "year-1966",
+  "name": "Hits of 1966",
+  "source": "Billboard Year-End Hot 100, 1966 (top 30)",
+  "songs": [
+    {
+      "title": "The Ballad of the Green Berets",
+      "artist": "SSgt. Barry Sadler",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "California Dreamin'",
+      "artist": "The Mamas and the Papas",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock",
+        "folk"
+      ],
+      "uri": "spotify:track:4s6LhHAV5SEsOV0lC2tjvJ"
+    },
+    {
+      "title": "96 Tears",
+      "artist": "? and the Mysterians",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:4PEeZ2U4UfP2Jo8EtIOjus"
+    },
+    {
+      "title": "Last Train to Clarksville",
+      "artist": "The Monkees",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:3h4t9qpFktohHeUQc3hZCa"
+    },
+    {
+      "title": "Monday, Monday",
+      "artist": "The Mamas and the Papas",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:3EFb1qDgIqf9MegIryKtDj"
+    },
+    {
+      "title": "You Can't Hurry Love",
+      "artist": "The Supremes",
+      "year": 1966,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": "spotify:track:1OppEieGNdItZbE14gLBEv"
+    },
+    {
+      "title": "Poor Side of Town",
+      "artist": "Johnny Rivers",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:60DmpUd1BnemzjASiUewnf"
+    },
+    {
+      "title": "Cherish",
+      "artist": "The Association",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:7uGeDI6nJEdUYMsMd7mQyl"
+    },
+    {
+      "title": "Summer in the City",
+      "artist": "The Lovin' Spoonful",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:7AzFID6u1b3zIWbd9pb8Dk"
+    },
+    {
+      "title": "Born Free",
+      "artist": "Roger Williams",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "standards",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:3AuPRF3WVgtCNvvspIWc0Z"
+    },
+    {
+      "title": "Reach Out I'll Be There",
+      "artist": "Four Tops",
+      "year": 1966,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": "spotify:track:6Pkj4nv5K53i64cLVgkVyY"
+    },
+    {
+      "title": "Strangers in the Night",
+      "artist": "Frank Sinatra",
+      "year": 1966,
+      "genres": [
+        "standards",
+        "pop"
+      ],
+      "uri": "spotify:track:74VR3AkGPhbYXnxcOYa16x"
+    },
+    {
+      "title": "Winchester Cathedral",
+      "artist": "The New Vaudeville Band",
+      "year": 1966,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": "spotify:track:5gNtJxCCGp9jtiLbhQPend"
+    },
+    {
+      "title": "Paint It Black",
+      "artist": "The Rolling Stones",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:63T7DJ1AFDD6Bn8VzG6JE8"
+    },
+    {
+      "title": "Sunshine Superman",
+      "artist": "Donovan",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "folk"
+      ],
+      "uri": "spotify:track:4RGxUjaCmVtD30pIhtEi7w"
+    },
+    {
+      "title": "These Boots Are Made for Walkin'",
+      "artist": "Nancy Sinatra",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": "spotify:track:2nwCO1PqpvyoFIvq3Vrj8N"
+    },
+    {
+      "title": "Good Lovin'",
+      "artist": "The Young Rascals",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0XnhQGfqfi5CnZXcONJuI5"
+    },
+    {
+      "title": "When a Man Loves a Woman",
+      "artist": "Percy Sledge",
+      "year": 1966,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:51FpzuGkRYXFgsE2zXt9av"
+    },
+    {
+      "title": "Wild Thing",
+      "artist": "The Troggs",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:7jGzYUZ2Bgg8BDfYlQRfn8"
+    },
+    {
+      "title": "Paperback Writer",
+      "artist": "The Beatles",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:0Ui8KPWZbJJQ2Y0CIQuVqX"
+    },
+    {
+      "title": "We Can Work It Out",
+      "artist": "The Beatles",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:1hTUFqJuQAMjXVGwUPWDqi"
+    },
+    {
+      "title": "Hanky Panky",
+      "artist": "Tommy James and the Shondells",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:3uqEiaO6MUoM89nLSIs05c"
+    },
+    {
+      "title": "Lightnin' Strikes",
+      "artist": "Lou Christie",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2OQhFe5jjTnMWaaDRZxz31"
+    },
+    {
+      "title": "(You're My) Soul and Inspiration",
+      "artist": "The Righteous Brothers",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:5ZHOiRqKOzgFMfMAu8cwzp"
+    },
+    {
+      "title": "The Sounds of Silence",
+      "artist": "Simon and Garfunkel",
+      "year": 1966,
+      "genres": [
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Pied Piper",
+      "artist": "Crispian St. Peters",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:7ufnFt3fA9Ut2K0DILUZ34"
+    },
+    {
+      "title": "Red Rubber Ball",
+      "artist": "The Cyrkle",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:6DuLN8tFW0DkH9wsbTHZsX"
+    },
+    {
+      "title": "See You in September",
+      "artist": "The Happenings",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2caREKLVN9PbVDe9EPzXjc"
+    },
+    {
+      "title": "Li'l Red Riding Hood",
+      "artist": "Sam the Sham and the Pharaohs",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "novelty"
+      ],
+      "uri": "spotify:track:6zXUBpvUBzqps33B8YLTrg"
+    },
+    {
+      "title": "Yellow Submarine",
+      "artist": "The Beatles",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "novelty"
+      ],
+      "uri": "spotify:track:50xwQXPtfNZFKFeZ0XePWc"
+    }
+  ]
+}

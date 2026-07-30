@@ -1,0 +1,300 @@
+{
+  "module": "year-1982",
+  "name": "Hits of 1982",
+  "source": "Billboard Year-End Hot 100, 1982 (top 30)",
+  "songs": [
+    {
+      "title": "Physical",
+      "artist": "Olivia Newton-John",
+      "year": 1982,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:3hVrI7snZMTmHCnbwME47u"
+    },
+    {
+      "title": "Eye of the Tiger",
+      "artist": "Survivor",
+      "year": 1982,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:2KH16WveTQWT6KOG9Rg6e2"
+    },
+    {
+      "title": "I Love Rock 'n' Roll",
+      "artist": "Joan Jett & the Blackhearts",
+      "year": 1982,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:2Cdvbe2G4hZsnhNMKyGrie"
+    },
+    {
+      "title": "Ebony and Ivory",
+      "artist": "Paul McCartney and Stevie Wonder",
+      "year": 1982,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Centerfold",
+      "artist": "The J. Geils Band",
+      "year": 1982,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:1ynmMEK1fkyiZ6Z6F3ThEt"
+    },
+    {
+      "title": "Don't You Want Me",
+      "artist": "The Human League",
+      "year": 1982,
+      "genres": [
+        "new wave",
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:3L7RtEcu1Hw3OXrpnthngx"
+    },
+    {
+      "title": "Jack & Diane",
+      "artist": "John Cougar",
+      "year": 1982,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:43btz2xjMKpcmjkuRsvxyg"
+    },
+    {
+      "title": "Hurts So Good",
+      "artist": "John Cougar",
+      "year": 1982,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:67eX1ovaHyVPUinMHeUtIM"
+    },
+    {
+      "title": "Abracadabra",
+      "artist": "The Steve Miller Band",
+      "year": 1982,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:2UoiDuPSArZ1dz81koCc4l"
+    },
+    {
+      "title": "Hard to Say I'm Sorry",
+      "artist": "Chicago",
+      "year": 1982,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:07TnWCHrFkvF61GzJuLVt0"
+    },
+    {
+      "title": "Tainted Love",
+      "artist": "Soft Cell",
+      "year": 1982,
+      "genres": [
+        "new wave",
+        "electronic"
+      ],
+      "uri": "spotify:track:58E1XVmZTODC67YNjneuXM"
+    },
+    {
+      "title": "Chariots of Fire",
+      "artist": "Vangelis",
+      "year": 1982,
+      "genres": [
+        "electronic",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Harden My Heart",
+      "artist": "Quarterflash",
+      "year": 1982,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": "spotify:track:3CSLUIrI2KPMulHR5bh17O"
+    },
+    {
+      "title": "Rosanna",
+      "artist": "Toto",
+      "year": 1982,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:37BTh5g05cxBIRYMbw8g2T"
+    },
+    {
+      "title": "I Can't Go for That (No Can Do)",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1982,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "867-5309/Jenny",
+      "artist": "Tommy Tutone",
+      "year": 1982,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Key Largo",
+      "artist": "Bertie Higgins",
+      "year": 1982,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:41v56RunWqxgqTD4H2cwOD"
+    },
+    {
+      "title": "You Should Hear How She Talks About You",
+      "artist": "Melissa Manchester",
+      "year": 1982,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3mYh6egfMyl0Dek8r9ciK6"
+    },
+    {
+      "title": "Waiting for a Girl Like You",
+      "artist": "Foreigner",
+      "year": 1982,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:2OgVsp77En2nju8pnCieVU"
+    },
+    {
+      "title": "Don't Talk to Strangers",
+      "artist": "Rick Springfield",
+      "year": 1982,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:1syhTK7LlvpeWdZNsZARP0"
+    },
+    {
+      "title": "The Sweetest Thing (I've Ever Known)",
+      "artist": "Juice Newton",
+      "year": 1982,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:3EFgVWb1TAYP3CF17BB4fU"
+    },
+    {
+      "title": "Always on My Mind",
+      "artist": "Willie Nelson",
+      "year": 1982,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:2xYQTU2bbg6WVAmpY1eae4"
+    },
+    {
+      "title": "Shake It Up",
+      "artist": "The Cars",
+      "year": 1982,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": "spotify:track:5OWokvF4QOqMDQ8ByQsm6V"
+    },
+    {
+      "title": "Let It Whip",
+      "artist": "Dazz Band",
+      "year": 1982,
+      "genres": [
+        "funk",
+        "r&b"
+      ],
+      "uri": "spotify:track:3h5IJ0EzVpkiaoL174GC3M"
+    },
+    {
+      "title": "We Got the Beat",
+      "artist": "The Go-Go's",
+      "year": 1982,
+      "genres": [
+        "new wave",
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:5kz9GDBTX846OXwqWoyKzF"
+    },
+    {
+      "title": "The Other Woman",
+      "artist": "Ray Parker Jr.",
+      "year": 1982,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": "spotify:track:7ubq5fqmcPhfg1Q8s3HbbA"
+    },
+    {
+      "title": "Turn Your Love Around",
+      "artist": "George Benson",
+      "year": 1982,
+      "genres": [
+        "r&b",
+        "jazz",
+        "pop"
+      ],
+      "uri": "spotify:track:6a899bXlCuViXW2Qs8Rdqo"
+    },
+    {
+      "title": "Sweet Dreams",
+      "artist": "Air Supply",
+      "year": 1982,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3sVAq83i04vSLVRNXWKfMO"
+    },
+    {
+      "title": "Only the Lonely",
+      "artist": "The Motels",
+      "year": 1982,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": "spotify:track:1BZMMt9H0TheQGWQy44KmO"
+    },
+    {
+      "title": "Who Can It Be Now?",
+      "artist": "Men at Work",
+      "year": 1982,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": "spotify:track:5rfJ2Bq2PEL8yBjZLzouEu"
+    }
+  ]
+}
