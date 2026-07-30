@@ -111,6 +111,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("files", nargs="+", help="catalog module JSON files")
     parser.add_argument("--out", required=True, help="output directory for resolved modules")
+    parser.add_argument("--retry-unresolved", action="store_true",
+                        help="re-attempt songs previously marked unresolved "
+                             "(default: skip them so re-runs only do new work)")
     args = parser.parse_args()
 
     load_dotenv()
@@ -128,9 +131,12 @@ def main() -> None:
         # Resume support: if this module was already (partly) resolved, work
         # from the output file so finished lookups are never repeated.
         module = json.load(open(out_path if out_path.exists() else path))
-        pending = [s for s in module["songs"] if not s.get("uri")]
+        pending = [s for s in module["songs"] if not s.get("uri")
+                   and (args.retry_unresolved or not s.get("unresolved"))]
         if not pending:
-            print(f"skip {out_path} (already resolved)", file=sys.stderr, flush=True)
+            skipped = sum(1 for s in module["songs"] if s.get("unresolved"))
+            note = f" ({skipped} known-unresolved skipped)" if skipped else ""
+            print(f"skip {out_path} (done{note})", file=sys.stderr, flush=True)
             continue
         print(f"resolving {path}: {len(pending)} songs", file=sys.stderr, flush=True)
         for done, song in enumerate(pending, 1):
@@ -138,9 +144,11 @@ def main() -> None:
             track = best_match(token, song["title"], song["artist"])
             if track:
                 song["uri"] = track["uri"]
+                song.pop("unresolved", None)
                 resolved += 1
             else:
                 failed += 1
+                song["unresolved"] = True  # skip next run unless --retry-unresolved
                 print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}",
                       file=sys.stderr, flush=True)
             if done % 10 == 0:
