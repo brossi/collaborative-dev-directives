@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Callback scheme for the Spotify auth handshake.
+	     Must match SpotifyConfig.redirectURL and the Redirect URI
+	     registered in the Spotify developer dashboard. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.rossinet.hitsterfam.spotify-auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>hitsterfam</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Lets the app check for / wake the installed Spotify app. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>spotify</string>
+	</array>
+</dict>
+</plist>

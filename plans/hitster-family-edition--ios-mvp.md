@@ -9,6 +9,12 @@ next song.
 This is a personal-use app: sideloaded via Xcode, one host phone, no App Store
 release, no backend.
 
+**Status:** scaffolded in [`../HitsterFam/`](../HitsterFam/README.md) —
+milestone 1 complete (full game loop on a stub player) with the milestone 2/3
+Spotify backend pre-written behind `#if canImport(SpotifyiOS)`. Remaining
+on-Mac steps: signing team, Client ID, drop in the xcframework, verify deck
+URIs.
+
 ---
 
 ## 1. The confirmed gameplay loop (v1 contract)
