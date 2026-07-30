@@ -21,6 +21,8 @@ import sys
 import urllib.parse
 import urllib.request
 
+from env import load_dotenv
+
 
 def get_token(client_id: str, client_secret: str) -> str:
     credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
@@ -41,6 +43,7 @@ def playlist_id(arg: str) -> str:
 def main() -> None:
     if len(sys.argv) != 2:
         sys.exit(__doc__)
+    load_dotenv()
     token = get_token(os.environ["SPOTIFY_CLIENT_ID"], os.environ["SPOTIFY_CLIENT_SECRET"])
     fields = "next,items(track(name,uri,artists(name),album(release_date)))"
     url = (

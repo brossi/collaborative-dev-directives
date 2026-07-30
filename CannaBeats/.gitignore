@@ -3,3 +3,6 @@ xcuserdata/
 DerivedData/
 .DS_Store
 Frameworks/SpotifyiOS.xcframework
+# Credentials — never committed
+.env
+CannaBeats/Resources/SpotifyClientID.txt

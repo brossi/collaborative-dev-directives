@@ -53,7 +53,10 @@ Info tab. ~2 minutes.
    create an app. Add Redirect URI `cannabeats://spotify-callback` and, under
    iOS settings, the bundle ID `social.cannabeats.app` (or whatever you
    changed it to). Development mode is fine.
-2. Paste the Client ID into `Playback/SpotifyConfig.swift`.
+2. Provide the Client ID either by pasting it into
+   `Playback/SpotifyConfig.swift`, or — to keep it out of git — by writing it
+   to the gitignored file `CannaBeats/Resources/SpotifyClientID.txt` (just the
+   ID, nothing else; it's bundled and overrides the constant).
 3. Download `SpotifyiOS.xcframework` from the releases at
    [github.com/spotify/ios-sdk](https://github.com/spotify/ios-sdk) and drag it
    into the project (target: CannaBeats, **Embed & Sign**). `SpotifyBackend`
@@ -93,7 +96,10 @@ e.g. a 1990–2026 range so younger players get an even field, per round.
    hand-assigned years and genres, `uri: null`. This is source data — not
    bundled directly.
 2. **Resolve** — fill URIs via Spotify search (run from a US IP; needs the
-   dashboard app's client ID/secret):
+   dashboard app's client ID/secret). Credentials go in a gitignored `.env`:
+   `cp .env.example .env`, fill in both values, and the tools pick it up
+   automatically — the inline env vars below then become optional. The client
+   secret lives ONLY here, never in the app.
 
 ```sh
 SPOTIFY_CLIENT_ID=xxx SPOTIFY_CLIENT_SECRET=yyy \

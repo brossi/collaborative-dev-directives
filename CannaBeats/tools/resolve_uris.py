@@ -28,6 +28,8 @@ import time
 import urllib.parse
 import urllib.request
 
+from env import load_dotenv
+
 API = "https://api.spotify.com/v1"
 
 
@@ -91,6 +93,7 @@ def main() -> None:
     parser.add_argument("--out", required=True, help="output directory for resolved modules")
     args = parser.parse_args()
 
+    load_dotenv()
     token = get_token(os.environ["SPOTIFY_CLIENT_ID"], os.environ["SPOTIFY_CLIENT_SECRET"])
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
