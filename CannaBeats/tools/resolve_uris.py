@@ -114,7 +114,11 @@ def main() -> None:
     args = parser.parse_args()
 
     load_dotenv()
-    token = get_token(os.environ["SPOTIFY_CLIENT_ID"], os.environ["SPOTIFY_CLIENT_SECRET"])
+    client_id = os.environ["SPOTIFY_CLIENT_ID"]
+    print(f"using client ID {client_id[:6]}...{client_id[-4:]} "
+          "(shell env vars override .env — unset them to switch credentials)",
+          file=sys.stderr, flush=True)
+    token = get_token(client_id, os.environ["SPOTIFY_CLIENT_SECRET"])
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
