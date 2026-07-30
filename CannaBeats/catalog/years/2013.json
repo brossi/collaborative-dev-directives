@@ -3,35 +3,295 @@
   "name": "Hits of 2013",
   "source": "Billboard Year-End Hot 100, 2013 (top 30)",
   "songs": [
-    {"title": "Thrift Shop", "artist": "Macklemore & Ryan Lewis feat. Wanz", "year": 2013, "genres": ["hip-hop"], "uri": null},
-    {"title": "Blurred Lines", "artist": "Robin Thicke feat. T.I. & Pharrell", "year": 2013, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Radioactive", "artist": "Imagine Dragons", "year": 2013, "genres": ["rock", "alternative"], "uri": null},
-    {"title": "Harlem Shake", "artist": "Baauer", "year": 2013, "genres": ["electronic", "dance"], "uri": null},
-    {"title": "Can't Hold Us", "artist": "Macklemore & Ryan Lewis feat. Ray Dalton", "year": 2013, "genres": ["hip-hop"], "uri": null},
-    {"title": "Mirrors", "artist": "Justin Timberlake", "year": 2013, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Locked Out of Heaven", "artist": "Bruno Mars", "year": 2013, "genres": ["pop", "funk"], "uri": null},
-    {"title": "Just Give Me a Reason", "artist": "Pink feat. Nate Ruess", "year": 2013, "genres": ["pop"], "uri": null},
-    {"title": "When I Was Your Man", "artist": "Bruno Mars", "year": 2013, "genres": ["pop", "singer-songwriter"], "uri": null},
-    {"title": "Cruise", "artist": "Florida Georgia Line feat. Nelly", "year": 2013, "genres": ["country", "pop"], "uri": null},
-    {"title": "Get Lucky", "artist": "Daft Punk feat. Pharrell Williams", "year": 2013, "genres": ["dance", "funk", "electronic"], "uri": null},
-    {"title": "Ho Hey", "artist": "The Lumineers", "year": 2013, "genres": ["folk", "indie"], "uri": null},
-    {"title": "Stay", "artist": "Rihanna feat. Mikky Ekko", "year": 2013, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Suit & Tie", "artist": "Justin Timberlake feat. Jay-Z", "year": 2013, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "I Knew You Were Trouble", "artist": "Taylor Swift", "year": 2013, "genres": ["pop"], "uri": null},
-    {"title": "Started from the Bottom", "artist": "Drake", "year": 2013, "genres": ["hip-hop"], "uri": null},
-    {"title": "Roar", "artist": "Katy Perry", "year": 2013, "genres": ["pop"], "uri": null},
-    {"title": "Diamonds", "artist": "Rihanna", "year": 2013, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Scream & Shout", "artist": "will.i.am feat. Britney Spears", "year": 2013, "genres": ["dance", "electronic"], "uri": null},
-    {"title": "Wrecking Ball", "artist": "Miley Cyrus", "year": 2013, "genres": ["pop"], "uri": null},
-    {"title": "Sail", "artist": "Awolnation", "year": 2013, "genres": ["alternative", "rock"], "uri": null},
-    {"title": "My Songs Know What You Did in the Dark (Light Em Up)", "artist": "Fall Out Boy", "year": 2013, "genres": ["rock"], "uri": null},
-    {"title": "Wake Me Up", "artist": "Avicii", "year": 2013, "genres": ["electronic", "dance"], "uri": null},
-    {"title": "Feel This Moment", "artist": "Pitbull feat. Christina Aguilera", "year": 2013, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Royals", "artist": "Lorde", "year": 2013, "genres": ["pop", "indie"], "uri": null},
-    {"title": "Come & Get It", "artist": "Selena Gomez", "year": 2013, "genres": ["pop"], "uri": null},
-    {"title": "We Can't Stop", "artist": "Miley Cyrus", "year": 2013, "genres": ["pop"], "uri": null},
-    {"title": "Holy Grail", "artist": "Jay-Z feat. Justin Timberlake", "year": 2013, "genres": ["hip-hop"], "uri": null},
-    {"title": "Treasure", "artist": "Bruno Mars", "year": 2013, "genres": ["pop", "funk"], "uri": null},
-    {"title": "I Love It", "artist": "Icona Pop feat. Charli XCX", "year": 2013, "genres": ["dance", "pop"], "uri": null}
+    {
+      "title": "Thrift Shop",
+      "artist": "Macklemore & Ryan Lewis feat. Wanz",
+      "year": 2013,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4YMqbFcDIFiCBd02PzUBcM"
+    },
+    {
+      "title": "Blurred Lines",
+      "artist": "Robin Thicke feat. T.I. & Pharrell",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0n4bITAu0Y0nigrz3MFJMb"
+    },
+    {
+      "title": "Radioactive",
+      "artist": "Imagine Dragons",
+      "year": 2013,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:4G8gkOterJn0Ywt6uhqbhp"
+    },
+    {
+      "title": "Harlem Shake",
+      "artist": "Baauer",
+      "year": 2013,
+      "genres": [
+        "electronic",
+        "dance"
+      ],
+      "uri": "spotify:track:01XFgRZfZI7oBagNf1Loml"
+    },
+    {
+      "title": "Can't Hold Us",
+      "artist": "Macklemore & Ryan Lewis feat. Ray Dalton",
+      "year": 2013,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3bidbhpOYeV4knp8AIu8Xn"
+    },
+    {
+      "title": "Mirrors",
+      "artist": "Justin Timberlake",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:4rHZZAmHpZrA3iH5zx8frV"
+    },
+    {
+      "title": "Locked Out of Heaven",
+      "artist": "Bruno Mars",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "funk"
+      ],
+      "uri": "spotify:track:3w3y8KPTfNeOKPiqUTakBh"
+    },
+    {
+      "title": "Just Give Me a Reason",
+      "artist": "Pink feat. Nate Ruess",
+      "year": 2013,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When I Was Your Man",
+      "artist": "Bruno Mars",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:0nJW01T7XtvILxQgC5J7Wh"
+    },
+    {
+      "title": "Cruise",
+      "artist": "Florida Georgia Line feat. Nelly",
+      "year": 2013,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:0i5el041vd6nxrGEU8QRxy"
+    },
+    {
+      "title": "Get Lucky",
+      "artist": "Daft Punk feat. Pharrell Williams",
+      "year": 2013,
+      "genres": [
+        "dance",
+        "funk",
+        "electronic"
+      ],
+      "uri": "spotify:track:69kOkLUCkxIZYexIgSG8rq"
+    },
+    {
+      "title": "Ho Hey",
+      "artist": "The Lumineers",
+      "year": 2013,
+      "genres": [
+        "folk",
+        "indie"
+      ],
+      "uri": "spotify:track:0W4Kpfp1w2xkY3PrV714B7"
+    },
+    {
+      "title": "Stay",
+      "artist": "Rihanna feat. Mikky Ekko",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1dEy9Pl81QopSxNsPxXQxv"
+    },
+    {
+      "title": "Suit & Tie",
+      "artist": "Justin Timberlake feat. Jay-Z",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:6vt0I1cw1YmAIKDJvHVIM5"
+    },
+    {
+      "title": "I Knew You Were Trouble",
+      "artist": "Taylor Swift",
+      "year": 2013,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:72jCZdH0Lhg93z6Z4hBjgj"
+    },
+    {
+      "title": "Started from the Bottom",
+      "artist": "Drake",
+      "year": 2013,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:5DI9jxTHrEiFAhStG7VA8E"
+    },
+    {
+      "title": "Roar",
+      "artist": "Katy Perry",
+      "year": 2013,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6F5c58TMEs1byxUstkzVeM"
+    },
+    {
+      "title": "Diamonds",
+      "artist": "Rihanna",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1z9kQ14XBSN0r2v6fx4IdG"
+    },
+    {
+      "title": "Scream & Shout",
+      "artist": "will.i.am feat. Britney Spears",
+      "year": 2013,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": "spotify:track:2iJuuzV8P9Yz0VSurttIV5"
+    },
+    {
+      "title": "Wrecking Ball",
+      "artist": "Miley Cyrus",
+      "year": 2013,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2vwlzO0Qp8kfEtzTsCXfyE"
+    },
+    {
+      "title": "Sail",
+      "artist": "Awolnation",
+      "year": 2013,
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "uri": "spotify:track:5xhQChGGhKLWqBqX4XhtYE"
+    },
+    {
+      "title": "My Songs Know What You Did in the Dark (Light Em Up)",
+      "artist": "Fall Out Boy",
+      "year": 2013,
+      "genres": [
+        "rock"
+      ],
+      "uri": "spotify:track:7s0lDK7y3XLmI7tcsRAbW0"
+    },
+    {
+      "title": "Wake Me Up",
+      "artist": "Avicii",
+      "year": 2013,
+      "genres": [
+        "electronic",
+        "dance"
+      ],
+      "uri": "spotify:track:4h8VwCb1MTGoLKueQ1WgbD"
+    },
+    {
+      "title": "Feel This Moment",
+      "artist": "Pitbull feat. Christina Aguilera",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:0Hf4aIJpsN4Os2f0y0VqWl"
+    },
+    {
+      "title": "Royals",
+      "artist": "Lorde",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "indie"
+      ],
+      "uri": "spotify:track:2dLLR6qlu5UJ5gk0dKz0h3"
+    },
+    {
+      "title": "Come & Get It",
+      "artist": "Selena Gomez",
+      "year": 2013,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6LoQHIo74tOzQ8EsLEkhgF"
+    },
+    {
+      "title": "We Can't Stop",
+      "artist": "Miley Cyrus",
+      "year": 2013,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2y4lAQpi5VTNLu2ldeTdUH"
+    },
+    {
+      "title": "Holy Grail",
+      "artist": "Jay-Z feat. Justin Timberlake",
+      "year": 2013,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Treasure",
+      "artist": "Bruno Mars",
+      "year": 2013,
+      "genres": [
+        "pop",
+        "funk"
+      ],
+      "uri": "spotify:track:55h7vJchibLdUkxdlX3fK7"
+    },
+    {
+      "title": "I Love It",
+      "artist": "Icona Pop feat. Charli XCX",
+      "year": 2013,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": "spotify:track:6HZ9VeI5IRFCNQLXhpF4bq"
+    }
   ]
 }

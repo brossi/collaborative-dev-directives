@@ -3,35 +3,298 @@
   "name": "Hits of 1946",
   "source": "Billboard year-end top singles of 1946 plus weekly Best Sellers chart",
   "songs": [
-    { "title": "Prisoner of Love", "artist": "Perry Como", "year": 1946, "genres": ["pop", "standards"], "uri": null },
-    { "title": "The Gypsy", "artist": "The Ink Spots", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "To Each His Own", "artist": "Eddy Howard", "year": 1946, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Oh! What It Seemed to Be", "artist": "Frankie Carle", "year": 1946, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Rumors Are Flying", "artist": "Frankie Carle", "year": 1946, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Five Minutes More", "artist": "Frank Sinatra", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "Personality", "artist": "Johnny Mercer", "year": 1946, "genres": ["pop", "swing"], "uri": null },
-    { "title": "South America, Take It Away", "artist": "Bing Crosby & The Andrews Sisters", "year": 1946, "genres": ["pop", "latin"], "uri": null },
-    { "title": "The Old Lamplighter", "artist": "Sammy Kaye", "year": 1946, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Ole Buttermilk Sky", "artist": "Kay Kyser", "year": 1946, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Doin' What Comes Natur'lly", "artist": "Dinah Shore", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "Shoo-Fly Pie and Apple Pan Dowdy", "artist": "Stan Kenton feat. June Christy", "year": 1946, "genres": ["big band", "novelty"], "uri": null },
-    { "title": "Sioux City Sue", "artist": "Bing Crosby", "year": 1946, "genres": ["pop", "country"], "uri": null },
-    { "title": "They Say It's Wonderful", "artist": "Perry Como", "year": 1946, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Surrender", "artist": "Perry Como", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "The Christmas Song (Merry Christmas to You)", "artist": "The King Cole Trio", "year": 1946, "genres": ["jazz", "pop", "standards"], "uri": null },
-    { "title": "(Get Your Kicks on) Route 66", "artist": "The King Cole Trio", "year": 1946, "genres": ["jazz", "r&b"], "uri": null },
-    { "title": "Choo Choo Ch'Boogie", "artist": "Louis Jordan", "year": 1946, "genres": ["r&b", "swing"], "uri": null },
-    { "title": "Stone Cold Dead in the Market", "artist": "Ella Fitzgerald & Louis Jordan", "year": 1946, "genres": ["r&b", "novelty"], "uri": null },
-    { "title": "Laughing on the Outside (Crying on the Inside)", "artist": "Dinah Shore", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "I'm a Big Girl Now", "artist": "Sammy Kaye", "year": 1946, "genres": ["big band", "pop"], "uri": null },
-    { "title": "You Won't Be Satisfied (Until You Break My Heart)", "artist": "Les Brown feat. Doris Day", "year": 1946, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Day by Day", "artist": "Frank Sinatra", "year": 1946, "genres": ["pop", "standards"], "uri": null },
-    { "title": "All Through the Day", "artist": "Perry Como", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "Hey! Ba-Ba-Re-Bop", "artist": "Lionel Hampton", "year": 1946, "genres": ["r&b", "swing"], "uri": null },
-    { "title": "The House of Blue Lights", "artist": "Freddie Slack & Ella Mae Morse", "year": 1946, "genres": ["swing", "blues"], "uri": null },
-    { "title": "Cement Mixer (Put-ti Put-ti)", "artist": "Alvino Rey", "year": 1946, "genres": ["novelty", "big band"], "uri": null },
-    { "title": "I Guess I'll Get the Papers and Go Home", "artist": "The Mills Brothers", "year": 1946, "genres": ["pop"], "uri": null },
-    { "title": "You Keep Coming Back Like a Song", "artist": "Dinah Shore", "year": 1946, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Divorce Me C.O.D.", "artist": "Merle Travis", "year": 1946, "genres": ["country"], "uri": null }
+    {
+      "title": "Prisoner of Love",
+      "artist": "Perry Como",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Gypsy",
+      "artist": "The Ink Spots",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "To Each His Own",
+      "artist": "Eddy Howard",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh! What It Seemed to Be",
+      "artist": "Frankie Carle",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rumors Are Flying",
+      "artist": "Frankie Carle",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Five Minutes More",
+      "artist": "Frank Sinatra",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Personality",
+      "artist": "Johnny Mercer",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "South America, Take It Away",
+      "artist": "Bing Crosby & The Andrews Sisters",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Old Lamplighter",
+      "artist": "Sammy Kaye",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ole Buttermilk Sky",
+      "artist": "Kay Kyser",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Doin' What Comes Natur'lly",
+      "artist": "Dinah Shore",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shoo-Fly Pie and Apple Pan Dowdy",
+      "artist": "Stan Kenton feat. June Christy",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sioux City Sue",
+      "artist": "Bing Crosby",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "They Say It's Wonderful",
+      "artist": "Perry Como",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Surrender",
+      "artist": "Perry Como",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Christmas Song (Merry Christmas to You)",
+      "artist": "The King Cole Trio",
+      "year": 1946,
+      "genres": [
+        "jazz",
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Get Your Kicks on) Route 66",
+      "artist": "The King Cole Trio",
+      "year": 1946,
+      "genres": [
+        "jazz",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Choo Choo Ch'Boogie",
+      "artist": "Louis Jordan",
+      "year": 1946,
+      "genres": [
+        "r&b",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stone Cold Dead in the Market",
+      "artist": "Ella Fitzgerald & Louis Jordan",
+      "year": 1946,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Laughing on the Outside (Crying on the Inside)",
+      "artist": "Dinah Shore",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm a Big Girl Now",
+      "artist": "Sammy Kaye",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Won't Be Satisfied (Until You Break My Heart)",
+      "artist": "Les Brown feat. Doris Day",
+      "year": 1946,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Day by Day",
+      "artist": "Frank Sinatra",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All Through the Day",
+      "artist": "Perry Como",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hey! Ba-Ba-Re-Bop",
+      "artist": "Lionel Hampton",
+      "year": 1946,
+      "genres": [
+        "r&b",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The House of Blue Lights",
+      "artist": "Freddie Slack & Ella Mae Morse",
+      "year": 1946,
+      "genres": [
+        "swing",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cement Mixer (Put-ti Put-ti)",
+      "artist": "Alvino Rey",
+      "year": 1946,
+      "genres": [
+        "novelty",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Guess I'll Get the Papers and Go Home",
+      "artist": "The Mills Brothers",
+      "year": 1946,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Keep Coming Back Like a Song",
+      "artist": "Dinah Shore",
+      "year": 1946,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Divorce Me C.O.D.",
+      "artist": "Merle Travis",
+      "year": 1946,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    }
   ]
 }

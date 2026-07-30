@@ -3,35 +3,294 @@
   "name": "Hits of 2012",
   "source": "Billboard Year-End Hot 100, 2012 (top 30)",
   "songs": [
-    {"title": "Somebody That I Used to Know", "artist": "Gotye feat. Kimbra", "year": 2012, "genres": ["indie", "pop"], "uri": null},
-    {"title": "Call Me Maybe", "artist": "Carly Rae Jepsen", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "We Are Young", "artist": "fun. feat. Janelle Monae", "year": 2012, "genres": ["pop", "rock"], "uri": null},
-    {"title": "Payphone", "artist": "Maroon 5 feat. Wiz Khalifa", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Lights", "artist": "Ellie Goulding", "year": 2012, "genres": ["pop", "electronic"], "uri": null},
-    {"title": "Glad You Came", "artist": "The Wanted", "year": 2012, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Stronger (What Doesn't Kill You)", "artist": "Kelly Clarkson", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "We Found Love", "artist": "Rihanna feat. Calvin Harris", "year": 2012, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Starships", "artist": "Nicki Minaj", "year": 2012, "genres": ["pop", "dance"], "uri": null},
-    {"title": "What Makes You Beautiful", "artist": "One Direction", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Wild Ones", "artist": "Flo Rida feat. Sia", "year": 2012, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Sexy and I Know It", "artist": "LMFAO", "year": 2012, "genres": ["dance", "pop"], "uri": null},
-    {"title": "Whistle", "artist": "Flo Rida", "year": 2012, "genres": ["pop", "hip-hop"], "uri": null},
-    {"title": "Good Feeling", "artist": "Flo Rida", "year": 2012, "genres": ["dance", "hip-hop"], "uri": null},
-    {"title": "Set Fire to the Rain", "artist": "Adele", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Wide Awake", "artist": "Katy Perry", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Part of Me", "artist": "Katy Perry", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Some Nights", "artist": "fun.", "year": 2012, "genres": ["pop", "rock"], "uri": null},
-    {"title": "Drive By", "artist": "Train", "year": 2012, "genres": ["pop", "rock"], "uri": null},
-    {"title": "It Will Rain", "artist": "Bruno Mars", "year": 2012, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "The Motto", "artist": "Drake feat. Lil Wayne", "year": 2012, "genres": ["hip-hop"], "uri": null},
-    {"title": "Take Care", "artist": "Drake feat. Rihanna", "year": 2012, "genres": ["hip-hop", "r&b"], "uri": null},
-    {"title": "Rack City", "artist": "Tyga", "year": 2012, "genres": ["hip-hop"], "uri": null},
-    {"title": "Everybody Talks", "artist": "Neon Trees", "year": 2012, "genres": ["rock", "alternative"], "uri": null},
-    {"title": "Boyfriend", "artist": "Justin Bieber", "year": 2012, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Blow Me (One Last Kiss)", "artist": "Pink", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Titanium", "artist": "David Guetta feat. Sia", "year": 2012, "genres": ["dance", "electronic"], "uri": null},
-    {"title": "Where Have You Been", "artist": "Rihanna", "year": 2012, "genres": ["pop", "dance"], "uri": null},
-    {"title": "One More Night", "artist": "Maroon 5", "year": 2012, "genres": ["pop"], "uri": null},
-    {"title": "Gangnam Style", "artist": "PSY", "year": 2012, "genres": ["k-pop", "dance"], "uri": null}
+    {
+      "title": "Somebody That I Used to Know",
+      "artist": "Gotye feat. Kimbra",
+      "year": 2012,
+      "genres": [
+        "indie",
+        "pop"
+      ],
+      "uri": "spotify:track:4wCmqSrbyCgxEXROQE6vtV"
+    },
+    {
+      "title": "Call Me Maybe",
+      "artist": "Carly Rae Jepsen",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3TGRqZ0a2l1LRblBkJoaDx"
+    },
+    {
+      "title": "We Are Young",
+      "artist": "fun. feat. Janelle Monae",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:7a86XRg84qjasly9f6bPSD"
+    },
+    {
+      "title": "Payphone",
+      "artist": "Maroon 5 feat. Wiz Khalifa",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lights",
+      "artist": "Ellie Goulding",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": "spotify:track:7gUpO6td4OOnu0Lf9vhcIV"
+    },
+    {
+      "title": "Glad You Came",
+      "artist": "The Wanted",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:3AGOgQzp0YcPH41u9p7dOp"
+    },
+    {
+      "title": "Stronger (What Doesn't Kill You)",
+      "artist": "Kelly Clarkson",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6D60klaHqbCl9ySc8VcRss"
+    },
+    {
+      "title": "We Found Love",
+      "artist": "Rihanna feat. Calvin Harris",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:6qn9YLKt13AGvpq9jfO8py"
+    },
+    {
+      "title": "Starships",
+      "artist": "Nicki Minaj",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:1oHNvJVbFkexQc0BpQp7Y4"
+    },
+    {
+      "title": "What Makes You Beautiful",
+      "artist": "One Direction",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4cluDES4hQEUhmXj6TXkSo"
+    },
+    {
+      "title": "Wild Ones",
+      "artist": "Flo Rida feat. Sia",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:1NpW5kyvO4XrNJ3rnfcNy3"
+    },
+    {
+      "title": "Sexy and I Know It",
+      "artist": "LMFAO",
+      "year": 2012,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": "spotify:track:0obBFrPYkSoBJbvHfUIhkv"
+    },
+    {
+      "title": "Whistle",
+      "artist": "Flo Rida",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3bC1ahPIYt1btJzSSEyyrF"
+    },
+    {
+      "title": "Good Feeling",
+      "artist": "Flo Rida",
+      "year": 2012,
+      "genres": [
+        "dance",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2LEF1A8DOZ9wRYikWgVlZ8"
+    },
+    {
+      "title": "Set Fire to the Rain",
+      "artist": "Adele",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3CKCZ9pfwAfoMZlMncA1Nc"
+    },
+    {
+      "title": "Wide Awake",
+      "artist": "Katy Perry",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5JLv62qFIS1DR3zGEcApRt"
+    },
+    {
+      "title": "Part of Me",
+      "artist": "Katy Perry",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1nZzRJbFvCEct3uzu04ZoL"
+    },
+    {
+      "title": "Some Nights",
+      "artist": "fun.",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:6t6oULCRS6hnI7rm0h5gwl"
+    },
+    {
+      "title": "Drive By",
+      "artist": "Train",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:0KAiuUOrLTIkzkpfpn9jb9"
+    },
+    {
+      "title": "It Will Rain",
+      "artist": "Bruno Mars",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0RUGuh2uSNFJpGMSsD1F5C"
+    },
+    {
+      "title": "The Motto",
+      "artist": "Drake feat. Lil Wayne",
+      "year": 2012,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4Kz4RdRCceaA9VgTqBhBfa"
+    },
+    {
+      "title": "Take Care",
+      "artist": "Drake feat. Rihanna",
+      "year": 2012,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:124NFj84ppZ5pAxTuVQYCQ"
+    },
+    {
+      "title": "Rack City",
+      "artist": "Tyga",
+      "year": 2012,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:0srwKuJPH8yBzzFUJMBQM2"
+    },
+    {
+      "title": "Everybody Talks",
+      "artist": "Neon Trees",
+      "year": 2012,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:2iUmqdfGZcHIhS3b9E9EWq"
+    },
+    {
+      "title": "Boyfriend",
+      "artist": "Justin Bieber",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:3UGIZ8qcrMTwzLbx6Kttqt"
+    },
+    {
+      "title": "Blow Me (One Last Kiss)",
+      "artist": "Pink",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Titanium",
+      "artist": "David Guetta feat. Sia",
+      "year": 2012,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": "spotify:track:77TT8Xvx637TpzV8kKGkUw"
+    },
+    {
+      "title": "Where Have You Been",
+      "artist": "Rihanna",
+      "year": 2012,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:5WQQIDU3HRaMyPkob8mpFb"
+    },
+    {
+      "title": "One More Night",
+      "artist": "Maroon 5",
+      "year": 2012,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4XNrMwGx1SqP01sqkGTDmo"
+    },
+    {
+      "title": "Gangnam Style",
+      "artist": "PSY",
+      "year": 2012,
+      "genres": [
+        "k-pop",
+        "dance"
+      ],
+      "uri": "spotify:track:03UrZgTINDqvnUMbbIMhql"
+    }
   ]
 }

@@ -3,35 +3,302 @@
   "name": "Hits of 2011",
   "source": "Billboard Year-End Hot 100, 2011 (top 30)",
   "songs": [
-    {"title": "Rolling in the Deep", "artist": "Adele", "year": 2011, "genres": ["pop", "soul"], "uri": null},
-    {"title": "Party Rock Anthem", "artist": "LMFAO feat. Lauren Bennett & GoonRock", "year": 2011, "genres": ["dance", "pop"], "uri": null},
-    {"title": "Firework", "artist": "Katy Perry", "year": 2011, "genres": ["pop"], "uri": null},
-    {"title": "E.T.", "artist": "Katy Perry feat. Kanye West", "year": 2011, "genres": ["pop", "electronic"], "uri": null},
-    {"title": "Give Me Everything", "artist": "Pitbull feat. Ne-Yo, Afrojack & Nayer", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Grenade", "artist": "Bruno Mars", "year": 2011, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Forget You", "artist": "Cee Lo Green", "year": 2011, "genres": ["soul", "pop"], "uri": null},
-    {"title": "Super Bass", "artist": "Nicki Minaj", "year": 2011, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "Moves Like Jagger", "artist": "Maroon 5 feat. Christina Aguilera", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Just Can't Get Enough", "artist": "The Black Eyed Peas", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "On the Floor", "artist": "Jennifer Lopez feat. Pitbull", "year": 2011, "genres": ["pop", "dance", "latin"], "uri": null},
-    {"title": "Last Friday Night (T.G.I.F.)", "artist": "Katy Perry", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Pumped Up Kicks", "artist": "Foster the People", "year": 2011, "genres": ["indie", "alternative"], "uri": null},
-    {"title": "Tonight (I'm Lovin' You)", "artist": "Enrique Iglesias feat. Ludacris & DJ Frank E", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Raise Your Glass", "artist": "Pink", "year": 2011, "genres": ["pop"], "uri": null},
-    {"title": "S&M", "artist": "Rihanna", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Down on Me", "artist": "Jeremih feat. 50 Cent", "year": 2011, "genres": ["r&b", "hip-hop"], "uri": null},
-    {"title": "Look at Me Now", "artist": "Chris Brown feat. Lil Wayne & Busta Rhymes", "year": 2011, "genres": ["hip-hop", "r&b"], "uri": null},
-    {"title": "What's My Name?", "artist": "Rihanna feat. Drake", "year": 2011, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Born This Way", "artist": "Lady Gaga", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "The Lazy Song", "artist": "Bruno Mars", "year": 2011, "genres": ["pop", "reggae"], "uri": null},
-    {"title": "Blow", "artist": "Kesha", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "How to Love", "artist": "Lil Wayne", "year": 2011, "genres": ["hip-hop", "r&b"], "uri": null},
-    {"title": "Someone Like You", "artist": "Adele", "year": 2011, "genres": ["pop", "singer-songwriter"], "uri": null},
-    {"title": "Till the World Ends", "artist": "Britney Spears", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "We R Who We R", "artist": "Kesha", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Hold It Against Me", "artist": "Britney Spears", "year": 2011, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Coming Home", "artist": "Diddy - Dirty Money feat. Skylar Grey", "year": 2011, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "F**kin' Perfect", "artist": "Pink", "year": 2011, "genres": ["pop"], "uri": null},
-    {"title": "Price Tag", "artist": "Jessie J feat. B.o.B", "year": 2011, "genres": ["pop"], "uri": null}
+    {
+      "title": "Rolling in the Deep",
+      "artist": "Adele",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:1CkvWZme3pRgbzaxZnTl5X"
+    },
+    {
+      "title": "Party Rock Anthem",
+      "artist": "LMFAO feat. Lauren Bennett & GoonRock",
+      "year": 2011,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": "spotify:track:0IkKz2J93C94Ei4BvDop7P"
+    },
+    {
+      "title": "Firework",
+      "artist": "Katy Perry",
+      "year": 2011,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4lCv7b86sLynZbXhfScfm2"
+    },
+    {
+      "title": "E.T.",
+      "artist": "Katy Perry feat. Kanye West",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": "spotify:track:0n6b1rFzDJlFmTG7hyncxh"
+    },
+    {
+      "title": "Give Me Everything",
+      "artist": "Pitbull feat. Ne-Yo, Afrojack & Nayer",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:4QNpBfC0zvjKqPJcyqBy9W"
+    },
+    {
+      "title": "Grenade",
+      "artist": "Bruno Mars",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:2tJulUYLDKOg9XrtVkMgcJ"
+    },
+    {
+      "title": "Forget You",
+      "artist": "Cee Lo Green",
+      "year": 2011,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Super Bass",
+      "artist": "Nicki Minaj",
+      "year": 2011,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:0iYebKFUSfF72fUu2OW6ZT"
+    },
+    {
+      "title": "Moves Like Jagger",
+      "artist": "Maroon 5 feat. Christina Aguilera",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:7LcfRTgAVTs5pQGEQgUEzN"
+    },
+    {
+      "title": "Just Can't Get Enough",
+      "artist": "The Black Eyed Peas",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:19jd1ffgFMwGpafuoqImry"
+    },
+    {
+      "title": "On the Floor",
+      "artist": "Jennifer Lopez feat. Pitbull",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance",
+        "latin"
+      ],
+      "uri": "spotify:track:0Oe49j06Bjrxs8PltuVeaW"
+    },
+    {
+      "title": "Last Friday Night (T.G.I.F.)",
+      "artist": "Katy Perry",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Pumped Up Kicks",
+      "artist": "Foster the People",
+      "year": 2011,
+      "genres": [
+        "indie",
+        "alternative"
+      ],
+      "uri": "spotify:track:7w87IxuO7BDcJ3YUqCyMTT"
+    },
+    {
+      "title": "Tonight (I'm Lovin' You)",
+      "artist": "Enrique Iglesias feat. Ludacris & DJ Frank E",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:1CCNGAP0mtPwN32RmbFWPP"
+    },
+    {
+      "title": "Raise Your Glass",
+      "artist": "Pink",
+      "year": 2011,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "S&M",
+      "artist": "Rihanna",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Down on Me",
+      "artist": "Jeremih feat. 50 Cent",
+      "year": 2011,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:0x3TibRgnSqzkcwrqBd4iX"
+    },
+    {
+      "title": "Look at Me Now",
+      "artist": "Chris Brown feat. Lil Wayne & Busta Rhymes",
+      "year": 2011,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:3hsmbFKT5Cujb5GQjqEU39"
+    },
+    {
+      "title": "What's My Name?",
+      "artist": "Rihanna feat. Drake",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1pYKzfOlpHWtVUiEIu4Vn7"
+    },
+    {
+      "title": "Born This Way",
+      "artist": "Lady Gaga",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:79aAD7XiGBmzRPiPL9qSYV"
+    },
+    {
+      "title": "The Lazy Song",
+      "artist": "Bruno Mars",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "reggae"
+      ],
+      "uri": "spotify:track:1ExfPZEiahqhLyajhybFeS"
+    },
+    {
+      "title": "Blow",
+      "artist": "Kesha",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How to Love",
+      "artist": "Lil Wayne",
+      "year": 2011,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": "spotify:track:4aX4Oycsk1fhHIee1zqsDe"
+    },
+    {
+      "title": "Someone Like You",
+      "artist": "Adele",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:4kflIGfjdZJW4ot2ioixTB"
+    },
+    {
+      "title": "Till the World Ends",
+      "artist": "Britney Spears",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:38iU2jg98IZZEIJPrP7aWD"
+    },
+    {
+      "title": "We R Who We R",
+      "artist": "Kesha",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold It Against Me",
+      "artist": "Britney Spears",
+      "year": 2011,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:7Dyq1bhhjknLKEGg4k5NLr"
+    },
+    {
+      "title": "Coming Home",
+      "artist": "Diddy - Dirty Money feat. Skylar Grey",
+      "year": 2011,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:6Iocm6VMu6bVNYwiDoyQFW"
+    },
+    {
+      "title": "F**kin' Perfect",
+      "artist": "Pink",
+      "year": 2011,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Price Tag",
+      "artist": "Jessie J feat. B.o.B",
+      "year": 2011,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5mvKuE9Lf9ARVXVXA32kK9"
+    }
   ]
 }

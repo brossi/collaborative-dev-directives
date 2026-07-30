@@ -3,104 +3,1016 @@
   "name": "Broadway & Tony Winners",
   "source": "Tony Award Best Musical winners 1960-2026 plus iconic Tony-nominated Broadway greats, via original cast recordings on Spotify",
   "songs": [
-    { "title": "Do-Re-Mi", "artist": "Julie Andrews", "year": 1965, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "My Favorite Things", "artist": "Julie Andrews", "year": 1965, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Little Tin Box", "artist": "Original Broadway Cast of Fiorello!", "year": 1960, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Put On a Happy Face", "artist": "Dick Van Dyke", "year": 1960, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "I Believe in You", "artist": "Robert Morse", "year": 1961, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Comedy Tonight", "artist": "Zero Mostel", "year": 1962, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Hello, Dolly!", "artist": "Carol Channing", "year": 1964, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Before the Parade Passes By", "artist": "Carol Channing", "year": 1964, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "If I Were a Rich Man", "artist": "Zero Mostel", "year": 1964, "genres": ["soundtrack", "folk"], "uri": null },
-    { "title": "Sunrise, Sunset", "artist": "Original Broadway Cast of Fiddler on the Roof", "year": 1964, "genres": ["soundtrack", "folk"], "uri": null },
-    { "title": "Matchmaker", "artist": "Original Broadway Cast of Fiddler on the Roof", "year": 1964, "genres": ["soundtrack", "folk"], "uri": null },
-    { "title": "The Impossible Dream", "artist": "Richard Kiley", "year": 1965, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Cabaret", "artist": "Jill Haworth", "year": 1966, "genres": ["soundtrack", "jazz"], "uri": null },
-    { "title": "Being Good Isn't Good Enough", "artist": "Leslie Uggams", "year": 1967, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Sit Down, John", "artist": "William Daniels, Original Broadway Cast of 1776", "year": 1969, "genres": ["soundtrack"], "uri": null },
-    { "title": "Applause", "artist": "Bonnie Franklin", "year": 1970, "genres": ["soundtrack"], "uri": null },
-    { "title": "Being Alive", "artist": "Dean Jones", "year": 1970, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Night Letter", "artist": "Original Broadway Cast of Two Gentlemen of Verona", "year": 1971, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "Send in the Clowns", "artist": "Glynis Johns", "year": 1973, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "A Whole Lotta Sunlight", "artist": "Virginia Capers", "year": 1973, "genres": ["soundtrack", "soul"], "uri": null },
-    { "title": "Ease on Down the Road", "artist": "Original Broadway Cast of The Wiz", "year": 1975, "genres": ["soundtrack", "funk", "soul"], "uri": null },
-    { "title": "One", "artist": "Original Broadway Cast of A Chorus Line", "year": 1975, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "What I Did for Love", "artist": "Priscilla Lopez", "year": 1975, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Tomorrow", "artist": "Andrea McArdle", "year": 1977, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "It's the Hard Knock Life", "artist": "Original Broadway Cast of Annie", "year": 1977, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Ain't Misbehavin'", "artist": "Original Broadway Cast of Ain't Misbehavin'", "year": 1978, "genres": ["soundtrack", "jazz", "swing"], "uri": null },
-    { "title": "Not While I'm Around", "artist": "Original Broadway Cast of Sweeney Todd", "year": 1979, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Don't Cry for Me Argentina", "artist": "Patti LuPone", "year": 1979, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Buenos Aires", "artist": "Patti LuPone", "year": 1979, "genres": ["soundtrack", "latin", "rock"], "uri": null },
-    { "title": "Lullaby of Broadway", "artist": "Jerry Orbach, Original Broadway Cast of 42nd Street", "year": 1980, "genres": ["soundtrack", "standards", "big band"], "uri": null },
-    { "title": "Be Italian", "artist": "Original Broadway Cast of Nine", "year": 1982, "genres": ["soundtrack"], "uri": null },
-    { "title": "Memory", "artist": "Betty Buckley", "year": 1983, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Jellicle Songs for Jellicle Cats", "artist": "Original Broadway Cast of Cats", "year": 1983, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "I Am What I Am", "artist": "George Hearn", "year": 1983, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Muddy Water", "artist": "Daniel Jenkins, Ron Richardson", "year": 1985, "genres": ["soundtrack", "country", "folk"], "uri": null },
-    { "title": "Moonfall", "artist": "Patti Cohenour", "year": 1986, "genres": ["soundtrack"], "uri": null },
-    { "title": "I Dreamed a Dream", "artist": "Randy Graff", "year": 1987, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "On My Own", "artist": "Frances Ruffelle", "year": 1987, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "One Day More", "artist": "Original Broadway Cast of Les Miserables", "year": 1987, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "The Phantom of the Opera", "artist": "Michael Crawford, Sarah Brightman", "year": 1987, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "The Music of the Night", "artist": "Michael Crawford", "year": 1987, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "All I Ask of You", "artist": "Sarah Brightman, Steve Barton", "year": 1987, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "New York, New York", "artist": "Original Broadway Cast of Jerome Robbins' Broadway", "year": 1989, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "You're Nothing Without Me", "artist": "James Naughton, Gregg Edelman", "year": 1990, "genres": ["soundtrack", "jazz"], "uri": null },
-    { "title": "Never Met a Man I Didn't Like", "artist": "Keith Carradine", "year": 1991, "genres": ["soundtrack", "country"], "uri": null },
-    { "title": "I Got Rhythm", "artist": "Jodi Benson, Original Broadway Cast of Crazy for You", "year": 1992, "genres": ["soundtrack", "jazz", "standards"], "uri": null },
-    { "title": "Kiss of the Spider Woman", "artist": "Chita Rivera", "year": 1992, "genres": ["soundtrack", "latin"], "uri": null },
-    { "title": "Loving You", "artist": "Donna Murphy", "year": 1994, "genres": ["soundtrack"], "uri": null },
-    { "title": "As If We Never Said Goodbye", "artist": "Glenn Close", "year": 1994, "genres": ["soundtrack", "standards"], "uri": null },
-    { "title": "Seasons of Love", "artist": "Original Broadway Cast of Rent", "year": 1996, "genres": ["soundtrack", "pop", "gospel"], "uri": null },
-    { "title": "One Song Glory", "artist": "Adam Pascal", "year": 1996, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "Take Me or Leave Me", "artist": "Idina Menzel, Fredi Walker", "year": 1996, "genres": ["soundtrack", "rock", "pop"], "uri": null },
-    { "title": "Godspeed Titanic", "artist": "Original Broadway Cast of Titanic", "year": 1997, "genres": ["soundtrack"], "uri": null },
-    { "title": "Circle of Life", "artist": "Original Broadway Cast of The Lion King", "year": 1997, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Big Spender", "artist": "Original Broadway Cast of Fosse", "year": 1999, "genres": ["soundtrack", "jazz", "big band"], "uri": null },
-    { "title": "Springtime for Hitler", "artist": "Original Broadway Cast of The Producers", "year": 2001, "genres": ["soundtrack", "novelty"], "uri": null },
-    { "title": "I Wanna Be a Producer", "artist": "Matthew Broderick", "year": 2001, "genres": ["soundtrack", "big band"], "uri": null },
-    { "title": "Thoroughly Modern Millie", "artist": "Sutton Foster", "year": 2002, "genres": ["soundtrack", "jazz"], "uri": null },
-    { "title": "Good Morning Baltimore", "artist": "Marissa Jaret Winokur", "year": 2002, "genres": ["soundtrack", "pop", "doo-wop"], "uri": null },
-    { "title": "You Can't Stop the Beat", "artist": "Original Broadway Cast of Hairspray", "year": 2002, "genres": ["soundtrack", "pop", "r&b"], "uri": null },
-    { "title": "There's a Fine, Fine Line", "artist": "Stephanie D'Abruzzo", "year": 2003, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Always Look on the Bright Side of Life", "artist": "Original Broadway Cast of Spamalot", "year": 2005, "genres": ["soundtrack", "novelty"], "uri": null },
-    { "title": "Sherry", "artist": "John Lloyd Young, Original Broadway Cast of Jersey Boys", "year": 2005, "genres": ["soundtrack", "pop", "doo-wop"], "uri": null },
-    { "title": "Can't Take My Eyes Off You", "artist": "John Lloyd Young", "year": 2005, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "December, 1963 (Oh What a Night)", "artist": "Original Broadway Cast of Jersey Boys", "year": 2005, "genres": ["soundtrack", "pop", "disco"], "uri": null },
-    { "title": "Mama Who Bore Me", "artist": "Lea Michele", "year": 2006, "genres": ["soundtrack", "rock", "alternative"], "uri": null },
-    { "title": "In the Heights", "artist": "Lin-Manuel Miranda, Original Broadway Cast of In the Heights", "year": 2008, "genres": ["soundtrack", "hip-hop", "latin"], "uri": null },
-    { "title": "Electricity", "artist": "Original London Cast of Billy Elliot", "year": 2005, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Memphis Lives in Me", "artist": "Chad Kimball", "year": 2010, "genres": ["soundtrack", "r&b", "rock"], "uri": null },
-    { "title": "Hello!", "artist": "Original Broadway Cast of The Book of Mormon", "year": 2011, "genres": ["soundtrack", "novelty"], "uri": null },
-    { "title": "I Believe", "artist": "Andrew Rannells", "year": 2011, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "You and Me (But Mostly Me)", "artist": "Andrew Rannells, Josh Gad", "year": 2011, "genres": ["soundtrack", "novelty"], "uri": null },
-    { "title": "Falling Slowly", "artist": "Steve Kazee, Cristin Milioti", "year": 2012, "genres": ["soundtrack", "folk", "indie"], "uri": null },
-    { "title": "Land of Lola", "artist": "Billy Porter", "year": 2013, "genres": ["soundtrack", "pop", "funk"], "uri": null },
-    { "title": "I've Decided to Marry You", "artist": "Original Broadway Cast of A Gentleman's Guide to Love and Murder", "year": 2014, "genres": ["soundtrack"], "uri": null },
-    { "title": "Ring of Keys", "artist": "Sydney Lucas", "year": 2015, "genres": ["soundtrack", "folk"], "uri": null },
-    { "title": "Alexander Hamilton", "artist": "Original Broadway Cast of Hamilton", "year": 2015, "genres": ["soundtrack", "hip-hop"], "uri": null },
-    { "title": "My Shot", "artist": "Lin-Manuel Miranda, Original Broadway Cast of Hamilton", "year": 2015, "genres": ["soundtrack", "hip-hop"], "uri": null },
-    { "title": "The Room Where It Happens", "artist": "Leslie Odom Jr., Original Broadway Cast of Hamilton", "year": 2015, "genres": ["soundtrack", "hip-hop", "r&b"], "uri": null },
-    { "title": "Waving Through a Window", "artist": "Ben Platt", "year": 2017, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "You Will Be Found", "artist": "Ben Platt, Original Broadway Cast of Dear Evan Hansen", "year": 2017, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Omar Sharif", "artist": "Katrina Lenk", "year": 2017, "genres": ["soundtrack"], "uri": null },
-    { "title": "Wait for Me", "artist": "Reeve Carney, Original Broadway Cast of Hadestown", "year": 2019, "genres": ["soundtrack", "folk", "jazz"], "uri": null },
-    { "title": "Elephant Love Medley", "artist": "Aaron Tveit, Karen Olivo", "year": 2019, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Inner White Girl", "artist": "Larry Owens", "year": 2019, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Great Adventure", "artist": "Original Broadway Cast of Kimberly Akimbo", "year": 2023, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Stay Gold", "artist": "Brody Grant, Sky Lakota-Lynch", "year": 2024, "genres": ["soundtrack", "folk", "country"], "uri": null },
-    { "title": "Why Love", "artist": "Darren Criss", "year": 2025, "genres": ["soundtrack", "pop", "jazz"], "uri": null },
-    { "title": "Corn Puddin'", "artist": "Cast of Schmigadoon!", "year": 2021, "genres": ["soundtrack", "novelty", "country"], "uri": null },
-    { "title": "Defying Gravity", "artist": "Idina Menzel, Kristin Chenoweth", "year": 2003, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Popular", "artist": "Kristin Chenoweth", "year": 2003, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "For Good", "artist": "Idina Menzel, Kristin Chenoweth", "year": 2003, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Dancing Queen", "artist": "Original London Cast of Mamma Mia!", "year": 1999, "genres": ["soundtrack", "pop", "disco"], "uri": null },
-    { "title": "Mamma Mia", "artist": "Original London Cast of Mamma Mia!", "year": 1999, "genres": ["soundtrack", "pop", "disco"], "uri": null },
-    { "title": "Summer Nights", "artist": "Barry Bostwick, Carole Demas", "year": 1972, "genres": ["soundtrack", "rock", "doo-wop"], "uri": null },
-    { "title": "All That Jazz", "artist": "Chita Rivera", "year": 1975, "genres": ["soundtrack", "jazz"], "uri": null },
-    { "title": "And I Am Telling You I'm Not Going", "artist": "Jennifer Holliday", "year": 1982, "genres": ["soundtrack", "soul", "r&b"], "uri": null },
-    { "title": "People", "artist": "Barbra Streisand", "year": 1964, "genres": ["soundtrack", "standards", "pop"], "uri": null },
-    { "title": "Don't Rain on My Parade", "artist": "Barbra Streisand", "year": 1964, "genres": ["soundtrack", "pop", "standards"], "uri": null }
+    {
+      "title": "Do-Re-Mi",
+      "artist": "Julie Andrews",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Favorite Things",
+      "artist": "Julie Andrews",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Tin Box",
+      "artist": "Original Broadway Cast of Fiorello!",
+      "year": 1960,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Put On a Happy Face",
+      "artist": "Dick Van Dyke",
+      "year": 1960,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Believe in You",
+      "artist": "Robert Morse",
+      "year": 1961,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Comedy Tonight",
+      "artist": "Zero Mostel",
+      "year": 1962,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hello, Dolly!",
+      "artist": "Carol Channing",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Before the Parade Passes By",
+      "artist": "Carol Channing",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If I Were a Rich Man",
+      "artist": "Zero Mostel",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sunrise, Sunset",
+      "artist": "Original Broadway Cast of Fiddler on the Roof",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Matchmaker",
+      "artist": "Original Broadway Cast of Fiddler on the Roof",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Impossible Dream",
+      "artist": "Richard Kiley",
+      "year": 1965,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cabaret",
+      "artist": "Jill Haworth",
+      "year": 1966,
+      "genres": [
+        "soundtrack",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Being Good Isn't Good Enough",
+      "artist": "Leslie Uggams",
+      "year": 1967,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sit Down, John",
+      "artist": "William Daniels, Original Broadway Cast of 1776",
+      "year": 1969,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Applause",
+      "artist": "Bonnie Franklin",
+      "year": 1970,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Being Alive",
+      "artist": "Dean Jones",
+      "year": 1970,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Night Letter",
+      "artist": "Original Broadway Cast of Two Gentlemen of Verona",
+      "year": 1971,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Send in the Clowns",
+      "artist": "Glynis Johns",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Whole Lotta Sunlight",
+      "artist": "Virginia Capers",
+      "year": 1973,
+      "genres": [
+        "soundtrack",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ease on Down the Road",
+      "artist": "Original Broadway Cast of The Wiz",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One",
+      "artist": "Original Broadway Cast of A Chorus Line",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What I Did for Love",
+      "artist": "Priscilla Lopez",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tomorrow",
+      "artist": "Andrea McArdle",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's the Hard Knock Life",
+      "artist": "Original Broadway Cast of Annie",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't Misbehavin'",
+      "artist": "Original Broadway Cast of Ain't Misbehavin'",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Not While I'm Around",
+      "artist": "Original Broadway Cast of Sweeney Todd",
+      "year": 1979,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Cry for Me Argentina",
+      "artist": "Patti LuPone",
+      "year": 1979,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Buenos Aires",
+      "artist": "Patti LuPone",
+      "year": 1979,
+      "genres": [
+        "soundtrack",
+        "latin",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lullaby of Broadway",
+      "artist": "Jerry Orbach, Original Broadway Cast of 42nd Street",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "standards",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Be Italian",
+      "artist": "Original Broadway Cast of Nine",
+      "year": 1982,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Memory",
+      "artist": "Betty Buckley",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jellicle Songs for Jellicle Cats",
+      "artist": "Original Broadway Cast of Cats",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Am What I Am",
+      "artist": "George Hearn",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Muddy Water",
+      "artist": "Daniel Jenkins, Ron Richardson",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "country",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moonfall",
+      "artist": "Patti Cohenour",
+      "year": 1986,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Dreamed a Dream",
+      "artist": "Randy Graff",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "On My Own",
+      "artist": "Frances Ruffelle",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Day More",
+      "artist": "Original Broadway Cast of Les Miserables",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Phantom of the Opera",
+      "artist": "Michael Crawford, Sarah Brightman",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Music of the Night",
+      "artist": "Michael Crawford",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All I Ask of You",
+      "artist": "Sarah Brightman, Steve Barton",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "New York, New York",
+      "artist": "Original Broadway Cast of Jerome Robbins' Broadway",
+      "year": 1989,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're Nothing Without Me",
+      "artist": "James Naughton, Gregg Edelman",
+      "year": 1990,
+      "genres": [
+        "soundtrack",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Never Met a Man I Didn't Like",
+      "artist": "Keith Carradine",
+      "year": 1991,
+      "genres": [
+        "soundtrack",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Got Rhythm",
+      "artist": "Jodi Benson, Original Broadway Cast of Crazy for You",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss of the Spider Woman",
+      "artist": "Chita Rivera",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Loving You",
+      "artist": "Donna Murphy",
+      "year": 1994,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "As If We Never Said Goodbye",
+      "artist": "Glenn Close",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Seasons of Love",
+      "artist": "Original Broadway Cast of Rent",
+      "year": 1996,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "gospel"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Song Glory",
+      "artist": "Adam Pascal",
+      "year": 1996,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take Me or Leave Me",
+      "artist": "Idina Menzel, Fredi Walker",
+      "year": 1996,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Godspeed Titanic",
+      "artist": "Original Broadway Cast of Titanic",
+      "year": 1997,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Circle of Life",
+      "artist": "Original Broadway Cast of The Lion King",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Big Spender",
+      "artist": "Original Broadway Cast of Fosse",
+      "year": 1999,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Springtime for Hitler",
+      "artist": "Original Broadway Cast of The Producers",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wanna Be a Producer",
+      "artist": "Matthew Broderick",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Thoroughly Modern Millie",
+      "artist": "Sutton Foster",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Good Morning Baltimore",
+      "artist": "Marissa Jaret Winokur",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Can't Stop the Beat",
+      "artist": "Original Broadway Cast of Hairspray",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "There's a Fine, Fine Line",
+      "artist": "Stephanie D'Abruzzo",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Always Look on the Bright Side of Life",
+      "artist": "Original Broadway Cast of Spamalot",
+      "year": 2005,
+      "genres": [
+        "soundtrack",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sherry",
+      "artist": "John Lloyd Young, Original Broadway Cast of Jersey Boys",
+      "year": 2005,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Take My Eyes Off You",
+      "artist": "John Lloyd Young",
+      "year": 2005,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "December, 1963 (Oh What a Night)",
+      "artist": "Original Broadway Cast of Jersey Boys",
+      "year": 2005,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mama Who Bore Me",
+      "artist": "Lea Michele",
+      "year": 2006,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "In the Heights",
+      "artist": "Lin-Manuel Miranda, Original Broadway Cast of In the Heights",
+      "year": 2008,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Electricity",
+      "artist": "Original London Cast of Billy Elliot",
+      "year": 2005,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Memphis Lives in Me",
+      "artist": "Chad Kimball",
+      "year": 2010,
+      "genres": [
+        "soundtrack",
+        "r&b",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hello!",
+      "artist": "Original Broadway Cast of The Book of Mormon",
+      "year": 2011,
+      "genres": [
+        "soundtrack",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Believe",
+      "artist": "Andrew Rannells",
+      "year": 2011,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You and Me (But Mostly Me)",
+      "artist": "Andrew Rannells, Josh Gad",
+      "year": 2011,
+      "genres": [
+        "soundtrack",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Falling Slowly",
+      "artist": "Steve Kazee, Cristin Milioti",
+      "year": 2012,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Land of Lola",
+      "artist": "Billy Porter",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I've Decided to Marry You",
+      "artist": "Original Broadway Cast of A Gentleman's Guide to Love and Murder",
+      "year": 2014,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ring of Keys",
+      "artist": "Sydney Lucas",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Alexander Hamilton",
+      "artist": "Original Broadway Cast of Hamilton",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Shot",
+      "artist": "Lin-Manuel Miranda, Original Broadway Cast of Hamilton",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Room Where It Happens",
+      "artist": "Leslie Odom Jr., Original Broadway Cast of Hamilton",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Waving Through a Window",
+      "artist": "Ben Platt",
+      "year": 2017,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Will Be Found",
+      "artist": "Ben Platt, Original Broadway Cast of Dear Evan Hansen",
+      "year": 2017,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Omar Sharif",
+      "artist": "Katrina Lenk",
+      "year": 2017,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wait for Me",
+      "artist": "Reeve Carney, Original Broadway Cast of Hadestown",
+      "year": 2019,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Elephant Love Medley",
+      "artist": "Aaron Tveit, Karen Olivo",
+      "year": 2019,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Inner White Girl",
+      "artist": "Larry Owens",
+      "year": 2019,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Great Adventure",
+      "artist": "Original Broadway Cast of Kimberly Akimbo",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stay Gold",
+      "artist": "Brody Grant, Sky Lakota-Lynch",
+      "year": 2024,
+      "genres": [
+        "soundtrack",
+        "folk",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Why Love",
+      "artist": "Darren Criss",
+      "year": 2025,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Corn Puddin'",
+      "artist": "Cast of Schmigadoon!",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "novelty",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Defying Gravity",
+      "artist": "Idina Menzel, Kristin Chenoweth",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Popular",
+      "artist": "Kristin Chenoweth",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "For Good",
+      "artist": "Idina Menzel, Kristin Chenoweth",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dancing Queen",
+      "artist": "Original London Cast of Mamma Mia!",
+      "year": 1999,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mamma Mia",
+      "artist": "Original London Cast of Mamma Mia!",
+      "year": 1999,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Summer Nights",
+      "artist": "Barry Bostwick, Carole Demas",
+      "year": 1972,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All That Jazz",
+      "artist": "Chita Rivera",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "And I Am Telling You I'm Not Going",
+      "artist": "Jennifer Holliday",
+      "year": 1982,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "r&b"
+      ],
+      "uri": "spotify:track:6SetWNnANlNaeH22lF2VyB"
+    },
+    {
+      "title": "People",
+      "artist": "Barbra Streisand",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "standards",
+        "pop"
+      ],
+      "uri": "spotify:track:0s7UEtczBGK68zYCi1y6W8"
+    },
+    {
+      "title": "Don't Rain on My Parade",
+      "artist": "Barbra Streisand",
+      "year": 1964,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    }
   ]
 }

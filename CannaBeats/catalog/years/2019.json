@@ -3,35 +3,292 @@
   "name": "Hits of 2019",
   "source": "Billboard Year-End Hot 100, 2019 (top 30)",
   "songs": [
-    {"title": "Old Town Road", "artist": "Lil Nas X feat. Billy Ray Cyrus", "year": 2019, "genres": ["country", "hip-hop"], "uri": null},
-    {"title": "Sunflower", "artist": "Post Malone & Swae Lee", "year": 2019, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "Without Me", "artist": "Halsey", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "Bad Guy", "artist": "Billie Eilish", "year": 2019, "genres": ["pop", "electronic"], "uri": null},
-    {"title": "Wow.", "artist": "Post Malone", "year": 2019, "genres": ["hip-hop"], "uri": null},
-    {"title": "Happier", "artist": "Marshmello & Bastille", "year": 2019, "genres": ["electronic", "pop"], "uri": null},
-    {"title": "7 Rings", "artist": "Ariana Grande", "year": 2019, "genres": ["pop", "hip-hop"], "uri": null},
-    {"title": "Talk", "artist": "Khalid", "year": 2019, "genres": ["r&b", "pop"], "uri": null},
-    {"title": "Sicko Mode", "artist": "Travis Scott", "year": 2019, "genres": ["hip-hop"], "uri": null},
-    {"title": "Sucker", "artist": "Jonas Brothers", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "High Hopes", "artist": "Panic! at the Disco", "year": 2019, "genres": ["pop", "rock"], "uri": null},
-    {"title": "Thank U, Next", "artist": "Ariana Grande", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "Truth Hurts", "artist": "Lizzo", "year": 2019, "genres": ["pop", "hip-hop"], "uri": null},
-    {"title": "Dancing with a Stranger", "artist": "Sam Smith & Normani", "year": 2019, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Senorita", "artist": "Shawn Mendes & Camila Cabello", "year": 2019, "genres": ["pop", "latin"], "uri": null},
-    {"title": "Eastside", "artist": "Benny Blanco, Halsey & Khalid", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "Going Bad", "artist": "Meek Mill feat. Drake", "year": 2019, "genres": ["hip-hop"], "uri": null},
-    {"title": "Middle Child", "artist": "J. Cole", "year": 2019, "genres": ["hip-hop"], "uri": null},
-    {"title": "Sweet but Psycho", "artist": "Ava Max", "year": 2019, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Shallow", "artist": "Lady Gaga & Bradley Cooper", "year": 2019, "genres": ["pop", "soundtrack"], "uri": null},
-    {"title": "I Don't Care", "artist": "Ed Sheeran & Justin Bieber", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "Better", "artist": "Khalid", "year": 2019, "genres": ["r&b", "pop"], "uri": null},
-    {"title": "No Guidance", "artist": "Chris Brown feat. Drake", "year": 2019, "genres": ["r&b", "hip-hop"], "uri": null},
-    {"title": "Please Me", "artist": "Cardi B & Bruno Mars", "year": 2019, "genres": ["r&b", "hip-hop"], "uri": null},
-    {"title": "Drip Too Hard", "artist": "Lil Baby & Gunna", "year": 2019, "genres": ["hip-hop"], "uri": null},
-    {"title": "Suge", "artist": "DaBaby", "year": 2019, "genres": ["hip-hop"], "uri": null},
-    {"title": "Someone You Loved", "artist": "Lewis Capaldi", "year": 2019, "genres": ["pop", "singer-songwriter"], "uri": null},
-    {"title": "Break Up with Your Girlfriend, I'm Bored", "artist": "Ariana Grande", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "If I Can't Have You", "artist": "Shawn Mendes", "year": 2019, "genres": ["pop"], "uri": null},
-    {"title": "Goodbyes", "artist": "Post Malone feat. Young Thug", "year": 2019, "genres": ["hip-hop", "pop"], "uri": null}
+    {
+      "title": "Old Town Road",
+      "artist": "Lil Nas X feat. Billy Ray Cyrus",
+      "year": 2019,
+      "genres": [
+        "country",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2YpeDb67231RjR0MgVLzsG"
+    },
+    {
+      "title": "Sunflower",
+      "artist": "Post Malone & Swae Lee",
+      "year": 2019,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Without Me",
+      "artist": "Halsey",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5p7ujcrUXASCNwRaWNHR1C"
+    },
+    {
+      "title": "Bad Guy",
+      "artist": "Billie Eilish",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": "spotify:track:2Fxmhks0bxGSBdJ92vM42m"
+    },
+    {
+      "title": "Wow.",
+      "artist": "Post Malone",
+      "year": 2019,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7xQAfvXzm3AkraOtGPWIZg"
+    },
+    {
+      "title": "Happier",
+      "artist": "Marshmello & Bastille",
+      "year": 2019,
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "uri": "spotify:track:2dpaYNEQHiRxtZbfNsse99"
+    },
+    {
+      "title": "7 Rings",
+      "artist": "Ariana Grande",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6ocbgoVGwYJhOv1GgI9NsF"
+    },
+    {
+      "title": "Talk",
+      "artist": "Khalid",
+      "year": 2019,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:6TqXcAFInzjp0bODyvrWEq"
+    },
+    {
+      "title": "Sicko Mode",
+      "artist": "Travis Scott",
+      "year": 2019,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2xLMifQCjDGFmkHkpNLD9h"
+    },
+    {
+      "title": "Sucker",
+      "artist": "Jonas Brothers",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:22vgEDb5hykfaTwLuskFGD"
+    },
+    {
+      "title": "High Hopes",
+      "artist": "Panic! at the Disco",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:1rqqCSm0Qe4I9rUvWncaom"
+    },
+    {
+      "title": "Thank U, Next",
+      "artist": "Ariana Grande",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3e9HZxeyfWwjeyPAMmWSSQ"
+    },
+    {
+      "title": "Truth Hurts",
+      "artist": "Lizzo",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:5qmq61DAAOUaW8AUo8xKhh"
+    },
+    {
+      "title": "Dancing with a Stranger",
+      "artist": "Sam Smith & Normani",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:6Qs4SXO9dwPj5GKvVOv8Ki"
+    },
+    {
+      "title": "Senorita",
+      "artist": "Shawn Mendes & Camila Cabello",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:0TK2YIli7K1leLovkQiNik"
+    },
+    {
+      "title": "Eastside",
+      "artist": "Benny Blanco, Halsey & Khalid",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0d2iYfpKoM0QCKvcLCkBao"
+    },
+    {
+      "title": "Going Bad",
+      "artist": "Meek Mill feat. Drake",
+      "year": 2019,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2IRZnDFmlqMuOrYOLnZZyc"
+    },
+    {
+      "title": "Middle Child",
+      "artist": "J. Cole",
+      "year": 2019,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2JvzF1RMd7lE3KmFlsyZD8"
+    },
+    {
+      "title": "Sweet but Psycho",
+      "artist": "Ava Max",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:25sgk305KZfyuqVBQIahim"
+    },
+    {
+      "title": "Shallow",
+      "artist": "Lady Gaga & Bradley Cooper",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": "spotify:track:2VxeLyX666F8uXCJ0dZF8B"
+    },
+    {
+      "title": "I Don't Care",
+      "artist": "Ed Sheeran & Justin Bieber",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:3HVWdVOQ0ZA45FuZGSfvns"
+    },
+    {
+      "title": "Better",
+      "artist": "Khalid",
+      "year": 2019,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:6zeeWid2sgw4lap2jV61PZ"
+    },
+    {
+      "title": "No Guidance",
+      "artist": "Chris Brown feat. Drake",
+      "year": 2019,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6XHVuErjQ4XNm6nDPVCxVX"
+    },
+    {
+      "title": "Please Me",
+      "artist": "Cardi B & Bruno Mars",
+      "year": 2019,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:0PG9fbaaHFHfre2gUVo7AN"
+    },
+    {
+      "title": "Drip Too Hard",
+      "artist": "Lil Baby & Gunna",
+      "year": 2019,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:78QR3Wp35dqAhFEc2qAGjE"
+    },
+    {
+      "title": "Suge",
+      "artist": "DaBaby",
+      "year": 2019,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2gwkD6igEhQbDQegRCcdoB"
+    },
+    {
+      "title": "Someone You Loved",
+      "artist": "Lewis Capaldi",
+      "year": 2019,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:7qEHsqek33rTcFNT9PFqLf"
+    },
+    {
+      "title": "Break Up with Your Girlfriend, I'm Bored",
+      "artist": "Ariana Grande",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4kV4N9D1iKVxx1KLvtTpjS"
+    },
+    {
+      "title": "If I Can't Have You",
+      "artist": "Shawn Mendes",
+      "year": 2019,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6LsAAHotRLMOHfCsSfYCsz"
+    },
+    {
+      "title": "Goodbyes",
+      "artist": "Post Malone feat. Young Thug",
+      "year": 2019,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:0t3ZvGKlmYmVsDzBJAXK8C"
+    }
   ]
 }

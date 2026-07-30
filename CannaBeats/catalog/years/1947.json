@@ -3,35 +3,296 @@
   "name": "Hits of 1947",
   "source": "Billboard year-end top singles of 1947 plus weekly Best Sellers chart",
   "songs": [
-    { "title": "Near You", "artist": "Francis Craig", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "Peg o' My Heart", "artist": "The Harmonicats", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "Heartaches", "artist": "Ted Weems", "year": 1947, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Anniversary Song", "artist": "Al Jolson", "year": 1947, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Ballerina", "artist": "Vaughn Monroe", "year": 1947, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Smoke! Smoke! Smoke! (That Cigarette)", "artist": "Tex Williams", "year": 1947, "genres": ["country", "novelty"], "uri": null },
-    { "title": "Linda", "artist": "Ray Noble feat. Buddy Clark", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "Mam'selle", "artist": "Art Lund", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "That's My Desire", "artist": "Frankie Laine", "year": 1947, "genres": ["pop", "standards"], "uri": null },
-    { "title": "I Wish I Didn't Love You So", "artist": "Vaughn Monroe", "year": 1947, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Chi-Baba, Chi-Baba (My Bambino Go to Sleep)", "artist": "Perry Como", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "I Wonder Who's Kissing Her Now", "artist": "Perry Como", "year": 1947, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Temptation (Tim-Tayshun)", "artist": "Red Ingle & Jo Stafford", "year": 1947, "genres": ["novelty", "country"], "uri": null },
-    { "title": "Zip-a-Dee-Doo-Dah", "artist": "Johnny Mercer", "year": 1947, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Managua, Nicaragua", "artist": "Freddy Martin", "year": 1947, "genres": ["big band", "latin"], "uri": null },
-    { "title": "Open the Door, Richard!", "artist": "Count Basie", "year": 1947, "genres": ["novelty", "r&b"], "uri": null },
-    { "title": "Feudin' and Fightin'", "artist": "Dorothy Shay", "year": 1947, "genres": ["novelty", "pop"], "uri": null },
-    { "title": "Across the Alley from the Alamo", "artist": "The Mills Brothers", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "An Apple Blossom Wedding", "artist": "Sammy Kaye", "year": 1947, "genres": ["big band", "pop"], "uri": null },
-    { "title": "How Soon (Will I Be Seeing You)", "artist": "Jack Owens", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "You Do", "artist": "Vaughn Monroe", "year": 1947, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Too Fat Polka", "artist": "Arthur Godfrey", "year": 1947, "genres": ["novelty"], "uri": null },
-    { "title": "Civilization (Bongo, Bongo, Bongo)", "artist": "Danny Kaye & The Andrews Sisters", "year": 1947, "genres": ["novelty", "pop"], "uri": null },
-    { "title": "I'll Dance at Your Wedding", "artist": "Ray Noble feat. Buddy Clark", "year": 1947, "genres": ["pop"], "uri": null },
-    { "title": "Serenade of the Bells", "artist": "Sammy Kaye", "year": 1947, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Golden Earrings", "artist": "Peggy Lee", "year": 1947, "genres": ["pop", "standards"], "uri": null },
-    { "title": "My Adobe Hacienda", "artist": "Eddy Howard", "year": 1947, "genres": ["pop", "country"], "uri": null },
-    { "title": "Almost Like Being in Love", "artist": "Frank Sinatra", "year": 1947, "genres": ["pop", "standards"], "uri": null },
-    { "title": "A Sunday Kind of Love", "artist": "Claude Thornhill feat. Fran Warren", "year": 1947, "genres": ["pop", "jazz"], "uri": null },
-    { "title": "Ain't Nobody Here but Us Chickens", "artist": "Louis Jordan", "year": 1947, "genres": ["r&b", "novelty"], "uri": null }
+    {
+      "title": "Near You",
+      "artist": "Francis Craig",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Peg o' My Heart",
+      "artist": "The Harmonicats",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Heartaches",
+      "artist": "Ted Weems",
+      "year": 1947,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Anniversary Song",
+      "artist": "Al Jolson",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ballerina",
+      "artist": "Vaughn Monroe",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Smoke! Smoke! Smoke! (That Cigarette)",
+      "artist": "Tex Williams",
+      "year": 1947,
+      "genres": [
+        "country",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Linda",
+      "artist": "Ray Noble feat. Buddy Clark",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mam'selle",
+      "artist": "Art Lund",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That's My Desire",
+      "artist": "Frankie Laine",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wish I Didn't Love You So",
+      "artist": "Vaughn Monroe",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Chi-Baba, Chi-Baba (My Bambino Go to Sleep)",
+      "artist": "Perry Como",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wonder Who's Kissing Her Now",
+      "artist": "Perry Como",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Temptation (Tim-Tayshun)",
+      "artist": "Red Ingle & Jo Stafford",
+      "year": 1947,
+      "genres": [
+        "novelty",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Zip-a-Dee-Doo-Dah",
+      "artist": "Johnny Mercer",
+      "year": 1947,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Managua, Nicaragua",
+      "artist": "Freddy Martin",
+      "year": 1947,
+      "genres": [
+        "big band",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Open the Door, Richard!",
+      "artist": "Count Basie",
+      "year": 1947,
+      "genres": [
+        "novelty",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Feudin' and Fightin'",
+      "artist": "Dorothy Shay",
+      "year": 1947,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Across the Alley from the Alamo",
+      "artist": "The Mills Brothers",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "An Apple Blossom Wedding",
+      "artist": "Sammy Kaye",
+      "year": 1947,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Soon (Will I Be Seeing You)",
+      "artist": "Jack Owens",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Do",
+      "artist": "Vaughn Monroe",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Too Fat Polka",
+      "artist": "Arthur Godfrey",
+      "year": 1947,
+      "genres": [
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Civilization (Bongo, Bongo, Bongo)",
+      "artist": "Danny Kaye & The Andrews Sisters",
+      "year": 1947,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Dance at Your Wedding",
+      "artist": "Ray Noble feat. Buddy Clark",
+      "year": 1947,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Serenade of the Bells",
+      "artist": "Sammy Kaye",
+      "year": 1947,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Golden Earrings",
+      "artist": "Peggy Lee",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Adobe Hacienda",
+      "artist": "Eddy Howard",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Almost Like Being in Love",
+      "artist": "Frank Sinatra",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Sunday Kind of Love",
+      "artist": "Claude Thornhill feat. Fran Warren",
+      "year": 1947,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't Nobody Here but Us Chickens",
+      "artist": "Louis Jordan",
+      "year": 1947,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": null
+    }
   ]
 }

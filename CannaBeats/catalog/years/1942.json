@@ -3,35 +3,303 @@
   "name": "Hits of 1942",
   "source": "Billboard National Best Selling Retail Records chart and Whitburn Pop Memories historical compilations",
   "songs": [
-    { "title": "White Christmas", "artist": "Bing Crosby", "year": 1942, "genres": ["pop", "standards"], "uri": null },
-    { "title": "(I've Got a Gal in) Kalamazoo", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "swing"], "uri": null },
-    { "title": "Moonlight Cocktail", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "A String of Pearls", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "swing"], "uri": null },
-    { "title": "Tangerine", "artist": "Jimmy Dorsey", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Sleepy Lagoon", "artist": "Harry James", "year": 1942, "genres": ["big band"], "uri": null },
-    { "title": "Jingle Jangle Jingle", "artist": "Kay Kyser", "year": 1942, "genres": ["big band", "novelty"], "uri": null },
-    { "title": "Praise the Lord and Pass the Ammunition", "artist": "Kay Kyser", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "There Are Such Things", "artist": "Tommy Dorsey feat. Frank Sinatra", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Don't Sit Under the Apple Tree", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "swing"], "uri": null },
-    { "title": "Deep in the Heart of Texas", "artist": "Alvino Rey", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Blues in the Night", "artist": "Woody Herman", "year": 1942, "genres": ["big band", "blues"], "uri": null },
-    { "title": "I Don't Want to Walk Without You", "artist": "Harry James", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Somebody Else Is Taking My Place", "artist": "Benny Goodman feat. Peggy Lee", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Skylark", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "standards"], "uri": null },
-    { "title": "He Wears a Pair of Silver Wings", "artist": "Kay Kyser", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Jersey Bounce", "artist": "Benny Goodman", "year": 1942, "genres": ["big band", "swing"], "uri": null },
-    { "title": "My Devotion", "artist": "Vaughn Monroe", "year": 1942, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Who Wouldn't Love You", "artist": "Kay Kyser", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Serenade in Blue", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "standards"], "uri": null },
-    { "title": "At Last", "artist": "Glenn Miller", "year": 1942, "genres": ["big band", "standards"], "uri": null },
-    { "title": "Strip Polka", "artist": "The Andrews Sisters", "year": 1942, "genres": ["novelty", "pop"], "uri": null },
-    { "title": "Mister Five by Five", "artist": "Harry James", "year": 1942, "genres": ["big band", "swing"], "uri": null },
-    { "title": "Cow-Cow Boogie", "artist": "Freddie Slack & Ella Mae Morse", "year": 1942, "genres": ["swing", "blues"], "uri": null },
-    { "title": "I Left My Heart at the Stage Door Canteen", "artist": "Sammy Kaye", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "One Dozen Roses", "artist": "Harry James", "year": 1942, "genres": ["big band", "pop"], "uri": null },
-    { "title": "Idaho", "artist": "Benny Goodman", "year": 1942, "genres": ["big band", "swing"], "uri": null },
-    { "title": "Be Careful, It's My Heart", "artist": "Bing Crosby", "year": 1942, "genres": ["pop", "standards"], "uri": null },
-    { "title": "I Remember You", "artist": "Jimmy Dorsey", "year": 1942, "genres": ["big band", "standards"], "uri": null },
-    { "title": "Der Fuehrer's Face", "artist": "Spike Jones", "year": 1942, "genres": ["novelty"], "uri": null }
+    {
+      "title": "White Christmas",
+      "artist": "Bing Crosby",
+      "year": 1942,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(I've Got a Gal in) Kalamazoo",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moonlight Cocktail",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A String of Pearls",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tangerine",
+      "artist": "Jimmy Dorsey",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sleepy Lagoon",
+      "artist": "Harry James",
+      "year": 1942,
+      "genres": [
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jingle Jangle Jingle",
+      "artist": "Kay Kyser",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Praise the Lord and Pass the Ammunition",
+      "artist": "Kay Kyser",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "There Are Such Things",
+      "artist": "Tommy Dorsey feat. Frank Sinatra",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Sit Under the Apple Tree",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Deep in the Heart of Texas",
+      "artist": "Alvino Rey",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blues in the Night",
+      "artist": "Woody Herman",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Walk Without You",
+      "artist": "Harry James",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Somebody Else Is Taking My Place",
+      "artist": "Benny Goodman feat. Peggy Lee",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Skylark",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "He Wears a Pair of Silver Wings",
+      "artist": "Kay Kyser",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jersey Bounce",
+      "artist": "Benny Goodman",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Devotion",
+      "artist": "Vaughn Monroe",
+      "year": 1942,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Who Wouldn't Love You",
+      "artist": "Kay Kyser",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Serenade in Blue",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "At Last",
+      "artist": "Glenn Miller",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Strip Polka",
+      "artist": "The Andrews Sisters",
+      "year": 1942,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mister Five by Five",
+      "artist": "Harry James",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cow-Cow Boogie",
+      "artist": "Freddie Slack & Ella Mae Morse",
+      "year": 1942,
+      "genres": [
+        "swing",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Left My Heart at the Stage Door Canteen",
+      "artist": "Sammy Kaye",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Dozen Roses",
+      "artist": "Harry James",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Idaho",
+      "artist": "Benny Goodman",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Be Careful, It's My Heart",
+      "artist": "Bing Crosby",
+      "year": 1942,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Remember You",
+      "artist": "Jimmy Dorsey",
+      "year": 1942,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Der Fuehrer's Face",
+      "artist": "Spike Jones",
+      "year": 1942,
+      "genres": [
+        "novelty"
+      ],
+      "uri": null
+    }
   ]
 }

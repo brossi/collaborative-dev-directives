@@ -3,35 +3,291 @@
   "name": "Hits of 2018",
   "source": "Billboard Year-End Hot 100, 2018 (top 30)",
   "songs": [
-    {"title": "God's Plan", "artist": "Drake", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Perfect", "artist": "Ed Sheeran", "year": 2018, "genres": ["pop", "singer-songwriter"], "uri": null},
-    {"title": "Meant to Be", "artist": "Bebe Rexha feat. Florida Georgia Line", "year": 2018, "genres": ["country", "pop"], "uri": null},
-    {"title": "Havana", "artist": "Camila Cabello feat. Young Thug", "year": 2018, "genres": ["pop", "latin"], "uri": null},
-    {"title": "Rockstar", "artist": "Post Malone feat. 21 Savage", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Psycho", "artist": "Post Malone feat. Ty Dolla $ign", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "I Like It", "artist": "Cardi B, Bad Bunny & J Balvin", "year": 2018, "genres": ["hip-hop", "latin"], "uri": null},
-    {"title": "The Middle", "artist": "Zedd, Maren Morris & Grey", "year": 2018, "genres": ["pop", "electronic"], "uri": null},
-    {"title": "In My Feelings", "artist": "Drake", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Girls Like You", "artist": "Maroon 5 feat. Cardi B", "year": 2018, "genres": ["pop"], "uri": null},
-    {"title": "Nice for What", "artist": "Drake", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Thunder", "artist": "Imagine Dragons", "year": 2018, "genres": ["rock", "pop"], "uri": null},
-    {"title": "Lucid Dreams", "artist": "Juice WRLD", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Better Now", "artist": "Post Malone", "year": 2018, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "No Tears Left to Cry", "artist": "Ariana Grande", "year": 2018, "genres": ["pop"], "uri": null},
-    {"title": "Finesse", "artist": "Bruno Mars & Cardi B", "year": 2018, "genres": ["r&b", "funk"], "uri": null},
-    {"title": "Boo'd Up", "artist": "Ella Mai", "year": 2018, "genres": ["r&b"], "uri": null},
-    {"title": "New Rules", "artist": "Dua Lipa", "year": 2018, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Him & I", "artist": "G-Eazy & Halsey", "year": 2018, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "Love Lies", "artist": "Khalid & Normani", "year": 2018, "genres": ["r&b", "pop"], "uri": null},
-    {"title": "Whatever It Takes", "artist": "Imagine Dragons", "year": 2018, "genres": ["rock", "alternative"], "uri": null},
-    {"title": "Mine", "artist": "Bazzi", "year": 2018, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Delicate", "artist": "Taylor Swift", "year": 2018, "genres": ["pop"], "uri": null},
-    {"title": "Sad!", "artist": "XXXTentacion", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Wolves", "artist": "Selena Gomez & Marshmello", "year": 2018, "genres": ["pop", "electronic"], "uri": null},
-    {"title": "Look Alive", "artist": "BlocBoy JB feat. Drake", "year": 2018, "genres": ["hip-hop"], "uri": null},
-    {"title": "Youngblood", "artist": "5 Seconds of Summer", "year": 2018, "genres": ["pop", "rock"], "uri": null},
-    {"title": "Never Be the Same", "artist": "Camila Cabello", "year": 2018, "genres": ["pop"], "uri": null},
-    {"title": "Tequila", "artist": "Dan + Shay", "year": 2018, "genres": ["country"], "uri": null},
-    {"title": "Feel It Still", "artist": "Portugal. The Man", "year": 2018, "genres": ["alternative", "rock"], "uri": null}
+    {
+      "title": "God's Plan",
+      "artist": "Drake",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6DCZcSspjsKoFjzjrWoCdn"
+    },
+    {
+      "title": "Perfect",
+      "artist": "Ed Sheeran",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:0tgVpDi06FyKpA1z0VMD4v"
+    },
+    {
+      "title": "Meant to Be",
+      "artist": "Bebe Rexha feat. Florida Georgia Line",
+      "year": 2018,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": "spotify:track:7iDa6hUg2VgEL1o1HjmfBn"
+    },
+    {
+      "title": "Havana",
+      "artist": "Camila Cabello feat. Young Thug",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": "spotify:track:1rfofaqEpACxVEHIZBJe6W"
+    },
+    {
+      "title": "Rockstar",
+      "artist": "Post Malone feat. 21 Savage",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Psycho",
+      "artist": "Post Malone feat. Ty Dolla $ign",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Like It",
+      "artist": "Cardi B, Bad Bunny & J Balvin",
+      "year": 2018,
+      "genres": [
+        "hip-hop",
+        "latin"
+      ],
+      "uri": "spotify:track:58q2HKrzhC3ozto2nDdN4z"
+    },
+    {
+      "title": "The Middle",
+      "artist": "Zedd, Maren Morris & Grey",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": "spotify:track:09IStsImFySgyp0pIQdqAc"
+    },
+    {
+      "title": "In My Feelings",
+      "artist": "Drake",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:2G7V7zsVDxg1yRsu7Ew9RJ"
+    },
+    {
+      "title": "Girls Like You",
+      "artist": "Maroon 5 feat. Cardi B",
+      "year": 2018,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6V1bu6o1Yo5ZXnsCJU8Ovk"
+    },
+    {
+      "title": "Nice for What",
+      "artist": "Drake",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3CA9pLiwRIGtUBiMjbZmRw"
+    },
+    {
+      "title": "Thunder",
+      "artist": "Imagine Dragons",
+      "year": 2018,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:1zB4vmk8tFRmM9UULNzbLB"
+    },
+    {
+      "title": "Lucid Dreams",
+      "artist": "Juice WRLD",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:285pBltuF7vW8TeWk8hdRR"
+    },
+    {
+      "title": "Better Now",
+      "artist": "Post Malone",
+      "year": 2018,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:7dt6x5M1jzdTEt8oCbisTK"
+    },
+    {
+      "title": "No Tears Left to Cry",
+      "artist": "Ariana Grande",
+      "year": 2018,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2qT1uLXPVPzGgFOx4jtEuo"
+    },
+    {
+      "title": "Finesse",
+      "artist": "Bruno Mars & Cardi B",
+      "year": 2018,
+      "genres": [
+        "r&b",
+        "funk"
+      ],
+      "uri": "spotify:track:3Vo4wInECJQuz9BIBMOu8i"
+    },
+    {
+      "title": "Boo'd Up",
+      "artist": "Ella Mai",
+      "year": 2018,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:0At2qAoaVjIwWNAqrscXli"
+    },
+    {
+      "title": "New Rules",
+      "artist": "Dua Lipa",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:2ekn2ttSfGqwhhate0LSR0"
+    },
+    {
+      "title": "Him & I",
+      "artist": "G-Eazy & Halsey",
+      "year": 2018,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:5k38wzpLb15YgncyWdTZE4"
+    },
+    {
+      "title": "Love Lies",
+      "artist": "Khalid & Normani",
+      "year": 2018,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:45Egmo7icyopuzJN0oMEdk"
+    },
+    {
+      "title": "Whatever It Takes",
+      "artist": "Imagine Dragons",
+      "year": 2018,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:6Qn5zhYkTa37e91HC1D7lb"
+    },
+    {
+      "title": "Mine",
+      "artist": "Bazzi",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:7uzmGiiJyRfuViKKK3lVmR"
+    },
+    {
+      "title": "Delicate",
+      "artist": "Taylor Swift",
+      "year": 2018,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:6NFyWDv5CjfwuzoCkw47Xf"
+    },
+    {
+      "title": "Sad!",
+      "artist": "XXXTentacion",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3ee8Jmje8o58CHK66QrVC2"
+    },
+    {
+      "title": "Wolves",
+      "artist": "Selena Gomez & Marshmello",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Look Alive",
+      "artist": "BlocBoy JB feat. Drake",
+      "year": 2018,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4qKcDkK6siZ7Jp1Jb4m0aL"
+    },
+    {
+      "title": "Youngblood",
+      "artist": "5 Seconds of Summer",
+      "year": 2018,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:2iUXsYOEPhVqEBwsqP70rE"
+    },
+    {
+      "title": "Never Be the Same",
+      "artist": "Camila Cabello",
+      "year": 2018,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4eWQlBRaTjPPUlzacqEeoQ"
+    },
+    {
+      "title": "Tequila",
+      "artist": "Dan + Shay",
+      "year": 2018,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:42fw0rxRO2xbesF6mJfd4Y"
+    },
+    {
+      "title": "Feel It Still",
+      "artist": "Portugal. The Man",
+      "year": 2018,
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "uri": "spotify:track:6QgjcU0zLnzq5OrUoSZ3OK"
+    }
   ]
 }

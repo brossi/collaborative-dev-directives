@@ -3,35 +3,289 @@
   "name": "Hits of 2020",
   "source": "Billboard Year-End Hot 100, 2020 (top 30)",
   "songs": [
-    {"title": "Blinding Lights", "artist": "The Weeknd", "year": 2020, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Circles", "artist": "Post Malone", "year": 2020, "genres": ["pop"], "uri": null},
-    {"title": "The Box", "artist": "Roddy Ricch", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Don't Start Now", "artist": "Dua Lipa", "year": 2020, "genres": ["pop", "dance"], "uri": null},
-    {"title": "Rockstar", "artist": "DaBaby feat. Roddy Ricch", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Adore You", "artist": "Harry Styles", "year": 2020, "genres": ["pop"], "uri": null},
-    {"title": "Life Is Good", "artist": "Future feat. Drake", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Memories", "artist": "Maroon 5", "year": 2020, "genres": ["pop"], "uri": null},
-    {"title": "The Bones", "artist": "Maren Morris", "year": 2020, "genres": ["country"], "uri": null},
-    {"title": "Say So", "artist": "Doja Cat", "year": 2020, "genres": ["pop", "r&b", "disco"], "uri": null},
-    {"title": "I Hope", "artist": "Gabby Barrett", "year": 2020, "genres": ["country"], "uri": null},
-    {"title": "Whats Poppin", "artist": "Jack Harlow", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Dance Monkey", "artist": "Tones and I", "year": 2020, "genres": ["pop"], "uri": null},
-    {"title": "Savage", "artist": "Megan Thee Stallion feat. Beyonce", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Roxanne", "artist": "Arizona Zervas", "year": 2020, "genres": ["pop", "hip-hop"], "uri": null},
-    {"title": "Intentions", "artist": "Justin Bieber feat. Quavo", "year": 2020, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Everything I Wanted", "artist": "Billie Eilish", "year": 2020, "genres": ["pop", "alternative"], "uri": null},
-    {"title": "Roses (Imanbek Remix)", "artist": "SAINt JHN", "year": 2020, "genres": ["dance", "electronic"], "uri": null},
-    {"title": "Watermelon Sugar", "artist": "Harry Styles", "year": 2020, "genres": ["pop"], "uri": null},
-    {"title": "Before You Go", "artist": "Lewis Capaldi", "year": 2020, "genres": ["pop", "singer-songwriter"], "uri": null},
-    {"title": "Falling", "artist": "Trevor Daniel", "year": 2020, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "10,000 Hours", "artist": "Dan + Shay & Justin Bieber", "year": 2020, "genres": ["country", "pop"], "uri": null},
-    {"title": "WAP", "artist": "Cardi B feat. Megan Thee Stallion", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Ballin'", "artist": "Mustard feat. Roddy Ricch", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Hot Girl Bummer", "artist": "blackbear", "year": 2020, "genres": ["pop", "hip-hop"], "uri": null},
-    {"title": "Blueberry Faygo", "artist": "Lil Mosey", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Heartless", "artist": "The Weeknd", "year": 2020, "genres": ["r&b", "pop"], "uri": null},
-    {"title": "Bop", "artist": "DaBaby", "year": 2020, "genres": ["hip-hop"], "uri": null},
-    {"title": "Lose You to Love Me", "artist": "Selena Gomez", "year": 2020, "genres": ["pop"], "uri": null},
-    {"title": "Good as Hell", "artist": "Lizzo", "year": 2020, "genres": ["pop", "soul"], "uri": null}
+    {
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:0sf12qNH5qcw8qpgymFOqD"
+    },
+    {
+      "title": "Circles",
+      "artist": "Post Malone",
+      "year": 2020,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:21jGcNKet2qwijlDFuPiPb"
+    },
+    {
+      "title": "The Box",
+      "artist": "Roddy Ricch",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:0nbXyq5TXYPCO7pr3N8S4I"
+    },
+    {
+      "title": "Don't Start Now",
+      "artist": "Dua Lipa",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": "spotify:track:6WrI0LAC5M1Rw2MnX2ZvEg"
+    },
+    {
+      "title": "Rockstar",
+      "artist": "DaBaby feat. Roddy Ricch",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Adore You",
+      "artist": "Harry Styles",
+      "year": 2020,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1M4qEo4HE3PRaCOM7EXNJq"
+    },
+    {
+      "title": "Life Is Good",
+      "artist": "Future feat. Drake",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Memories",
+      "artist": "Maroon 5",
+      "year": 2020,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2b8fOow8UzyDFAE27YhOZM"
+    },
+    {
+      "title": "The Bones",
+      "artist": "Maren Morris",
+      "year": 2020,
+      "genres": [
+        "country"
+      ],
+      "uri": "spotify:track:3npzogdOEiVsieXmmhBepL"
+    },
+    {
+      "title": "Say So",
+      "artist": "Doja Cat",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "r&b",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Hope",
+      "artist": "Gabby Barrett",
+      "year": 2020,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whats Poppin",
+      "artist": "Jack Harlow",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dance Monkey",
+      "artist": "Tones and I",
+      "year": 2020,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2XU0oxnq2qxCpomAAuJY8K"
+    },
+    {
+      "title": "Savage",
+      "artist": "Megan Thee Stallion feat. Beyonce",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:55CHeLEfn5iJ0IIkgaa4si"
+    },
+    {
+      "title": "Roxanne",
+      "artist": "Arizona Zervas",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:696DnlkuDOXcMAnKlTgXXK"
+    },
+    {
+      "title": "Intentions",
+      "artist": "Justin Bieber feat. Quavo",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everything I Wanted",
+      "artist": "Billie Eilish",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": "spotify:track:3ZCTVFBt2Brf31RLEnCkWJ"
+    },
+    {
+      "title": "Roses (Imanbek Remix)",
+      "artist": "SAINt JHN",
+      "year": 2020,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": "spotify:track:0zLCBJZSiELJf02ucPP9wb"
+    },
+    {
+      "title": "Watermelon Sugar",
+      "artist": "Harry Styles",
+      "year": 2020,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1e9oZCCiX42nJl0AcqriVo"
+    },
+    {
+      "title": "Before You Go",
+      "artist": "Lewis Capaldi",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:2gMXnyrvIjhVBUZwvLZDMP"
+    },
+    {
+      "title": "Falling",
+      "artist": "Trevor Daniel",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:4TnjEaWOeW0eKTKIEvJyCa"
+    },
+    {
+      "title": "10,000 Hours",
+      "artist": "Dan + Shay & Justin Bieber",
+      "year": 2020,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "WAP",
+      "artist": "Cardi B feat. Megan Thee Stallion",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ballin'",
+      "artist": "Mustard feat. Roddy Ricch",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:3QzAOrNlsabgbMwlZt7TAY"
+    },
+    {
+      "title": "Hot Girl Bummer",
+      "artist": "blackbear",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:7aiClxsDWFRQ0Kzk5KI5ku"
+    },
+    {
+      "title": "Blueberry Faygo",
+      "artist": "Lil Mosey",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6wJYhPfqk3KGhHRG76WzOh"
+    },
+    {
+      "title": "Heartless",
+      "artist": "The Weeknd",
+      "year": 2020,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": "spotify:track:57vxBYXtHMk6H1aD29V7PU"
+    },
+    {
+      "title": "Bop",
+      "artist": "DaBaby",
+      "year": 2020,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": "spotify:track:6Ozh9Ok6h4Oi1wUSLtBseN"
+    },
+    {
+      "title": "Lose You to Love Me",
+      "artist": "Selena Gomez",
+      "year": 2020,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:1HfMVBKM75vxSfsQ5VefZ5"
+    },
+    {
+      "title": "Good as Hell",
+      "artist": "Lizzo",
+      "year": 2020,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:3Yh9lZcWyKrK9GjbhuS0hR"
+    }
   ]
 }

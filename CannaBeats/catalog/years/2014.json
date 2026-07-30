@@ -3,35 +3,295 @@
   "name": "Hits of 2014",
   "source": "Billboard Year-End Hot 100, 2014 (top 30)",
   "songs": [
-    {"title": "Happy", "artist": "Pharrell Williams", "year": 2014, "genres": ["pop", "soul"], "uri": null},
-    {"title": "Dark Horse", "artist": "Katy Perry feat. Juicy J", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "All of Me", "artist": "John Legend", "year": 2014, "genres": ["r&b", "soul"], "uri": null},
-    {"title": "Fancy", "artist": "Iggy Azalea feat. Charli XCX", "year": 2014, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "Counting Stars", "artist": "OneRepublic", "year": 2014, "genres": ["pop", "rock"], "uri": null},
-    {"title": "Talk Dirty", "artist": "Jason Derulo feat. 2 Chainz", "year": 2014, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Rude", "artist": "Magic!", "year": 2014, "genres": ["reggae", "pop"], "uri": null},
-    {"title": "All About That Bass", "artist": "Meghan Trainor", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Problem", "artist": "Ariana Grande feat. Iggy Azalea", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Stay with Me", "artist": "Sam Smith", "year": 2014, "genres": ["pop", "soul"], "uri": null},
-    {"title": "Timber", "artist": "Pitbull feat. Kesha", "year": 2014, "genres": ["dance", "pop"], "uri": null},
-    {"title": "Team", "artist": "Lorde", "year": 2014, "genres": ["pop", "indie"], "uri": null},
-    {"title": "Am I Wrong", "artist": "Nico & Vinz", "year": 2014, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Let It Go", "artist": "Idina Menzel", "year": 2014, "genres": ["soundtrack", "pop"], "uri": null},
-    {"title": "Pompeii", "artist": "Bastille", "year": 2014, "genres": ["indie", "pop"], "uri": null},
-    {"title": "Turn Down for What", "artist": "DJ Snake & Lil Jon", "year": 2014, "genres": ["electronic", "hip-hop"], "uri": null},
-    {"title": "Shake It Off", "artist": "Taylor Swift", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "The Monster", "artist": "Eminem feat. Rihanna", "year": 2014, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "Wiggle", "artist": "Jason Derulo feat. Snoop Dogg", "year": 2014, "genres": ["pop", "r&b"], "uri": null},
-    {"title": "Maps", "artist": "Maroon 5", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Bang Bang", "artist": "Jessie J, Ariana Grande & Nicki Minaj", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Story of My Life", "artist": "One Direction", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Boom Clap", "artist": "Charli XCX", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Ain't It Fun", "artist": "Paramore", "year": 2014, "genres": ["rock", "alternative"], "uri": null},
-    {"title": "Latch", "artist": "Disclosure feat. Sam Smith", "year": 2014, "genres": ["electronic", "dance"], "uri": null},
-    {"title": "Chandelier", "artist": "Sia", "year": 2014, "genres": ["pop"], "uri": null},
-    {"title": "Black Widow", "artist": "Iggy Azalea feat. Rita Ora", "year": 2014, "genres": ["hip-hop", "pop"], "uri": null},
-    {"title": "Summer", "artist": "Calvin Harris", "year": 2014, "genres": ["dance", "electronic"], "uri": null},
-    {"title": "Drunk in Love", "artist": "Beyonce feat. Jay-Z", "year": 2014, "genres": ["r&b"], "uri": null},
-    {"title": "Say Something", "artist": "A Great Big World & Christina Aguilera", "year": 2014, "genres": ["pop", "singer-songwriter"], "uri": null}
+    {
+      "title": "Happy",
+      "artist": "Pharrell Williams",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:60nZcImufyMA1MKQY3dcCH"
+    },
+    {
+      "title": "Dark Horse",
+      "artist": "Katy Perry feat. Juicy J",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5jrdCoLpJSvHHorevXBATy"
+    },
+    {
+      "title": "All of Me",
+      "artist": "John Legend",
+      "year": 2014,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": "spotify:track:3U4isOIWM3VvDubwSI3y7a"
+    },
+    {
+      "title": "Fancy",
+      "artist": "Iggy Azalea feat. Charli XCX",
+      "year": 2014,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:3oiMJQAWVaxSubJ7b2VUtX"
+    },
+    {
+      "title": "Counting Stars",
+      "artist": "OneRepublic",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:6sy3LkhNFjJWlaeSMNwQ62"
+    },
+    {
+      "title": "Talk Dirty",
+      "artist": "Jason Derulo feat. 2 Chainz",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:6g6A7qNhTfUgOSH7ROOxTD"
+    },
+    {
+      "title": "Rude",
+      "artist": "Magic!",
+      "year": 2014,
+      "genres": [
+        "reggae",
+        "pop"
+      ],
+      "uri": "spotify:track:6RtPijgfPKROxEzTHNRiDp"
+    },
+    {
+      "title": "All About That Bass",
+      "artist": "Meghan Trainor",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5jE48hhRu8E6zBDPRSkEq7"
+    },
+    {
+      "title": "Problem",
+      "artist": "Ariana Grande feat. Iggy Azalea",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stay with Me",
+      "artist": "Sam Smith",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": "spotify:track:5Nm9ERjJZ5oyfXZTECKmRt"
+    },
+    {
+      "title": "Timber",
+      "artist": "Pitbull feat. Kesha",
+      "year": 2014,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": "spotify:track:3cHyrEgdyYRjgJKSOiOtcS"
+    },
+    {
+      "title": "Team",
+      "artist": "Lorde",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "indie"
+      ],
+      "uri": "spotify:track:3G6hD9B2ZHOsgf4WfNu7X1"
+    },
+    {
+      "title": "Am I Wrong",
+      "artist": "Nico & Vinz",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:1fidCEsYlaVE3pHwKCvpFZ"
+    },
+    {
+      "title": "Let It Go",
+      "artist": "Idina Menzel",
+      "year": 2014,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": "spotify:track:0qcr5FMsEO85NAQjrlDRKo"
+    },
+    {
+      "title": "Pompeii",
+      "artist": "Bastille",
+      "year": 2014,
+      "genres": [
+        "indie",
+        "pop"
+      ],
+      "uri": "spotify:track:3gbBpTdY8lnQwqxNCcf795"
+    },
+    {
+      "title": "Turn Down for What",
+      "artist": "DJ Snake & Lil Jon",
+      "year": 2014,
+      "genres": [
+        "electronic",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:67awxiNHNyjMXhVgsHuIrs"
+    },
+    {
+      "title": "Shake It Off",
+      "artist": "Taylor Swift",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:5xTtaWoae3wi06K5WfVUUH"
+    },
+    {
+      "title": "The Monster",
+      "artist": "Eminem feat. Rihanna",
+      "year": 2014,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:48RrDBpOSSl1aLVCalGl5C"
+    },
+    {
+      "title": "Wiggle",
+      "artist": "Jason Derulo feat. Snoop Dogg",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": "spotify:track:2sLwPnIP3CUVmIuHranJZU"
+    },
+    {
+      "title": "Maps",
+      "artist": "Maroon 5",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4gbVRS8gloEluzf0GzDOFc"
+    },
+    {
+      "title": "Bang Bang",
+      "artist": "Jessie J, Ariana Grande & Nicki Minaj",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0puf9yIluy9W0vpMEUoAnN"
+    },
+    {
+      "title": "Story of My Life",
+      "artist": "One Direction",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:4nVBt6MZDDP6tRVdQTgxJg"
+    },
+    {
+      "title": "Boom Clap",
+      "artist": "Charli XCX",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:0Y1MWB026LYxGvhq4EcMiC"
+    },
+    {
+      "title": "Ain't It Fun",
+      "artist": "Paramore",
+      "year": 2014,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": "spotify:track:1j8z4TTjJ1YOdoFEDwJTQa"
+    },
+    {
+      "title": "Latch",
+      "artist": "Disclosure feat. Sam Smith",
+      "year": 2014,
+      "genres": [
+        "electronic",
+        "dance"
+      ],
+      "uri": "spotify:track:1DunhgeZSEgWiIYbHqXl0c"
+    },
+    {
+      "title": "Chandelier",
+      "artist": "Sia",
+      "year": 2014,
+      "genres": [
+        "pop"
+      ],
+      "uri": "spotify:track:2s1sdSqGcKxpPr5lCl7jAV"
+    },
+    {
+      "title": "Black Widow",
+      "artist": "Iggy Azalea feat. Rita Ora",
+      "year": 2014,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": "spotify:track:7pNC5ZIKtwUK0ReSpM3P9f"
+    },
+    {
+      "title": "Summer",
+      "artist": "Calvin Harris",
+      "year": 2014,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": "spotify:track:6YUTL4dYpB9xZO5qExPf05"
+    },
+    {
+      "title": "Drunk in Love",
+      "artist": "Beyonce feat. Jay-Z",
+      "year": 2014,
+      "genres": [
+        "r&b"
+      ],
+      "uri": "spotify:track:6jG2YzhxptolDzLHTGLt7S"
+    },
+    {
+      "title": "Say Something",
+      "artist": "A Great Big World & Christina Aguilera",
+      "year": 2014,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:6Vc5wAMmXdKIAM7WUoEb7N"
+    }
   ]
 }

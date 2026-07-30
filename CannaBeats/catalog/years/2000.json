@@ -11,7 +11,7 @@
         "country",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:3y4LxiYMgDl4RethdzpmNe"
     },
     {
       "title": "Smooth",
@@ -21,7 +21,7 @@
         "rock",
         "latin"
       ],
-      "uri": null
+      "uri": "spotify:track:0n2SEXB2qoRQg171q7XqeW"
     },
     {
       "title": "Maria Maria",
@@ -31,7 +31,7 @@
         "latin",
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:3XKIUb7HzIF1Vu9usunMzc"
     },
     {
       "title": "I Wanna Know",
@@ -40,7 +40,7 @@
       "genres": [
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:1m2xMsxbtxv21Brome189p"
     },
     {
       "title": "Everything You Want",
@@ -50,7 +50,7 @@
         "rock",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:4cKGldbhGJniI8BrB3K6tb"
     },
     {
       "title": "Say My Name",
@@ -60,7 +60,7 @@
         "r&b",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:7H6ev70Weq6DdpZyyTmUXk"
     },
     {
       "title": "I Knew I Loved You",
@@ -69,7 +69,7 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:6nozDLxeL0TE4MS9GqYU1v"
     },
     {
       "title": "Amazed",
@@ -78,7 +78,7 @@
       "genres": [
         "country"
       ],
-      "uri": null
+      "uri": "spotify:track:6iNcyWk5iUEY7P9zeTc5hm"
     },
     {
       "title": "Bent",
@@ -88,7 +88,7 @@
         "rock",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:6fA7akEuTUL3dW1V0GELaZ"
     },
     {
       "title": "He Wasn't Man Enough",
@@ -97,7 +97,7 @@
       "genres": [
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:7f1Dmr246cJ9uQYdbplTbh"
     },
     {
       "title": "Higher",
@@ -106,7 +106,7 @@
       "genres": [
         "rock"
       ],
-      "uri": null
+      "uri": "spotify:track:1ZozJfi8u9cO2Ob8KwiwNT"
     },
     {
       "title": "Try Again",
@@ -115,7 +115,7 @@
       "genres": [
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:52IKUZIr66lMvy7COxmG9x"
     },
     {
       "title": "Jumpin', Jumpin'",
@@ -125,11 +125,11 @@
         "r&b",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:4pmc2AxSEq6g7hPVlJCPyP"
     },
     {
       "title": "Thong Song",
-      "artist": "Sisq\u00f3",
+      "artist": "Sisqó",
       "year": 2000,
       "genres": [
         "r&b",
@@ -144,7 +144,7 @@
       "genres": [
         "rock"
       ],
-      "uri": null
+      "uri": "spotify:track:6ZOBP3NvffbU4SZcrnt1k6"
     },
     {
       "title": "There You Go",
@@ -164,7 +164,7 @@
         "pop",
         "dance"
       ],
-      "uri": null
+      "uri": "spotify:track:2BcOZ4vOeu2qZowIHrvTYy"
     },
     {
       "title": "Doesn't Really Matter",
@@ -184,7 +184,7 @@
         "pop",
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:5bGmuxShUba9maPswDnhCs"
     },
     {
       "title": "Back at One",
@@ -193,7 +193,7 @@
       "genres": [
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:6mwA6YiKDjAUG8kWvRRUPh"
     },
     {
       "title": "Bye Bye Bye",
@@ -212,7 +212,7 @@
         "pop",
         "latin"
       ],
-      "uri": null
+      "uri": "spotify:track:2dwhMQsFeHr2S787WxqAqW"
     },
     {
       "title": "I Need to Know",
@@ -222,7 +222,7 @@
         "pop",
         "latin"
       ],
-      "uri": null
+      "uri": "spotify:track:7ffwRz8lZyDOE4Vj58Lo72"
     },
     {
       "title": "Get It On Tonite",
@@ -231,11 +231,11 @@
       "genres": [
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:0AcLrSfAEBQcUnHOTm5pXg"
     },
     {
       "title": "Incomplete",
-      "artist": "Sisq\u00f3",
+      "artist": "Sisqó",
       "year": 2000,
       "genres": [
         "r&b"
@@ -250,7 +250,7 @@
         "r&b",
         "soul"
       ],
-      "uri": null
+      "uri": "spotify:track:5TAf4lnZCZTLlZHNZMLFLi"
     },
     {
       "title": "It's Gonna Be Me",
@@ -268,7 +268,7 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:5s4catxeZsaWFnOrvrXZHf"
     },
     {
       "title": "Country Grammar",
@@ -287,7 +287,7 @@
         "r&b",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:1cjBan0t4eBk2Y5j17hdyf"
     }
   ]
 }

@@ -3,85 +3,856 @@
   "name": "TV Themes & Cult Shows",
   "source": "TV theme songs, songs made famous by cult-classic shows, and breakout hits from musical TV series, 1962-2024; years reflect the original recording players hear",
   "songs": [
-    { "title": "The Ballad of Jed Clampett", "artist": "Flatt & Scruggs", "year": 1962, "genres": ["soundtrack", "country", "folk"], "uri": null },
-    { "title": "Doctor Who (Original Theme)", "artist": "Ron Grainer & the BBC Radiophonic Workshop", "year": 1963, "genres": ["soundtrack", "electronic"], "uri": null },
-    { "title": "Batman Theme", "artist": "Neal Hefti", "year": 1966, "genres": ["soundtrack", "rock", "jazz"], "uri": null },
-    { "title": "(Theme From) The Monkees", "artist": "The Monkees", "year": 1966, "genres": ["soundtrack", "pop", "rock"], "uri": null },
-    { "title": "Secret Agent Man", "artist": "Johnny Rivers", "year": 1966, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "Mission: Impossible Theme", "artist": "Lalo Schifrin", "year": 1967, "genres": ["soundtrack", "jazz", "big band"], "uri": null },
-    { "title": "Daydream Believer", "artist": "The Monkees", "year": 1967, "genres": ["soundtrack", "pop", "rock"], "uri": null },
-    { "title": "With a Little Help from My Friends", "artist": "Joe Cocker", "year": 1968, "genres": ["soundtrack", "rock", "soul"], "uri": null },
-    { "title": "Hawaii Five-O", "artist": "The Ventures", "year": 1969, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "Sugar, Sugar", "artist": "The Archies", "year": 1969, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Suicide Is Painless", "artist": "The Mash", "year": 1970, "genres": ["soundtrack", "pop", "folk"], "uri": null },
-    { "title": "Love Is All Around", "artist": "Sonny Curtis", "year": 1970, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "I Think I Love You", "artist": "The Partridge Family", "year": 1970, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Where You Lead", "artist": "Carole King", "year": 1971, "genres": ["soundtrack", "singer-songwriter", "pop"], "uri": null },
-    { "title": "TSOP (The Sound of Philadelphia)", "artist": "MFSB", "year": 1974, "genres": ["soundtrack", "soul", "disco"], "uri": null },
-    { "title": "The Rockford Files", "artist": "Mike Post", "year": 1974, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "Theme from S.W.A.T.", "artist": "Rhythm Heritage", "year": 1975, "genres": ["soundtrack", "funk", "disco"], "uri": null },
-    { "title": "Happy Days", "artist": "Pratt & McClain", "year": 1976, "genres": ["soundtrack", "pop", "rock"], "uri": null },
-    { "title": "Welcome Back", "artist": "John Sebastian", "year": 1976, "genres": ["soundtrack", "pop", "folk"], "uri": null },
-    { "title": "Thank You for Being a Friend", "artist": "Andrew Gold", "year": 1978, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Angela (Theme from Taxi)", "artist": "Bob James", "year": 1978, "genres": ["soundtrack", "jazz", "funk"], "uri": null },
-    { "title": "Bad Reputation", "artist": "Joan Jett", "year": 1980, "genres": ["soundtrack", "rock", "punk"], "uri": null },
-    { "title": "Theme from The Greatest American Hero (Believe It or Not)", "artist": "Joey Scarbury", "year": 1981, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Don't Stop Believin'", "artist": "Journey", "year": 1981, "genres": ["soundtrack", "rock"], "uri": null },
-    { "title": "Goo Goo Muck", "artist": "The Cramps", "year": 1981, "genres": ["soundtrack", "punk", "rockabilly"], "uri": null },
-    { "title": "Knight Rider Main Theme", "artist": "Stu Phillips", "year": 1982, "genres": ["soundtrack", "electronic"], "uri": null },
-    { "title": "Where Everybody Knows Your Name", "artist": "Gary Portnoy", "year": 1983, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Miami Vice Theme", "artist": "Jan Hammer", "year": 1985, "genres": ["soundtrack", "electronic", "rock"], "uri": null },
-    { "title": "Running Up That Hill (A Deal with God)", "artist": "Kate Bush", "year": 1985, "genres": ["soundtrack", "pop", "new wave"], "uri": null },
-    { "title": "Master of Puppets", "artist": "Metallica", "year": 1986, "genres": ["soundtrack", "metal"], "uri": null },
-    { "title": "Moonlighting", "artist": "Al Jarreau", "year": 1987, "genres": ["soundtrack", "r&b", "jazz"], "uri": null },
-    { "title": "Way Down in the Hole", "artist": "Tom Waits", "year": 1987, "genres": ["soundtrack", "blues", "gospel"], "uri": null },
-    { "title": "Bad Boys", "artist": "Inner Circle", "year": 1987, "genres": ["soundtrack", "reggae"], "uri": null },
-    { "title": "Twin Peaks Theme", "artist": "Angelo Badalamenti", "year": 1990, "genres": ["soundtrack", "jazz", "electronic"], "uri": null },
-    { "title": "Do the Bartman", "artist": "The Simpsons", "year": 1990, "genres": ["soundtrack", "hip-hop", "novelty"], "uri": null },
-    { "title": "I'm Always Here", "artist": "Jimi Jamison", "year": 1991, "genres": ["soundtrack", "rock", "pop"], "uri": null },
-    { "title": "Yo Home to Bel-Air", "artist": "DJ Jazzy Jeff & The Fresh Prince", "year": 1992, "genres": ["soundtrack", "hip-hop", "pop"], "uri": null },
-    { "title": "How Do You Talk to an Angel", "artist": "The Heights", "year": 1992, "genres": ["soundtrack", "pop", "rock"], "uri": null },
-    { "title": "Red Right Hand", "artist": "Nick Cave & The Bad Seeds", "year": 1994, "genres": ["soundtrack", "alternative", "rock"], "uri": null },
-    { "title": "I'll Be There for You", "artist": "The Rembrandts", "year": 1995, "genres": ["soundtrack", "pop", "rock"], "uri": null },
-    { "title": "A Cruel Angel's Thesis", "artist": "Yoko Takahashi", "year": 1995, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "The X-Files (Materia Primoris)", "artist": "Mark Snow", "year": 1996, "genres": ["soundtrack", "electronic"], "uri": null },
-    { "title": "I Don't Want to Wait", "artist": "Paula Cole", "year": 1997, "genres": ["soundtrack", "pop", "singer-songwriter"], "uri": null },
-    { "title": "Woke Up This Morning", "artist": "Alabama 3", "year": 1997, "genres": ["soundtrack", "electronic", "blues"], "uri": null },
-    { "title": "Buffy the Vampire Slayer Theme", "artist": "Nerf Herder", "year": 1997, "genres": ["soundtrack", "punk", "rock"], "uri": null },
-    { "title": "South Park Theme", "artist": "Primus", "year": 1998, "genres": ["soundtrack", "rock", "alternative"], "uri": null },
-    { "title": "Tank!", "artist": "Seatbelts", "year": 1998, "genres": ["soundtrack", "jazz", "big band"], "uri": null },
-    { "title": "Pokemon Theme", "artist": "Jason Paige", "year": 1998, "genres": ["soundtrack", "pop", "rock"], "uri": null },
-    { "title": "SpongeBob SquarePants Theme Song", "artist": "Painty the Pirate & Kids", "year": 1999, "genres": ["soundtrack", "novelty"], "uri": null },
-    { "title": "Boss of Me", "artist": "They Might Be Giants", "year": 2000, "genres": ["soundtrack", "rock", "alternative"], "uri": null },
-    { "title": "Superman", "artist": "Lazlo Bane", "year": 2000, "genres": ["soundtrack", "rock", "alternative"], "uri": null },
-    { "title": "Save Me", "artist": "Remy Zero", "year": 2001, "genres": ["soundtrack", "rock", "alternative"], "uri": null },
-    { "title": "California", "artist": "Phantom Planet", "year": 2002, "genres": ["soundtrack", "rock", "indie"], "uri": null },
-    { "title": "The Ballad of Serenity", "artist": "Sonny Rhodes", "year": 2002, "genres": ["soundtrack", "country", "blues"], "uri": null },
-    { "title": "We Used to Be Friends", "artist": "The Dandy Warhols", "year": 2003, "genres": ["soundtrack", "alternative", "indie"], "uri": null },
-    { "title": "I Don't Want to Be", "artist": "Gavin DeGraw", "year": 2003, "genres": ["soundtrack", "rock", "pop"], "uri": null },
-    { "title": "Far From Any Road", "artist": "The Handsome Family", "year": 2003, "genres": ["soundtrack", "country", "folk"], "uri": null },
-    { "title": "A Beautiful Mine", "artist": "RJD2", "year": 2006, "genres": ["soundtrack", "hip-hop", "electronic"], "uri": null },
-    { "title": "The Best of Both Worlds", "artist": "Hannah Montana", "year": 2006, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Big Bang Theory Theme", "artist": "Barenaked Ladies", "year": 2007, "genres": ["soundtrack", "rock", "pop"], "uri": null },
-    { "title": "Don't Stop Believin' (Glee Cast Version)", "artist": "Glee Cast", "year": 2009, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Do Ya Wanna Taste It", "artist": "Wig Wam", "year": 2010, "genres": ["soundtrack", "rock", "metal"], "uri": null },
-    { "title": "Teenage Dream (Glee Cast Version)", "artist": "Glee Cast", "year": 2010, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Game of Thrones Main Title", "artist": "Ramin Djawadi", "year": 2011, "genres": ["soundtrack"], "uri": null },
-    { "title": "If I Didn't Know Better", "artist": "Nashville Cast feat. Sam Palladio & Clare Bowen", "year": 2012, "genres": ["soundtrack", "country"], "uri": null },
-    { "title": "You've Got Time", "artist": "Regina Spektor", "year": 2013, "genres": ["soundtrack", "rock", "singer-songwriter"], "uri": null },
-    { "title": "You're So Beautiful", "artist": "Empire Cast feat. Jussie Smollett", "year": 2015, "genres": ["soundtrack", "r&b", "hip-hop"], "uri": null },
-    { "title": "Tuyo", "artist": "Rodrigo Amarante", "year": 2015, "genres": ["soundtrack", "latin", "folk"], "uri": null },
-    { "title": "Stranger Things", "artist": "Kyle Dixon & Michael Stein", "year": 2016, "genres": ["soundtrack", "electronic"], "uri": null },
-    { "title": "Cold Little Heart", "artist": "Michael Kiwanuka", "year": 2016, "genres": ["soundtrack", "soul", "rock"], "uri": null },
-    { "title": "All For Us", "artist": "Labrinth & Zendaya", "year": 2019, "genres": ["soundtrack", "pop", "electronic"], "uri": null },
-    { "title": "Succession (Main Title Theme)", "artist": "Nicholas Britell", "year": 2019, "genres": ["soundtrack"], "uri": null },
-    { "title": "Ted Lasso Theme", "artist": "Marcus Mumford & Tom Howe", "year": 2020, "genres": ["soundtrack", "indie", "rock"], "uri": null },
-    { "title": "Agatha All Along", "artist": "Kathryn Hahn", "year": 2021, "genres": ["soundtrack", "pop"], "uri": null },
-    { "title": "Enemy", "artist": "Imagine Dragons & JID", "year": 2021, "genres": ["soundtrack", "rock", "hip-hop"], "uri": null },
-    { "title": "Aloha! (Main Title Theme)", "artist": "Cristobal Tapia de Veer", "year": 2021, "genres": ["soundtrack", "electronic"], "uri": null },
-    { "title": "No Return (Main Title Theme)", "artist": "Craig Wedren & Anna Waronker", "year": 2022, "genres": ["soundtrack", "rock", "alternative"], "uri": null },
-    { "title": "Severance Main Titles", "artist": "Theodore Shapiro", "year": 2022, "genres": ["soundtrack", "electronic"], "uri": null },
-    { "title": "Look At Us Now (Honeycomb)", "artist": "Daisy Jones & The Six", "year": 2023, "genres": ["soundtrack", "rock", "pop"], "uri": null },
-    { "title": "Poison", "artist": "Blake Roman", "year": 2024, "genres": ["soundtrack", "pop", "rock"], "uri": null }
+    {
+      "title": "The Ballad of Jed Clampett",
+      "artist": "Flatt & Scruggs",
+      "year": 1962,
+      "genres": [
+        "soundtrack",
+        "country",
+        "folk"
+      ],
+      "uri": "spotify:track:1Wf71eeA52D1hOtkh6g2Ga"
+    },
+    {
+      "title": "Doctor Who (Original Theme)",
+      "artist": "Ron Grainer & the BBC Radiophonic Workshop",
+      "year": 1963,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Batman Theme",
+      "artist": "Neal Hefti",
+      "year": 1966,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "jazz"
+      ],
+      "uri": "spotify:track:4lwV7SpU0JSM1OIm0aIkNP"
+    },
+    {
+      "title": "(Theme From) The Monkees",
+      "artist": "The Monkees",
+      "year": 1966,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Secret Agent Man",
+      "artist": "Johnny Rivers",
+      "year": 1966,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": "spotify:track:2BlaUfBTbWG50DoZHBD1uV"
+    },
+    {
+      "title": "Mission: Impossible Theme",
+      "artist": "Lalo Schifrin",
+      "year": 1967,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Daydream Believer",
+      "artist": "The Monkees",
+      "year": 1967,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:7uEcCGtM1FBBGIhPozhJjv"
+    },
+    {
+      "title": "With a Little Help from My Friends",
+      "artist": "Joe Cocker",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "soul"
+      ],
+      "uri": "spotify:track:0YZ3J8xzGwLOg4yEgST1YK"
+    },
+    {
+      "title": "Hawaii Five-O",
+      "artist": "The Ventures",
+      "year": 1969,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sugar, Sugar",
+      "artist": "The Archies",
+      "year": 1969,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": "spotify:track:3iSws76HjaU7k49EqJVTfF"
+    },
+    {
+      "title": "Suicide Is Painless",
+      "artist": "The Mash",
+      "year": 1970,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Is All Around",
+      "artist": "Sonny Curtis",
+      "year": 1970,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Think I Love You",
+      "artist": "The Partridge Family",
+      "year": 1970,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Where You Lead",
+      "artist": "Carole King",
+      "year": 1971,
+      "genres": [
+        "soundtrack",
+        "singer-songwriter",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "TSOP (The Sound of Philadelphia)",
+      "artist": "MFSB",
+      "year": 1974,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "disco"
+      ],
+      "uri": "spotify:track:6B9tR2OEurD4FsZM5btj3X"
+    },
+    {
+      "title": "The Rockford Files",
+      "artist": "Mike Post",
+      "year": 1974,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": "spotify:track:5ZX5pIdGQaeHxtHHe7v6ku"
+    },
+    {
+      "title": "Theme from S.W.A.T.",
+      "artist": "Rhythm Heritage",
+      "year": 1975,
+      "genres": [
+        "soundtrack",
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Happy Days",
+      "artist": "Pratt & McClain",
+      "year": 1976,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:1CCuMgDauGruOwxrSh9NSW"
+    },
+    {
+      "title": "Welcome Back",
+      "artist": "John Sebastian",
+      "year": 1976,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "folk"
+      ],
+      "uri": "spotify:track:2pS6zWWQCpO0IVEBIbzJh8"
+    },
+    {
+      "title": "Thank You for Being a Friend",
+      "artist": "Andrew Gold",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": "spotify:track:5yNUgA66PbcPIJPOU2eBwR"
+    },
+    {
+      "title": "Angela (Theme from Taxi)",
+      "artist": "Bob James",
+      "year": 1978,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bad Reputation",
+      "artist": "Joan Jett",
+      "year": 1980,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "punk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Theme from The Greatest American Hero (Believe It or Not)",
+      "artist": "Joey Scarbury",
+      "year": 1981,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Stop Believin'",
+      "artist": "Journey",
+      "year": 1981,
+      "genres": [
+        "soundtrack",
+        "rock"
+      ],
+      "uri": "spotify:track:4bHsxqR3GMrXTxEPLuK5ue"
+    },
+    {
+      "title": "Goo Goo Muck",
+      "artist": "The Cramps",
+      "year": 1981,
+      "genres": [
+        "soundtrack",
+        "punk",
+        "rockabilly"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Knight Rider Main Theme",
+      "artist": "Stu Phillips",
+      "year": 1982,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Where Everybody Knows Your Name",
+      "artist": "Gary Portnoy",
+      "year": 1983,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Miami Vice Theme",
+      "artist": "Jan Hammer",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "electronic",
+        "rock"
+      ],
+      "uri": "spotify:track:2UoF4VlADu3IkPCR6LGkpS"
+    },
+    {
+      "title": "Running Up That Hill (A Deal with God)",
+      "artist": "Kate Bush",
+      "year": 1985,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "new wave"
+      ],
+      "uri": "spotify:track:75FEaRjZTKLhTrFGsfMUXR"
+    },
+    {
+      "title": "Master of Puppets",
+      "artist": "Metallica",
+      "year": 1986,
+      "genres": [
+        "soundtrack",
+        "metal"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moonlighting",
+      "artist": "Al Jarreau",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "r&b",
+        "jazz"
+      ],
+      "uri": "spotify:track:6RnEe2AkQIicLcRvwuGUmI"
+    },
+    {
+      "title": "Way Down in the Hole",
+      "artist": "Tom Waits",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "blues",
+        "gospel"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bad Boys",
+      "artist": "Inner Circle",
+      "year": 1987,
+      "genres": [
+        "soundtrack",
+        "reggae"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Twin Peaks Theme",
+      "artist": "Angelo Badalamenti",
+      "year": 1990,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Do the Bartman",
+      "artist": "The Simpsons",
+      "year": 1990,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Always Here",
+      "artist": "Jimi Jamison",
+      "year": 1991,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Yo Home to Bel-Air",
+      "artist": "DJ Jazzy Jeff & The Fresh Prince",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Do You Talk to an Angel",
+      "artist": "The Heights",
+      "year": 1992,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": "spotify:track:2QVHmiFTjFsHyxONRdbkcq"
+    },
+    {
+      "title": "Red Right Hand",
+      "artist": "Nick Cave & The Bad Seeds",
+      "year": 1994,
+      "genres": [
+        "soundtrack",
+        "alternative",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Be There for You",
+      "artist": "The Rembrandts",
+      "year": 1995,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Cruel Angel's Thesis",
+      "artist": "Yoko Takahashi",
+      "year": 1995,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The X-Files (Materia Primoris)",
+      "artist": "Mark Snow",
+      "year": 1996,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Wait",
+      "artist": "Paula Cole",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": "spotify:track:5MDQNJ7SZTytJwCbWKqJDL"
+    },
+    {
+      "title": "Woke Up This Morning",
+      "artist": "Alabama 3",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "electronic",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Buffy the Vampire Slayer Theme",
+      "artist": "Nerf Herder",
+      "year": 1997,
+      "genres": [
+        "soundtrack",
+        "punk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "South Park Theme",
+      "artist": "Primus",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tank!",
+      "artist": "Seatbelts",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "jazz",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Pokemon Theme",
+      "artist": "Jason Paige",
+      "year": 1998,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "SpongeBob SquarePants Theme Song",
+      "artist": "Painty the Pirate & Kids",
+      "year": 1999,
+      "genres": [
+        "soundtrack",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Boss of Me",
+      "artist": "They Might Be Giants",
+      "year": 2000,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Superman",
+      "artist": "Lazlo Bane",
+      "year": 2000,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Save Me",
+      "artist": "Remy Zero",
+      "year": 2001,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "California",
+      "artist": "Phantom Planet",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Ballad of Serenity",
+      "artist": "Sonny Rhodes",
+      "year": 2002,
+      "genres": [
+        "soundtrack",
+        "country",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Used to Be Friends",
+      "artist": "The Dandy Warhols",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "alternative",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Be",
+      "artist": "Gavin DeGraw",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": "spotify:track:4vl2zwXsTmAxgu9iY0g6UK"
+    },
+    {
+      "title": "Far From Any Road",
+      "artist": "The Handsome Family",
+      "year": 2003,
+      "genres": [
+        "soundtrack",
+        "country",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Beautiful Mine",
+      "artist": "RJD2",
+      "year": 2006,
+      "genres": [
+        "soundtrack",
+        "hip-hop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Best of Both Worlds",
+      "artist": "Hannah Montana",
+      "year": 2006,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Big Bang Theory Theme",
+      "artist": "Barenaked Ladies",
+      "year": 2007,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Stop Believin' (Glee Cast Version)",
+      "artist": "Glee Cast",
+      "year": 2009,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": "spotify:track:6rjnRocdCULjLF61x2NR5e"
+    },
+    {
+      "title": "Do Ya Wanna Taste It",
+      "artist": "Wig Wam",
+      "year": 2010,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "metal"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Teenage Dream (Glee Cast Version)",
+      "artist": "Glee Cast",
+      "year": 2010,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": "spotify:track:2bIswilW8apEYGJcMSHPKA"
+    },
+    {
+      "title": "Game of Thrones Main Title",
+      "artist": "Ramin Djawadi",
+      "year": 2011,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If I Didn't Know Better",
+      "artist": "Nashville Cast feat. Sam Palladio & Clare Bowen",
+      "year": 2012,
+      "genres": [
+        "soundtrack",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You've Got Time",
+      "artist": "Regina Spektor",
+      "year": 2013,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're So Beautiful",
+      "artist": "Empire Cast feat. Jussie Smollett",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": "spotify:track:4jPYWplZcF6kAfHZ885EUS"
+    },
+    {
+      "title": "Tuyo",
+      "artist": "Rodrigo Amarante",
+      "year": 2015,
+      "genres": [
+        "soundtrack",
+        "latin",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stranger Things",
+      "artist": "Kyle Dixon & Michael Stein",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cold Little Heart",
+      "artist": "Michael Kiwanuka",
+      "year": 2016,
+      "genres": [
+        "soundtrack",
+        "soul",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All For Us",
+      "artist": "Labrinth & Zendaya",
+      "year": 2019,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Succession (Main Title Theme)",
+      "artist": "Nicholas Britell",
+      "year": 2019,
+      "genres": [
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ted Lasso Theme",
+      "artist": "Marcus Mumford & Tom Howe",
+      "year": 2020,
+      "genres": [
+        "soundtrack",
+        "indie",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Agatha All Along",
+      "artist": "Kathryn Hahn",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Enemy",
+      "artist": "Imagine Dragons & JID",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Aloha! (Main Title Theme)",
+      "artist": "Cristobal Tapia de Veer",
+      "year": 2021,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No Return (Main Title Theme)",
+      "artist": "Craig Wedren & Anna Waronker",
+      "year": 2022,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Severance Main Titles",
+      "artist": "Theodore Shapiro",
+      "year": 2022,
+      "genres": [
+        "soundtrack",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Look At Us Now (Honeycomb)",
+      "artist": "Daisy Jones & The Six",
+      "year": 2023,
+      "genres": [
+        "soundtrack",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Poison",
+      "artist": "Blake Roman",
+      "year": 2024,
+      "genres": [
+        "soundtrack",
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    }
   ]
 }

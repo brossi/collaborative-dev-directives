@@ -3,35 +3,293 @@
   "name": "Hits of 1949",
   "source": "Billboard year-end top singles of 1949 plus weekly Best Sellers chart",
   "songs": [
-    { "title": "Riders in the Sky (A Cowboy Legend)", "artist": "Vaughn Monroe", "year": 1949, "genres": ["pop", "country"], "uri": null },
-    { "title": "That Lucky Old Sun", "artist": "Frankie Laine", "year": 1949, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Mule Train", "artist": "Frankie Laine", "year": 1949, "genres": ["pop", "country"], "uri": null },
-    { "title": "Some Enchanted Evening", "artist": "Perry Como", "year": 1949, "genres": ["pop", "standards"], "uri": null },
-    { "title": "You're Breaking My Heart", "artist": "Vic Damone", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Cruising Down the River", "artist": "Russ Morgan", "year": 1949, "genres": ["pop", "big band"], "uri": null },
-    { "title": "A Little Bird Told Me", "artist": "Evelyn Knight", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Powder Your Face with Sunshine", "artist": "Evelyn Knight", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Again", "artist": "Doris Day", "year": 1949, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Forever and Ever", "artist": "Russ Morgan", "year": 1949, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Baby, It's Cold Outside", "artist": "Dinah Shore & Buddy Clark", "year": 1949, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Careless Hands", "artist": "Mel Torme", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Red Roses for a Blue Lady", "artist": "Vaughn Monroe", "year": 1949, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Far Away Places", "artist": "Bing Crosby", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Slipping Around", "artist": "Margaret Whiting & Jimmy Wakely", "year": 1949, "genres": ["country", "pop"], "uri": null },
-    { "title": "I Can Dream, Can't I?", "artist": "The Andrews Sisters", "year": 1949, "genres": ["pop", "standards"], "uri": null },
-    { "title": "Dear Hearts and Gentle People", "artist": "Bing Crosby", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "I've Got a Lovely Bunch of Coconuts", "artist": "Freddy Martin feat. Merv Griffin", "year": 1949, "genres": ["novelty", "pop"], "uri": null },
-    { "title": "Room Full of Roses", "artist": "Sammy Kaye", "year": 1949, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Lavender Blue (Dilly Dilly)", "artist": "Dinah Shore", "year": 1949, "genres": ["pop", "soundtrack"], "uri": null },
-    { "title": "Jealous Heart", "artist": "Al Morgan", "year": 1949, "genres": ["pop", "country"], "uri": null },
-    { "title": "So Tired", "artist": "Russ Morgan", "year": 1949, "genres": ["pop", "big band"], "uri": null },
-    { "title": "Don't Cry, Joe", "artist": "Gordon Jenkins", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Someday (You'll Want Me to Want You)", "artist": "Vaughn Monroe", "year": 1949, "genres": ["pop", "big band"], "uri": null },
-    { "title": "A Dreamer's Holiday", "artist": "Perry Como", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "Maybe It's Because", "artist": "Dick Haymes", "year": 1949, "genres": ["pop"], "uri": null },
-    { "title": "The Huckle-Buck", "artist": "Paul Williams", "year": 1949, "genres": ["r&b"], "uri": null },
-    { "title": "Saturday Night Fish Fry", "artist": "Louis Jordan", "year": 1949, "genres": ["r&b"], "uri": null },
-    { "title": "Candy Kisses", "artist": "George Morgan", "year": 1949, "genres": ["country"], "uri": null },
-    { "title": "Bali Ha'i", "artist": "Perry Como", "year": 1949, "genres": ["pop", "soundtrack"], "uri": null }
+    {
+      "title": "Riders in the Sky (A Cowboy Legend)",
+      "artist": "Vaughn Monroe",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That Lucky Old Sun",
+      "artist": "Frankie Laine",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mule Train",
+      "artist": "Frankie Laine",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Some Enchanted Evening",
+      "artist": "Perry Como",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're Breaking My Heart",
+      "artist": "Vic Damone",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cruising Down the River",
+      "artist": "Russ Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Little Bird Told Me",
+      "artist": "Evelyn Knight",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Powder Your Face with Sunshine",
+      "artist": "Evelyn Knight",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Again",
+      "artist": "Doris Day",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Forever and Ever",
+      "artist": "Russ Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby, It's Cold Outside",
+      "artist": "Dinah Shore & Buddy Clark",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Careless Hands",
+      "artist": "Mel Torme",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Red Roses for a Blue Lady",
+      "artist": "Vaughn Monroe",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Far Away Places",
+      "artist": "Bing Crosby",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Slipping Around",
+      "artist": "Margaret Whiting & Jimmy Wakely",
+      "year": 1949,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Can Dream, Can't I?",
+      "artist": "The Andrews Sisters",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dear Hearts and Gentle People",
+      "artist": "Bing Crosby",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I've Got a Lovely Bunch of Coconuts",
+      "artist": "Freddy Martin feat. Merv Griffin",
+      "year": 1949,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Room Full of Roses",
+      "artist": "Sammy Kaye",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lavender Blue (Dilly Dilly)",
+      "artist": "Dinah Shore",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jealous Heart",
+      "artist": "Al Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So Tired",
+      "artist": "Russ Morgan",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Cry, Joe",
+      "artist": "Gordon Jenkins",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Someday (You'll Want Me to Want You)",
+      "artist": "Vaughn Monroe",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Dreamer's Holiday",
+      "artist": "Perry Como",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Maybe It's Because",
+      "artist": "Dick Haymes",
+      "year": 1949,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Huckle-Buck",
+      "artist": "Paul Williams",
+      "year": 1949,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Saturday Night Fish Fry",
+      "artist": "Louis Jordan",
+      "year": 1949,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Candy Kisses",
+      "artist": "George Morgan",
+      "year": 1949,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bali Ha'i",
+      "artist": "Perry Como",
+      "year": 1949,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    }
   ]
 }
