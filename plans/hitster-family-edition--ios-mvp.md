@@ -11,16 +11,29 @@ release, no backend.
 
 ---
 
-## 1. What the physical game needs from the app
+## 1. The confirmed gameplay loop (v1 contract)
 
-Distilling Hitster to what the cards + QR scanner actually do:
+The official Hitster app's observed loop is: Next card → scan QR → bounce to
+the Spotify app to load the song → drop back to Hitster → pause/play from
+Hitster. Our app supports the same loop, minus scanning (hand-written cards
+represent songs on players' timelines):
 
-1. Pick a random song from a large corpus, **without repeats** in a session.
-2. Play it with **zero metadata visible** (the "face-down card").
-3. **Pause / resume** freely while players argue about the year.
-4. **Reveal** title, artist, and — critically — the **release year**
-   (the "flip the card" moment).
-5. **Next song** on demand. That's the whole loop.
+1. Open our app (one-time Spotify connect happens here — see §5).
+2. Tap **Next Song**.
+3. App randomly selects a song from the catalog, **without repeats** in a
+   session.
+4. App starts the song in Spotify, keeping it **blind** — no metadata visible.
+5. **Pause / resume** freely while players argue about the year.
+6. When guessed, the game master advances to the next "card" (back to 2).
+
+**One improvement over the real Hitster flow:** after the single connect
+handshake at app open, App Remote plays each song *in the background* — the
+phone never leaves our app on "Next Song," so there is no Spotify screen to
+"cover" during song load. The blind is structural, not a race.
+
+A **game-master reveal** stays in the design even though it's not in the loop
+above: the game master needs to know title/artist/year to confirm the guess
+and hand over (or write) the correct card. It's a peek, not a game phase.
 
 Everything else in the boxed game (tokens, steal mechanics, timeline layout)
 stays physical/verbal. The app is only the deck + the speaker.
@@ -44,8 +57,8 @@ touch audio buffers, DRM, or streaming ourselves.
 Consequences to accept:
 
 - The **host phone's** Spotify account must be Premium (on-demand playback of a
-  specific track is Premium-only). Only the host authorizes — other players
-  need nothing.
+  specific track is Premium-only). **Confirmed available.** Only the host
+  authorizes — other players need nothing.
 - Internet required (fine — this works the same in Italy as at home).
 - The Spotify app's own UI and the lock screen / Control Center **will show the
   track title** while playing. Mitigation is procedural, same as the real game:
@@ -115,13 +128,15 @@ HitsterFam/
 
 One screen, three states, big touch targets (this gets used at a dinner table):
 
-1. **Not connected** → "Connect Spotify" button → auth/connect flow.
+1. **Not connected** → "Connect Spotify" button → auth/connect flow (§5).
+   Done once at app open, *before* any real song is in play.
 2. **Song armed (hidden)** → ▶️/⏸ toggle, **Reveal** button, songs-remaining
    count. *Nothing else* — no title, no artwork, no progress bar (a progress
    bar leaks song-length information; omit it).
-3. **Revealed** → `RevealCard` with title / artist / year in huge type, and a
-   **Next Song** button that advances the deck and immediately starts the next
-   track hidden.
+3. **Revealed** → `RevealCard` with title / artist / year in huge type — the
+   game master's peek for confirming the guess and handing over the right
+   hand-written card — and a **Next Song** button that advances the deck and
+   immediately starts the next track hidden.
 
 ### Playback behavior
 
@@ -152,9 +167,14 @@ In Xcode:
 `SpotifyController` responsibilities:
 
 - `connect()` → `authorizeAndPlayURI(...)` handshake: bounces to the Spotify
-  app, returns via the redirect URI with an access token, establishes the
-  App Remote connection. First `play` is bundled into the handshake — use the
-  first deck song here so connect-and-start is one tap.
+  app **once, at app open**, returns via the redirect URI with an access
+  token, establishes the App Remote connection. This is the only moment the
+  Spotify UI is ever visible, so the URI bundled into the handshake must be a
+  **neutral warm-up track** (a game "theme song"), *never* the first deck
+  song — the Spotify screen briefly shows whatever it was asked to play.
+  After the handshake, every game song starts via a background
+  `playerAPI.play(uri)` with our app foregrounded: nothing to cover, nothing
+  leaks.
 - Delegate callbacks → published `isConnected` / `isPaused` state for the UI.
 - **Reconnect path:** App Remote disconnects if the Spotify app is suspended
   (e.g., long pause while players debate). Every user action (`play`, `pause`,
