@@ -1,0 +1,301 @@
+{
+  "module": "year-1961",
+  "name": "Hits of 1961",
+  "source": "Billboard Year-End Hot 100, 1961 (top 30)",
+  "songs": [
+    {
+      "title": "Tossin' and Turnin'",
+      "artist": "Bobby Lewis",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Big Bad John",
+      "artist": "Jimmy Dean",
+      "year": 1961,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Runaway",
+      "artist": "Del Shannon",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wonderland by Night",
+      "artist": "Bert Kaempfert",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Pony Time",
+      "artist": "Chubby Checker",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Travelin' Man",
+      "artist": "Ricky Nelson",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blue Moon",
+      "artist": "The Marcels",
+      "year": 1961,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Runaround Sue",
+      "artist": "Dion",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take Good Care of My Baby",
+      "artist": "Bobby Vee",
+      "year": 1961,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Calcutta",
+      "artist": "Lawrence Welk",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Exodus",
+      "artist": "Ferrante and Teicher",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Will You Love Me Tomorrow",
+      "artist": "The Shirelles",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Michael",
+      "artist": "The Highwaymen",
+      "year": 1961,
+      "genres": [
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Quarter to Three",
+      "artist": "Gary U.S. Bonds",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Surrender",
+      "artist": "Elvis Presley",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Raindrops",
+      "artist": "Dee Clark",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wooden Heart",
+      "artist": "Joe Dowell",
+      "year": 1961,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crying",
+      "artist": "Roy Orbison",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dedicated to the One I Love",
+      "artist": "The Shirelles",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Where the Boys Are",
+      "artist": "Connie Francis",
+      "year": 1961,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mother-in-Law",
+      "artist": "Ernie K-Doe",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Boll Weevil Song",
+      "artist": "Brook Benton",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hit the Road Jack",
+      "artist": "Ray Charles",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Night",
+      "artist": "The Mar-Keys",
+      "year": 1961,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Daddy's Home",
+      "artist": "Shep and the Limelites",
+      "year": 1961,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Hundred Pounds of Clay",
+      "artist": "Gene McDaniels",
+      "year": 1961,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Like It Like That",
+      "artist": "Chris Kenner",
+      "year": 1961,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Apache",
+      "artist": "Jorgen Ingmann",
+      "year": 1961,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shop Around",
+      "artist": "The Miracles",
+      "year": 1961,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wheels",
+      "artist": "The String-A-Longs",
+      "year": 1961,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

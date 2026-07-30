@@ -1,0 +1,295 @@
+{
+  "module": "year-2022",
+  "name": "Hits of 2022",
+  "source": "Billboard Year-End Hot 100, 2022 (top 30)",
+  "songs": [
+    {
+      "title": "Heat Waves",
+      "artist": "Glass Animals",
+      "year": 2022,
+      "genres": [
+        "alternative",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "As It Was",
+      "artist": "Harry Styles",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stay",
+      "artist": "The Kid LAROI & Justin Bieber",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Easy on Me",
+      "artist": "Adele",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shivers",
+      "artist": "Ed Sheeran",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "First Class",
+      "artist": "Jack Harlow",
+      "year": 2022,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Big Energy",
+      "artist": "Latto",
+      "year": 2022,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ghost",
+      "artist": "Justin Bieber",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Super Gremlin",
+      "artist": "Kodak Black",
+      "year": 2022,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cold Heart (Pnau Remix)",
+      "artist": "Elton John & Dua Lipa",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wait for U",
+      "artist": "Future feat. Drake & Tems",
+      "year": 2022,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "About Damn Time",
+      "artist": "Lizzo",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bad Habits",
+      "artist": "Ed Sheeran",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That's What I Want",
+      "artist": "Lil Nas X",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Enemy",
+      "artist": "Imagine Dragons & JID",
+      "year": 2022,
+      "genres": [
+        "rock",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Industry Baby",
+      "artist": "Lil Nas X & Jack Harlow",
+      "year": 2022,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "abcdefu",
+      "artist": "GAYLE",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Need to Know",
+      "artist": "Doja Cat",
+      "year": 2022,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wasted on You",
+      "artist": "Morgan Wallen",
+      "year": 2022,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Me Porto Bonito",
+      "artist": "Bad Bunny & Chencho Corleone",
+      "year": 2022,
+      "genres": [
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Woman",
+      "artist": "Doja Cat",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Titi Me Pregunto",
+      "artist": "Bad Bunny",
+      "year": 2022,
+      "genres": [
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Ain't Worried",
+      "artist": "OneRepublic",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Don't Talk About Bruno",
+      "artist": "Encanto Cast",
+      "year": 2022,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Late Night Talking",
+      "artist": "Harry Styles",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Like You (A Happier Song)",
+      "artist": "Post Malone feat. Doja Cat",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bad Habit",
+      "artist": "Steve Lacy",
+      "year": 2022,
+      "genres": [
+        "r&b",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sunroof",
+      "artist": "Nicky Youre & dazy",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Right Now",
+      "artist": "Post Malone & The Weeknd",
+      "year": 2022,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Numb Little Bug",
+      "artist": "Em Beihold",
+      "year": 2022,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

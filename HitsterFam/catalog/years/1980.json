@@ -1,0 +1,304 @@
+{
+  "module": "year-1980",
+  "name": "Hits of 1980",
+  "source": "Billboard Year-End Hot 100, 1980 (top 30)",
+  "songs": [
+    {
+      "title": "Call Me",
+      "artist": "Blondie",
+      "year": 1980,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Another Brick in the Wall, Part II",
+      "artist": "Pink Floyd",
+      "year": 1980,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Magic",
+      "artist": "Olivia Newton-John",
+      "year": 1980,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock with You",
+      "artist": "Michael Jackson",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Do That to Me One More Time",
+      "artist": "Captain & Tennille",
+      "year": 1980,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crazy Little Thing Called Love",
+      "artist": "Queen",
+      "year": 1980,
+      "genres": [
+        "rock",
+        "rockabilly"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Coming Up",
+      "artist": "Paul McCartney",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Funkytown",
+      "artist": "Lipps Inc.",
+      "year": 1980,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's Still Rock and Roll to Me",
+      "artist": "Billy Joel",
+      "year": 1980,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Rose",
+      "artist": "Bette Midler",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Escape (The Pi\u00f1a Colada Song)",
+      "artist": "Rupert Holmes",
+      "year": 1980,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cars",
+      "artist": "Gary Numan",
+      "year": 1980,
+      "genres": [
+        "new wave",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cruisin'",
+      "artist": "Smokey Robinson",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Working My Way Back to You/Forgive Me, Girl",
+      "artist": "The Spinners",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lost in Love",
+      "artist": "Air Supply",
+      "year": 1980,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Jeannie",
+      "artist": "Elton John",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ride Like the Wind",
+      "artist": "Christopher Cross",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Upside Down",
+      "artist": "Diana Ross",
+      "year": 1980,
+      "genres": [
+        "disco",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Please Don't Go",
+      "artist": "KC and the Sunshine Band",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Babe",
+      "artist": "Styx",
+      "year": 1980,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "With You I'm Born Again",
+      "artist": "Billy Preston and Syreeta",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shining Star",
+      "artist": "The Manhattans",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Still",
+      "artist": "Commodores",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Yes, I'm Ready",
+      "artist": "Teri DeSario with KC",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sexy Eyes",
+      "artist": "Dr. Hook",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Steal Away",
+      "artist": "Robbie Dupree",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Biggest Part of Me",
+      "artist": "Ambrosia",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Is It",
+      "artist": "Kenny Loggins",
+      "year": 1980,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cupid/I've Loved You for a Long Time",
+      "artist": "The Spinners",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Get Serious",
+      "artist": "Jermaine Jackson",
+      "year": 1980,
+      "genres": [
+        "r&b",
+        "funk"
+      ],
+      "uri": null
+    }
+  ]
+}

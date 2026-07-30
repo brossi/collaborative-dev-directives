@@ -1,0 +1,297 @@
+{
+  "module": "year-2002",
+  "name": "Hits of 2002",
+  "source": "Billboard Year-End Hot 100, 2002 (top 30)",
+  "songs": [
+    {
+      "title": "How You Remind Me",
+      "artist": "Nickelback",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Foolish",
+      "artist": "Ashanti",
+      "year": 2002,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hot in Herre",
+      "artist": "Nelly",
+      "year": 2002,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dilemma",
+      "artist": "Nelly featuring Kelly Rowland",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wherever You Will Go",
+      "artist": "The Calling",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Thousand Miles",
+      "artist": "Vanessa Carlton",
+      "year": 2002,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "In the End",
+      "artist": "Linkin Park",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What's Luv?",
+      "artist": "Fat Joe featuring Ashanti",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "U Got It Bad",
+      "artist": "Usher",
+      "year": 2002,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blurry",
+      "artist": "Puddle of Mudd",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Complicated",
+      "artist": "Avril Lavigne",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Always on Time",
+      "artist": "Ja Rule featuring Ashanti",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't It Funny (Murder Remix)",
+      "artist": "Jennifer Lopez featuring Ja Rule",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Middle",
+      "artist": "Jimmy Eat World",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Need a Girl (Part One)",
+      "artist": "P. Diddy featuring Usher and Loon",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "U Don't Have to Call",
+      "artist": "Usher",
+      "year": 2002,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Family Affair",
+      "artist": "Mary J. Blige",
+      "year": 2002,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Need a Girl (Part Two)",
+      "artist": "P. Diddy and Ginuwine featuring Loon and Mario Winans",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gangsta Lovin'",
+      "artist": "Eve featuring Alicia Keys",
+      "year": 2002,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Sacrifice",
+      "artist": "Creed",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Without Me",
+      "artist": "Eminem",
+      "year": 2002,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hero",
+      "artist": "Enrique Iglesias",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All You Wanted",
+      "artist": "Michelle Branch",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Get the Party Started",
+      "artist": "Pink",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hero",
+      "artist": "Chad Kroeger featuring Josey Scott",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wasting My Time",
+      "artist": "Default",
+      "year": 2002,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Last Breath",
+      "artist": "Creed",
+      "year": 2002,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whenever, Wherever",
+      "artist": "Shakira",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Gonna Be Alright",
+      "artist": "Jennifer Lopez featuring Nas",
+      "year": 2002,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh Boy",
+      "artist": "Cam'ron featuring Juelz Santana",
+      "year": 2002,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    }
+  ]
+}

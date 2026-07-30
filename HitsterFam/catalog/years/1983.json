@@ -1,0 +1,310 @@
+{
+  "module": "year-1983",
+  "name": "Hits of 1983",
+  "source": "Billboard Year-End Hot 100, 1983 (top 30)",
+  "songs": [
+    {
+      "title": "Every Breath You Take",
+      "artist": "The Police",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Billie Jean",
+      "artist": "Michael Jackson",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "r&b",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Flashdance... What a Feeling",
+      "artist": "Irene Cara",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "dance",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Down Under",
+      "artist": "Men at Work",
+      "year": 1983,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Beat It",
+      "artist": "Michael Jackson",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Total Eclipse of the Heart",
+      "artist": "Bonnie Tyler",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Maneater",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby, Come to Me",
+      "artist": "Patti Austin with James Ingram",
+      "year": 1983,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Maniac",
+      "artist": "Michael Sembello",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "dance",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sweet Dreams (Are Made of This)",
+      "artist": "Eurythmics",
+      "year": 1983,
+      "genres": [
+        "new wave",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Do You Really Want to Hurt Me",
+      "artist": "Culture Club",
+      "year": 1983,
+      "genres": [
+        "new wave",
+        "pop",
+        "reggae"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You and I",
+      "artist": "Eddie Rabbitt with Crystal Gayle",
+      "year": 1983,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Come On Eileen",
+      "artist": "Dexys Midnight Runners",
+      "year": 1983,
+      "genres": [
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shame on the Moon",
+      "artist": "Bob Seger & the Silver Bullet Band",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "She Works Hard for the Money",
+      "artist": "Donna Summer",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Never Gonna Let You Go",
+      "artist": "S\u00e9rgio Mendes",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hungry Like the Wolf",
+      "artist": "Duran Duran",
+      "year": 1983,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Dance",
+      "artist": "David Bowie",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Twilight Zone",
+      "artist": "Golden Earring",
+      "year": 1983,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Know There's Something Going On",
+      "artist": "Frida",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jeopardy",
+      "artist": "Greg Kihn Band",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Electric Avenue",
+      "artist": "Eddy Grant",
+      "year": 1983,
+      "genres": [
+        "reggae",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "She Blinded Me with Science",
+      "artist": "Thomas Dolby",
+      "year": 1983,
+      "genres": [
+        "new wave",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Africa",
+      "artist": "Toto",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Red Corvette",
+      "artist": "Prince",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "funk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Back on the Chain Gang",
+      "artist": "The Pretenders",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Up Where We Belong",
+      "artist": "Joe Cocker and Jennifer Warnes",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mr. Roboto",
+      "artist": "Styx",
+      "year": 1983,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Are",
+      "artist": "Lionel Richie",
+      "year": 1983,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Der Kommissar",
+      "artist": "After the Fire",
+      "year": 1983,
+      "genres": [
+        "new wave"
+      ],
+      "uri": null
+    }
+  ]
+}

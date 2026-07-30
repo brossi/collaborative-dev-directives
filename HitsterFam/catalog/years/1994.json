@@ -1,0 +1,296 @@
+{
+  "module": "year-1994",
+  "name": "Hits of 1994",
+  "source": "Billboard Year-End Hot 100, 1994 (top 30)",
+  "songs": [
+    {
+      "title": "The Sign",
+      "artist": "Ace of Base",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Swear",
+      "artist": "All-4-One",
+      "year": 1994,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Make Love to You",
+      "artist": "Boyz II Men",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Power of Love",
+      "artist": "Celine Dion",
+      "year": 1994,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hero",
+      "artist": "Mariah Carey",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stay (I Missed You)",
+      "artist": "Lisa Loeb and Nine Stories",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "alternative",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Breathe Again",
+      "artist": "Toni Braxton",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All for Love",
+      "artist": "Bryan Adams, Rod Stewart and Sting",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All That She Wants",
+      "artist": "Ace of Base",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Turn Around",
+      "artist": "Ace of Base",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bump n' Grind",
+      "artist": "R. Kelly",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Again",
+      "artist": "Janet Jackson",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Remember",
+      "artist": "Madonna",
+      "year": 1994,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whatta Man",
+      "artist": "Salt-n-Pepa featuring En Vogue",
+      "year": 1994,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wild Night",
+      "artist": "John Mellencamp with Me'shell Ndegeocello",
+      "year": 1994,
+      "genres": [
+        "rock",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Without You",
+      "artist": "Mariah Carey",
+      "year": 1994,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Mean the World to Me",
+      "artist": "Toni Braxton",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can You Feel the Love Tonight",
+      "artist": "Elton John",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Most Beautiful Girl in the World",
+      "artist": "Prince",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fantastic Voyage",
+      "artist": "Coolio",
+      "year": 1994,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby, I Love Your Way",
+      "artist": "Big Mountain",
+      "year": 1994,
+      "genres": [
+        "reggae",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Regulate",
+      "artist": "Warren G and Nate Dogg",
+      "year": 1994,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If You Go",
+      "artist": "Jon Secada",
+      "year": 1994,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Back & Forth",
+      "artist": "Aaliyah",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When Can I See You",
+      "artist": "Babyface",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Please Forgive Me",
+      "artist": "Bryan Adams",
+      "year": 1994,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So Much in Love",
+      "artist": "All-4-One",
+      "year": 1994,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shoop",
+      "artist": "Salt-n-Pepa",
+      "year": 1994,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Any Time, Any Place",
+      "artist": "Janet Jackson",
+      "year": 1994,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shine",
+      "artist": "Collective Soul",
+      "year": 1994,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    }
+  ]
+}

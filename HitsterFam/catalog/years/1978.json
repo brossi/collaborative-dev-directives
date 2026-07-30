@@ -1,0 +1,294 @@
+{
+  "module": "year-1978",
+  "name": "Hits of 1978",
+  "source": "Billboard Year-End Hot 100, 1978 (top 30)",
+  "songs": [
+    {
+      "title": "Shadow Dancing",
+      "artist": "Andy Gibb",
+      "year": 1978,
+      "genres": [
+        "disco",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Night Fever",
+      "artist": "Bee Gees",
+      "year": 1978,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Light Up My Life",
+      "artist": "Debby Boone",
+      "year": 1978,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stayin' Alive",
+      "artist": "Bee Gees",
+      "year": 1978,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss You All Over",
+      "artist": "Exile",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Deep Is Your Love",
+      "artist": "Bee Gees",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby Come Back",
+      "artist": "Player",
+      "year": 1978,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Love Is) Thicker Than Water",
+      "artist": "Andy Gibb",
+      "year": 1978,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Boogie Oogie Oogie",
+      "artist": "A Taste of Honey",
+      "year": 1978,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Three Times a Lady",
+      "artist": "Commodores",
+      "year": 1978,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Grease",
+      "artist": "Frankie Valli",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Go Crazy",
+      "artist": "Paul Davis",
+      "year": 1978,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're the One That I Want",
+      "artist": "John Travolta & Olivia Newton-John",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Emotion",
+      "artist": "Samantha Sang",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lay Down Sally",
+      "artist": "Eric Clapton",
+      "year": 1978,
+      "genres": [
+        "rock",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Miss You",
+      "artist": "The Rolling Stones",
+      "year": 1978,
+      "genres": [
+        "rock",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just the Way You Are",
+      "artist": "Billy Joel",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "With a Little Luck",
+      "artist": "Wings",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If I Can't Have You",
+      "artist": "Yvonne Elliman",
+      "year": 1978,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dance, Dance, Dance (Yowsah, Yowsah, Yowsah)",
+      "artist": "Chic",
+      "year": 1978,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Feels So Good",
+      "artist": "Chuck Mangione",
+      "year": 1978,
+      "genres": [
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hot Child in the City",
+      "artist": "Nick Gilder",
+      "year": 1978,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Is Like Oxygen",
+      "artist": "Sweet",
+      "year": 1978,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's a Heartache",
+      "artist": "Bonnie Tyler",
+      "year": 1978,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Will Rock You / We Are the Champions",
+      "artist": "Queen",
+      "year": 1978,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baker Street",
+      "artist": "Gerry Rafferty",
+      "year": 1978,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Smile Without You",
+      "artist": "Barry Manilow",
+      "year": 1978,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Too Much, Too Little, Too Late",
+      "artist": "Johnny Mathis & Deniece Williams",
+      "year": 1978,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dance with Me",
+      "artist": "Peter Brown",
+      "year": 1978,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Two Out of Three Ain't Bad",
+      "artist": "Meat Loaf",
+      "year": 1978,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

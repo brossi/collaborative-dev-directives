@@ -1,0 +1,290 @@
+{
+  "module": "year-1975",
+  "name": "Hits of 1975",
+  "source": "Billboard Year-End Hot 100, 1975 (top 30)",
+  "songs": [
+    {
+      "title": "Love Will Keep Us Together",
+      "artist": "Captain & Tennille",
+      "year": 1975,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rhinestone Cowboy",
+      "artist": "Glen Campbell",
+      "year": 1975,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Philadelphia Freedom",
+      "artist": "Elton John",
+      "year": 1975,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Before the Next Teardrop Falls",
+      "artist": "Freddy Fender",
+      "year": 1975,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Eyes Adored You",
+      "artist": "Frankie Valli",
+      "year": 1975,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Some Kind of Wonderful",
+      "artist": "Grand Funk Railroad",
+      "year": 1975,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shining Star",
+      "artist": "Earth, Wind & Fire",
+      "year": 1975,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fame",
+      "artist": "David Bowie",
+      "year": 1975,
+      "genres": [
+        "rock",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Laughter in the Rain",
+      "artist": "Neil Sedaka",
+      "year": 1975,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One of These Nights",
+      "artist": "Eagles",
+      "year": 1975,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Thank God I'm a Country Boy",
+      "artist": "John Denver",
+      "year": 1975,
+      "genres": [
+        "country",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jive Talkin'",
+      "artist": "Bee Gees",
+      "year": 1975,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Best of My Love",
+      "artist": "Eagles",
+      "year": 1975,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lovin' You",
+      "artist": "Minnie Riperton",
+      "year": 1975,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kung Fu Fighting",
+      "artist": "Carl Douglas",
+      "year": 1975,
+      "genres": [
+        "disco",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Black Water",
+      "artist": "The Doobie Brothers",
+      "year": 1975,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Ballroom Blitz",
+      "artist": "Sweet",
+      "year": 1975,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Hey Won't You Play) Another Somebody Done Somebody Wrong Song",
+      "artist": "B.J. Thomas",
+      "year": 1975,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "He Don't Love You (Like I Love You)",
+      "artist": "Tony Orlando and Dawn",
+      "year": 1975,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "At Seventeen",
+      "artist": "Janis Ian",
+      "year": 1975,
+      "genres": [
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Pick Up the Pieces",
+      "artist": "Average White Band",
+      "year": 1975,
+      "genres": [
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Hustle",
+      "artist": "Van McCoy & the Soul City Symphony",
+      "year": 1975,
+      "genres": [
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lady Marmalade",
+      "artist": "Labelle",
+      "year": 1975,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Why Can't We Be Friends?",
+      "artist": "War",
+      "year": 1975,
+      "genres": [
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Won't Let Me Wait",
+      "artist": "Major Harris",
+      "year": 1975,
+      "genres": [
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Boogie On Reggae Woman",
+      "artist": "Stevie Wonder",
+      "year": 1975,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wasted Days and Wasted Nights",
+      "artist": "Freddy Fender",
+      "year": 1975,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Angie Baby",
+      "artist": "Helen Reddy",
+      "year": 1975,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fight the Power",
+      "artist": "The Isley Brothers",
+      "year": 1975,
+      "genres": [
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jackie Blue",
+      "artist": "Ozark Mountain Daredevils",
+      "year": 1975,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+{
+  "module": "year-1974",
+  "name": "Hits of 1974",
+  "source": "Billboard Year-End Hot 100, 1974 (top 30)",
+  "songs": [
+    {
+      "title": "The Way We Were",
+      "artist": "Barbra Streisand",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Seasons in the Sun",
+      "artist": "Terry Jacks",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love's Theme",
+      "artist": "Love Unlimited Orchestra",
+      "year": 1974,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Come and Get Your Love",
+      "artist": "Redbone",
+      "year": 1974,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dancing Machine",
+      "artist": "The Jackson 5",
+      "year": 1974,
+      "genres": [
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Loco-Motion",
+      "artist": "Grand Funk Railroad",
+      "year": 1974,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "TSOP (The Sound of Philadelphia)",
+      "artist": "MFSB featuring The Three Degrees",
+      "year": 1974,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Streak",
+      "artist": "Ray Stevens",
+      "year": 1974,
+      "genres": [
+        "novelty",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bennie and the Jets",
+      "artist": "Elton John",
+      "year": 1974,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Hell of a Woman",
+      "artist": "Mac Davis",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Until You Come Back to Me (That's What I'm Gonna Do)",
+      "artist": "Aretha Franklin",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jungle Boogie",
+      "artist": "Kool & the Gang",
+      "year": 1974,
+      "genres": [
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Midnight at the Oasis",
+      "artist": "Maria Muldaur",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Make Me Feel Brand New",
+      "artist": "The Stylistics",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Show and Tell",
+      "artist": "Al Wilson",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Spiders & Snakes",
+      "artist": "Jim Stafford",
+      "year": 1974,
+      "genres": [
+        "country",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock On",
+      "artist": "David Essex",
+      "year": 1974,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sunshine on My Shoulders",
+      "artist": "John Denver",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sideshow",
+      "artist": "Blue Magic",
+      "year": 1974,
+      "genres": [
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hooked on a Feeling",
+      "artist": "Blue Swede",
+      "year": 1974,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Billy Don't Be a Hero",
+      "artist": "Bo Donaldson and the Heywoods",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Band on the Run",
+      "artist": "Paul McCartney and Wings",
+      "year": 1974,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Most Beautiful Girl",
+      "artist": "Charlie Rich",
+      "year": 1974,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Time in a Bottle",
+      "artist": "Jim Croce",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Annie's Song",
+      "artist": "John Denver",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let Me Be There",
+      "artist": "Olivia Newton-John",
+      "year": 1974,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sundown",
+      "artist": "Gordon Lightfoot",
+      "year": 1974,
+      "genres": [
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(You're) Having My Baby",
+      "artist": "Paul Anka",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock Me Gently",
+      "artist": "Andy Kim",
+      "year": 1974,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Boogie Down",
+      "artist": "Eddie Kendricks",
+      "year": 1974,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    }
+  ]
+}

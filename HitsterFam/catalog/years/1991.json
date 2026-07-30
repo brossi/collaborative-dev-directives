@@ -1,0 +1,295 @@
+{
+  "module": "year-1991",
+  "name": "Hits of 1991",
+  "source": "Billboard Year-End Hot 100, 1991 (top 30)",
+  "songs": [
+    {
+      "title": "(Everything I Do) I Do It for You",
+      "artist": "Bryan Adams",
+      "year": 1991,
+      "genres": [
+        "rock",
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wanna Sex You Up",
+      "artist": "Color Me Badd",
+      "year": 1991,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gonna Make You Sweat (Everybody Dance Now)",
+      "artist": "C+C Music Factory",
+      "year": 1991,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rush Rush",
+      "artist": "Paula Abdul",
+      "year": 1991,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One More Try",
+      "artist": "Timmy T",
+      "year": 1991,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unbelievable",
+      "artist": "EMF",
+      "year": 1991,
+      "genres": [
+        "alternative",
+        "dance",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "More Than Words",
+      "artist": "Extreme",
+      "year": 1991,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Like the Way (The Kissing Game)",
+      "artist": "Hi-Five",
+      "year": 1991,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The First Time",
+      "artist": "Surface",
+      "year": 1991,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby Baby",
+      "artist": "Amy Grant",
+      "year": 1991,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Motownphilly",
+      "artist": "Boyz II Men",
+      "year": 1991,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Because I Love You (The Postman Song)",
+      "artist": "Stevie B",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Someday",
+      "artist": "Mariah Carey",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "High Enough",
+      "artist": "Damn Yankees",
+      "year": 1991,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "From a Distance",
+      "artist": "Bette Midler",
+      "year": 1991,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All the Man That I Need",
+      "artist": "Whitney Houston",
+      "year": 1991,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Right Here, Right Now",
+      "artist": "Jesus Jones",
+      "year": 1991,
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Adore Mi Amor",
+      "artist": "Color Me Badd",
+      "year": 1991,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Will Never Do (Without You)",
+      "artist": "Janet Jackson",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Good Vibrations",
+      "artist": "Marky Mark and the Funky Bunch featuring Loleatta Holloway",
+      "year": 1991,
+      "genres": [
+        "hip-hop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Justify My Love",
+      "artist": "Madonna",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Emotions",
+      "artist": "Mariah Carey",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Joyride",
+      "artist": "Roxette",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Romantic",
+      "artist": "Karyn White",
+      "year": 1991,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold You Tight",
+      "artist": "Tara Kemp",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Wanna Cry",
+      "artist": "Mariah Carey",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're in Love",
+      "artist": "Wilson Phillips",
+      "year": 1991,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Every Heartbeat",
+      "artist": "Amy Grant",
+      "year": 1991,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sensitivity",
+      "artist": "Ralph Tresvant",
+      "year": 1991,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Touch Me (All Night Long)",
+      "artist": "Cathy Dennis",
+      "year": 1991,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    }
+  ]
+}

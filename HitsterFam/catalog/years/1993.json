@@ -1,0 +1,296 @@
+{
+  "module": "year-1993",
+  "name": "Hits of 1993",
+  "source": "Billboard Year-End Hot 100, 1993 (top 30)",
+  "songs": [
+    {
+      "title": "I Will Always Love You",
+      "artist": "Whitney Houston",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whoomp! (There It Is)",
+      "artist": "Tag Team",
+      "year": 1993,
+      "genres": [
+        "hip-hop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Help Falling in Love",
+      "artist": "UB40",
+      "year": 1993,
+      "genres": [
+        "reggae",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That's the Way Love Goes",
+      "artist": "Janet Jackson",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Freak Me",
+      "artist": "Silk",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Weak",
+      "artist": "SWV",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If I Ever Fall in Love",
+      "artist": "Shai",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dreamlover",
+      "artist": "Mariah Carey",
+      "year": 1993,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rump Shaker",
+      "artist": "Wreckx-n-Effect",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Informer",
+      "artist": "Snow",
+      "year": 1993,
+      "genres": [
+        "reggae",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nuthin' but a 'G' Thang",
+      "artist": "Dr. Dre",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "In the Still of the Nite (I'll Remember)",
+      "artist": "Boyz II Men",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Walk Away",
+      "artist": "Jade",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Knockin' da Boots",
+      "artist": "H-Town",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lately",
+      "artist": "Jodeci",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dazzey Duks",
+      "artist": "Duice",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Show Me Love",
+      "artist": "Robin S.",
+      "year": 1993,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Whole New World",
+      "artist": "Peabo Bryson and Regina Belle",
+      "year": 1993,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If",
+      "artist": "Janet Jackson",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm So Into You",
+      "artist": "SWV",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Is",
+      "artist": "Vanessa Williams and Brian McKnight",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Runaway Train",
+      "artist": "Soul Asylum",
+      "year": 1993,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Never Get Over You (Getting Over Me)",
+      "artist": "Expose",
+      "year": 1993,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ditty",
+      "artist": "Paperboy",
+      "year": 1993,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rhythm Is a Dancer",
+      "artist": "Snap!",
+      "year": 1993,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The River of Dreams",
+      "artist": "Billy Joel",
+      "year": 1993,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Gonna Be (500 Miles)",
+      "artist": "The Proclaimers",
+      "year": 1993,
+      "genres": [
+        "rock",
+        "folk",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Two Princes",
+      "artist": "Spin Doctors",
+      "year": 1993,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Right Here (Human Nature)",
+      "artist": "SWV",
+      "year": 1993,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Have Nothing",
+      "artist": "Whitney Houston",
+      "year": 1993,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

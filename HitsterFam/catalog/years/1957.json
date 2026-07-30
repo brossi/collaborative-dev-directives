@@ -1,0 +1,300 @@
+{
+  "module": "year-1957",
+  "name": "Hits of 1957",
+  "source": "Billboard year-end top 50 singles chart, 1957 (top 30)",
+  "songs": [
+    {
+      "title": "All Shook Up",
+      "artist": "Elvis Presley",
+      "year": 1957,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Letters in the Sand",
+      "artist": "Pat Boone",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Darlin'",
+      "artist": "The Diamonds",
+      "year": 1957,
+      "genres": [
+        "doo-wop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Young Love",
+      "artist": "Tab Hunter",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So Rare",
+      "artist": "Jimmy Dorsey",
+      "year": 1957,
+      "genres": [
+        "big band",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Forbid Me",
+      "artist": "Pat Boone",
+      "year": 1957,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Singing the Blues",
+      "artist": "Guy Mitchell",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Young Love",
+      "artist": "Sonny James",
+      "year": 1957,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Too Much",
+      "artist": "Elvis Presley",
+      "year": 1957,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Round and Round",
+      "artist": "Perry Como",
+      "year": 1957,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bye Bye Love",
+      "artist": "The Everly Brothers",
+      "year": 1957,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tammy",
+      "artist": "Debbie Reynolds",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Party Doll",
+      "artist": "Buddy Knox",
+      "year": 1957,
+      "genres": [
+        "rockabilly",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Let Me Be Your) Teddy Bear",
+      "artist": "Elvis Presley",
+      "year": 1957,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Day-O (The Banana Boat Song)",
+      "artist": "Harry Belafonte",
+      "year": 1957,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jailhouse Rock",
+      "artist": "Elvis Presley",
+      "year": 1957,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A White Sport Coat (and a Pink Carnation)",
+      "artist": "Marty Robbins",
+      "year": 1957,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Come Go with Me",
+      "artist": "The Del-Vikings",
+      "year": 1957,
+      "genres": [
+        "doo-wop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wake Up Little Susie",
+      "artist": "The Everly Brothers",
+      "year": 1957,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Send Me",
+      "artist": "Sam Cooke",
+      "year": 1957,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Searchin'",
+      "artist": "The Coasters",
+      "year": 1957,
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "School Day (Ring! Ring! Goes the Bell)",
+      "artist": "Chuck Berry",
+      "year": 1957,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gone",
+      "artist": "Ferlin Husky",
+      "year": 1957,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Diana",
+      "artist": "Paul Anka",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Teenager's Romance",
+      "artist": "Ricky Nelson",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Banana Boat Song",
+      "artist": "The Tarriers",
+      "year": 1957,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Honeycomb",
+      "artist": "Jimmie Rodgers",
+      "year": 1957,
+      "genres": [
+        "pop",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whole Lotta Shakin' Goin' On",
+      "artist": "Jerry Lee Lewis",
+      "year": 1957,
+      "genres": [
+        "rock",
+        "rockabilly"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dark Moon",
+      "artist": "Gale Storm",
+      "year": 1957,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That'll Be the Day",
+      "artist": "Buddy Holly & The Crickets",
+      "year": 1957,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

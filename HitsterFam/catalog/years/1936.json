@@ -1,0 +1,306 @@
+{
+  "module": "year-1936",
+  "name": "Hits of 1936",
+  "source": "Whitburn-style Pop Memories 1890-1954 pre-Billboard chart research, period record-sales compilations, and Your Hit Parade rankings (late decade)",
+  "songs": [
+    {
+      "title": "Pennies from Heaven",
+      "artist": "Bing Crosby",
+      "year": 1936,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm an Old Cowhand (From the Rio Grande)",
+      "artist": "Bing Crosby",
+      "year": 1936,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Robins and Roses",
+      "artist": "Bing Crosby",
+      "year": 1936,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Way You Look Tonight",
+      "artist": "Fred Astaire",
+      "year": 1936,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Fine Romance",
+      "artist": "Fred Astaire",
+      "year": 1936,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Face the Music and Dance",
+      "artist": "Fred Astaire",
+      "year": 1936,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Putting All My Eggs in One Basket",
+      "artist": "Fred Astaire",
+      "year": 1936,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Goody Goody",
+      "artist": "Benny Goodman",
+      "year": 1936,
+      "genres": [
+        "swing",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stompin' at the Savoy",
+      "artist": "Benny Goodman",
+      "year": 1936,
+      "genres": [
+        "swing",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "These Foolish Things (Remind Me of You)",
+      "artist": "Benny Goodman",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Glory of Love",
+      "artist": "Benny Goodman",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Alone",
+      "artist": "Tommy Dorsey",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You",
+      "artist": "Tommy Dorsey",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Music Goes 'Round and Around",
+      "artist": "Tommy Dorsey",
+      "year": 1936,
+      "genres": [
+        "novelty",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Did I Remember",
+      "artist": "Shep Fields",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "In the Chapel in the Moonlight",
+      "artist": "Shep Fields",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When Did You Leave Heaven",
+      "artist": "Guy Lombardo",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lost",
+      "artist": "Guy Lombardo",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moon Over Miami",
+      "artist": "Eddy Duchin",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lights Out",
+      "artist": "Eddy Duchin",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Summertime",
+      "artist": "Billie Holiday",
+      "year": 1936,
+      "genres": [
+        "jazz",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "There's a Small Hotel",
+      "artist": "Hal Kemp",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When I'm with You",
+      "artist": "Hal Kemp",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Until the Real Thing Comes Along",
+      "artist": "Andy Kirk and His Twelve Clouds of Joy",
+      "year": 1936,
+      "genres": [
+        "jazz",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Christopher Columbus",
+      "artist": "Fletcher Henderson",
+      "year": 1936,
+      "genres": [
+        "swing",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Organ Grinder's Swing",
+      "artist": "Jimmie Lunceford",
+      "year": 1936,
+      "genres": [
+        "swing",
+        "big band"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I've Got You Under My Skin",
+      "artist": "Ray Noble",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Touch of Your Lips",
+      "artist": "Ray Noble",
+      "year": 1936,
+      "genres": [
+        "big band",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All My Life",
+      "artist": "Fats Waller",
+      "year": 1936,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's a Sin to Tell a Lie",
+      "artist": "Fats Waller",
+      "year": 1936,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

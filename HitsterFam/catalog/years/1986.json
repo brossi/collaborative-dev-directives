@@ -1,0 +1,312 @@
+{
+  "module": "year-1986",
+  "name": "Hits of 1986",
+  "source": "Billboard Year-End Hot 100, 1986 (top 30)",
+  "songs": [
+    {
+      "title": "That's What Friends Are For",
+      "artist": "Dionne and Friends",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Say You, Say Me",
+      "artist": "Lionel Richie",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Miss You",
+      "artist": "Klymaxx",
+      "year": 1986,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "On My Own",
+      "artist": "Patti LaBelle and Michael McDonald",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Broken Wings",
+      "artist": "Mr. Mister",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Will I Know",
+      "artist": "Whitney Houston",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Party All the Time",
+      "artist": "Eddie Murphy",
+      "year": 1986,
+      "genres": [
+        "r&b",
+        "funk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Burning Heart",
+      "artist": "Survivor",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kyrie",
+      "artist": "Mr. Mister",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Addicted to Love",
+      "artist": "Robert Palmer",
+      "year": 1986,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Greatest Love of All",
+      "artist": "Whitney Houston",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Secret Lovers",
+      "artist": "Atlantic Starr",
+      "year": 1986,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Friends and Lovers",
+      "artist": "Gloria Loring and Carl Anderson",
+      "year": 1986,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Glory of Love",
+      "artist": "Peter Cetera",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "West End Girls",
+      "artist": "Pet Shop Boys",
+      "year": 1986,
+      "genres": [
+        "electronic",
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "There'll Be Sad Songs (To Make You Cry)",
+      "artist": "Billy Ocean",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Alive and Kicking",
+      "artist": "Simple Minds",
+      "year": 1986,
+      "genres": [
+        "new wave",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Never",
+      "artist": "Heart",
+      "year": 1986,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss",
+      "artist": "Prince and the Revolution",
+      "year": 1986,
+      "genres": [
+        "funk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Higher Love",
+      "artist": "Steve Winwood",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stuck with You",
+      "artist": "Huey Lewis and the News",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Holding Back the Years",
+      "artist": "Simply Red",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sledgehammer",
+      "artist": "Peter Gabriel",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sara",
+      "artist": "Starship",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Human",
+      "artist": "The Human League",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "r&b",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Can't Wait",
+      "artist": "Nu Shooz",
+      "year": 1986,
+      "genres": [
+        "dance",
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take My Breath Away",
+      "artist": "Berlin",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "new wave",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock Me Amadeus",
+      "artist": "Falco",
+      "year": 1986,
+      "genres": [
+        "new wave",
+        "electronic",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Papa Don't Preach",
+      "artist": "Madonna",
+      "year": 1986,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Give Love a Bad Name",
+      "artist": "Bon Jovi",
+      "year": 1986,
+      "genres": [
+        "rock",
+        "metal"
+      ],
+      "uri": null
+    }
+  ]
+}

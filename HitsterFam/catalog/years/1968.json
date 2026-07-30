@@ -1,0 +1,301 @@
+{
+  "module": "year-1968",
+  "name": "Hits of 1968",
+  "source": "Billboard Year-End Hot 100, 1968 (top 30)",
+  "songs": [
+    {
+      "title": "Hey Jude",
+      "artist": "The Beatles",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Is Blue",
+      "artist": "Paul Mauriat",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Honey",
+      "artist": "Bobby Goldsboro",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Sittin' On) The Dock of the Bay",
+      "artist": "Otis Redding",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "People Got to Be Free",
+      "artist": "The Rascals",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sunshine of Your Love",
+      "artist": "Cream",
+      "year": 1968,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Guy's in Love with You",
+      "artist": "Herb Alpert",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Good, the Bad and the Ugly",
+      "artist": "Hugo Montenegro",
+      "year": 1968,
+      "genres": [
+        "soundtrack",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mrs. Robinson",
+      "artist": "Simon and Garfunkel",
+      "year": 1968,
+      "genres": [
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tighten Up",
+      "artist": "Archie Bell and the Drells",
+      "year": 1968,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Harper Valley P.T.A.",
+      "artist": "Jeannie C. Riley",
+      "year": 1968,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Green Apples",
+      "artist": "O. C. Smith",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mony Mony",
+      "artist": "Tommy James and the Shondells",
+      "year": 1968,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hello, I Love You",
+      "artist": "The Doors",
+      "year": 1968,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Young Girl",
+      "artist": "Gary Puckett and the Union Gap",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cry Like a Baby",
+      "artist": "The Box Tops",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stoned Soul Picnic",
+      "artist": "The 5th Dimension",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Grazing in the Grass",
+      "artist": "Hugh Masekela",
+      "year": 1968,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Midnight Confessions",
+      "artist": "The Grass Roots",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dance to the Music",
+      "artist": "Sly and the Family Stone",
+      "year": 1968,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Horse",
+      "artist": "Cliff Nobles and Co.",
+      "year": 1968,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wish It Would Rain",
+      "artist": "The Temptations",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "La-La (Means I Love You)",
+      "artist": "The Delfonics",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Turn Around, Look at Me",
+      "artist": "The Vogues",
+      "year": 1968,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Judy in Disguise (With Glasses)",
+      "artist": "John Fred and His Playboy Band",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Spooky",
+      "artist": "Classics IV",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Child",
+      "artist": "Diana Ross and the Supremes",
+      "year": 1968,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Angel of the Morning",
+      "artist": "Merrilee Rush and the Turnabouts",
+      "year": 1968,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Green Tambourine",
+      "artist": "The Lemon Pipers",
+      "year": 1968,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Beautiful Morning",
+      "artist": "The Rascals",
+      "year": 1968,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

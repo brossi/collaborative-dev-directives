@@ -1,0 +1,296 @@
+{
+  "module": "year-1990",
+  "name": "Hits of 1990",
+  "source": "Billboard Year-End Hot 100, 1990 (top 30)",
+  "songs": [
+    {
+      "title": "Hold On",
+      "artist": "Wilson Phillips",
+      "year": 1990,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It Must Have Been Love",
+      "artist": "Roxette",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nothing Compares 2 U",
+      "artist": "Sinead O'Connor",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Poison",
+      "artist": "Bell Biv DeVoe",
+      "year": 1990,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Vogue",
+      "artist": "Madonna",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Vision of Love",
+      "artist": "Mariah Carey",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Another Day in Paradise",
+      "artist": "Phil Collins",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold On",
+      "artist": "En Vogue",
+      "year": 1990,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cradle of Love",
+      "artist": "Billy Idol",
+      "year": 1990,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blaze of Glory",
+      "artist": "Jon Bon Jovi",
+      "year": 1990,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Do Me!",
+      "artist": "Bell Biv DeVoe",
+      "year": 1990,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Am I Supposed to Live Without You",
+      "artist": "Michael Bolton",
+      "year": 1990,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Pump Up the Jam",
+      "artist": "Technotronic",
+      "year": 1990,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Opposites Attract",
+      "artist": "Paula Abdul with The Wild Pair",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Escapade",
+      "artist": "Janet Jackson",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All I Wanna Do Is Make Love to You",
+      "artist": "Heart",
+      "year": 1990,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Close to You",
+      "artist": "Maxi Priest",
+      "year": 1990,
+      "genres": [
+        "reggae",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Black Velvet",
+      "artist": "Alannah Myles",
+      "year": 1990,
+      "genres": [
+        "rock",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Release Me",
+      "artist": "Wilson Phillips",
+      "year": 1990,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Know Much",
+      "artist": "Linda Ronstadt featuring Aaron Neville",
+      "year": 1990,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All Around the World",
+      "artist": "Lisa Stansfield",
+      "year": 1990,
+      "genres": [
+        "r&b",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wanna Be Rich",
+      "artist": "Calloway",
+      "year": 1990,
+      "genres": [
+        "r&b",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rub You the Right Way",
+      "artist": "Johnny Gill",
+      "year": 1990,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "She Ain't Worth It",
+      "artist": "Glenn Medeiros featuring Bobby Brown",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If Wishes Came True",
+      "artist": "Sweet Sensation",
+      "year": 1990,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Power",
+      "artist": "Snap!",
+      "year": 1990,
+      "genres": [
+        "dance",
+        "electronic",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Can't Live Without Your) Love and Affection",
+      "artist": "Nelson",
+      "year": 1990,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Will Lead You Back",
+      "artist": "Taylor Dayne",
+      "year": 1990,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Wanna Fall in Love",
+      "artist": "Jane Child",
+      "year": 1990,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Two to Make It Right",
+      "artist": "Seduction",
+      "year": 1990,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

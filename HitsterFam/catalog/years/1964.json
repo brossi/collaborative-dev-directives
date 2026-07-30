@@ -1,0 +1,302 @@
+{
+  "module": "year-1964",
+  "name": "Hits of 1964",
+  "source": "Billboard Year-End Hot 100, 1964 (top 30)",
+  "songs": [
+    {
+      "title": "I Want to Hold Your Hand",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "She Loves You",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hello, Dolly!",
+      "artist": "Louis Armstrong",
+      "year": 1964,
+      "genres": [
+        "jazz",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh, Pretty Woman",
+      "artist": "Roy Orbison",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Get Around",
+      "artist": "The Beach Boys",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everybody Loves Somebody",
+      "artist": "Dean Martin",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Guy",
+      "artist": "Mary Wells",
+      "year": 1964,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We'll Sing in the Sunshine",
+      "artist": "Gale Garnett",
+      "year": 1964,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Kiss",
+      "artist": "J. Frank Wilson and the Cavaliers",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Where Did Our Love Go",
+      "artist": "The Supremes",
+      "year": 1964,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "People",
+      "artist": "Barbra Streisand",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Java",
+      "artist": "Al Hirt",
+      "year": 1964,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Hard Day's Night",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Me Do",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Do Wah Diddy Diddy",
+      "artist": "Manfred Mann",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Please Please Me",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dancing in the Street",
+      "artist": "Martha and the Vandellas",
+      "year": 1964,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Little Children",
+      "artist": "Billy J. Kramer and the Dakotas",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Me with All Your Heart",
+      "artist": "The Ray Charles Singers",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Under the Boardwalk",
+      "artist": "The Drifters",
+      "year": 1964,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Chapel of Love",
+      "artist": "The Dixie Cups",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Suspicion",
+      "artist": "Terry Stafford",
+      "year": 1964,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Glad All Over",
+      "artist": "The Dave Clark Five",
+      "year": 1964,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rag Doll",
+      "artist": "The Four Seasons",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dawn (Go Away)",
+      "artist": "The Four Seasons",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby Love",
+      "artist": "The Supremes",
+      "year": 1964,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The House of the Rising Sun",
+      "artist": "The Animals",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A World Without Love",
+      "artist": "Peter and Gordon",
+      "year": 1964,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Buy Me Love",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Twist and Shout",
+      "artist": "The Beatles",
+      "year": 1964,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "module": "year-2009",
+  "name": "Hits of 2009",
+  "source": "Billboard Year-End Hot 100, 2009 (top 30)",
+  "songs": [
+    {
+      "title": "Boom Boom Pow",
+      "artist": "The Black Eyed Peas",
+      "year": 2009,
+      "genres": [
+        "hip-hop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Poker Face",
+      "artist": "Lady Gaga",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just Dance",
+      "artist": "Lady Gaga featuring Colby O'Donis",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Gotta Feeling",
+      "artist": "The Black Eyed Peas",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Story",
+      "artist": "Taylor Swift",
+      "year": 2009,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Right Round",
+      "artist": "Flo Rida",
+      "year": 2009,
+      "genres": [
+        "hip-hop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Yours",
+      "artist": "Jason Mraz",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Single Ladies (Put a Ring on It)",
+      "artist": "Beyonc\u00e9",
+      "year": 2009,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Heartless",
+      "artist": "Kanye West",
+      "year": 2009,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gives You Hell",
+      "artist": "The All-American Rejects",
+      "year": 2009,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Belong with Me",
+      "artist": "Taylor Swift",
+      "year": 2009,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dead and Gone",
+      "artist": "T.I. featuring Justin Timberlake",
+      "year": 2009,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Found Me",
+      "artist": "The Fray",
+      "year": 2009,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Use Somebody",
+      "artist": "Kings of Leon",
+      "year": 2009,
+      "genres": [
+        "rock",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Knock You Down",
+      "artist": "Keri Hilson featuring Kanye West and Ne-Yo",
+      "year": 2009,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blame It",
+      "artist": "Jamie Foxx featuring T-Pain",
+      "year": 2009,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Know You Want Me (Calle Ocho)",
+      "artist": "Pitbull",
+      "year": 2009,
+      "genres": [
+        "latin",
+        "hip-hop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Live Your Life",
+      "artist": "T.I. featuring Rihanna",
+      "year": 2009,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss Me thru the Phone",
+      "artist": "Soulja Boy Tell 'Em featuring Sammie",
+      "year": 2009,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Down",
+      "artist": "Jay Sean featuring Lil Wayne",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Climb",
+      "artist": "Miley Cyrus",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Best I Ever Had",
+      "artist": "Drake",
+      "year": 2009,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Life Would Suck Without You",
+      "artist": "Kelly Clarkson",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Halo",
+      "artist": "Beyonc\u00e9",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hot n Cold",
+      "artist": "Katy Perry",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Second Chance",
+      "artist": "Shinedown",
+      "year": 2009,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Circus",
+      "artist": "Britney Spears",
+      "year": 2009,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Day 'n' Nite",
+      "artist": "Kid Cudi",
+      "year": 2009,
+      "genres": [
+        "hip-hop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Party in the U.S.A.",
+      "artist": "Miley Cyrus",
+      "year": 2009,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Trust Me",
+      "artist": "3OH!3",
+      "year": 2009,
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

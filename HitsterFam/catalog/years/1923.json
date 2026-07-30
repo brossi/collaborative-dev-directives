@@ -1,0 +1,301 @@
+{
+  "module": "year-1923",
+  "name": "Hits of 1923",
+  "source": "Joel Whitburn's Pop Memories 1890-1954 pre-Billboard chart research plus period record-sales and sheet-music popularity compilations",
+  "songs": [
+    {
+      "title": "Yes! We Have No Bananas",
+      "artist": "Billy Jones",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Down Hearted Blues",
+      "artist": "Bessie Smith",
+      "year": 1923,
+      "genres": [
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "'Tain't Nobody's Biz-ness If I Do",
+      "artist": "Bessie Smith",
+      "year": 1923,
+      "genres": [
+        "blues"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Baby Won't You Please Come Home",
+      "artist": "Bessie Smith",
+      "year": 1923,
+      "genres": [
+        "blues",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Barney Google",
+      "artist": "Billy Jones and Ernest Hare",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Old King Tut",
+      "artist": "Billy Jones and Ernest Hare",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I've Got the Yes! We Have No Bananas Blues",
+      "artist": "Eddie Cantor",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No, No, Nora",
+      "artist": "Eddie Cantor",
+      "year": 1923,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That Old Gang of Mine",
+      "artist": "Billy Murray and Ed Smalle",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Swingin' Down the Lane",
+      "artist": "Isham Jones and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The World Is Waiting for the Sunrise",
+      "artist": "Isham Jones and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Farewell Blues",
+      "artist": "Isham Jones and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Who's Sorry Now?",
+      "artist": "Isham Jones and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wonderful One",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bambalina",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Parade of the Wooden Soldiers",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Night on the Back Porch",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crinoline Days",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It Ain't Gonna Rain No Mo'",
+      "artist": "Wendell Hall",
+      "year": 1923,
+      "genres": [
+        "country",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Charleston",
+      "artist": "Arthur Gibbs and His Gang",
+      "year": 1923,
+      "genres": [
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tin Roof Blues",
+      "artist": "New Orleans Rhythm Kings",
+      "year": 1923,
+      "genres": [
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Aggravatin' Papa",
+      "artist": "Sophie Tucker",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You've Got to See Mamma Ev'ry Night",
+      "artist": "Sophie Tucker",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mama Goes Where Papa Goes",
+      "artist": "Sophie Tucker",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dreamy Melody",
+      "artist": "Art Landry and His Orchestra",
+      "year": 1923,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dirty Hands, Dirty Face",
+      "artist": "Al Jolson",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Marcheta",
+      "artist": "John McCormack",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Waiting for the Evening Mail",
+      "artist": "Al Bernard",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh! Gee, Oh! Gosh, Oh! Golly, I'm in Love",
+      "artist": "Billy Jones and Ernest Hare",
+      "year": 1923,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Just a Girl That Men Forget",
+      "artist": "Henry Burr",
+      "year": 1923,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

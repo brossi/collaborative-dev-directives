@@ -1,0 +1,298 @@
+{
+  "module": "year-1966",
+  "name": "Hits of 1966",
+  "source": "Billboard Year-End Hot 100, 1966 (top 30)",
+  "songs": [
+    {
+      "title": "The Ballad of the Green Berets",
+      "artist": "SSgt. Barry Sadler",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "California Dreamin'",
+      "artist": "The Mamas and the Papas",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "96 Tears",
+      "artist": "? and the Mysterians",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Train to Clarksville",
+      "artist": "The Monkees",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Monday, Monday",
+      "artist": "The Mamas and the Papas",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Can't Hurry Love",
+      "artist": "The Supremes",
+      "year": 1966,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Poor Side of Town",
+      "artist": "Johnny Rivers",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cherish",
+      "artist": "The Association",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Summer in the City",
+      "artist": "The Lovin' Spoonful",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Born Free",
+      "artist": "Roger Williams",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "standards",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Reach Out I'll Be There",
+      "artist": "Four Tops",
+      "year": 1966,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Strangers in the Night",
+      "artist": "Frank Sinatra",
+      "year": 1966,
+      "genres": [
+        "standards",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Winchester Cathedral",
+      "artist": "The New Vaudeville Band",
+      "year": 1966,
+      "genres": [
+        "novelty",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Paint It Black",
+      "artist": "The Rolling Stones",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sunshine Superman",
+      "artist": "Donovan",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "These Boots Are Made for Walkin'",
+      "artist": "Nancy Sinatra",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Good Lovin'",
+      "artist": "The Young Rascals",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When a Man Loves a Woman",
+      "artist": "Percy Sledge",
+      "year": 1966,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wild Thing",
+      "artist": "The Troggs",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Paperback Writer",
+      "artist": "The Beatles",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Can Work It Out",
+      "artist": "The Beatles",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hanky Panky",
+      "artist": "Tommy James and the Shondells",
+      "year": 1966,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lightnin' Strikes",
+      "artist": "Lou Christie",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(You're My) Soul and Inspiration",
+      "artist": "The Righteous Brothers",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Sounds of Silence",
+      "artist": "Simon and Garfunkel",
+      "year": 1966,
+      "genres": [
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Pied Piper",
+      "artist": "Crispian St. Peters",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Red Rubber Ball",
+      "artist": "The Cyrkle",
+      "year": 1966,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "See You in September",
+      "artist": "The Happenings",
+      "year": 1966,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Li'l Red Riding Hood",
+      "artist": "Sam the Sham and the Pharaohs",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Yellow Submarine",
+      "artist": "The Beatles",
+      "year": 1966,
+      "genres": [
+        "rock",
+        "novelty"
+      ],
+      "uri": null
+    }
+  ]
+}

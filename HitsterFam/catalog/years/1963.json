@@ -1,0 +1,296 @@
+{
+  "module": "year-1963",
+  "name": "Hits of 1963",
+  "source": "Billboard Year-End Hot 100, 1963 (top 30)",
+  "songs": [
+    {
+      "title": "Surfin' U.S.A.",
+      "artist": "The Beach Boys",
+      "year": 1963,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sugar Shack",
+      "artist": "Jimmy Gilmer and the Fireballs",
+      "year": 1963,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The End of the World",
+      "artist": "Skeeter Davis",
+      "year": 1963,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rhythm of the Rain",
+      "artist": "The Cascades",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "He's So Fine",
+      "artist": "The Chiffons",
+      "year": 1963,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blue Velvet",
+      "artist": "Bobby Vinton",
+      "year": 1963,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hey Paula",
+      "artist": "Paul and Paula",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fingertips (Pt. 2)",
+      "artist": "Little Stevie Wonder",
+      "year": 1963,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Washington Square",
+      "artist": "The Village Stompers",
+      "year": 1963,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Limbo Rock",
+      "artist": "Chubby Checker",
+      "year": 1963,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Go Away Little Girl",
+      "artist": "Steve Lawrence",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Walk Like a Man",
+      "artist": "The Four Seasons",
+      "year": 1963,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Boyfriend's Back",
+      "artist": "The Angels",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Walk Right In",
+      "artist": "The Rooftop Singers",
+      "year": 1963,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't Get Used to Losing You",
+      "artist": "Andy Williams",
+      "year": 1963,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Our Day Will Come",
+      "artist": "Ruby and the Romantics",
+      "year": 1963,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Will Follow Him",
+      "artist": "Little Peggy March",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Puff (The Magic Dragon)",
+      "artist": "Peter, Paul and Mary",
+      "year": 1963,
+      "genres": [
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Blowin' in the Wind",
+      "artist": "Peter, Paul and Mary",
+      "year": 1963,
+      "genres": [
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Wipe Out",
+      "artist": "The Surfaris",
+      "year": 1963,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's My Party",
+      "artist": "Lesley Gore",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Easier Said Than Done",
+      "artist": "The Essex",
+      "year": 1963,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So Much in Love",
+      "artist": "The Tymes",
+      "year": 1963,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If You Wanna Be Happy",
+      "artist": "Jimmy Soul",
+      "year": 1963,
+      "genres": [
+        "r&b",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sukiyaki",
+      "artist": "Kyu Sakamoto",
+      "year": 1963,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ruby Baby",
+      "artist": "Dion",
+      "year": 1963,
+      "genres": [
+        "rock",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Surf City",
+      "artist": "Jan and Dean",
+      "year": 1963,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Deep Purple",
+      "artist": "Nino Tempo and April Stevens",
+      "year": 1963,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hello Mudduh, Hello Fadduh! (A Letter from Camp)",
+      "artist": "Allan Sherman",
+      "year": 1963,
+      "genres": [
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Telstar",
+      "artist": "The Tornadoes",
+      "year": 1963,
+      "genres": [
+        "rock",
+        "electronic"
+      ],
+      "uri": null
+    }
+  ]
+}

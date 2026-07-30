@@ -1,0 +1,300 @@
+{
+  "module": "year-1951",
+  "name": "Hits of 1951",
+  "source": "Billboard year-end top 30 singles chart, 1951 (Best Sellers)",
+  "songs": [
+    {
+      "title": "Too Young",
+      "artist": "Nat King Cole",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Because of You",
+      "artist": "Tony Bennett",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How High the Moon",
+      "artist": "Les Paul & Mary Ford",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Come On-a My House",
+      "artist": "Rosemary Clooney",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Be My Love",
+      "artist": "Mario Lanza",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "On Top of Old Smoky",
+      "artist": "The Weavers",
+      "year": 1951,
+      "genres": [
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cold, Cold Heart",
+      "artist": "Tony Bennett",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If",
+      "artist": "Perry Como",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Loveliest Night of the Year",
+      "artist": "Mario Lanza",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tennessee Waltz",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jezebel",
+      "artist": "Frankie Laine",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Get Ideas",
+      "artist": "Tony Martin",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mockin' Bird Hill",
+      "artist": "Les Paul & Mary Ford",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mockin' Bird Hill",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Heart Cries for You",
+      "artist": "Guy Mitchell",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(It's No) Sin",
+      "artist": "Eddy Howard",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sound Off",
+      "artist": "Vaughn Monroe",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sweet Violets",
+      "artist": "Dinah Shore",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The World Is Waiting for the Sunrise",
+      "artist": "Les Paul & Mary Ford",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Truly, Truly Fair",
+      "artist": "Guy Mitchell",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(It's No) Sin",
+      "artist": "The Four Aces",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Aba Daba Honeymoon",
+      "artist": "Debbie Reynolds & Carleton Carpenter",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rose, Rose, I Love You",
+      "artist": "Frankie Laine",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Down Yonder",
+      "artist": "Del Wood",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Apologize",
+      "artist": "Billy Eckstine",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Would I Love You (Love You, Love You)",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're Just in Love",
+      "artist": "Perry Como & The Fontane Sisters",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Undecided",
+      "artist": "The Ames Brothers",
+      "year": 1951,
+      "genres": [
+        "pop",
+        "swing"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shanghai",
+      "artist": "Doris Day",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mister and Mississippi",
+      "artist": "Patti Page",
+      "year": 1951,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

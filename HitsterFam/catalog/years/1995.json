@@ -1,0 +1,299 @@
+{
+  "module": "year-1995",
+  "name": "Hits of 1995",
+  "source": "Billboard Year-End Hot 100, 1995 (top 30)",
+  "songs": [
+    {
+      "title": "Gangsta's Paradise",
+      "artist": "Coolio featuring L.V.",
+      "year": 1995,
+      "genres": [
+        "hip-hop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Waterfalls",
+      "artist": "TLC",
+      "year": 1995,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Creep",
+      "artist": "TLC",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss from a Rose",
+      "artist": "Seal",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "soul",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "On Bended Knee",
+      "artist": "Boyz II Men",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Another Night",
+      "artist": "Real McCoy",
+      "year": 1995,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fantasy",
+      "artist": "Mariah Carey",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take a Bow",
+      "artist": "Madonna",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Take It Personal (Just One of Dem Days)",
+      "artist": "Monica",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Is How We Do It",
+      "artist": "Montell Jordan",
+      "year": 1995,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Know",
+      "artist": "Dionne Farris",
+      "year": 1995,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Water Runs Dry",
+      "artist": "Boyz II Men",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Freak Like Me",
+      "artist": "Adina Howard",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Run-Around",
+      "artist": "Blues Traveler",
+      "year": 1995,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Can Love You Like That",
+      "artist": "All-4-One",
+      "year": 1995,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Have You Ever Really Loved a Woman?",
+      "artist": "Bryan Adams",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "rock",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Always",
+      "artist": "Bon Jovi",
+      "year": 1995,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Boombastic",
+      "artist": "Shaggy",
+      "year": 1995,
+      "genres": [
+        "reggae"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Total Eclipse of the Heart",
+      "artist": "Nicki French",
+      "year": 1995,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Gotta Be",
+      "artist": "Des'ree",
+      "year": 1995,
+      "genres": [
+        "r&b",
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Are Not Alone",
+      "artist": "Michael Jackson",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold My Hand",
+      "artist": "Hootie & the Blowfish",
+      "year": 1995,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One More Chance",
+      "artist": "The Notorious B.I.G.",
+      "year": 1995,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Here Comes the Hotstepper",
+      "artist": "Ini Kamoze",
+      "year": 1995,
+      "genres": [
+        "reggae",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Candy Rain",
+      "artist": "Soul for Real",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let Her Cry",
+      "artist": "Hootie & the Blowfish",
+      "year": 1995,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Believe",
+      "artist": "Blessid Union of Souls",
+      "year": 1995,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Red Light Special",
+      "artist": "TLC",
+      "year": 1995,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Runaway",
+      "artist": "Janet Jackson",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Strong Enough",
+      "artist": "Sheryl Crow",
+      "year": 1995,
+      "genres": [
+        "pop",
+        "rock",
+        "singer-songwriter"
+      ],
+      "uri": null
+    }
+  ]
+}

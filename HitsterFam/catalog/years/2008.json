@@ -1,0 +1,302 @@
+{
+  "module": "year-2008",
+  "name": "Hits of 2008",
+  "source": "Billboard Year-End Hot 100, 2008 (top 30)",
+  "songs": [
+    {
+      "title": "Low",
+      "artist": "Flo Rida featuring T-Pain",
+      "year": 2008,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bleeding Love",
+      "artist": "Leona Lewis",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No One",
+      "artist": "Alicia Keys",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lollipop",
+      "artist": "Lil Wayne featuring Static Major",
+      "year": 2008,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Apologize",
+      "artist": "Timbaland featuring OneRepublic",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No Air",
+      "artist": "Jordin Sparks duet with Chris Brown",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Song",
+      "artist": "Sara Bareilles",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love in This Club",
+      "artist": "Usher featuring Young Jeezy",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "With You",
+      "artist": "Chris Brown",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Forever",
+      "artist": "Chris Brown",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sexy Can I",
+      "artist": "Ray J and Yung Berg",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Take a Bow",
+      "artist": "Rihanna",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Viva la Vida",
+      "artist": "Coldplay",
+      "year": 2008,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Kissed a Girl",
+      "artist": "Katy Perry",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whatever You Like",
+      "artist": "T.I.",
+      "year": 2008,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Disturbia",
+      "artist": "Rihanna",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Stop the Music",
+      "artist": "Rihanna",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Pocketful of Sunshine",
+      "artist": "Natasha Bedingfield",
+      "year": 2008,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss Kiss",
+      "artist": "Chris Brown featuring T-Pain",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Closer",
+      "artist": "Ne-Yo",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bubbly",
+      "artist": "Colbie Caillat",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Touch My Body",
+      "artist": "Mariah Carey",
+      "year": 2008,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "4 Minutes",
+      "artist": "Madonna featuring Justin Timberlake and Timbaland",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So What",
+      "artist": "Pink",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Paralyzer",
+      "artist": "Finger Eleven",
+      "year": 2008,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Clumsy",
+      "artist": "Fergie",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Leavin'",
+      "artist": "Jesse McCartney",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dangerous",
+      "artist": "Kardinal Offishall featuring Akon",
+      "year": 2008,
+      "genres": [
+        "hip-hop",
+        "reggae"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tattoo",
+      "artist": "Jordin Sparks",
+      "year": 2008,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "See You Again",
+      "artist": "Miley Cyrus",
+      "year": 2008,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

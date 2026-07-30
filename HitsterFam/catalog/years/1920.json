@@ -1,0 +1,299 @@
+{
+  "module": "year-1920",
+  "name": "Hits of 1920",
+  "source": "Joel Whitburn's Pop Memories 1890-1954 pre-Billboard chart research plus period record-sales and sheet-music popularity compilations",
+  "songs": [
+    {
+      "title": "Whispering",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1920,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Japanese Sandman",
+      "artist": "Paul Whiteman and His Orchestra",
+      "year": 1920,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Swanee",
+      "artist": "Al Jolson",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dardanella",
+      "artist": "Ben Selvin and His Orchestra",
+      "year": 1920,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crazy Blues",
+      "artist": "Mamie Smith",
+      "year": 1920,
+      "genres": [
+        "blues",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Avalon",
+      "artist": "Al Jolson",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When My Baby Smiles at Me",
+      "artist": "Ted Lewis and His Band",
+      "year": 1920,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Be with You in Apple Blossom Time",
+      "artist": "Charles Harrison",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Alice Blue Gown",
+      "artist": "Edith Day",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold Me",
+      "artist": "Art Hickman and His Orchestra",
+      "year": 1920,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Love Nest",
+      "artist": "John Steel",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tell Me, Little Gypsy",
+      "artist": "John Steel",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh! By Jingo!",
+      "artist": "Billy Murray",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You'd Be Surprised",
+      "artist": "Eddie Cantor",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "St. Louis Blues",
+      "artist": "Marion Harris",
+      "year": 1920,
+      "genres": [
+        "blues",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Left All Alone Again Blues",
+      "artist": "Marion Harris",
+      "year": 1920,
+      "genres": [
+        "blues",
+        "jazz"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When the Moon Shines on the Moonshine",
+      "artist": "Bert Williams",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let the Rest of the World Go By",
+      "artist": "Elizabeth Spencer and Charles Hart",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll See You in C-U-B-A",
+      "artist": "Billy Murray",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Isle of Golden Dreams",
+      "artist": "Ben Selvin and His Orchestra",
+      "year": 1920,
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Daddy, You've Been a Mother to Me",
+      "artist": "Henry Burr",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Old Pal, Why Don't You Answer Me",
+      "artist": "Henry Burr",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So Long! Oo-Long (How Long You Gonna Be Gone?)",
+      "artist": "Frank Crumit",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Little Bimbo Down on the Bamboo Isle",
+      "artist": "Frank Crumit",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Chili Bean (Eeny Meeny Miny Mo)",
+      "artist": "Arthur Fields",
+      "year": 1920,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Oh! What a Pal Was Mary",
+      "artist": "Henry Burr",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "After You Get What You Want, You Don't Want It",
+      "artist": "Van and Schenck",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Broadway Blues",
+      "artist": "Nora Bayes",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hiawatha's Melody of Love",
+      "artist": "Henry Burr",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Feather Your Nest",
+      "artist": "Henry Burr and Albert Campbell",
+      "year": 1920,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

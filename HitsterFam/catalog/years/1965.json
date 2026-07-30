@@ -1,0 +1,299 @@
+{
+  "module": "year-1965",
+  "name": "Hits of 1965",
+  "source": "Billboard Year-End Hot 100, 1965 (top 30)",
+  "songs": [
+    {
+      "title": "Wooly Bully",
+      "artist": "Sam the Sham and the Pharaohs",
+      "year": 1965,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Can't Help Myself (Sugar Pie Honey Bunch)",
+      "artist": "Four Tops",
+      "year": 1965,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(I Can't Get No) Satisfaction",
+      "artist": "The Rolling Stones",
+      "year": 1965,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Were on My Mind",
+      "artist": "We Five",
+      "year": 1965,
+      "genres": [
+        "folk",
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You've Lost That Lovin' Feelin'",
+      "artist": "The Righteous Brothers",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Downtown",
+      "artist": "Petula Clark",
+      "year": 1965,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Help!",
+      "artist": "The Beatles",
+      "year": 1965,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Can't You Hear My Heartbeat",
+      "artist": "Herman's Hermits",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crying in the Chapel",
+      "artist": "Elvis Presley",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "gospel"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Girl",
+      "artist": "The Temptations",
+      "year": 1965,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Help Me, Rhonda",
+      "artist": "The Beach Boys",
+      "year": 1965,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "King of the Road",
+      "artist": "Roger Miller",
+      "year": 1965,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Birds and the Bees",
+      "artist": "Jewel Akens",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold Me, Thrill Me, Kiss Me",
+      "artist": "Mel Carter",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Shotgun",
+      "artist": "Jr. Walker and the All Stars",
+      "year": 1965,
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Got You Babe",
+      "artist": "Sonny and Cher",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Diamond Ring",
+      "artist": "Gary Lewis and the Playboys",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mrs. Brown, You've Got a Lovely Daughter",
+      "artist": "Herman's Hermits",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stop! In the Name of Love",
+      "artist": "The Supremes",
+      "year": 1965,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unchained Melody",
+      "artist": "The Righteous Brothers",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Yesterday",
+      "artist": "The Beatles",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mr. Tambourine Man",
+      "artist": "The Byrds",
+      "year": 1965,
+      "genres": [
+        "rock",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ticket to Ride",
+      "artist": "The Beatles",
+      "year": 1965,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Eight Days a Week",
+      "artist": "The Beatles",
+      "year": 1965,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hang On Sloopy",
+      "artist": "The McCoys",
+      "year": 1965,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Eve of Destruction",
+      "artist": "Barry McGuire",
+      "year": 1965,
+      "genres": [
+        "folk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Silhouettes",
+      "artist": "Herman's Hermits",
+      "year": 1965,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Never Find Another You",
+      "artist": "The Seekers",
+      "year": 1965,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What's New Pussycat?",
+      "artist": "Tom Jones",
+      "year": 1965,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cara Mia",
+      "artist": "Jay and the Americans",
+      "year": 1965,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

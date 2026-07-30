@@ -1,0 +1,309 @@
+{
+  "module": "year-1984",
+  "name": "Hits of 1984",
+  "source": "Billboard Year-End Hot 100, 1984 (top 30)",
+  "songs": [
+    {
+      "title": "When Doves Cry",
+      "artist": "Prince",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "funk",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What's Love Got to Do with It",
+      "artist": "Tina Turner",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Say Say Say",
+      "artist": "Paul McCartney and Michael Jackson",
+      "year": 1984,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Footloose",
+      "artist": "Kenny Loggins",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Against All Odds (Take a Look at Me Now)",
+      "artist": "Phil Collins",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jump",
+      "artist": "Van Halen",
+      "year": 1984,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hello",
+      "artist": "Lionel Richie",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Owner of a Lonely Heart",
+      "artist": "Yes",
+      "year": 1984,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ghostbusters",
+      "artist": "Ray Parker Jr.",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "funk",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Karma Chameleon",
+      "artist": "Culture Club",
+      "year": 1984,
+      "genres": [
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Missing You",
+      "artist": "John Waite",
+      "year": 1984,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All Night Long (All Night)",
+      "artist": "Lionel Richie",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Hear It for the Boy",
+      "artist": "Deniece Williams",
+      "year": 1984,
+      "genres": [
+        "r&b",
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dancing in the Dark",
+      "artist": "Bruce Springsteen",
+      "year": 1984,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Girls Just Want to Have Fun",
+      "artist": "Cyndi Lauper",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Reflex",
+      "artist": "Duran Duran",
+      "year": 1984,
+      "genres": [
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Time After Time",
+      "artist": "Cyndi Lauper",
+      "year": 1984,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Jump (For My Love)",
+      "artist": "The Pointer Sisters",
+      "year": 1984,
+      "genres": [
+        "r&b",
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Talking in Your Sleep",
+      "artist": "The Romantics",
+      "year": 1984,
+      "genres": [
+        "rock",
+        "new wave"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Self Control",
+      "artist": "Laura Branigan",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Go Crazy",
+      "artist": "Prince and the Revolution",
+      "year": 1984,
+      "genres": [
+        "rock",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Say It Isn't So",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hold Me Now",
+      "artist": "Thompson Twins",
+      "year": 1984,
+      "genres": [
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Joanna",
+      "artist": "Kool & the Gang",
+      "year": 1984,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Just Called to Say I Love You",
+      "artist": "Stevie Wonder",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Somebody's Watching Me",
+      "artist": "Rockwell",
+      "year": 1984,
+      "genres": [
+        "r&b",
+        "funk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Break My Stride",
+      "artist": "Matthew Wilder",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "reggae"
+      ],
+      "uri": null
+    },
+    {
+      "title": "99 Luftballons",
+      "artist": "Nena",
+      "year": 1984,
+      "genres": [
+        "new wave",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Can Dream About You",
+      "artist": "Dan Hartman",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Glamorous Life",
+      "artist": "Sheila E.",
+      "year": 1984,
+      "genres": [
+        "pop",
+        "funk"
+      ],
+      "uri": null
+    }
+  ]
+}

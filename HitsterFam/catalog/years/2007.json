@@ -1,0 +1,298 @@
+{
+  "module": "year-2007",
+  "name": "Hits of 2007",
+  "source": "Billboard Year-End Hot 100, 2007 (top 30)",
+  "songs": [
+    {
+      "title": "Irreplaceable",
+      "artist": "Beyonc\u00e9",
+      "year": 2007,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Umbrella",
+      "artist": "Rihanna featuring Jay-Z",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Sweet Escape",
+      "artist": "Gwen Stefani featuring Akon",
+      "year": 2007,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Big Girls Don't Cry",
+      "artist": "Fergie",
+      "year": 2007,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Buy U a Drank (Shawty Snappin')",
+      "artist": "T-Pain featuring Yung Joc",
+      "year": 2007,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Before He Cheats",
+      "artist": "Carrie Underwood",
+      "year": 2007,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hey There Delilah",
+      "artist": "Plain White T's",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Wanna Love You",
+      "artist": "Akon featuring Snoop Dogg",
+      "year": 2007,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Say It Right",
+      "artist": "Nelly Furtado",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Glamorous",
+      "artist": "Fergie featuring Ludacris",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Matter",
+      "artist": "Akon",
+      "year": 2007,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Girlfriend",
+      "artist": "Avril Lavigne",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "punk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Makes Me Wonder",
+      "artist": "Maroon 5",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Party Like a Rockstar",
+      "artist": "Shop Boyz",
+      "year": 2007,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Smack That",
+      "artist": "Akon featuring Eminem",
+      "year": 2007,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Is Why I'm Hot",
+      "artist": "Mims",
+      "year": 2007,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's Not Over",
+      "artist": "Daughtry",
+      "year": 2007,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Way I Are",
+      "artist": "Timbaland featuring Keri Hilson",
+      "year": 2007,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fergalicious",
+      "artist": "Fergie featuring will.i.am",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crank That (Soulja Boy)",
+      "artist": "Soulja Boy Tell 'Em",
+      "year": 2007,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Give It to Me",
+      "artist": "Timbaland featuring Nelly Furtado and Justin Timberlake",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What Goes Around... Comes Around",
+      "artist": "Justin Timberlake",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cupid's Chokehold",
+      "artist": "Gym Class Heroes featuring Patrick Stump",
+      "year": 2007,
+      "genres": [
+        "hip-hop",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How to Save a Life",
+      "artist": "The Fray",
+      "year": 2007,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Home",
+      "artist": "Daughtry",
+      "year": 2007,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Love",
+      "artist": "Justin Timberlake featuring T.I.",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Stronger",
+      "artist": "Kanye West",
+      "year": 2007,
+      "genres": [
+        "hip-hop",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "We Fly High",
+      "artist": "Jim Jones",
+      "year": 2007,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "U + Ur Hand",
+      "artist": "Pink",
+      "year": 2007,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Walk It Out",
+      "artist": "Unk",
+      "year": 2007,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    }
+  ]
+}

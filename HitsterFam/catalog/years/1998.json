@@ -1,0 +1,296 @@
+{
+  "module": "year-1998",
+  "name": "Hits of 1998",
+  "source": "Billboard Year-End Hot 100, 1998 (top 30)",
+  "songs": [
+    {
+      "title": "Too Close",
+      "artist": "Next",
+      "year": 1998,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Boy Is Mine",
+      "artist": "Brandy and Monica",
+      "year": 1998,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're Still the One",
+      "artist": "Shania Twain",
+      "year": 1998,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Truly Madly Deeply",
+      "artist": "Savage Garden",
+      "year": 1998,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Do I Live",
+      "artist": "LeAnn Rimes",
+      "year": 1998,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Together Again",
+      "artist": "Janet Jackson",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "dance",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All My Life",
+      "artist": "K-Ci & JoJo",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nice & Slow",
+      "artist": "Usher",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Wait",
+      "artist": "Paula Cole",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How's It Going to Be",
+      "artist": "Third Eye Blind",
+      "year": 1998,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No, No, No",
+      "artist": "Destiny's Child",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Heart Will Go On",
+      "artist": "Celine Dion",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gettin' Jiggy wit It",
+      "artist": "Will Smith",
+      "year": 1998,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My Way",
+      "artist": "Usher",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "My All",
+      "artist": "Mariah Carey",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The First Night",
+      "artist": "Monica",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Been Around the World",
+      "artist": "Puff Daddy featuring The Notorious B.I.G. and Mase",
+      "year": 1998,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Adia",
+      "artist": "Sarah McLachlan",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crush",
+      "artist": "Jennifer Paige",
+      "year": 1998,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everybody (Backstreet's Back)",
+      "artist": "Backstreet Boys",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Want to Miss a Thing",
+      "artist": "Aerosmith",
+      "year": 1998,
+      "genres": [
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Body Bumpin' (Yippie-Yi-Yo)",
+      "artist": "Public Announcement",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "This Kiss",
+      "artist": "Faith Hill",
+      "year": 1998,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Don't Ever Want to See You Again",
+      "artist": "Uncle Sam",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let's Ride",
+      "artist": "Montell Jordan featuring Master P and Silkk the Shocker",
+      "year": 1998,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sex and Candy",
+      "artist": "Marcy Playground",
+      "year": 1998,
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Show Me Love",
+      "artist": "Robyn",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Song for Mama",
+      "artist": "Boyz II Men",
+      "year": 1998,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What You Want",
+      "artist": "Mase featuring Total",
+      "year": 1998,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Frozen",
+      "artist": "Madonna",
+      "year": 1998,
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "uri": null
+    }
+  ]
+}

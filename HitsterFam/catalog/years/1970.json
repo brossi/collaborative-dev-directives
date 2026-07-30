@@ -1,0 +1,296 @@
+{
+  "module": "year-1970",
+  "name": "Hits of 1970",
+  "source": "Billboard Year-End Hot 100, 1970 (top 30)",
+  "songs": [
+    {
+      "title": "Bridge Over Troubled Water",
+      "artist": "Simon & Garfunkel",
+      "year": 1970,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(They Long to Be) Close to You",
+      "artist": "Carpenters",
+      "year": 1970,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "American Woman",
+      "artist": "The Guess Who",
+      "year": 1970,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Raindrops Keep Fallin' on My Head",
+      "artist": "B.J. Thomas",
+      "year": 1970,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "War",
+      "artist": "Edwin Starr",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't No Mountain High Enough",
+      "artist": "Diana Ross",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'll Be There",
+      "artist": "The Jackson 5",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Get Ready",
+      "artist": "Rare Earth",
+      "year": 1970,
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let It Be",
+      "artist": "The Beatles",
+      "year": 1970,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Band of Gold",
+      "artist": "Freda Payne",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mama Told Me (Not to Come)",
+      "artist": "Three Dog Night",
+      "year": 1970,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everything Is Beautiful",
+      "artist": "Ray Stevens",
+      "year": 1970,
+      "genres": [
+        "pop",
+        "gospel"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Make It with You",
+      "artist": "Bread",
+      "year": 1970,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hitchin' a Ride",
+      "artist": "Vanity Fare",
+      "year": 1970,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "ABC",
+      "artist": "The Jackson 5",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Love You Save",
+      "artist": "The Jackson 5",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Cracklin' Rosie",
+      "artist": "Neil Diamond",
+      "year": 1970,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Candida",
+      "artist": "Dawn",
+      "year": 1970,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Thank You (Falettinme Be Mice Elf Agin)",
+      "artist": "Sly & the Family Stone",
+      "year": 1970,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Spill the Wine",
+      "artist": "Eric Burdon & War",
+      "year": 1970,
+      "genres": [
+        "rock",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "O-o-h Child",
+      "artist": "The Five Stairsteps",
+      "year": 1970,
+      "genres": [
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Spirit in the Sky",
+      "artist": "Norman Greenbaum",
+      "year": 1970,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lay Down (Candles in the Rain)",
+      "artist": "Melanie",
+      "year": 1970,
+      "genres": [
+        "folk",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ball of Confusion (That's What the World Is Today)",
+      "artist": "The Temptations",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love on a Two-Way Street",
+      "artist": "The Moments",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Which Way You Goin' Billy?",
+      "artist": "The Poppy Family",
+      "year": 1970,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All Right Now",
+      "artist": "Free",
+      "year": 1970,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Want You Back",
+      "artist": "The Jackson 5",
+      "year": 1970,
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Julie, Do Ya Love Me",
+      "artist": "Bobby Sherman",
+      "year": 1970,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Green-Eyed Lady",
+      "artist": "Sugarloaf",
+      "year": 1970,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

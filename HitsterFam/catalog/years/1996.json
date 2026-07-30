@@ -1,0 +1,303 @@
+{
+  "module": "year-1996",
+  "name": "Hits of 1996",
+  "source": "Billboard Year-End Hot 100, 1996 (top 30)",
+  "songs": [
+    {
+      "title": "Macarena (Bayside Boys Mix)",
+      "artist": "Los del Rio",
+      "year": 1996,
+      "genres": [
+        "latin",
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One Sweet Day",
+      "artist": "Mariah Carey and Boyz II Men",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Because You Loved Me",
+      "artist": "Celine Dion",
+      "year": 1996,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nobody Knows",
+      "artist": "The Tony Rich Project",
+      "year": 1996,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Always Be My Baby",
+      "artist": "Mariah Carey",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Give Me One Reason",
+      "artist": "Tracy Chapman",
+      "year": 1996,
+      "genres": [
+        "blues",
+        "rock",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tha Crossroads",
+      "artist": "Bone Thugs-n-Harmony",
+      "year": 1996,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Love You Always Forever",
+      "artist": "Donna Lewis",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're Makin' Me High",
+      "artist": "Toni Braxton",
+      "year": 1996,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Twisted",
+      "artist": "Keith Sweat",
+      "year": 1996,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "C'mon N' Ride It (The Train)",
+      "artist": "Quad City DJ's",
+      "year": 1996,
+      "genres": [
+        "dance",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Missing",
+      "artist": "Everything but the Girl",
+      "year": 1996,
+      "genres": [
+        "electronic",
+        "dance",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ironic",
+      "artist": "Alanis Morissette",
+      "year": 1996,
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Exhale (Shoop Shoop)",
+      "artist": "Whitney Houston",
+      "year": 1996,
+      "genres": [
+        "r&b",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Follow You Down",
+      "artist": "Gin Blossoms",
+      "year": 1996,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sittin' Up in My Room",
+      "artist": "Brandy",
+      "year": 1996,
+      "genres": [
+        "r&b",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "How Do U Want It",
+      "artist": "2Pac featuring K-Ci and JoJo",
+      "year": 1996,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's All Coming Back to Me Now",
+      "artist": "Celine Dion",
+      "year": 1996,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Change the World",
+      "artist": "Eric Clapton",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "rock",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hey Lover",
+      "artist": "LL Cool J featuring Boyz II Men",
+      "year": 1996,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Loungin",
+      "artist": "LL Cool J",
+      "year": 1996,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Insensitive",
+      "artist": "Jann Arden",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Be My Lover",
+      "artist": "La Bouche",
+      "year": 1996,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Name",
+      "artist": "Goo Goo Dolls",
+      "year": 1996,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Who Will Save Your Soul",
+      "artist": "Jewel",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "folk",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Where Do You Go",
+      "artist": "No Mercy",
+      "year": 1996,
+      "genres": [
+        "dance",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Can't Sleep Baby (If I)",
+      "artist": "R. Kelly",
+      "year": 1996,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Counting Blue Cars",
+      "artist": "Dishwalla",
+      "year": 1996,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Learn",
+      "artist": "Alanis Morissette",
+      "year": 1996,
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "One of Us",
+      "artist": "Joan Osborne",
+      "year": 1996,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    }
+  ]
+}

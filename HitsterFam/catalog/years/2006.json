@@ -1,0 +1,297 @@
+{
+  "module": "year-2006",
+  "name": "Hits of 2006",
+  "source": "Billboard Year-End Hot 100, 2006 (top 30)",
+  "songs": [
+    {
+      "title": "Bad Day",
+      "artist": "Daniel Powter",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Temperature",
+      "artist": "Sean Paul",
+      "year": 2006,
+      "genres": [
+        "reggae",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Promiscuous",
+      "artist": "Nelly Furtado featuring Timbaland",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You're Beautiful",
+      "artist": "James Blunt",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hips Don't Lie",
+      "artist": "Shakira featuring Wyclef Jean",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unwritten",
+      "artist": "Natasha Bedingfield",
+      "year": 2006,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Crazy",
+      "artist": "Gnarls Barkley",
+      "year": 2006,
+      "genres": [
+        "soul",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ridin'",
+      "artist": "Chamillionaire featuring Krayzie Bone",
+      "year": 2006,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "SexyBack",
+      "artist": "Justin Timberlake",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Check on It",
+      "artist": "Beyonc\u00e9 featuring Slim Thug",
+      "year": 2006,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Be Without You",
+      "artist": "Mary J. Blige",
+      "year": 2006,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Grillz",
+      "artist": "Nelly featuring Paul Wall, Ali & Gipp",
+      "year": 2006,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Over My Head (Cable Car)",
+      "artist": "The Fray",
+      "year": 2006,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Me & U",
+      "artist": "Cassie",
+      "year": 2006,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Buttons",
+      "artist": "The Pussycat Dolls featuring Snoop Dogg",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Run It!",
+      "artist": "Chris Brown featuring Juelz Santana",
+      "year": 2006,
+      "genres": [
+        "r&b",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "So Sick",
+      "artist": "Ne-Yo",
+      "year": 2006,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's Goin' Down",
+      "artist": "Yung Joc",
+      "year": 2006,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "SOS",
+      "artist": "Rihanna",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Write Sins Not Tragedies",
+      "artist": "Panic! at the Disco",
+      "year": 2006,
+      "genres": [
+        "rock",
+        "punk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Move Along",
+      "artist": "The All-American Rejects",
+      "year": 2006,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "London Bridge",
+      "artist": "Fergie",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dani California",
+      "artist": "Red Hot Chili Peppers",
+      "year": 2006,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Snap Yo Fingers",
+      "artist": "Lil Jon featuring E-40 and Sean Paul",
+      "year": 2006,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lean wit It, Rock wit It",
+      "artist": "Dem Franchize Boyz",
+      "year": 2006,
+      "genres": [
+        "hip-hop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What Hurts the Most",
+      "artist": "Rascal Flatts",
+      "year": 2006,
+      "genres": [
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unfaithful",
+      "artist": "Rihanna",
+      "year": 2006,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Chasing Cars",
+      "artist": "Snow Patrol",
+      "year": 2006,
+      "genres": [
+        "rock",
+        "indie"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Lips of an Angel",
+      "artist": "Hinder",
+      "year": 2006,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Everytime We Touch",
+      "artist": "Cascada",
+      "year": 2006,
+      "genres": [
+        "dance",
+        "electronic"
+      ],
+      "uri": null
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "module": "year-1999",
+  "name": "Hits of 1999",
+  "source": "Billboard Year-End Hot 100, 1999 (top 30)",
+  "songs": [
+    {
+      "title": "Believe",
+      "artist": "Cher",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "dance"
+      ],
+      "uri": null
+    },
+    {
+      "title": "No Scrubs",
+      "artist": "TLC",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Angel of Mine",
+      "artist": "Monica",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Heartbreak Hotel",
+      "artist": "Whitney Houston featuring Faith Evans and Kelly Price",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "...Baby One More Time",
+      "artist": "Britney Spears",
+      "year": 1999,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Kiss Me",
+      "artist": "Sixpence None the Richer",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Genie in a Bottle",
+      "artist": "Christina Aguilera",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Every Morning",
+      "artist": "Sugar Ray",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Nobody's Supposed to Be Here",
+      "artist": "Deborah Cox",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Livin' la Vida Loca",
+      "artist": "Ricky Martin",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "latin"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Where My Girls At?",
+      "artist": "702",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "If You Had My Love",
+      "artist": "Jennifer Lopez",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Slide",
+      "artist": "Goo Goo Dolls",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Have You Ever?",
+      "artist": "Brandy",
+      "year": 1999,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Want It That Way",
+      "artist": "Backstreet Boys",
+      "year": 1999,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Your Angel",
+      "artist": "R. Kelly and Celine Dion",
+      "year": 1999,
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All Star",
+      "artist": "Smash Mouth",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Angel",
+      "artist": "Sarah McLachlan",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Steal My Sunshine",
+      "artist": "Len",
+      "year": 1999,
+      "genres": [
+        "pop",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unpretty",
+      "artist": "TLC",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bills, Bills, Bills",
+      "artist": "Destiny's Child",
+      "year": 1999,
+      "genres": [
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Save Tonight",
+      "artist": "Eagle-Eye Cherry",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Last Kiss",
+      "artist": "Pearl Jam",
+      "year": 1999,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fortunate",
+      "artist": "Maxwell",
+      "year": 1999,
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "All I Have to Give",
+      "artist": "Backstreet Boys",
+      "year": 1999,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Bailamos",
+      "artist": "Enrique Iglesias",
+      "year": 1999,
+      "genres": [
+        "latin",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What's It Gonna Be?!",
+      "artist": "Busta Rhymes featuring Janet Jackson",
+      "year": 1999,
+      "genres": [
+        "hip-hop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "What It's Like",
+      "artist": "Everlast",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "hip-hop",
+        "alternative"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fly Away",
+      "artist": "Lenny Kravitz",
+      "year": 1999,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Someday",
+      "artist": "Sugar Ray",
+      "year": 1999,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    }
+  ]
+}

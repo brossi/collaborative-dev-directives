@@ -1,0 +1,303 @@
+{
+  "module": "year-1955",
+  "name": "Hits of 1955",
+  "source": "Billboard year-end top 30 singles chart, 1955 (Best Sellers)",
+  "songs": [
+    {
+      "title": "Cherry Pink and Apple Blossom White",
+      "artist": "Perez Prado",
+      "year": 1955,
+      "genres": [
+        "latin",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rock Around the Clock",
+      "artist": "Bill Haley & His Comets",
+      "year": 1955,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Yellow Rose of Texas",
+      "artist": "Mitch Miller",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Autumn Leaves",
+      "artist": "Roger Williams",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unchained Melody",
+      "artist": "Les Baxter",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Ballad of Davy Crockett",
+      "artist": "Bill Hayes",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Love Is a Many-Splendored Thing",
+      "artist": "The Four Aces",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sincerely",
+      "artist": "The McGuire Sisters",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ain't That a Shame",
+      "artist": "Pat Boone",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Wallflower (Dance with Me, Henry)",
+      "artist": "Georgia Gibbs",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Crazy Otto Medley",
+      "artist": "Johnny Maddox",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Melody of Love",
+      "artist": "Billy Vaughn",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sixteen Tons",
+      "artist": "Tennessee Ernie Ford",
+      "year": 1955,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Learnin' the Blues",
+      "artist": "Frank Sinatra",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hearts of Stone",
+      "artist": "The Fontane Sisters",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Tweedlee Dee",
+      "artist": "Georgia Gibbs",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Moments to Remember",
+      "artist": "The Four Lads",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Mister Sandman",
+      "artist": "The Chordettes",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "doo-wop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Let Me Go, Lover!",
+      "artist": "Joan Weber",
+      "year": 1955,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "A Blossom Fell",
+      "artist": "Nat King Cole",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Unchained Melody",
+      "artist": "Al Hibbler",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Ballad of Davy Crockett",
+      "artist": "Fess Parker",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Honey-Babe",
+      "artist": "Art Mooney",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Ballad of Davy Crockett",
+      "artist": "Tennessee Ernie Ford",
+      "year": 1955,
+      "genres": [
+        "country",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Ko Ko Mo (I Love You So)",
+      "artist": "Perry Como",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hard to Get",
+      "artist": "Gisele MacKenzie",
+      "year": 1955,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "The Naughty Lady of Shady Lane",
+      "artist": "The Ames Brothers",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "novelty"
+      ],
+      "uri": null
+    },
+    {
+      "title": "That's All I Want from You",
+      "artist": "Jaye P. Morgan",
+      "year": 1955,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Only You (And You Alone)",
+      "artist": "The Platters",
+      "year": 1955,
+      "genres": [
+        "doo-wop",
+        "r&b"
+      ],
+      "uri": null
+    },
+    {
+      "title": "It's a Sin to Tell a Lie",
+      "artist": "Somethin' Smith and the Redheads",
+      "year": 1955,
+      "genres": [
+        "pop",
+        "standards"
+      ],
+      "uri": null
+    }
+  ]
+}

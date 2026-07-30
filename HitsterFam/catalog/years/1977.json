@@ -1,0 +1,299 @@
+{
+  "module": "year-1977",
+  "name": "Hits of 1977",
+  "source": "Billboard Year-End Hot 100, 1977 (top 30)",
+  "songs": [
+    {
+      "title": "Tonight's the Night (Gonna Be Alright)",
+      "artist": "Rod Stewart",
+      "year": 1977,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Just Want to Be Your Everything",
+      "artist": "Andy Gibb",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Best of My Love",
+      "artist": "The Emotions",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Evergreen (Love Theme from A Star Is Born)",
+      "artist": "Barbra Streisand",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soundtrack"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Angel in Your Arms",
+      "artist": "Hot",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I Like Dreamin'",
+      "artist": "Kenny Nolan",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Leave Me This Way",
+      "artist": "Thelma Houston",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "(Your Love Has Lifted Me) Higher and Higher",
+      "artist": "Rita Coolidge",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Undercover Angel",
+      "artist": "Alan O'Day",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Torn Between Two Lovers",
+      "artist": "Mary MacGregor",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "folk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "I'm Your Boogie Man",
+      "artist": "KC and the Sunshine Band",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Dancing Queen",
+      "artist": "ABBA",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Make Me Feel Like Dancing",
+      "artist": "Leo Sayer",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Margaritaville",
+      "artist": "Jimmy Buffett",
+      "year": 1977,
+      "genres": [
+        "rock",
+        "country"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Telephone Line",
+      "artist": "Electric Light Orchestra",
+      "year": 1977,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Whatcha Gonna Do?",
+      "artist": "Pablo Cruise",
+      "year": 1977,
+      "genres": [
+        "rock",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Do You Wanna Make Love",
+      "artist": "Peter McCann",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Sir Duke",
+      "artist": "Stevie Wonder",
+      "year": 1977,
+      "genres": [
+        "funk",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "year": 1977,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Got to Give It Up",
+      "artist": "Marvin Gaye",
+      "year": 1977,
+      "genres": [
+        "funk",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Gonna Fly Now (Theme from Rocky)",
+      "artist": "Bill Conti",
+      "year": 1977,
+      "genres": [
+        "soundtrack",
+        "disco"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Southern Nights",
+      "artist": "Glen Campbell",
+      "year": 1977,
+      "genres": [
+        "country",
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Rich Girl",
+      "artist": "Daryl Hall & John Oates",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "When I Need You",
+      "artist": "Leo Sayer",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Hot Line",
+      "artist": "The Sylvers",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Car Wash",
+      "artist": "Rose Royce",
+      "year": 1977,
+      "genres": [
+        "disco",
+        "funk"
+      ],
+      "uri": null
+    },
+    {
+      "title": "You Don't Have to Be a Star (To Be in My Show)",
+      "artist": "Marilyn McCoo & Billy Davis Jr.",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Fly Like an Eagle",
+      "artist": "Steve Miller Band",
+      "year": 1977,
+      "genres": [
+        "rock"
+      ],
+      "uri": null
+    },
+    {
+      "title": "Don't Give Up on Us",
+      "artist": "David Soul",
+      "year": 1977,
+      "genres": [
+        "pop"
+      ],
+      "uri": null
+    },
+    {
+      "title": "On and On",
+      "artist": "Stephen Bishop",
+      "year": 1977,
+      "genres": [
+        "pop",
+        "singer-songwriter"
+      ],
+      "uri": null
+    }
+  ]
+}
