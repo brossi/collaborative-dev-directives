@@ -33,7 +33,7 @@ function Timeline({ player, interactive, selected, onSelect }: {
               onClick={() => onSelect(index)}
               type="button"
             >
-              <span>{selected === index ? "Mystery song goes here" : "Place here"}</span>
+              <span>{selected === index ? "Mystery song goes here" : "+ Place here"}</span>
             </button>
           )}
           <article className="song-card">
@@ -51,7 +51,7 @@ function Timeline({ player, interactive, selected, onSelect }: {
           onClick={() => onSelect(player.timeline.length)}
           type="button"
         >
-          <span>{selected === player.timeline.length ? "Mystery song goes here" : "Place here"}</span>
+          <span>{selected === player.timeline.length ? "Mystery song goes here" : "+ Place here"}</span>
         </button>
       )}
     </div>

@@ -65,10 +65,16 @@ test("room sessions survive reloads and transient connection gaps", async () => 
 });
 
 test("the player game view prioritizes the timeline", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const [page, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
 
   assert.match(page, /className="player-header"/);
   assert.match(page, /Place the mystery song/);
+  assert.match(page, /\+ Place here/);
+  assert.match(styles, /\.timeline-gap \{[^}]*color: var\(--green\)/);
+  assert.doesNotMatch(styles, /\.timeline-gap \{[^}]*color: transparent/);
   assert.match(page, /Room \$\{room\.code\} · Leave/);
   assert.doesNotMatch(page, /<p className="step-label">Your timeline<\/p>/);
   assert.doesNotMatch(page, /Listen closely — you’re up later/);
