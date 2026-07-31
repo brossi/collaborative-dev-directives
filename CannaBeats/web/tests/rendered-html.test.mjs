@@ -120,6 +120,22 @@ test("either side of a matching year is accepted", async () => {
   assert.match(route, /state\.currentSong\.year <= next\.year/);
 });
 
+test("a locked placement is shown and can be retracted once", async () => {
+  const [page, route, game] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(game, /retractionUsed: boolean/);
+  assert.match(page, /Mystery song locked here/);
+  assert.match(page, /Retract placement/);
+  assert.match(page, /action: "retract"/);
+  assert.match(route, /if \(state\.retractionUsed\)/);
+  assert.match(route, /state\.retractionUsed = true/);
+  assert.match(route, /state\.retractionUsed = false/);
+});
+
 test("the host uses blind in-browser Spotify playback", async () => {
   const [page, player] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

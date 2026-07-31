@@ -27,6 +27,7 @@ export type RoomState = {
   round: number;
   currentSong: Song | null;
   placement: number | null;
+  retractionUsed: boolean;
   result: PlacementResult | null;
   winnerId: string | null;
   usedUris: string[];

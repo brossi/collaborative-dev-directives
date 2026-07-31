@@ -17,29 +17,43 @@ async function gameRequest(body: Record<string, unknown>) {
   return payload;
 }
 
-function Timeline({ player, interactive, selected, onSelect }: {
+function Timeline({ player, interactive, selected, locked, onSelect }: {
   player: Player;
   interactive: boolean;
   selected: number | null;
+  locked: number | null;
   onSelect: (index: number) => void;
 }) {
   const placementLabel = (index: number) => index === 0
     ? `Earlier than ${player.timeline[0].year}`
     : `Later than ${player.timeline[index - 1].year}`;
 
+  const placementTarget = (index: number) => {
+    if (locked === index) {
+      return (
+        <article className="song-card mystery-song-card" aria-label="Mystery song locked here">
+          <span className="song-year">?</span>
+          <span className="song-details"><strong>Mystery song</strong><small>Locked here</small></span>
+        </article>
+      );
+    }
+    if (!interactive) return null;
+    return (
+      <button
+        className={`timeline-gap ${selected === index ? "selected" : ""}`}
+        onClick={() => onSelect(index)}
+        type="button"
+      >
+        <span>{selected === index ? "Mystery song goes here" : placementLabel(index)}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="timeline" aria-label={`${player.name}’s timeline`}>
       {player.timeline.map((song, index) => (
         <div className="timeline-section" key={`${song.year}-${song.title}-${index}`}>
-          {interactive && (
-            <button
-              className={`timeline-gap ${selected === index ? "selected" : ""}`}
-              onClick={() => onSelect(index)}
-              type="button"
-            >
-              <span>{selected === index ? "Mystery song goes here" : placementLabel(index)}</span>
-            </button>
-          )}
+          {placementTarget(index)}
           <article className="song-card">
             <span className="song-year">{song.year}</span>
             <span className="song-details">
@@ -49,15 +63,7 @@ function Timeline({ player, interactive, selected, onSelect }: {
           </article>
         </div>
       ))}
-      {interactive && (
-        <button
-          className={`timeline-gap ${selected === player.timeline.length ? "selected" : ""}`}
-          onClick={() => onSelect(player.timeline.length)}
-          type="button"
-        >
-          <span>{selected === player.timeline.length ? "Mystery song goes here" : placementLabel(player.timeline.length)}</span>
-        </button>
-      )}
+      {placementTarget(player.timeline.length)}
     </div>
   );
 }
@@ -137,7 +143,7 @@ export default function Home() {
   const selected = selection && selection.round === room?.round ? selection.index : null;
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
-    if (!session) return;
+    if (!session) return false;
     setBusy(true);
     setError("");
     try {
@@ -148,11 +154,17 @@ export default function Home() {
           await spotify.play(payload.room.currentSong.uri);
         }
       }
+      return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Something went wrong.");
+      return false;
     } finally {
       setBusy(false);
     }
+  }
+
+  async function retractPlacement() {
+    if (await act({ action: "retract", playerId: session?.playerId })) setSelection(null);
   }
 
   async function createRoom() {
@@ -384,9 +396,18 @@ export default function Home() {
                   <span>{room.currentSong.title} · {room.currentSong.artist} · {room.currentSong.year}</span>
                 </div>
               )}
-              <Timeline player={currentPlayer} interactive={isMyTurn && room.phase === "playing"} selected={selected} onSelect={(index) => setSelection({ round: room.round, index })} />
+              <Timeline
+                player={currentPlayer}
+                interactive={isMyTurn && room.phase === "playing"}
+                selected={selected}
+                locked={isMyTurn && room.phase === "placed" ? room.placement : null}
+                onSelect={(index) => setSelection({ round: room.round, index })}
+              />
               {isMyTurn && room.phase === "playing" && (
                 <button className="primary-button sticky-action" disabled={selected === null || busy} onClick={() => act({ action: "place", playerId: session.playerId, index: selected })}>Lock placement</button>
+              )}
+              {isMyTurn && room.phase === "placed" && !room.retractionUsed && (
+                <button className="secondary-button retract-button" disabled={busy} onClick={() => void retractPlacement()}>Retract placement</button>
               )}
             </section>
           )}

@@ -45,7 +45,9 @@ async function loadRoom(code: string) {
     .bind(code)
     .first<RoomRow>();
   if (!row) return null;
-  return { row, state: JSON.parse(row.state) as RoomState };
+  const state = JSON.parse(row.state) as RoomState;
+  state.retractionUsed ??= false;
+  return { row, state };
 }
 
 async function saveRoom(state: RoomState) {
@@ -113,6 +115,7 @@ export async function POST(request: Request) {
         round: 0,
         currentSong: null,
         placement: null,
+        retractionUsed: false,
         result: null,
         winnerId: null,
         usedUris: [],
@@ -150,6 +153,7 @@ export async function POST(request: Request) {
       state.activePlayerId = state.players[0].id;
       state.currentSong = pickSong(state);
       state.round = 1;
+      state.retractionUsed = false;
       state.phase = "playing";
       await saveRoom(state);
       return Response.json({ room: roomView(state, true) });
@@ -167,6 +171,19 @@ export async function POST(request: Request) {
       }
       state.placement = index;
       state.phase = "placed";
+      await saveRoom(state);
+      return Response.json({ room: roomView(state, false) });
+    }
+
+    if (action === "retract") {
+      const playerId = String(payload.playerId ?? "");
+      if (state.phase !== "placed" || playerId !== state.activePlayerId) {
+        return fail("There is no placement to retract.", 409);
+      }
+      if (state.retractionUsed) return fail("This round’s retraction has already been used.", 409);
+      state.placement = null;
+      state.retractionUsed = true;
+      state.phase = "playing";
       await saveRoom(state);
       return Response.json({ room: roomView(state, false) });
     }
@@ -199,6 +216,7 @@ export async function POST(request: Request) {
         state.activePlayerId = state.players[state.activePlayerIndex].id;
         state.currentSong = pickSong(state);
         state.placement = null;
+        state.retractionUsed = false;
         state.result = null;
         state.round += 1;
         state.phase = "playing";
@@ -212,6 +230,7 @@ export async function POST(request: Request) {
       if (state.phase !== "playing" && state.phase !== "placed") return fail("There is no active song to skip.", 409);
       state.currentSong = pickSong(state);
       state.placement = null;
+      state.retractionUsed = false;
       state.result = null;
       state.phase = "playing";
       await saveRoom(state);
