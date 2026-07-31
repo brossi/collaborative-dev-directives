@@ -49,6 +49,21 @@ test("player names persist locally but remain editable", async () => {
   assert.match(page, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
 });
 
+test("room sessions survive reloads and transient connection gaps", async () => {
+  const [page, playLan] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/play-lan.mjs", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /setSession\(restored\)/);
+  assert.match(page, /Rejoining the room…/);
+  assert.match(page, /Your place is saved\. We’ll reconnect automatically\./);
+  assert.match(page, /temporarily unavailable\. Retrying…/);
+  assert.doesNotMatch(page, /refresh\(restored\)\.catch\(\(\) => sessionStorage\.removeItem/);
+  assert.match(playLan, /const persistentState = resolve\(projectRoot, "\.wrangler\/state"\)/);
+  assert.match(playLan, /"--persist-to", persistentState/);
+});
+
 test("the player game view prioritizes the timeline", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 

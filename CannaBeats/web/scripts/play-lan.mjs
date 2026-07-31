@@ -23,6 +23,7 @@ if (!spotifyClientId) throw new Error("SpotifyClientID.txt is empty.");
 
 const address = lanAddress();
 const joinOrigin = `http://${address}:3000`;
+const persistentState = resolve(projectRoot, ".wrangler/state");
 const environment = {
   ...process.env,
   NEXT_PUBLIC_SPOTIFY_CLIENT_ID: spotifyClientId,
@@ -44,6 +45,7 @@ const server = spawn("wrangler", [
   "--config", "dist/server/wrangler.json",
   "--ip", "0.0.0.0",
   "--port", "3000",
+  "--persist-to", persistentState,
   "--var", `PUBLIC_JOIN_ORIGIN:${joinOrigin}`,
 ], {
   cwd: projectRoot,

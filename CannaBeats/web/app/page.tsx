@@ -89,7 +89,7 @@ export default function Home() {
       try {
         const restored = JSON.parse(saved) as GameSession;
         setSession(restored);
-        void refresh(restored).catch(() => sessionStorage.removeItem(SESSION_KEY));
+        void refresh(restored).catch(() => setError("The room is temporarily unavailable. Retrying…"));
       } catch {
         sessionStorage.removeItem(SESSION_KEY);
       }
@@ -100,7 +100,9 @@ export default function Home() {
   useEffect(() => {
     if (!session) return;
     const timer = window.setInterval(() => {
-      void refresh(session).catch((reason: Error) => setError(reason.message));
+      void refresh(session)
+        .then(() => setError(""))
+        .catch(() => setError("The room is temporarily unavailable. Retrying…"));
     }, 1200);
     return () => window.clearInterval(timer);
   }, [refresh, session]);
@@ -204,6 +206,21 @@ export default function Home() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (session && !room) {
+    return (
+      <main className="join-shell">
+        <section className="join-card">
+          <div className="join-note" aria-hidden="true">♪</div>
+          <p className="eyebrow">Room {session.code}</p>
+          <h1>Rejoining the room…</h1>
+          <p className="helper">Your place is saved. We’ll reconnect automatically.</p>
+          {error && <p className="error-message" role="status">{error}</p>}
+          <button className="text-button" type="button" onClick={leaveRoom}>Leave room</button>
+        </section>
+      </main>
+    );
   }
 
   if (!room || !session) {
