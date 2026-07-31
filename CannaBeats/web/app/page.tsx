@@ -186,6 +186,7 @@ export default function Home() {
   }
 
   function leaveRoom() {
+    if (room?.isHost) void spotify.stop();
     sessionStorage.removeItem(SESSION_KEY);
     setSession(null);
     setRoom(null);

@@ -102,4 +102,8 @@ test("the host uses blind in-browser Spotify playback", async () => {
   assert.match(player, /https:\/\/sdk\.scdn\.co\/spotify-player\.js/);
   assert.match(player, /enableMediaSession: false/);
   assert.match(player, /\/v1\/me\/player\/play\?device_id=/);
+  assert.match(player, /\/v1\/me\/player\/pause\?device_id=/);
+  assert.match(player, /keepalive: true/);
+  assert.match(player, /addEventListener\("pagehide", handlePageExit\)/);
+  assert.match(page, /if \(room\?\.isHost\) void spotify\.stop\(\)/);
 });

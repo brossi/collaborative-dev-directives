@@ -138,6 +138,7 @@ async function loadPlaybackSdk() {
 export function useSpotifyPlayer() {
   const playerRef = useRef<SpotifyPlayer | null>(null);
   const deviceIdRef = useRef("");
+  const shuttingDownRef = useRef(false);
   const [status, setStatus] = useState<PlaybackStatus>("disconnected");
   const [error, setError] = useState("");
   const [isReady, setIsReady] = useState(false);
@@ -145,6 +146,7 @@ export function useSpotifyPlayer() {
 
   const initialize = useCallback(async () => {
     if (playerRef.current || !storedToken()) return;
+    shuttingDownRef.current = false;
     setStatus("connecting");
     const spotify = await loadPlaybackSdk();
     const player = new spotify.Player({
@@ -177,8 +179,32 @@ export function useSpotifyPlayer() {
     if (!await player.connect()) throw new Error("Spotify could not connect this browser.");
   }, []);
 
+  const shutdown = useCallback(() => {
+    if (shuttingDownRef.current) return;
+    shuttingDownRef.current = true;
+    const player = playerRef.current;
+    const deviceId = deviceIdRef.current;
+    const token = storedToken();
+
+    if (player) {
+      void player.pause().catch(() => {}).finally(() => player.disconnect());
+    }
+    if (deviceId && token?.accessToken) {
+      void fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${encodeURIComponent(deviceId)}`, {
+        method: "PUT",
+        headers: { authorization: `Bearer ${token.accessToken}` },
+        keepalive: true,
+      }).catch(() => {});
+    }
+    playerRef.current = null;
+    deviceIdRef.current = "";
+  }, []);
+
   useEffect(() => {
     if (!supportedOrigin() || !CLIENT_ID) return;
+    const handlePageExit = () => shutdown();
+    window.addEventListener("pagehide", handlePageExit);
+    window.addEventListener("beforeunload", handlePageExit);
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const returnedState = params.get("state");
@@ -219,12 +245,12 @@ export function useSpotifyPlayer() {
       setStatus("error");
     });
     return () => {
-      playerRef.current?.disconnect();
-      playerRef.current = null;
-      deviceIdRef.current = "";
+      window.removeEventListener("pagehide", handlePageExit);
+      window.removeEventListener("beforeunload", handlePageExit);
+      shutdown();
       setIsReady(false);
     };
-  }, [initialize]);
+  }, [initialize, shutdown]);
 
   const connect = useCallback(async () => {
     setError("");
@@ -275,6 +301,12 @@ export function useSpotifyPlayer() {
     setStatus("paused");
   }, []);
 
+  const stop = useCallback(async () => {
+    if (!playerRef.current) return;
+    await playerRef.current.pause();
+    setStatus("paused");
+  }, []);
+
   const resume = useCallback(async () => {
     if (!playerRef.current) throw new Error("Spotify is not ready yet.");
     await playerRef.current.activateElement();
@@ -290,6 +322,7 @@ export function useSpotifyPlayer() {
     pause,
     play,
     resume,
+    stop,
     status,
     supportedOrigin: isSupportedOrigin,
   };
