@@ -23,6 +23,10 @@ function Timeline({ player, interactive, selected, onSelect }: {
   selected: number | null;
   onSelect: (index: number) => void;
 }) {
+  const placementLabel = (index: number) => index === 0
+    ? `Earlier than ${player.timeline[0].year}`
+    : `Later than ${player.timeline[index - 1].year}`;
+
   return (
     <div className="timeline" aria-label={`${player.name}’s timeline`}>
       {player.timeline.map((song, index) => (
@@ -33,7 +37,7 @@ function Timeline({ player, interactive, selected, onSelect }: {
               onClick={() => onSelect(index)}
               type="button"
             >
-              <span>{selected === index ? "Mystery song goes here" : "+ Place here"}</span>
+              <span>{selected === index ? "Mystery song goes here" : placementLabel(index)}</span>
             </button>
           )}
           <article className="song-card">
@@ -51,7 +55,7 @@ function Timeline({ player, interactive, selected, onSelect }: {
           onClick={() => onSelect(player.timeline.length)}
           type="button"
         >
-          <span>{selected === player.timeline.length ? "Mystery song goes here" : "+ Place here"}</span>
+          <span>{selected === player.timeline.length ? "Mystery song goes here" : placementLabel(player.timeline.length)}</span>
         </button>
       )}
     </div>

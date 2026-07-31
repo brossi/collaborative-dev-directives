@@ -72,7 +72,9 @@ test("the player game view prioritizes the timeline", async () => {
 
   assert.match(page, /className="player-header"/);
   assert.match(page, /Place the mystery song/);
-  assert.match(page, /\+ Place here/);
+  assert.match(page, /Earlier than \$\{player\.timeline\[0\]\.year\}/);
+  assert.match(page, /Later than \$\{player\.timeline\[index - 1\]\.year\}/);
+  assert.doesNotMatch(page, /\+ Place here/);
   assert.match(styles, /\.timeline-gap \{[^}]*color: var\(--green\)/);
   assert.doesNotMatch(styles, /\.timeline-gap \{[^}]*color: transparent/);
   assert.match(page, /Room \$\{room\.code\} · Leave/);
@@ -109,6 +111,13 @@ test("blind song data is removed from player room views", async () => {
   assert.match(route, /const \{ usedUris: _usedUris, \.\.\.view \} = state/);
   assert.match(route, /const mayRevealSong = isHost \|\| state\.phase === "revealed" \|\| state\.phase === "finished"/);
   assert.match(route, /currentSong: mayRevealSong \? state\.currentSong : null/);
+});
+
+test("either side of a matching year is accepted", async () => {
+  const route = await readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8");
+
+  assert.match(route, /previous\.year <= state\.currentSong\.year/);
+  assert.match(route, /state\.currentSong\.year <= next\.year/);
 });
 
 test("the host uses blind in-browser Spotify playback", async () => {
