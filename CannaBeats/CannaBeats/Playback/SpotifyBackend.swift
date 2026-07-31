@@ -18,6 +18,20 @@ final class SpotifyBackend: NSObject, PlayerBackend {
         didSet { appRemote.connectionParameters.accessToken = accessToken }
     }
 
+    override init() {
+        super.init()
+        // Reuse a recent token so a restart mid-game reconnects without
+        // bouncing. Deliberately does NOT set hasTriedPlainConnect here —
+        // connect() sets it, and the existing failure path clears both the
+        // in-memory and stored token so the next attempt authorizes.
+        if let stored = TokenStore.load(), stored.isFresh {
+            print("[SpotifyBackend] reusing stored token from \(stored.acquired)")
+            accessToken = stored.token
+        } else {
+            TokenStore.clear()
+        }
+    }
+
     /// True while a plain `connect()` (no auth bounce) is in flight. A plain
     /// connect cannot wake a killed Spotify app, so if it fails we drop the
     /// token and the next `connect()` falls back to `authorizeAndPlayURI`
@@ -55,6 +69,7 @@ final class SpotifyBackend: NSObject, PlayerBackend {
         if let token = parameters?[SPTAppRemoteAccessTokenKey] {
             print("[SpotifyBackend] auth OK, token received; connecting")
             accessToken = token
+            TokenStore.save(token: token)
             hasTriedPlainConnect = true
             appRemote.connect()
         } else if let message = parameters?[SPTAppRemoteErrorDescriptionKey] {
@@ -145,6 +160,9 @@ extension SpotifyBackend: SPTAppRemoteDelegate {
         if hasTriedPlainConnect {
             hasTriedPlainConnect = false
             accessToken = nil
+            // Drop the persisted copy too, or a stale token would be retried
+            // on every launch and cost a failed connect each time.
+            TokenStore.clear()
         }
         // Name the phase: an auth failure and a post-auth connect failure
         // need completely different fixes, and both used to read alike.
@@ -165,6 +183,9 @@ extension SpotifyBackend: SPTAppRemoteDelegate {
         if hasTriedPlainConnect {
             hasTriedPlainConnect = false
             accessToken = nil
+            // Drop the persisted copy too, or a stale token would be retried
+            // on every launch and cost a failed connect each time.
+            TokenStore.clear()
         }
         let detail = Self.describe(error)
         print("[SpotifyBackend] disconnected: \(detail)")
