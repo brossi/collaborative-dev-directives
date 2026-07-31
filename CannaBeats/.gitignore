@@ -9,6 +9,7 @@ Frameworks/SpotifyiOS.xcframework
 !.env.example
 CannaBeats/Resources/SpotifyClientID.txt
 __pycache__/
+*.tsbuildinfo
 tools/.verify_cache.json
 
 # Resolver staging output (regenerated; never source of truth)
