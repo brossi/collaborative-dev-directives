@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import type { Player, RoomView, Song } from "../lib/game";
 
 type Session = {
@@ -116,7 +115,7 @@ export default function Home() {
   const activePlayer = room?.players.find((player) => player.id === room.activePlayerId) ?? null;
   const winner = room?.players.find((player) => player.id === room.winnerId) ?? null;
   const isMyTurn = Boolean(currentPlayer && room?.activePlayerId === currentPlayer.id);
-  const selected = selection?.round === room?.round ? selection.index : null;
+  const selected = selection && selection.round === room?.round ? selection.index : null;
 
   async function act(body: Record<string, unknown>) {
     if (!session) return;
@@ -180,7 +179,9 @@ export default function Home() {
         <section className="welcome-copy">
           <p className="eyebrow">A family music timeline game</p>
           <div className="logo-frame">
-            <Image src="/cannabeats-logo.jpg" width={1200} height={1200} priority alt="CannaBeats — Premium Quality" />
+            {/* This local, already-sized brand image does not need runtime optimization. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/cannabeats-logo.jpg" width="1200" height="1200" alt="CannaBeats — Premium Quality" />
           </div>
           <p className="welcome-lede">Listen closely. Place the song in time. Trust your ears.</p>
         </section>
