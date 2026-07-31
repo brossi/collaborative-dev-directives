@@ -8,3 +8,6 @@ Frameworks/SpotifyiOS.xcframework
 CannaBeats/Resources/SpotifyClientID.txt
 __pycache__/
 tools/.verify_cache.json
+
+# Resolver staging output (regenerated; never source of truth)
+.resolve-out/
