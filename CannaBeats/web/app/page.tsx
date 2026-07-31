@@ -284,20 +284,37 @@ export default function Home() {
   }
 
   return (
-    <main className="game-shell">
-      <header className="game-header compact">
-        <div><p className="eyebrow">Room {room.code}</p><h1>CannaBeats</h1></div>
-        <div className="round-marker"><small>Round</small><strong>{room.round}</strong></div>
-      </header>
+    <main className={`game-shell ${room.isHost ? "" : "player-shell"}`}>
+      {room.isHost ? (
+        <header className="game-header compact">
+          <div><p className="eyebrow">Room {room.code}</p><h1>CannaBeats</h1></div>
+          <div className="round-marker"><small>Round</small><strong>{room.round}</strong></div>
+        </header>
+      ) : currentPlayer && (
+        <header className="player-header">
+          <strong>{currentPlayer.name}</strong>
+          <span>{currentPlayer.timeline.length} / 10</span>
+        </header>
+      )}
 
       {winner && room.phase === "finished" ? (
         <section className="winner-card"><p className="step-label">That’s the timeline</p><h2>{winner.name} wins!</h2><p>First to ten songs, and officially in tune with history.</p></section>
       ) : (
         <>
-          <section className="turn-banner">
-            <p>{isMyTurn ? "Your turn" : `${activePlayer?.name ?? "Player"}’s turn`}</p>
-            <span>{room.phase === "placed" ? "Placement locked" : room.phase === "revealed" ? "Answer revealed" : "Listen and place the song"}</span>
-          </section>
+          {room.isHost ? (
+            <section className="turn-banner">
+              <p>{isMyTurn ? "Your turn" : `${activePlayer?.name ?? "Player"}’s turn`}</p>
+              <span>{room.phase === "placed" ? "Placement locked" : room.phase === "revealed" ? "Answer revealed" : "Listen and place the song"}</span>
+            </section>
+          ) : room.phase !== "revealed" && (
+            <p className={`player-status ${isMyTurn && room.phase === "playing" ? "active" : ""}`}>
+              {isMyTurn && room.phase === "playing"
+                ? "Place the mystery song"
+                : room.phase === "placed"
+                  ? "Locked in — waiting for the reveal"
+                  : `${activePlayer?.name ?? "Another player"} is choosing`}
+            </p>
+          )}
 
           {room.isHost && (
             <section className="host-panel">
@@ -335,7 +352,6 @@ export default function Home() {
 
           {!room.isHost && currentPlayer && (
             <section className="player-board">
-              <div className="board-heading"><div><p className="step-label">Your timeline</p><h2>{currentPlayer.name}</h2></div><span>{currentPlayer.timeline.length} / 10</span></div>
               {room.phase === "revealed" && room.currentSong && (
                 <div className={`mobile-result ${room.result?.correct ? "correct" : "incorrect"}`}>
                   <strong>{room.result?.correct ? "Correct!" : "Not quite"}</strong>
@@ -346,8 +362,6 @@ export default function Home() {
               {isMyTurn && room.phase === "playing" && (
                 <button className="primary-button sticky-action" disabled={selected === null || busy} onClick={() => act({ action: "place", playerId: session.playerId, index: selected })}>Lock placement</button>
               )}
-              {!isMyTurn && room.phase !== "revealed" && <p className="waiting-note"><i /> Listen closely — you’re up later</p>}
-              {room.phase === "placed" && <p className="waiting-note"><i /> Placement locked. Waiting for the reveal</p>}
             </section>
           )}
 
@@ -359,7 +373,7 @@ export default function Home() {
         </>
       )}
       {error && <p className="error-message" role="alert">{error}</p>}
-      <button className="leave-link" onClick={leaveRoom}>Leave room</button>
+      <button className="leave-link" onClick={leaveRoom}>{room.isHost ? "Leave room" : `Room ${room.code} · Leave`}</button>
     </main>
   );
 }

@@ -34,6 +34,16 @@ test("QR players get a focused name entry page", async () => {
   assert.doesNotMatch(join, /Host a game/);
 });
 
+test("the player game view prioritizes the timeline", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /className="player-header"/);
+  assert.match(page, /Place the mystery song/);
+  assert.match(page, /Room \$\{room\.code\} · Leave/);
+  assert.doesNotMatch(page, /<p className="step-label">Your timeline<\/p>/);
+  assert.doesNotMatch(page, /Listen closely — you’re up later/);
+});
+
 test("starter preview metadata and UI are gone", async () => {
   const [page, layout] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
