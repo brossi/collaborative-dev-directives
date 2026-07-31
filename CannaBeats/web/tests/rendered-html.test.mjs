@@ -34,6 +34,21 @@ test("QR players get a focused name entry page", async () => {
   assert.doesNotMatch(join, /Host a game/);
 });
 
+test("player names persist locally but remain editable", async () => {
+  const [join, session, page] = await Promise.all([
+    readFile(new URL("../app/join/[code]/join-room.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/session.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(session, /PLAYER_NAME_KEY = "cannabeats-player-name"/);
+  assert.match(join, /localStorage\.getItem\(PLAYER_NAME_KEY\)/);
+  assert.match(join, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
+  assert.match(join, /onChange=\{\(event\) => setName\(event\.target\.value\)\}/);
+  assert.match(page, /localStorage\.getItem\(PLAYER_NAME_KEY\)/);
+  assert.match(page, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
+});
+
 test("the player game view prioritizes the timeline", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 

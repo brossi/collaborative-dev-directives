@@ -1,28 +1,37 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { SESSION_KEY, type GameSession } from "../../../lib/session";
+import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../../../lib/session";
 
 export default function JoinRoom({ code }: { code: string }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const savedName = localStorage.getItem(PLAYER_NAME_KEY)?.trim();
+    if (!savedName) return;
+    const timer = window.setTimeout(() => setName((current) => current || savedName), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   async function join(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
+      const chosenName = name.trim();
       const response = await fetch("/api/game", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "join", code, name }),
+        body: JSON.stringify({ action: "join", code, name: chosenName }),
       });
       const payload = await response.json() as { error?: string; playerId?: string };
       if (!response.ok || !payload.playerId) throw new Error(payload.error ?? "Unable to join this room.");
 
       const session: GameSession = { code, playerId: payload.playerId };
+      localStorage.setItem(PLAYER_NAME_KEY, chosenName);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
       window.location.replace("/");
     } catch (reason) {

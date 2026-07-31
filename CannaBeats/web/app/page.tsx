@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
-import { SESSION_KEY, type GameSession } from "../lib/session";
+import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer } from "../lib/use-spotify-player";
 
 async function gameRequest(body: Record<string, unknown>) {
@@ -81,8 +81,10 @@ export default function Home() {
   useEffect(() => {
     const sharedCode = new URLSearchParams(window.location.search).get("room")?.trim().toUpperCase();
     const saved = sessionStorage.getItem(SESSION_KEY);
+    const savedName = localStorage.getItem(PLAYER_NAME_KEY)?.trim();
     const timer = window.setTimeout(() => {
       if (sharedCode) setRoomCode(sharedCode);
+      if (savedName) setName((current) => current || savedName);
       if (!saved) return;
       try {
         const restored = JSON.parse(saved) as GameSession;
@@ -169,8 +171,10 @@ export default function Home() {
     setError("");
     try {
       const code = roomCode.trim().toUpperCase();
-      const payload = await gameRequest({ action: "join", code, name });
+      const chosenName = name.trim();
+      const payload = await gameRequest({ action: "join", code, name: chosenName });
       const next = { code, playerId: payload.playerId! };
+      localStorage.setItem(PLAYER_NAME_KEY, chosenName);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
       setSession(next);
       setRoom(payload.room!);
