@@ -18,10 +18,23 @@ npm install
 npm run play:lan
 ```
 
-Open the printed network address on the host computer, create the room there,
-and let players on the same Wi-Fi scan its QR code. Keep this terminal running
-and the computer awake while playing. The local address can change between
-networks, so use the address printed each time rather than bookmarking it.
+Open the printed private host address (`http://127.0.0.1:3000`) on the host
+computer. Connect Spotify, create the room there, and let players on the same
+Wi-Fi scan its QR code. The QR code uses the separately printed network address
+so player phones can reach the room without receiving the host's Spotify token.
+Keep this terminal running and the computer awake while playing.
+
+Spotify's developer dashboard must allow this exact redirect URI:
+
+```text
+http://127.0.0.1:3000/
+```
+
+The local runner reuses the client ID from
+`../CannaBeats/Resources/SpotifyClientID.txt`. Browser playback requires the
+host to authorize a Spotify Premium account. The Web Playback SDK runs with its
+media-session metadata disabled, and mystery titles are not rendered until the
+host reveals the answer.
 
 ## Develop locally
 

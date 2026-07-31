@@ -2,12 +2,14 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import type { Player, RoomView, Song } from "../lib/game";
+import type { Player, RoomView } from "../lib/game";
+import { useSpotifyPlayer } from "../lib/use-spotify-player";
 
 type Session = {
   code: string;
   hostToken?: string;
   playerId?: string;
+  joinOrigin?: string;
 };
 
 const SESSION_KEY = "cannabeats-session";
@@ -18,13 +20,9 @@ async function gameRequest(body: Record<string, unknown>) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string };
+  const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string };
   if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
   return payload;
-}
-
-function spotifyHref(song: Song | null) {
-  return song?.uri ?? "#";
 }
 
 function Timeline({ player, interactive, selected, onSelect }: {
@@ -77,6 +75,7 @@ export default function Home() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const spotify = useSpotifyPlayer();
 
   const refresh = useCallback(async (current: Session) => {
     const params = new URLSearchParams({ code: current.code });
@@ -115,7 +114,8 @@ export default function Home() {
   useEffect(() => {
     if (!room?.isHost || room.phase !== "lobby") return;
     let cancelled = false;
-    const joinUrl = new URL(window.location.href);
+    const joinUrl = new URL(session?.joinOrigin ?? window.location.origin);
+    joinUrl.pathname = "/";
     joinUrl.search = "";
     joinUrl.searchParams.set("room", room.code);
     void QRCode.toDataURL(joinUrl.toString(), {
@@ -126,7 +126,7 @@ export default function Home() {
       if (!cancelled) setQrCodeUrl(url);
     }).catch(() => setError("Unable to create the room QR code."));
     return () => { cancelled = true; };
-  }, [room?.code, room?.isHost, room?.phase]);
+  }, [room?.code, room?.isHost, room?.phase, session?.joinOrigin]);
 
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === session?.playerId) ?? null,
@@ -137,13 +137,18 @@ export default function Home() {
   const isMyTurn = Boolean(currentPlayer && room?.activePlayerId === currentPlayer.id);
   const selected = selection && selection.round === room?.round ? selection.index : null;
 
-  async function act(body: Record<string, unknown>) {
+  async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return;
     setBusy(true);
     setError("");
     try {
       const payload = await gameRequest({ ...body, code: session.code });
-      if (payload.room) setRoom(payload.room);
+      if (payload.room) {
+        setRoom(payload.room);
+        if (playNewSong && payload.room.phase === "playing" && payload.room.currentSong?.uri) {
+          await spotify.play(payload.room.currentSong.uri);
+        }
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Something went wrong.");
     } finally {
@@ -156,7 +161,7 @@ export default function Home() {
     setError("");
     try {
       const payload = await gameRequest({ action: "create" });
-      const next = { code: payload.room!.code, hostToken: payload.hostToken! };
+      const next = { code: payload.room!.code, hostToken: payload.hostToken!, joinOrigin: payload.joinOrigin };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
       setSession(next);
       setRoom(payload.room!);
@@ -193,6 +198,18 @@ export default function Home() {
     setError("");
   }
 
+  async function controlPlayback(action: () => Promise<void>) {
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Spotify playback failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!room || !session) {
     return (
       <main className="welcome-shell">
@@ -209,8 +226,18 @@ export default function Home() {
           <div className="entry-block">
             <p className="step-label">On the shared screen</p>
             <h2>Host a game</h2>
-            <p>Create a room, control the music, and reveal each answer.</p>
-            <button className="primary-button" onClick={createRoom} disabled={busy}>Create room</button>
+            <p>Create a room, play every mystery song here, and reveal each answer.</p>
+            {!spotify.supportedOrigin ? (
+              <a className="spotify-button" href="http://127.0.0.1:3000/">Open the private host screen</a>
+            ) : spotify.isReady ? (
+              <p className="spotify-status"><i /> Spotify is ready in CannaBeats</p>
+            ) : (
+              <button className="spotify-button" type="button" onClick={() => void spotify.connect()} disabled={spotify.status === "connecting"}>
+                {spotify.status === "connecting" ? "Connecting Spotify…" : "Connect Spotify"}
+              </button>
+            )}
+            <button className="primary-button" onClick={createRoom} disabled={busy || !spotify.supportedOrigin || !spotify.isReady}>Create room</button>
+            {(spotify.error || !spotify.isConfigured) && <p className="error-message" role="alert">{spotify.error || "Spotify is not configured for this build."}</p>}
           </div>
           <div className="or-rule"><span>or</span></div>
           <form className="entry-block" onSubmit={joinRoom}>
@@ -254,7 +281,9 @@ export default function Home() {
                   <p className="helper">Open the camera on each player’s phone. Manual room code: <strong>{room.code}</strong></p>
                 </div>
               </div>
-              <button className="primary-button" disabled={!room.players.length || busy} onClick={() => act({ action: "start", hostToken: session.hostToken })}>Start game</button>
+              <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready in CannaBeats" : "Reconnect Spotify before starting"}</p>
+              {!spotify.isReady && <button className="spotify-button" type="button" onClick={() => void spotify.connect()}>Connect Spotify</button>}
+              <button className="primary-button" disabled={!room.players.length || busy || !spotify.isReady} onClick={() => act({ action: "start", hostToken: session.hostToken }, true)}>Start game</button>
             </>
           ) : <p className="waiting-note"><i /> Waiting for the host to start</p>}
         </section>
@@ -293,12 +322,23 @@ export default function Home() {
                 <div className="host-actions">
                   <p className="step-label">Mystery song</p>
                   <h2>{room.phase === "placed" ? `${activePlayer?.name} has locked in` : `Play for ${activePlayer?.name}`}</h2>
-                  <a className="spotify-button" href={spotifyHref(room.currentSong)}>Open in Spotify</a>
-                  <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken })}>Skip unavailable song</button>
+                  <button
+                    className="spotify-button"
+                    type="button"
+                    disabled={busy || !room.currentSong?.uri}
+                    onClick={() => void controlPlayback(() => spotify.status === "playing"
+                      ? spotify.pause()
+                      : spotify.status === "paused"
+                        ? spotify.resume()
+                        : spotify.play(room.currentSong!.uri!))}
+                  >
+                    {spotify.status === "playing" ? "Pause mystery song" : spotify.status === "paused" ? "Resume mystery song" : "Play mystery song"}
+                  </button>
+                  <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken }, true)}>Skip unavailable song</button>
                 </div>
               )}
               {room.phase === "placed" && <button className="primary-button" disabled={busy} onClick={() => act({ action: "reveal", hostToken: session.hostToken })}>Reveal answer</button>}
-              {room.phase === "revealed" && <button className="primary-button" disabled={busy} onClick={() => act({ action: "advance", hostToken: session.hostToken })}>{room.winnerId ? "Finish game" : "Next player"}</button>}
+              {room.phase === "revealed" && <button className="primary-button" disabled={busy} onClick={() => act({ action: "advance", hostToken: session.hostToken }, !room.winnerId)}>{room.winnerId ? "Finish game" : "Next player"}</button>}
             </section>
           )}
 

@@ -5,6 +5,8 @@ DerivedData/
 Frameworks/SpotifyiOS.xcframework
 # Credentials — never committed
 .env
+.env.*
+!.env.example
 CannaBeats/Resources/SpotifyClientID.txt
 __pycache__/
 tools/.verify_cache.json

@@ -121,7 +121,9 @@ export async function POST(request: Request) {
         .prepare("INSERT INTO rooms (code, host_token, state) VALUES (?, ?, ?)")
         .bind(code, hostToken, JSON.stringify(state))
         .run();
-      return Response.json({ room: roomView(state, true), hostToken }, { status: 201 });
+      const requestOrigin = new URL(request.url).origin;
+      const joinOrigin = (env as { PUBLIC_JOIN_ORIGIN?: string }).PUBLIC_JOIN_ORIGIN ?? requestOrigin;
+      return Response.json({ room: roomView(state, true), hostToken, joinOrigin }, { status: 201 });
     }
 
     const code = String(payload.code ?? "").trim().toUpperCase();

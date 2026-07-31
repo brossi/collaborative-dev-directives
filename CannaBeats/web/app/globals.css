@@ -42,6 +42,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .secondary-button { width: 100%; color: var(--ink); background: var(--lime); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
 .spotify-button { color: #102017; background: #1ed760; }
 .primary-button:hover, .secondary-button:hover, .spotify-button:hover { transform: translateY(-1px); }
+.spotify-status { display: flex; align-items: center; gap: .55rem; margin: 1rem 0 0; color: var(--green); font-size: .86rem; font-weight: 750; }
+.spotify-status i { width: 9px; height: 9px; border-radius: 50%; background: #1ed760; box-shadow: 0 0 0 4px rgba(30,215,96,.16); }
 button:disabled { cursor: not-allowed; opacity: .42; transform: none !important; }
 .text-button, .leave-link { border: 0; padding: .4rem; color: var(--muted); background: transparent; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .error-message { margin: 1rem 0 0; padding: .8rem 1rem; border-radius: 12px; color: #762e1d; background: #ffe5d9; font-size: .9rem; }

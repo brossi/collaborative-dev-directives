@@ -54,3 +54,17 @@ test("blind song data is removed from player room views", async () => {
   assert.match(route, /const mayRevealSong = isHost \|\| state\.phase === "revealed" \|\| state\.phase === "finished"/);
   assert.match(route, /currentSong: mayRevealSong \? state\.currentSong : null/);
 });
+
+test("the host uses blind in-browser Spotify playback", async () => {
+  const [page, player] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/use-spotify-player.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(page, /Open in Spotify/);
+  assert.match(page, /Pause mystery song/);
+  assert.match(page, /spotify\.play\(payload\.room\.currentSong\.uri\)/);
+  assert.match(player, /https:\/\/sdk\.scdn\.co\/spotify-player\.js/);
+  assert.match(player, /enableMediaSession: false/);
+  assert.match(player, /\/v1\/me\/player\/play\?device_id=/);
+});
