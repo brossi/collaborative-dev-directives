@@ -4,6 +4,10 @@ The browser-based host and player experience for CannaBeats. A host creates a
 four-character room code, family members join from their phones, and play moves
 around the room one player at a time.
 
+The visual system is based on the original `public/cannabeats-logo.jpg` concept
+art: warm cream paper, tomato red, cobalt blue, golden yellow, and vintage print
+texture.
+
 ## Run locally
 
 ```sh

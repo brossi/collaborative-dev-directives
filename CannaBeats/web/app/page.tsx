@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import type { Player, RoomView, Song } from "../lib/game";
 
 type Session = {
@@ -178,9 +179,10 @@ export default function Home() {
       <main className="welcome-shell">
         <section className="welcome-copy">
           <p className="eyebrow">A family music timeline game</p>
-          <h1>Canna<span>Beats</span></h1>
+          <div className="logo-frame">
+            <Image src="/cannabeats-logo.jpg" width={1200} height={1200} priority alt="CannaBeats — Premium Quality" />
+          </div>
           <p className="welcome-lede">Listen closely. Place the song in time. Trust your ears.</p>
-          <div className="rhythm-line" aria-hidden="true"><i /><i /><i /><i /><i /></div>
         </section>
         <section className="entry-card">
           <div className="entry-block">
