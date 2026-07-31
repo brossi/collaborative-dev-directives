@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
 import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
-import { useSpotifyPlayer } from "../lib/use-spotify-player";
+import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 
 async function gameRequest(body: Record<string, unknown>) {
   const response = await fetch("/api/game", {
@@ -70,6 +70,64 @@ function Timeline({ player, interactive, selected, locked, onSelect }: {
   );
 }
 
+function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri }: {
+  players: Player[];
+  activePlayerId: string | null;
+  lockedPlacement: number | null;
+  artworkByUri: Record<string, SpotifyTrackArtwork>;
+}) {
+  return (
+    <section className="host-scoreboard" aria-label="Player timelines">
+      <div className="host-scoreboard-heading">
+        <div><p className="step-label">Player timelines</p><h2>Earlier <span aria-hidden="true">→</span> Later</h2></div>
+        <small>First to 10 songs wins</small>
+      </div>
+      <div className="host-scoreboard-rows">
+        {players.map((player, playerIndex) => {
+          const locked = player.id === activePlayerId ? lockedPlacement : null;
+          const cards = player.timeline.flatMap((song, songIndex) => {
+            const artwork = song.uri ? artworkByUri[song.uri] : undefined;
+            const card = (
+              <article className="host-song-card" key={`song-${songIndex}-${song.uri ?? song.title}`}>
+                <div className="host-song-art">
+                  {artwork ? (
+                    <>
+                      {/* Spotify artwork is displayed uncropped and links back to its track. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={artwork.imageUrl} width="300" height="300" alt="" />
+                    </>
+                  ) : <span aria-hidden="true">♪</span>}
+                </div>
+                <div className="host-song-copy">
+                  <strong className="host-song-year">{song.year}</strong>
+                  <b>{song.title}</b>
+                  <span>{song.artist}</span>
+                  {artwork && <a href={artwork.spotifyUrl} target="_blank" rel="noreferrer">Spotify ↗</a>}
+                </div>
+              </article>
+            );
+            return locked === songIndex
+              ? [<article className="host-song-card host-mystery-card" key={`locked-${songIndex}`}><div className="host-song-art">?</div><div className="host-song-copy"><b>Mystery song</b><span>Locked here</span></div></article>, card]
+              : [card];
+          });
+          if (locked === player.timeline.length) {
+            cards.push(<article className="host-song-card host-mystery-card" key="locked-last"><div className="host-song-art">?</div><div className="host-song-copy"><b>Mystery song</b><span>Locked here</span></div></article>);
+          }
+          return (
+            <article className={`host-score-row ${player.id === activePlayerId ? "active" : ""}`} key={player.id}>
+              <header>
+                <span className="player-order">{playerIndex + 1}</span>
+                <div><strong>{player.name}</strong><small>{player.timeline.length} / 10 songs</small></div>
+              </header>
+              <div className="host-timeline-track">{cards}</div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
   const [session, setSession] = useState<GameSession | null>(null);
@@ -79,7 +137,10 @@ export default function Home() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [artworkByUri, setArtworkByUri] = useState<Record<string, SpotifyTrackArtwork>>({});
   const spotify = useSpotifyPlayer();
+  const spotifyIsReady = spotify.isReady;
+  const trackArtwork = spotify.trackArtwork;
 
   const refresh = useCallback(async (current: GameSession) => {
     const params = new URLSearchParams({ code: current.code });
@@ -134,6 +195,31 @@ export default function Home() {
     }).catch(() => setError("Unable to create the room QR code."));
     return () => { cancelled = true; };
   }, [room?.code, room?.isHost, room?.phase, session?.joinOrigin]);
+
+  const timelineUriKey = room?.isHost
+    ? Array.from(new Set(room.players.flatMap((player) => player.timeline.flatMap((song) => song.uri ? [song.uri] : [])))).join("|")
+    : "";
+
+  useEffect(() => {
+    if (!timelineUriKey || !spotifyIsReady) return;
+    let cancelled = false;
+    const uris = timelineUriKey.split("|");
+    void Promise.all(uris.map(async (uri) => [uri, await trackArtwork(uri)] as const)).then((entries) => {
+      if (cancelled) return;
+      setArtworkByUri((current) => {
+        let changed = false;
+        const next = { ...current };
+        for (const [uri, artwork] of entries) {
+          if (artwork && current[uri] !== artwork) {
+            next[uri] = artwork;
+            changed = true;
+          }
+        }
+        return changed ? next : current;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [spotifyIsReady, timelineUriKey, trackArtwork]);
 
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === session?.playerId) ?? null,
@@ -390,20 +476,6 @@ export default function Home() {
             </section>
           )}
 
-          {room.isHost && room.phase === "placed" && activePlayer && room.placement !== null && (
-            <section className="host-timeline">
-              <p className="step-label">Locked position</p>
-              <h2>{activePlayer.name}’s timeline</h2>
-              <Timeline
-                player={activePlayer}
-                interactive={false}
-                selected={null}
-                locked={room.placement}
-                onSelect={() => undefined}
-              />
-            </section>
-          )}
-
           {!room.isHost && currentPlayer && (
             <section className="player-board">
               {room.phase === "revealed" && room.currentSong && (
@@ -429,9 +501,12 @@ export default function Home() {
           )}
 
           {room.isHost && (
-            <section className="scoreboard">
-              {room.players.map((player) => <div key={player.id} className={player.id === room.activePlayerId ? "active" : ""}><span>{player.name}</span><strong>{player.timeline.length} / 10</strong></div>)}
-            </section>
+            <HostScoreboard
+              players={room.players}
+              activePlayerId={room.activePlayerId}
+              lockedPlacement={room.phase === "placed" ? room.placement : null}
+              artworkByUri={artworkByUri}
+            />
           )}
         </>
       )}

@@ -15,6 +15,11 @@ type PendingAuthorization = {
   state: string;
 };
 
+export type SpotifyTrackArtwork = {
+  imageUrl: string;
+  spotifyUrl: string;
+};
+
 type SpotifyPlayer = {
   addListener(event: string, listener: (value: never) => void): boolean;
   activateElement(): Promise<void>;
@@ -42,6 +47,8 @@ const TOKEN_KEY = "cannabeats-spotify-token";
 const AUTH_KEY = "cannabeats-spotify-authorization";
 const CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID?.trim() ?? "";
 const SCOPES = ["streaming", "user-read-email", "user-read-private", "user-modify-playback-state"];
+const artworkCache = new Map<string, SpotifyTrackArtwork>();
+const artworkRequests = new Map<string, Promise<SpotifyTrackArtwork | null>>();
 
 function supportedOrigin() {
   if (typeof window === "undefined") return false;
@@ -314,6 +321,44 @@ export function useSpotifyPlayer() {
     setStatus("playing");
   }, []);
 
+  const trackArtwork = useCallback(async (uri: string) => {
+    const cached = artworkCache.get(uri);
+    if (cached) return cached;
+    const pending = artworkRequests.get(uri);
+    if (pending) return pending;
+    const uriParts = uri.split(":");
+    const trackId = uriParts.length === 3 && uriParts[0] === "spotify" && uriParts[1] === "track" ? uriParts[2] : "";
+    if (!trackId) return null;
+
+    const request = (async () => {
+      try {
+        const response = await fetch(`https://api.spotify.com/v1/tracks/${encodeURIComponent(trackId)}`, {
+          headers: { authorization: `Bearer ${await freshAccessToken()}` },
+        });
+        if (!response.ok) return null;
+        const payload = await response.json() as {
+          album: { images: Array<{ url: string; width: number | null; height: number | null }> };
+          external_urls: { spotify?: string };
+        };
+        const image = payload.album.images.find((candidate) => (candidate.width ?? 0) >= 200 && (candidate.width ?? 0) <= 400)
+          ?? payload.album.images[0];
+        if (!image) return null;
+        const artwork = {
+          imageUrl: image.url,
+          spotifyUrl: payload.external_urls.spotify ?? `https://open.spotify.com/track/${trackId}`,
+        };
+        artworkCache.set(uri, artwork);
+        return artwork;
+      } catch {
+        return null;
+      } finally {
+        artworkRequests.delete(uri);
+      }
+    })();
+    artworkRequests.set(uri, request);
+    return request;
+  }, []);
+
   return {
     connect,
     error,
@@ -325,5 +370,6 @@ export function useSpotifyPlayer() {
     stop,
     status,
     supportedOrigin: isSupportedOrigin,
+    trackArtwork,
   };
 }

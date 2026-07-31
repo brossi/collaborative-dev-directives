@@ -132,14 +132,33 @@ test("a locked placement is shown and can be retracted once", async () => {
   assert.match(game, /retractionUsed: boolean/);
   assert.match(page, /Mystery song locked here/);
   assert.match(page, /Retract placement/);
-  assert.match(page, /className="host-timeline"/);
-  assert.match(page, /\{activePlayer\.name\}’s timeline/);
-  assert.match(page, /locked=\{room\.placement\}/);
-  assert.match(styles, /\.host-timeline/);
+  assert.match(page, /lockedPlacement=\{room\.phase === "placed" \? room\.placement : null\}/);
+  assert.match(page, /host-mystery-card/);
+  assert.match(styles, /\.host-mystery-card/);
   assert.match(page, /action: "retract"/);
   assert.match(route, /if \(state\.retractionUsed\)/);
   assert.match(route, /state\.retractionUsed = true/);
   assert.match(route, /state\.retractionUsed = false/);
+});
+
+test("the host scoreboard shows chronological Spotify timeline rows", async () => {
+  const [page, styles, spotify] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../lib/use-spotify-player.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /function HostScoreboard/);
+  assert.match(page, /players\.map\(\(player, playerIndex\)/);
+  assert.match(page, /Earlier <span aria-hidden="true">→<\/span> Later/);
+  assert.match(page, /artwork\.imageUrl/);
+  assert.match(page, /\{song\.title\}/);
+  assert.match(page, /\{song\.artist\}/);
+  assert.match(page, /\{song\.year\}/);
+  assert.match(styles, /\.host-timeline-track \{[^}]*display: flex/);
+  assert.match(styles, /\.host-song-art img \{[^}]*object-fit: contain/);
+  assert.match(spotify, /https:\/\/api\.spotify\.com\/v1\/tracks\/\$\{encodeURIComponent\(trackId\)\}/);
+  assert.doesNotMatch(spotify, /\/v1\/tracks\?ids=/);
 });
 
 test("the host uses blind in-browser Spotify playback", async () => {
