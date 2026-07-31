@@ -8,15 +8,32 @@ The visual system is based on the original `public/cannabeats-logo.jpg` concept
 art: warm cream paper, tomato red, cobalt blue, golden yellow, and vintage print
 texture.
 
-## Run locally
+## Play on the local network
+
+For family play, use the production-style local server. It sends phones a
+small, optimized client instead of development and hot-reload code:
+
+```sh
+npm install
+npm run play:lan
+```
+
+Open the printed network address on the host computer, create the room there,
+and let players on the same Wi-Fi scan its QR code. Keep this terminal running
+and the computer awake while playing. The local address can change between
+networks, so use the address printed each time rather than bookmarking it.
+
+## Develop locally
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open the printed local address in one tab to host. Open additional tabs or
-devices to join; each tab keeps its own temporary room identity.
+Open the printed local address in one tab to host. Open additional tabs to
+join; each tab keeps its own temporary room identity. To expose the hot-reload
+development server to phones, use `npm run dev:lan`; expect it to be slower than
+`npm run play:lan` on mobile devices.
 
 The development server regenerates `data/catalog.json` from the iOS app's
 `../catalog/years/` source before starting. Only songs with playable Spotify

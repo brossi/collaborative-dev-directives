@@ -9,6 +9,8 @@
   --lime: #f3bd34;
   --orange: #e84335;
   --line: #c7b976;
+  --font-geist-sans: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 * { box-sizing: border-box; }

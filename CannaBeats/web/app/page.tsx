@@ -201,7 +201,7 @@ export default function Home() {
           <div className="logo-frame">
             {/* This local, already-sized brand image does not need runtime optimization. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/cannabeats-logo.jpg" width="1200" height="1200" alt="CannaBeats — Premium Quality" />
+            <img src="/cannabeats-logo-640.jpg" width="640" height="640" alt="CannaBeats — Premium Quality" />
           </div>
           <p className="welcome-lede">Listen closely. Place the song in time. Trust your ears.</p>
         </section>
