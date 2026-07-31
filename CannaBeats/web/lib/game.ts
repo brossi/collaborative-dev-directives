@@ -1,3 +1,5 @@
+import type { GameRules } from "./rules";
+
 export type Phase = "lobby" | "playing" | "placed" | "revealed" | "finished";
 
 export type Song = {
@@ -30,6 +32,7 @@ export type RoomState = {
   retractionUsed: boolean;
   result: PlacementResult | null;
   winnerId: string | null;
+  rules: GameRules;
   usedUris: string[];
 };
 

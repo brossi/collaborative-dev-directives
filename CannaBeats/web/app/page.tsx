@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
+import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
 import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 
@@ -70,17 +71,70 @@ function Timeline({ player, interactive, selected, locked, onSelect }: {
   );
 }
 
-function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri }: {
+function GameSetup({ rules, busy, onApply }: {
+  rules: GameRules;
+  busy: boolean;
+  onApply: (rules: GameRules) => void;
+}) {
+  const [draft, setDraft] = useState<GameRules>(() => ({ ...rules, eraWeights: { ...rules.eraWeights } }));
+  const presetName = RULE_PRESET_OPTIONS.find((option) => option.id === rules.preset)?.name ?? "Custom";
+
+  return (
+    <section className="rules-panel">
+      <div className="rules-heading">
+        <div><p className="step-label">Game setup</p><h2>{presetName}</h2></div>
+        <span>{rules.minYear}–{rules.maxYear} · First to {rules.targetScore}</span>
+      </div>
+      <div className="preset-grid" aria-label="Music mix presets">
+        {RULE_PRESET_OPTIONS.map((option) => (
+          <button
+            className={rules.preset === option.id ? "selected" : ""}
+            disabled={busy}
+            key={option.id}
+            onClick={() => onApply(rulesForPreset(option.id))}
+            type="button"
+          >
+            <strong>{option.name}</strong><small>{option.description}</small>
+          </button>
+        ))}
+      </div>
+      <details className="advanced-rules">
+        <summary>Advanced settings</summary>
+        <form onSubmit={(event) => { event.preventDefault(); onApply({ ...draft, preset: "custom" }); }}>
+          <div className="year-fields">
+            <label>Earliest year<input type="number" min={CATALOG_YEAR_MIN} max={draft.maxYear} value={draft.minYear} onChange={(event) => setDraft((current) => ({ ...current, minYear: Number(event.target.value) }))} /></label>
+            <label>Latest year<input type="number" min={draft.minYear} max={CATALOG_YEAR_MAX} value={draft.maxYear} onChange={(event) => setDraft((current) => ({ ...current, maxYear: Number(event.target.value) }))} /></label>
+            <label>Winning score<input type="number" min="3" max="20" value={draft.targetScore} onChange={(event) => setDraft((current) => ({ ...current, targetScore: Number(event.target.value) }))} /></label>
+          </div>
+          <fieldset className="era-fields">
+            <legend>Relative era weighting</legend>
+            {ERA_BUCKETS.map((era) => (
+              <label key={era.id}>
+                <span>{era.label}<strong>{draft.eraWeights[era.id]}</strong></span>
+                <input type="range" min="0" max="100" step="5" value={draft.eraWeights[era.id]} onChange={(event) => setDraft((current) => ({ ...current, eraWeights: { ...current.eraWeights, [era.id]: Number(event.target.value) } }))} />
+              </label>
+            ))}
+          </fieldset>
+          <label className="toggle-rule"><input type="checkbox" checked={draft.allowRetraction} onChange={(event) => setDraft((current) => ({ ...current, allowRetraction: event.target.checked }))} /> Allow one retraction per round</label>
+          <button className="secondary-button" disabled={busy}>Apply custom rules</button>
+        </form>
+      </details>
+    </section>
+  );
+}
+
+function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri, targetScore }: {
   players: Player[];
   activePlayerId: string | null;
   lockedPlacement: number | null;
   artworkByUri: Record<string, SpotifyTrackArtwork>;
+  targetScore: number;
 }) {
   return (
     <section className="host-scoreboard" aria-label="Player timelines">
       <div className="host-scoreboard-heading">
         <div><p className="step-label">Player timelines</p><h2>Earlier <span aria-hidden="true">→</span> Later</h2></div>
-        <small>First to 10 songs wins</small>
+        <small>First to {targetScore} songs wins</small>
       </div>
       <div className="host-scoreboard-rows">
         {players.map((player, playerIndex) => {
@@ -117,7 +171,7 @@ function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri
             <article className={`host-score-row ${player.id === activePlayerId ? "active" : ""}`} key={player.id}>
               <header>
                 <span className="player-order">{playerIndex + 1}</span>
-                <div><strong>{player.name}</strong><small>{player.timeline.length} / 10 songs</small></div>
+                <div><strong>{player.name}</strong><small>{player.timeline.length} / {targetScore} songs</small></div>
               </header>
               <div className="host-timeline-track">{cards}</div>
             </article>
@@ -385,6 +439,12 @@ export default function Home() {
           </div>
           {room.isHost ? (
             <>
+              <GameSetup
+                key={JSON.stringify(room.rules)}
+                rules={room.rules}
+                busy={busy}
+                onApply={(rules) => { void act({ action: "rules", hostToken: session.hostToken, rules }); }}
+              />
               <div className="join-invite">
                 <div className="qr-card">
                   {qrCodeUrl ? (
@@ -419,12 +479,12 @@ export default function Home() {
       ) : currentPlayer && (
         <header className="player-header">
           <strong>{currentPlayer.name}</strong>
-          <span>{currentPlayer.timeline.length} / 10</span>
+          <span>{currentPlayer.timeline.length} / {room.rules.targetScore}</span>
         </header>
       )}
 
       {winner && room.phase === "finished" ? (
-        <section className="winner-card"><p className="step-label">That’s the timeline</p><h2>{winner.name} wins!</h2><p>First to ten songs, and officially in tune with history.</p></section>
+        <section className="winner-card"><p className="step-label">That’s the timeline</p><h2>{winner.name} wins!</h2><p>First to {room.rules.targetScore} songs, and officially in tune with history.</p></section>
       ) : (
         <>
           {room.isHost ? (
@@ -494,7 +554,7 @@ export default function Home() {
               {isMyTurn && room.phase === "playing" && (
                 <button className="primary-button sticky-action" disabled={selected === null || busy} onClick={() => act({ action: "place", playerId: session.playerId, index: selected })}>Lock placement</button>
               )}
-              {isMyTurn && room.phase === "placed" && !room.retractionUsed && (
+              {isMyTurn && room.phase === "placed" && room.rules.allowRetraction && !room.retractionUsed && (
                 <button className="secondary-button retract-button" disabled={busy} onClick={() => void retractPlacement()}>Retract placement</button>
               )}
             </section>
@@ -506,6 +566,7 @@ export default function Home() {
               activePlayerId={room.activePlayerId}
               lockedPlacement={room.phase === "placed" ? room.placement : null}
               artworkByUri={artworkByUri}
+              targetScore={room.rules.targetScore}
             />
           )}
         </>

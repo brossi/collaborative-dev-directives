@@ -137,8 +137,37 @@ test("a locked placement is shown and can be retracted once", async () => {
   assert.match(styles, /\.host-mystery-card/);
   assert.match(page, /action: "retract"/);
   assert.match(route, /if \(state\.retractionUsed\)/);
+  assert.match(route, /if \(!state\.rules\.allowRetraction\)/);
   assert.match(route, /state\.retractionUsed = true/);
   assert.match(route, /state\.retractionUsed = false/);
+});
+
+test("host game setup uses persisted presets and weighted era selection", async () => {
+  const [page, route, game, rules, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/rules.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(game, /rules: GameRules/);
+  assert.match(rules, /family: \{/);
+  assert.match(rules, /early: 5, midcentury: 10, classics: 25, millennial: 30, current: 30/);
+  assert.match(rules, /"all-eras"/);
+  assert.match(rules, /modern:/);
+  assert.match(rules, /younger:/);
+  assert.match(page, /function GameSetup/);
+  assert.match(page, /Advanced settings/);
+  assert.match(page, /Relative era weighting/);
+  assert.match(page, /Apply custom rules/);
+  assert.match(styles, /\.preset-grid/);
+  assert.match(route, /action === "rules"/);
+  assert.match(route, /Rules are locked after the game starts/);
+  assert.match(route, /song\.year >= state\.rules\.minYear/);
+  assert.match(route, /state\.rules\.eraWeights\[era\.id\]/);
+  assert.match(route, /Math\.random\(\) \* totalWeight/);
+  assert.match(route, /player\.timeline\.length >= state\.rules\.targetScore/);
 });
 
 test("the host scoreboard shows chronological Spotify timeline rows", async () => {

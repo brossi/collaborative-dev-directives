@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import catalog from "../../../data/catalog.json";
 import type { RoomState, RoomView, Song } from "../../../lib/game";
+import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 
 type RoomRow = {
   code: string;
@@ -47,6 +48,7 @@ async function loadRoom(code: string) {
   if (!row) return null;
   const state = JSON.parse(row.state) as RoomState;
   state.retractionUsed ??= false;
+  state.rules = normalizeRules(state.rules ?? DEFAULT_GAME_RULES);
   return { row, state };
 }
 
@@ -59,10 +61,27 @@ async function saveRoom(state: RoomState) {
 
 function pickSong(state: RoomState): Song {
   const available = (catalog as Song[]).filter(
-    (song) => song.uri && !state.usedUris.includes(song.uri),
+    (song) => song.uri
+      && !state.usedUris.includes(song.uri)
+      && song.year >= state.rules.minYear
+      && song.year <= state.rules.maxYear,
   );
   if (!available.length) throw new Error("The playable catalogue is exhausted.");
-  const song = available[Math.floor(Math.random() * available.length)];
+  const weightedBuckets = ERA_BUCKETS.map((era) => ({
+    songs: available.filter((song) => song.year >= era.min && song.year <= era.max),
+    weight: state.rules.eraWeights[era.id],
+  })).filter((bucket) => bucket.songs.length && bucket.weight > 0);
+  const totalWeight = weightedBuckets.reduce((total, bucket) => total + bucket.weight, 0);
+  let songs = available;
+  if (totalWeight > 0) {
+    let draw = Math.random() * totalWeight;
+    const bucket = weightedBuckets.find((candidate) => {
+      draw -= candidate.weight;
+      return draw <= 0;
+    }) ?? weightedBuckets[weightedBuckets.length - 1];
+    songs = bucket.songs;
+  }
+  const song = songs[Math.floor(Math.random() * songs.length)];
   state.usedUris.push(song.uri!);
   return song;
 }
@@ -118,6 +137,7 @@ export async function POST(request: Request) {
         retractionUsed: false,
         result: null,
         winnerId: null,
+        rules: DEFAULT_GAME_RULES,
         usedUris: [],
       };
       await database()
@@ -142,6 +162,14 @@ export async function POST(request: Request) {
       state.players.push(player);
       await saveRoom(state);
       return Response.json({ room: roomView(state, false), playerId: player.id }, { status: 201 });
+    }
+
+    if (action === "rules") {
+      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (state.phase !== "lobby") return fail("Rules are locked after the game starts.", 409);
+      state.rules = normalizeRules(payload.rules);
+      await saveRoom(state);
+      return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "start") {
@@ -180,6 +208,7 @@ export async function POST(request: Request) {
       if (state.phase !== "placed" || playerId !== state.activePlayerId) {
         return fail("There is no placement to retract.", 409);
       }
+      if (!state.rules.allowRetraction) return fail("Retractions are disabled for this game.", 409);
       if (state.retractionUsed) return fail("This round’s retraction has already been used.", 409);
       state.placement = null;
       state.retractionUsed = true;
@@ -200,7 +229,7 @@ export async function POST(request: Request) {
         && (!next || state.currentSong.year <= next.year);
       state.result = { correct, index: state.placement };
       if (correct) player.timeline.splice(state.placement, 0, state.currentSong);
-      if (player.timeline.length >= 10) state.winnerId = player.id;
+      if (player.timeline.length >= state.rules.targetScore) state.winnerId = player.id;
       state.phase = "revealed";
       await saveRoom(state);
       return Response.json({ room: roomView(state, true) });
