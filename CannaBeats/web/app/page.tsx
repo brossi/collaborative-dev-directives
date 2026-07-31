@@ -3,16 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
+import { SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer } from "../lib/use-spotify-player";
-
-type Session = {
-  code: string;
-  hostToken?: string;
-  playerId?: string;
-  joinOrigin?: string;
-};
-
-const SESSION_KEY = "cannabeats-session";
 
 async function gameRequest(body: Record<string, unknown>) {
   const response = await fetch("/api/game", {
@@ -68,7 +60,7 @@ function Timeline({ player, interactive, selected, onSelect }: {
 
 export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<GameSession | null>(null);
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [selection, setSelection] = useState<{ round: number; index: number } | null>(null);
@@ -77,7 +69,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const spotify = useSpotifyPlayer();
 
-  const refresh = useCallback(async (current: Session) => {
+  const refresh = useCallback(async (current: GameSession) => {
     const params = new URLSearchParams({ code: current.code });
     if (current.hostToken) params.set("hostToken", current.hostToken);
     const response = await fetch(`/api/game?${params}`, { cache: "no-store" });
@@ -93,7 +85,7 @@ export default function Home() {
       if (sharedCode) setRoomCode(sharedCode);
       if (!saved) return;
       try {
-        const restored = JSON.parse(saved) as Session;
+        const restored = JSON.parse(saved) as GameSession;
         setSession(restored);
         void refresh(restored).catch(() => sessionStorage.removeItem(SESSION_KEY));
       } catch {
@@ -115,9 +107,8 @@ export default function Home() {
     if (!room?.isHost || room.phase !== "lobby") return;
     let cancelled = false;
     const joinUrl = new URL(session?.joinOrigin ?? window.location.origin);
-    joinUrl.pathname = "/";
+    joinUrl.pathname = `/join/${room.code}`;
     joinUrl.search = "";
-    joinUrl.searchParams.set("room", room.code);
     void QRCode.toDataURL(joinUrl.toString(), {
       width: 240,
       margin: 1,

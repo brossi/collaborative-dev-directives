@@ -21,7 +21,17 @@ test("entry screen contains the host and player paths", async () => {
   assert.match(page, /Join a game/);
   assert.match(page, /Lock placement/);
   assert.match(page, /Scan to join/);
-  assert.match(page, /searchParams\.set\("room", room\.code\)/);
+  assert.match(page, /joinUrl\.pathname = `\/join\/\$\{room\.code\}`/);
+});
+
+test("QR players get a focused name entry page", async () => {
+  const join = await readFile(new URL("../app/join/[code]/join-room.tsx", import.meta.url), "utf8");
+
+  assert.match(join, /What should we call you\?/);
+  assert.match(join, /action: "join"/);
+  assert.match(join, /sessionStorage\.setItem\(SESSION_KEY/);
+  assert.match(join, /window\.location\.replace\("\/"\)/);
+  assert.doesNotMatch(join, /Host a game/);
 });
 
 test("starter preview metadata and UI are gone", async () => {
