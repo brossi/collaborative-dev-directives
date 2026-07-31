@@ -6,8 +6,28 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CAFE00000000000000000011 /* SpotifyiOS.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CAFE00000000000000000010 /* SpotifyiOS.xcframework */; };
+		CAFE00000000000000000012 /* SpotifyiOS.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CAFE00000000000000000010 /* SpotifyiOS.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CAFE00000000000000000013 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				CAFE00000000000000000012 /* SpotifyiOS.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		CAFE00000000000000000004 /* CannaBeats.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CannaBeats.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAFE00000000000000000010 /* SpotifyiOS.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SpotifyiOS.xcframework; path = Frameworks/SpotifyiOS.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CAFE00000000000000000011 /* SpotifyiOS.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +54,7 @@
 			isa = PBXGroup;
 			children = (
 				CAFE00000000000000000002 /* CannaBeats */,
+				CAFE00000000000000000014 /* Frameworks */,
 				CAFE00000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,6 +67,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		CAFE00000000000000000014 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CAFE00000000000000000010 /* SpotifyiOS.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -55,6 +85,7 @@
 				CAFE00000000000000000006 /* Sources */,
 				CAFE00000000000000000007 /* Frameworks */,
 				CAFE00000000000000000008 /* Resources */,
+				CAFE00000000000000000013 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);

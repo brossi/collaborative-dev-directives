@@ -1,8 +1,10 @@
 import Foundation
+import UIKit
 
 /// Fake backend so the full game loop runs on-device or in the simulator
 /// before the SpotifyiOS framework is dropped in. Logs instead of playing.
-/// `PlayerModel` selects it automatically whenever SpotifyiOS is absent.
+/// `PlayerModel` selects it whenever SpotifyiOS is absent, and always in the
+/// simulator — App Remote has no Spotify app to talk to there.
 final class StubBackend: PlayerBackend {
     weak var delegate: PlayerBackendDelegate?
     private(set) var isConnected = false
@@ -37,5 +39,11 @@ final class StubBackend: PlayerBackend {
     func resume() {
         print("[StubBackend] resume")
         delegate?.backendPlaybackChanged(isPaused: false)
+    }
+
+    // No real player, so no cover art. RevealCard renders without it.
+    func fetchCurrentArtwork(size: CGSize, completion: @escaping (UIImage?) -> Void) {
+        print("[StubBackend] fetchCurrentArtwork — no artwork in stub")
+        completion(nil)
     }
 }

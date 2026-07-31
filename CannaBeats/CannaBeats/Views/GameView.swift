@@ -39,9 +39,15 @@ struct GameView: View {
             Text("CannaBeats")
                 .font(.headline)
             if player.usingStub {
+                #if targetEnvironment(simulator)
+                Text("STUB PLAYER — no Spotify app in the simulator; run on a device for audio")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                #else
                 Text("STUB PLAYER — add SpotifyiOS.xcframework for real audio")
                     .font(.caption2)
                     .foregroundStyle(.orange)
+                #endif
             }
         }
     }
@@ -97,7 +103,7 @@ struct GameView: View {
     @ViewBuilder
     private var playPane: some View {
         if session.revealed, let song = session.currentSong {
-            RevealCard(song: song)
+            RevealCard(song: song, artwork: player.artwork)
             if session.deckExhausted {
                 VStack(spacing: 8) {
                     Text("Deck exhausted!")
@@ -121,6 +127,9 @@ struct GameView: View {
                 }
                 Button("Reveal (game master only)") {
                     session.revealed = true
+                    // Fetched only now: the hidden pane must never hold a
+                    // picture of the answer.
+                    player.loadArtwork()
                 }
                 .buttonStyle(.bordered)
                 if !session.deckExhausted {

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// What any audio backend must provide. `SpotifyBackend` is the real one;
 /// `StubBackend` lets the whole game loop run before the SpotifyiOS
@@ -13,6 +14,10 @@ protocol PlayerBackend: AnyObject {
     func play(uri: String)
     func pause()
     func resume()
+    /// Cover art for whatever is playing right now, or nil if unavailable
+    /// (stub backend, not connected, or the fetch failed). Called only on
+    /// reveal, so a failure costs the card its picture and nothing else.
+    func fetchCurrentArtwork(size: CGSize, completion: @escaping (UIImage?) -> Void)
 }
 
 protocol PlayerBackendDelegate: AnyObject {
@@ -29,6 +34,10 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var status: Status = .disconnected
     @Published private(set) var isPaused = false
     @Published var lastError: String?
+    /// Cover art for the revealed song. Fetched on reveal and cleared when
+    /// the next song is drawn, so a stale card can never show the previous
+    /// song's art — which would be a second answer leaking onto the table.
+    @Published private(set) var artwork: UIImage?
 
     let usingStub: Bool
     private let backend: PlayerBackend
@@ -46,7 +55,11 @@ final class PlayerModel: ObservableObject {
     private static let connectTimeoutSeconds: TimeInterval = 15
 
     init() {
-        #if canImport(SpotifyiOS)
+        // The xcframework ships a simulator slice, so canImport alone would
+        // select the real backend in the simulator — where App Remote can
+        // never connect (no Spotify app to talk to). The stub stays the
+        // simulator's backend so the game loop remains testable there.
+        #if canImport(SpotifyiOS) && !targetEnvironment(simulator)
         backend = SpotifyBackend()
         usingStub = false
         #else
@@ -81,8 +94,19 @@ final class PlayerModel: ObservableObject {
     }
 
     func play(uri: String) {
+        artwork = nil
         perform { [self] in
             backend.play(uri: uri)
+        }
+    }
+
+    /// Called when the game master reveals. Artwork is fetched here rather
+    /// than on track change so the hidden pane never holds a picture of the
+    /// answer, and so a hidden song costs no image traffic at all.
+    func loadArtwork(size: CGSize = CGSize(width: 640, height: 640)) {
+        guard status == .connected else { return }
+        backend.fetchCurrentArtwork(size: size) { [weak self] image in
+            Task { @MainActor in self?.artwork = image }
         }
     }
 
