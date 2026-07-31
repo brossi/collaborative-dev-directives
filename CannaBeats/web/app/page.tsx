@@ -390,6 +390,20 @@ export default function Home() {
             </section>
           )}
 
+          {room.isHost && room.phase === "placed" && activePlayer && room.placement !== null && (
+            <section className="host-timeline">
+              <p className="step-label">Locked position</p>
+              <h2>{activePlayer.name}’s timeline</h2>
+              <Timeline
+                player={activePlayer}
+                interactive={false}
+                selected={null}
+                locked={room.placement}
+                onSelect={() => undefined}
+              />
+            </section>
+          )}
+
           {!room.isHost && currentPlayer && (
             <section className="player-board">
               {room.phase === "revealed" && room.currentSong && (
