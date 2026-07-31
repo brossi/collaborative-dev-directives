@@ -24,9 +24,11 @@ function Timeline({ player, interactive, selected, locked, onSelect }: {
   locked: number | null;
   onSelect: (index: number) => void;
 }) {
-  const placementLabel = (index: number) => index === 0
-    ? `Earlier than ${player.timeline[0].year}`
-    : `Later than ${player.timeline[index - 1].year}`;
+  const placementLabel = (index: number) => {
+    if (index === 0) return `Earlier than ${player.timeline[0].year}`;
+    if (index === player.timeline.length) return `Later than ${player.timeline[index - 1].year}`;
+    return `Between ${player.timeline[index - 1].year} and ${player.timeline[index].year}`;
+  };
 
   const placementTarget = (index: number) => {
     if (locked === index) {

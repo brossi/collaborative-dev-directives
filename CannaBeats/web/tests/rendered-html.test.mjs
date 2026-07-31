@@ -74,6 +74,7 @@ test("the player game view prioritizes the timeline", async () => {
   assert.match(page, /Place the mystery song/);
   assert.match(page, /Earlier than \$\{player\.timeline\[0\]\.year\}/);
   assert.match(page, /Later than \$\{player\.timeline\[index - 1\]\.year\}/);
+  assert.match(page, /Between \$\{player\.timeline\[index - 1\]\.year\} and \$\{player\.timeline\[index\]\.year\}/);
   assert.doesNotMatch(page, /\+ Place here/);
   assert.match(styles, /\.timeline-gap \{[^}]*color: var\(--green\)/);
   assert.doesNotMatch(styles, /\.timeline-gap \{[^}]*color: transparent/);
