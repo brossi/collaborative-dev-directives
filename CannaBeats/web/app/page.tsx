@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
 import type { Player, RoomView, Song } from "../lib/game";
 
 type Session = {
@@ -73,6 +74,7 @@ export default function Home() {
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [selection, setSelection] = useState<{ round: number; index: number } | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -86,18 +88,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const sharedCode = new URLSearchParams(window.location.search).get("room")?.trim().toUpperCase();
     const saved = sessionStorage.getItem(SESSION_KEY);
-    if (!saved) return;
-    try {
-      const restored = JSON.parse(saved) as Session;
-      const timer = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      if (sharedCode) setRoomCode(sharedCode);
+      if (!saved) return;
+      try {
+        const restored = JSON.parse(saved) as Session;
         setSession(restored);
         void refresh(restored).catch(() => sessionStorage.removeItem(SESSION_KEY));
-      }, 0);
-      return () => window.clearTimeout(timer);
-    } catch {
-      sessionStorage.removeItem(SESSION_KEY);
-    }
+      } catch {
+        sessionStorage.removeItem(SESSION_KEY);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [refresh]);
 
   useEffect(() => {
@@ -107,6 +111,22 @@ export default function Home() {
     }, 1200);
     return () => window.clearInterval(timer);
   }, [refresh, session]);
+
+  useEffect(() => {
+    if (!room?.isHost || room.phase !== "lobby") return;
+    let cancelled = false;
+    const joinUrl = new URL(window.location.href);
+    joinUrl.search = "";
+    joinUrl.searchParams.set("room", room.code);
+    void QRCode.toDataURL(joinUrl.toString(), {
+      width: 240,
+      margin: 1,
+      color: { dark: "#171c2b", light: "#fff5c9" },
+    }).then((url) => {
+      if (!cancelled) setQrCodeUrl(url);
+    }).catch(() => setError("Unable to create the room QR code."));
+    return () => { cancelled = true; };
+  }, [room?.code, room?.isHost, room?.phase]);
 
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === session?.playerId) ?? null,
@@ -221,7 +241,19 @@ export default function Home() {
           </div>
           {room.isHost ? (
             <>
-              <p className="helper">Players join at this address using room code <strong>{room.code}</strong>.</p>
+              <div className="join-invite">
+                <div className="qr-card">
+                  {qrCodeUrl ? (
+                    // This generated data URL is the QR code itself, not site content.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qrCodeUrl} width="240" height="240" alt={`QR code to join room ${room.code}`} />
+                  ) : <div className="qr-placeholder" aria-label="Preparing QR code" />}
+                </div>
+                <div>
+                  <p className="step-label">Scan to join</p>
+                  <p className="helper">Open the camera on each player’s phone. Manual room code: <strong>{room.code}</strong></p>
+                </div>
+              </div>
               <button className="primary-button" disabled={!room.players.length || busy} onClick={() => act({ action: "start", hostToken: session.hostToken })}>Start game</button>
             </>
           ) : <p className="waiting-note"><i /> Waiting for the host to start</p>}

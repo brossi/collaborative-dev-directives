@@ -8,6 +8,8 @@ test("entry screen contains the host and player paths", async () => {
   assert.match(page, /Host a game/);
   assert.match(page, /Join a game/);
   assert.match(page, /Lock placement/);
+  assert.match(page, /Scan to join/);
+  assert.match(page, /searchParams\.set\("room", room\.code\)/);
 });
 
 test("starter preview metadata and UI are gone", async () => {

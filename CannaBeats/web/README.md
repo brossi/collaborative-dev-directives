@@ -24,7 +24,7 @@ URIs are included.
 
 ## Current game loop
 
-1. The host creates a room and players join.
+1. The host creates a room and players join by QR code or manual room code.
 2. Every player receives one revealed anchor song.
 3. The host opens the mystery track in Spotify.
 4. The active player chooses and locks an insertion point on their phone.
