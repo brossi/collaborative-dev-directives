@@ -7,3 +7,4 @@ export type GameSession = {
 
 export const SESSION_KEY = "cannabeats-session";
 export const PLAYER_NAME_KEY = "cannabeats-player-name";
+export const HOST_RULES_KEY = "cannabeats-host-rules";

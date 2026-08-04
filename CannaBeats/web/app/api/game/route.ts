@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         retractionUsed: false,
         result: null,
         winnerId: null,
-        rules: DEFAULT_GAME_RULES,
+        rules: normalizeRules(payload.rules ?? DEFAULT_GAME_RULES),
         usedUris: [],
       };
       await database()

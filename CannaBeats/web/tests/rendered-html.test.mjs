@@ -142,12 +142,13 @@ test("a locked placement is shown and can be retracted once", async () => {
   assert.match(route, /state\.retractionUsed = false/);
 });
 
-test("host game setup uses persisted presets and weighted era selection", async () => {
-  const [page, route, game, rules, styles] = await Promise.all([
+test("host game setup retains persisted presets and uses weighted era selection", async () => {
+  const [page, route, game, rules, session, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/rules.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/session.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -161,7 +162,11 @@ test("host game setup uses persisted presets and weighted era selection", async 
   assert.match(page, /Advanced settings/);
   assert.match(page, /Relative era weighting/);
   assert.match(page, /Apply custom rules/);
+  assert.match(session, /HOST_RULES_KEY = "cannabeats-host-rules"/);
+  assert.match(page, /localStorage\.setItem\(HOST_RULES_KEY, hostRules\)/);
+  assert.match(page, /gameRequest\(\{ action: "create", rules: rememberedHostRules\(\) \}\)/);
   assert.match(styles, /\.preset-grid/);
+  assert.match(route, /rules: normalizeRules\(payload\.rules \?\? DEFAULT_GAME_RULES\)/);
   assert.match(route, /action === "rules"/);
   assert.match(route, /Rules are locked after the game starts/);
   assert.match(route, /song\.year >= state\.rules\.minYear/);

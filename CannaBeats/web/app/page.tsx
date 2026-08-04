@@ -3,8 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
-import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
-import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
+import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, normalizeRules, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
+import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 
 async function gameRequest(body: Record<string, unknown>) {
@@ -16,6 +16,17 @@ async function gameRequest(body: Record<string, unknown>) {
   const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string };
   if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
   return payload;
+}
+
+function rememberedHostRules() {
+  const saved = localStorage.getItem(HOST_RULES_KEY);
+  if (!saved) return undefined;
+  try {
+    return normalizeRules(JSON.parse(saved));
+  } catch {
+    localStorage.removeItem(HOST_RULES_KEY);
+    return undefined;
+  }
 }
 
 function Timeline({ player, interactive, selected, locked, onSelect }: {
@@ -240,6 +251,7 @@ export default function Home() {
   const spotify = useSpotifyPlayer();
   const spotifyIsReady = spotify.isReady;
   const trackArtwork = spotify.trackArtwork;
+  const hostRules = room?.isHost ? JSON.stringify(room.rules) : "";
 
   const refresh = useCallback(async (current: GameSession) => {
     const params = new URLSearchParams({ code: current.code });
@@ -278,6 +290,10 @@ export default function Home() {
     }, 1200);
     return () => window.clearInterval(timer);
   }, [refresh, session]);
+
+  useEffect(() => {
+    if (hostRules) localStorage.setItem(HOST_RULES_KEY, hostRules);
+  }, [hostRules]);
 
   useEffect(() => {
     if (!room?.isHost || room.phase !== "lobby") return;
@@ -367,7 +383,7 @@ export default function Home() {
     setBusy(true);
     setError("");
     try {
-      const payload = await gameRequest({ action: "create" });
+      const payload = await gameRequest({ action: "create", rules: rememberedHostRules() });
       const next = { code: payload.room!.code, hostToken: payload.hostToken!, joinOrigin: payload.joinOrigin };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
       setSession(next);
