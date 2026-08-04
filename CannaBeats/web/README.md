@@ -1,8 +1,8 @@
 # CannaBeats web game
 
-The browser-based host and player experience for CannaBeats. A host creates a
-four-character room code, family members join from their phones, and play moves
-around the room one player at a time.
+The browser-based host and player experience for CannaBeats. Every room can mix
+players joining from their phones with players entered by the host to use the
+shared screen. Play moves around the room one player at a time.
 
 The visual system is based on the original `public/cannabeats-logo.jpg` concept
 art: warm cream paper, tomato red, cobalt blue, golden yellow, and vintage print
@@ -19,10 +19,11 @@ npm run play:lan
 ```
 
 Open the printed private host address (`http://127.0.0.1:3000`) on the host
-computer. Connect Spotify, create the room there, and let players on the same
-Wi-Fi scan its QR code. The QR code uses the separately printed network address
-so player phones can reach the room without receiving the host's Spotify token.
-Keep this terminal running and the computer awake while playing.
+computer, connect Spotify, and create a game. Add shared-screen players by name
+and let phone players scan the QR code. The QR code uses the separately printed
+network address so player phones can reach the room without receiving the
+host's Spotify token. Keep this terminal running and the computer awake while
+playing.
 
 Spotify's developer dashboard must allow this exact redirect URI:
 
@@ -54,10 +55,14 @@ URIs are included.
 
 ## Current game loop
 
-1. The host creates a room and players join by QR code or manual room code.
-2. Every player receives one revealed anchor song.
-3. The host opens the mystery track in Spotify.
-4. The active player chooses and locks an insertion point on their phone.
+1. The host creates a room, enters shared-screen players by name, and lets phone
+   players join by QR or room code.
+2. The game gives every player an anchor song, randomly chooses who starts, and
+   prepares the first mystery song without playing it.
+3. The host announces the first player and starts the song when everyone is
+   ready.
+4. The active player chooses and locks an insertion point using the control
+   assigned to them: the shared host timeline or their phone.
 5. The host reveals the answer; the server validates the placement.
 6. Correct cards stay in the timeline. The first player to ten wins.
 

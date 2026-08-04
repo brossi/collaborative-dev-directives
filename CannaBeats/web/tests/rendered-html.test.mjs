@@ -170,6 +170,71 @@ test("host game setup uses persisted presets and weighted era selection", async 
   assert.match(route, /player\.timeline\.length >= state\.rules\.targetScore/);
 });
 
+test("a random player starts each game", async () => {
+  const route = await readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8");
+
+  assert.match(route, /state\.activePlayerIndex = Math\.floor\(Math\.random\(\) \* state\.players\.length\)/);
+  assert.match(route, /state\.activePlayerId = state\.players\[state\.activePlayerIndex\]\.id/);
+  assert.doesNotMatch(route, /state\.activePlayerIndex = 0/);
+});
+
+test("the first round waits for the host before playback", async () => {
+  const [page, route, game] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(game, /"lobby" \| "ready" \| "playing"/);
+  assert.match(route, /if \(action === "start"\)[\s\S]*state\.phase = "ready"/);
+  assert.match(route, /if \(action === "begin"\)[\s\S]*state\.phase = "playing"/);
+  assert.match(page, /Set up game/);
+  assert.match(page, /Start first song/);
+  assert.match(page, /action: "start", hostToken: session\.hostToken \}\)/);
+  assert.match(page, /action: "begin", hostToken: session\.hostToken \}, true/);
+  assert.match(page, /goes first/);
+});
+
+test("every game supports phone and host-controlled players", async () => {
+  const [page, route, game, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(game, /export type PlayerControl = "phone" \| "host"/);
+  assert.match(game, /control: PlayerControl/);
+  assert.doesNotMatch(game, /export type InputMode/);
+  assert.doesNotMatch(game, /inputMode: InputMode/);
+  assert.match(route, /player\.control = normalizePlayerControl\(player\.control, state\.inputMode\)/);
+  assert.match(route, /delete state\.inputMode/);
+  assert.doesNotMatch(route, /inputMode: normalizeInputMode\(payload\.inputMode\)/);
+  assert.match(route, /action === "addPlayer"/);
+  assert.match(route, /action === "removePlayer"/);
+  assert.match(route, /control: "phone" as const/);
+  assert.match(route, /control: "host" as const/);
+  assert.match(route, /const hostIsPlacing = player\?\.control === "host"/);
+  assert.match(route, /const activePlayerIsPlacing = player\?\.control === "phone"/);
+  assert.match(route, /const hostIsRetracting = player\?\.control === "host"/);
+  assert.match(route, /if \(action === "skip"\)[\s\S]*state\.round \+= 1/);
+  assert.match(page, /Create game/);
+  assert.doesNotMatch(page, /Mix phones \+ this screen/);
+  assert.doesNotMatch(page, /room\.inputMode/);
+  assert.match(page, /className="host-player-form"/);
+  assert.match(page, /className="join-invite"/);
+  assert.match(page, /player-control-badge/);
+  assert.match(page, /hostControlsActivePlayer/);
+  assert.match(page, /className=\{`host-placement-gap/);
+  assert.match(page, /action: "place", hostToken: session\.hostToken/);
+  assert.match(page, /Change placement/);
+  assert.match(styles, /\.host-placement-gap/);
+  assert.match(page, /className="host-row-lock"/);
+  assert.match(styles, /\.host-row-lock/);
+  assert.doesNotMatch(page, /host-placement-controls/);
+  assert.doesNotMatch(styles, /\.host-placement-controls/);
+});
+
 test("the host scoreboard shows chronological Spotify timeline rows", async () => {
   const [page, styles, spotify] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
@@ -178,13 +243,22 @@ test("the host scoreboard shows chronological Spotify timeline rows", async () =
   ]);
 
   assert.match(page, /function HostScoreboard/);
-  assert.match(page, /players\.map\(\(player, playerIndex\)/);
-  assert.match(page, /Earlier <span aria-hidden="true">→<\/span> Later/);
+  assert.match(page, /players\.map\(\(player\)/);
+  assert.doesNotMatch(page, /Earlier <span aria-hidden="true">→<\/span> Later/);
+  assert.match(page, /<span>Round \{round\}<\/span>/);
+  assert.match(page, /className="host-round-bar"/);
+  assert.match(page, /className="host-brand-icon"/);
+  assert.match(page, /activeTrackRef/);
+  assert.match(page, /track\.scrollTo/);
+  assert.doesNotMatch(page, /Spotify ↗/);
   assert.match(page, /artwork\.imageUrl/);
   assert.match(page, /\{song\.title\}/);
   assert.match(page, /\{song\.artist\}/);
   assert.match(page, /\{song\.year\}/);
   assert.match(styles, /\.host-timeline-track \{[^}]*display: flex/);
+  assert.match(styles, /\.host-round-bar \{[^}]*grid-template-columns: 104px/);
+  assert.match(styles, /\.host-round-bar \{[^}]*position: sticky/);
+  assert.match(styles, /\.host-song-card \{[^}]*scroll-snap-align: center/);
   assert.match(styles, /\.host-song-art img \{[^}]*object-fit: contain/);
   assert.match(spotify, /https:\/\/api\.spotify\.com\/v1\/tracks\/\$\{encodeURIComponent\(trackId\)\}/);
   assert.doesNotMatch(spotify, /\/v1\/tracks\?ids=/);

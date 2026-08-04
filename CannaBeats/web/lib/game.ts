@@ -1,6 +1,12 @@
 import type { GameRules } from "./rules";
 
-export type Phase = "lobby" | "playing" | "placed" | "revealed" | "finished";
+export type Phase = "lobby" | "ready" | "playing" | "placed" | "revealed" | "finished";
+export type PlayerControl = "phone" | "host";
+
+export function normalizePlayerControl(value: unknown, legacyInputMode?: unknown): PlayerControl {
+  if (value === "phone" || value === "host") return value;
+  return legacyInputMode === "host-screen" ? "host" : "phone";
+}
 
 export type Song = {
   title: string;
@@ -12,6 +18,7 @@ export type Song = {
 export type Player = {
   id: string;
   name: string;
+  control: PlayerControl;
   timeline: Song[];
 };
 

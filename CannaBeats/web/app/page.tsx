@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
 import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
@@ -123,22 +123,68 @@ function GameSetup({ rules, busy, onApply }: {
   );
 }
 
-function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri, targetScore }: {
+function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri, targetScore, round, interactive, selected, busy, onSelect, onLock }: {
   players: Player[];
   activePlayerId: string | null;
   lockedPlacement: number | null;
   artworkByUri: Record<string, SpotifyTrackArtwork>;
   targetScore: number;
+  round: number;
+  interactive: boolean;
+  selected: number | null;
+  busy: boolean;
+  onSelect: (index: number) => void;
+  onLock: () => void;
 }) {
+  const activeTrackRef = useRef<HTMLDivElement | null>(null);
+  const activeTimelineLength = players.find((player) => player.id === activePlayerId)?.timeline.length ?? 0;
+
+  useEffect(() => {
+    const track = activeTrackRef.current;
+    if (!track) return;
+    const target = lockedPlacement !== null
+      ? track.querySelector<HTMLElement>(".host-mystery-card")
+      : selected !== null
+        ? track.querySelector<HTMLElement>(".host-placement-gap.selected")
+        : track.querySelector<HTMLElement>(".host-song-card:last-child");
+    if (!target) return;
+    track.scrollTo({
+      left: target.offsetLeft - (track.clientWidth - target.clientWidth) / 2,
+      behavior: "smooth",
+    });
+  }, [activePlayerId, activeTimelineLength, interactive, lockedPlacement, round, selected]);
+
   return (
     <section className="host-scoreboard" aria-label="Player timelines">
-      <div className="host-scoreboard-heading">
-        <div><p className="step-label">Player timelines</p><h2>Earlier <span aria-hidden="true">→</span> Later</h2></div>
-        <small>First to {targetScore} songs wins</small>
-      </div>
       <div className="host-scoreboard-rows">
-        {players.map((player, playerIndex) => {
+        {players.map((player) => {
+          const isActive = player.id === activePlayerId;
           const locked = player.id === activePlayerId ? lockedPlacement : null;
+          const placementLabel = (index: number) => {
+            if (index === 0) return `Earlier than ${player.timeline[0].year}`;
+            if (index === player.timeline.length) return `Later than ${player.timeline[index - 1].year}`;
+            return `Between ${player.timeline[index - 1].year} and ${player.timeline[index].year}`;
+          };
+          const placementTarget = (index: number) => {
+            if (locked === index) {
+              return <article className="host-song-card host-mystery-card" key={`locked-${index}`}><div className="host-song-art">?</div><div className="host-song-copy"><b>Mystery song</b><span>Locked here</span></div></article>;
+            }
+            if (!isActive || !interactive) return null;
+            const isSelected = selected === index;
+            return (
+              <button
+                aria-label={placementLabel(index)}
+                aria-pressed={isSelected}
+                className={`host-placement-gap ${isSelected ? "selected" : ""}`}
+                key={`gap-${index}`}
+                onClick={() => onSelect(index)}
+                type="button"
+              >
+                <strong>{isSelected ? "Selected" : "Place here"}</strong>
+                <small>{placementLabel(index)}</small>
+              </button>
+            );
+          };
           const cards = player.timeline.flatMap((song, songIndex) => {
             const artwork = song.uri ? artworkByUri[song.uri] : undefined;
             const card = (
@@ -146,7 +192,7 @@ function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri
                 <div className="host-song-art">
                   {artwork ? (
                     <>
-                      {/* Spotify artwork is displayed uncropped and links back to its track. */}
+                      {/* Spotify artwork is displayed uncropped in the shared timeline. */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={artwork.imageUrl} width="300" height="300" alt="" />
                     </>
@@ -156,24 +202,22 @@ function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri
                   <strong className="host-song-year">{song.year}</strong>
                   <b>{song.title}</b>
                   <span>{song.artist}</span>
-                  {artwork && <a href={artwork.spotifyUrl} target="_blank" rel="noreferrer">Spotify ↗</a>}
                 </div>
               </article>
             );
-            return locked === songIndex
-              ? [<article className="host-song-card host-mystery-card" key={`locked-${songIndex}`}><div className="host-song-art">?</div><div className="host-song-copy"><b>Mystery song</b><span>Locked here</span></div></article>, card]
-              : [card];
+            const target = placementTarget(songIndex);
+            return target ? [target, card] : [card];
           });
-          if (locked === player.timeline.length) {
-            cards.push(<article className="host-song-card host-mystery-card" key="locked-last"><div className="host-song-art">?</div><div className="host-song-copy"><b>Mystery song</b><span>Locked here</span></div></article>);
-          }
+          const lastTarget = placementTarget(player.timeline.length);
+          if (lastTarget) cards.push(lastTarget);
           return (
-            <article className={`host-score-row ${player.id === activePlayerId ? "active" : ""}`} key={player.id}>
+            <article className={`host-score-row ${isActive ? "active" : ""} ${isActive && interactive ? "placing" : ""}`} key={player.id}>
               <header>
-                <span className="player-order">{playerIndex + 1}</span>
-                <div><strong>{player.name}</strong><small>{player.timeline.length} / {targetScore} songs</small></div>
+                <div className="host-player-name"><strong>{player.name}</strong>{isActive && <span>Round {round}</span>}</div>
+                <small>{player.timeline.length} / {targetScore} songs · {player.control === "host" ? "Host screen" : "Phone"}</small>
               </header>
-              <div className="host-timeline-track">{cards}</div>
+              <div className="host-timeline-track" ref={isActive ? activeTrackRef : undefined}>{cards}</div>
+              {isActive && interactive && <button className="host-row-lock" disabled={selected === null || busy} onClick={onLock} type="button">Lock placement</button>}
             </article>
           );
         })}
@@ -186,6 +230,7 @@ export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
   const [session, setSession] = useState<GameSession | null>(null);
   const [name, setName] = useState("");
+  const [hostPlayerName, setHostPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [selection, setSelection] = useState<{ round: number; index: number } | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -281,8 +326,14 @@ export default function Home() {
   );
   const activePlayer = room?.players.find((player) => player.id === room.activePlayerId) ?? null;
   const winner = room?.players.find((player) => player.id === room.winnerId) ?? null;
-  const isMyTurn = Boolean(currentPlayer && room?.activePlayerId === currentPlayer.id);
+  const isMyTurn = Boolean(currentPlayer?.control === "phone" && room?.activePlayerId === currentPlayer.id);
+  const hostControlsActivePlayer = Boolean(room?.isHost && activePlayer?.control === "host");
   const selected = selection && selection.round === room?.round ? selection.index : null;
+  const playbackLabel = spotify.status === "playing"
+    ? "Pause"
+    : spotify.status === "paused"
+      ? "Resume"
+      : "Play";
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return false;
@@ -306,7 +357,10 @@ export default function Home() {
   }
 
   async function retractPlacement() {
-    if (await act({ action: "retract", playerId: session?.playerId })) setSelection(null);
+    const credentials = hostControlsActivePlayer
+      ? { hostToken: session?.hostToken }
+      : { playerId: session?.playerId };
+    if (await act({ action: "retract", ...credentials })) setSelection(null);
   }
 
   async function createRoom() {
@@ -322,6 +376,15 @@ export default function Home() {
       setError(reason instanceof Error ? reason.message : "Unable to create a room.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function addHostPlayer(event: FormEvent) {
+    event.preventDefault();
+    const chosenName = hostPlayerName.trim();
+    if (!chosenName) return;
+    if (await act({ action: "addPlayer", hostToken: session?.hostToken, name: chosenName })) {
+      setHostPlayerName("");
     }
   }
 
@@ -397,7 +460,7 @@ export default function Home() {
           <div className="entry-block">
             <p className="step-label">On the shared screen</p>
             <h2>Host a game</h2>
-            <p>Create a room, play every mystery song here, and reveal each answer.</p>
+            <p>Invite players by QR code, or add anyone who will use this screen.</p>
             {!spotify.supportedOrigin ? (
               <a className="spotify-button" href="http://127.0.0.1:3000/">Open the private host screen</a>
             ) : spotify.isReady ? (
@@ -407,7 +470,7 @@ export default function Home() {
                 {spotify.status === "connecting" ? "Connecting Spotify…" : "Connect Spotify"}
               </button>
             )}
-            <button className="primary-button" onClick={createRoom} disabled={busy || !spotify.supportedOrigin || !spotify.isReady}>Create room</button>
+            <button className="primary-button" onClick={createRoom} disabled={busy || !spotify.supportedOrigin || !spotify.isReady}>Create game</button>
             {(spotify.error || !spotify.isConfigured) && <p className="error-message" role="alert">{spotify.error || "Spotify is not configured for this build."}</p>}
           </div>
           <div className="or-rule"><span>or</span></div>
@@ -433,9 +496,22 @@ export default function Home() {
         </header>
         <section className="lobby-card">
           <p className="step-label">Players</p>
-          <h2>{room.players.length ? "The band is assembling" : "Waiting for players"}</h2>
+          <h2>{room.players.length ? "The band is assembling" : "Add or invite players"}</h2>
+          {room.isHost && (
+            <form className="host-player-form" onSubmit={addHostPlayer}>
+              <label className="visually-hidden" htmlFor="host-player-name">Player name</label>
+              <input id="host-player-name" maxLength={24} onChange={(event) => setHostPlayerName(event.target.value)} placeholder="Player name" value={hostPlayerName} />
+              <button className="secondary-button" disabled={busy || !hostPlayerName.trim()}>Add player</button>
+            </form>
+          )}
           <div className="player-list">
-            {room.players.map((player, index) => <div className="player-pill" key={player.id}><span>{index + 1}</span>{player.name}</div>)}
+            {room.players.map((player, index) => (
+              <div className="player-pill" key={player.id}>
+                <span>{index + 1}</span>{player.name}
+                <small className={`player-control-badge ${player.control}`}>{player.control === "host" ? "Host screen" : "Phone"}</small>
+                {room.isHost && <button aria-label={`Remove ${player.name}`} disabled={busy} onClick={() => void act({ action: "removePlayer", hostToken: session.hostToken, playerId: player.id })} type="button">Remove</button>}
+              </div>
+            ))}
           </div>
           {room.isHost ? (
             <>
@@ -455,12 +531,12 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="step-label">Scan to join</p>
-                  <p className="helper">Open the camera on each player’s phone. Manual room code: <strong>{room.code}</strong></p>
+                  <p className="helper">Phone players scan here; add shared-screen players above. Manual room code: <strong>{room.code}</strong></p>
                 </div>
               </div>
               <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready in CannaBeats" : "Reconnect Spotify before starting"}</p>
               {!spotify.isReady && <button className="spotify-button" type="button" onClick={() => void spotify.connect()}>Connect Spotify</button>}
-              <button className="primary-button" disabled={!room.players.length || busy || !spotify.isReady} onClick={() => act({ action: "start", hostToken: session.hostToken }, true)}>Start game</button>
+              <button className="primary-button" disabled={!room.players.length || busy || !spotify.isReady} onClick={() => act({ action: "start", hostToken: session.hostToken })}>Set up game</button>
             </>
           ) : <p className="waiting-note"><i /> Waiting for the host to start</p>}
         </section>
@@ -470,12 +546,69 @@ export default function Home() {
   }
 
   return (
-    <main className={`game-shell ${room.isHost ? "" : "player-shell"}`}>
-      {room.isHost ? (
-        <header className="game-header compact">
-          <div><p className="eyebrow">Room {room.code}</p><h1>CannaBeats</h1></div>
-          <div className="round-marker"><small>Round</small><strong>{room.round}</strong></div>
-        </header>
+    <main className={`game-shell ${room.isHost ? "host-game-shell" : "player-shell"}`}>
+      {room.isHost ? room.phase !== "finished" && (
+        <section className="host-round-bar" aria-label="Current round controls">
+          {/* The square brand artwork becomes a compact game icon on the shared screen. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="host-brand-icon" src="/cannabeats-logo-640.jpg" width="104" height="104" alt="CannaBeats" />
+          <div className="host-round-copy">
+            <p className={`host-round-state ${room.phase === "revealed" && room.result ? (room.result.correct ? "correct" : "incorrect") : ""}`}>
+              {room.phase === "ready"
+                ? "Up first"
+                : room.phase === "placed"
+                ? "Locked"
+                : room.phase === "revealed"
+                  ? room.result?.correct ? "Correct placement" : "Not quite"
+                  : activePlayer?.control === "phone" ? "Choosing on phone" : "Choosing on this screen"}
+            </p>
+            <h1>{room.phase === "ready" ? `${activePlayer?.name ?? "Player"} goes first` : `${activePlayer?.name ?? "Player"}’s turn`}</h1>
+            {room.phase === "revealed" && room.currentSong ? (
+              <p className="host-answer"><strong>{room.currentSong.year}</strong> · {room.currentSong.title} · <span>{room.currentSong.artist}</span></p>
+            ) : room.phase === "ready" ? <p className="host-ready-copy">Let the first player know, then start when everyone is ready.</p> : null}
+          </div>
+          <div className="host-round-controls">
+            {room.phase === "ready" && (
+              <button className="primary-button" disabled={busy || !room.currentSong?.uri} onClick={() => act({ action: "begin", hostToken: session.hostToken }, true)}>Start first song</button>
+            )}
+            {room.phase === "playing" && (
+              <>
+                <button
+                  className="spotify-button"
+                  type="button"
+                  aria-label={`${playbackLabel} mystery song`}
+                  disabled={busy || !room.currentSong?.uri}
+                  onClick={() => void controlPlayback(() => spotify.status === "playing"
+                    ? spotify.pause()
+                    : spotify.status === "paused"
+                      ? spotify.resume()
+                      : spotify.play(room.currentSong!.uri!))}
+                >
+                  {playbackLabel}
+                </button>
+                <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken }, true)}>Skip unavailable song</button>
+              </>
+            )}
+            {room.phase === "placed" && (
+              <>
+                <button className="primary-button" disabled={busy} onClick={() => act({ action: "reveal", hostToken: session.hostToken })}>Reveal answer</button>
+                <button
+                  className="text-button"
+                  type="button"
+                  aria-label={spotify.status === "playing" ? "Pause mystery song" : "Resume mystery song"}
+                  disabled={busy || !room.currentSong?.uri}
+                  onClick={() => void controlPlayback(() => spotify.status === "playing" ? spotify.pause() : spotify.resume())}
+                >
+                  {spotify.status === "playing" ? "Pause" : "Resume"}
+                </button>
+                {hostControlsActivePlayer && room.rules.allowRetraction && !room.retractionUsed && <button className="text-button" disabled={busy} onClick={() => void retractPlacement()}>Change placement</button>}
+              </>
+            )}
+            {room.phase === "revealed" && (
+              <button className="primary-button" disabled={busy} onClick={() => act({ action: "advance", hostToken: session.hostToken }, !room.winnerId)}>{room.winnerId ? "Finish game" : "Next player"}</button>
+            )}
+          </div>
+        </section>
       ) : currentPlayer && (
         <header className="player-header">
           <strong>{currentPlayer.name}</strong>
@@ -487,53 +620,16 @@ export default function Home() {
         <section className="winner-card"><p className="step-label">That’s the timeline</p><h2>{winner.name} wins!</h2><p>First to {room.rules.targetScore} songs, and officially in tune with history.</p></section>
       ) : (
         <>
-          {room.isHost ? (
-            <section className="turn-banner">
-              <p>{isMyTurn ? "Your turn" : `${activePlayer?.name ?? "Player"}’s turn`}</p>
-              <span>{room.phase === "placed" ? "Placement locked" : room.phase === "revealed" ? "Answer revealed" : "Listen and place the song"}</span>
-            </section>
-          ) : room.phase !== "revealed" && (
+          {!room.isHost && room.phase !== "revealed" && (
             <p className={`player-status ${isMyTurn && room.phase === "playing" ? "active" : ""}`}>
-              {isMyTurn && room.phase === "playing"
+              {room.phase === "ready"
+                ? isMyTurn ? "You’re going first — waiting for the host" : `${activePlayer?.name ?? "Another player"} goes first`
+                : isMyTurn && room.phase === "playing"
                 ? "Place the mystery song"
                 : room.phase === "placed"
                   ? "Locked in — waiting for the reveal"
                   : `${activePlayer?.name ?? "Another player"} is choosing`}
             </p>
-          )}
-
-          {room.isHost && (
-            <section className="host-panel">
-              <div className={`mystery-disc ${room.phase === "playing" ? "spinning" : ""}`}><i /></div>
-              {room.phase === "revealed" && room.currentSong ? (
-                <div className="reveal-copy">
-                  <p className={room.result?.correct ? "correct" : "incorrect"}>{room.result?.correct ? "Correct placement" : "Not quite"}</p>
-                  <h2>{room.currentSong.title}</h2>
-                  <p>{room.currentSong.artist}</p>
-                  <strong>{room.currentSong.year}</strong>
-                </div>
-              ) : (
-                <div className="host-actions">
-                  <p className="step-label">Mystery song</p>
-                  <h2>{room.phase === "placed" ? `${activePlayer?.name} has locked in` : `Play for ${activePlayer?.name}`}</h2>
-                  <button
-                    className="spotify-button"
-                    type="button"
-                    disabled={busy || !room.currentSong?.uri}
-                    onClick={() => void controlPlayback(() => spotify.status === "playing"
-                      ? spotify.pause()
-                      : spotify.status === "paused"
-                        ? spotify.resume()
-                        : spotify.play(room.currentSong!.uri!))}
-                  >
-                    {spotify.status === "playing" ? "Pause mystery song" : spotify.status === "paused" ? "Resume mystery song" : "Play mystery song"}
-                  </button>
-                  <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken }, true)}>Skip unavailable song</button>
-                </div>
-              )}
-              {room.phase === "placed" && <button className="primary-button" disabled={busy} onClick={() => act({ action: "reveal", hostToken: session.hostToken })}>Reveal answer</button>}
-              {room.phase === "revealed" && <button className="primary-button" disabled={busy} onClick={() => act({ action: "advance", hostToken: session.hostToken }, !room.winnerId)}>{room.winnerId ? "Finish game" : "Next player"}</button>}
-            </section>
           )}
 
           {!room.isHost && currentPlayer && (
@@ -561,13 +657,21 @@ export default function Home() {
           )}
 
           {room.isHost && (
-            <HostScoreboard
-              players={room.players}
-              activePlayerId={room.activePlayerId}
-              lockedPlacement={room.phase === "placed" ? room.placement : null}
-              artworkByUri={artworkByUri}
-              targetScore={room.rules.targetScore}
-            />
+            <>
+              <HostScoreboard
+                players={room.players}
+                activePlayerId={room.activePlayerId}
+                lockedPlacement={room.phase === "placed" ? room.placement : null}
+                artworkByUri={artworkByUri}
+                targetScore={room.rules.targetScore}
+                round={room.round}
+                interactive={hostControlsActivePlayer && room.phase === "playing"}
+                selected={selected}
+                busy={busy}
+                onSelect={(index) => setSelection({ round: room.round, index })}
+                onLock={() => { void act({ action: "place", hostToken: session.hostToken, index: selected }); }}
+              />
+            </>
           )}
         </>
       )}

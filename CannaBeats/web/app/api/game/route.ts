@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import catalog from "../../../data/catalog.json";
-import type { RoomState, RoomView, Song } from "../../../lib/game";
+import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 
 type RoomRow = {
@@ -46,7 +46,11 @@ async function loadRoom(code: string) {
     .bind(code)
     .first<RoomRow>();
   if (!row) return null;
-  const state = JSON.parse(row.state) as RoomState;
+  const state = JSON.parse(row.state) as RoomState & { inputMode?: unknown };
+  for (const player of state.players) {
+    player.control = normalizePlayerControl(player.control, state.inputMode);
+  }
+  delete state.inputMode;
   state.retractionUsed ??= false;
   state.rules = normalizeRules(state.rules ?? DEFAULT_GAME_RULES);
   return { row, state };
@@ -158,10 +162,31 @@ export async function POST(request: Request) {
       if (state.phase !== "lobby") return fail("This game has already started.");
       const name = String(payload.name ?? "").trim().slice(0, 24);
       if (!name) return fail("Player name is required.");
-      const player = { id: crypto.randomUUID(), name, timeline: [] };
+      const player = { id: crypto.randomUUID(), name, control: "phone" as const, timeline: [] };
       state.players.push(player);
       await saveRoom(state);
       return Response.json({ room: roomView(state, false), playerId: player.id }, { status: 201 });
+    }
+
+    if (action === "addPlayer") {
+      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (state.phase !== "lobby") return fail("Players are locked after the game starts.", 409);
+      const name = String(payload.name ?? "").trim().slice(0, 24);
+      if (!name) return fail("Player name is required.");
+      const player = { id: crypto.randomUUID(), name, control: "host" as const, timeline: [] };
+      state.players.push(player);
+      await saveRoom(state);
+      return Response.json({ room: roomView(state, true) }, { status: 201 });
+    }
+
+    if (action === "removePlayer") {
+      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (state.phase !== "lobby") return fail("Players are locked after the game starts.", 409);
+      const playerId = String(payload.playerId ?? "");
+      if (!state.players.some((player) => player.id === playerId)) return fail("Player not found.", 404);
+      state.players = state.players.filter((player) => player.id !== playerId);
+      await saveRoom(state);
+      return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "rules") {
@@ -175,13 +200,21 @@ export async function POST(request: Request) {
     if (action === "start") {
       if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("The game has already started.");
-      if (!state.players.length) return fail("At least one player must join.");
+      if (!state.players.length) return fail("At least one player is required.");
       for (const player of state.players) player.timeline = [pickSong(state)];
-      state.activePlayerIndex = 0;
-      state.activePlayerId = state.players[0].id;
+      state.activePlayerIndex = Math.floor(Math.random() * state.players.length);
+      state.activePlayerId = state.players[state.activePlayerIndex].id;
       state.currentSong = pickSong(state);
       state.round = 1;
       state.retractionUsed = false;
+      state.phase = "ready";
+      await saveRoom(state);
+      return Response.json({ room: roomView(state, true) });
+    }
+
+    if (action === "begin") {
+      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (state.phase !== "ready" || !state.currentSong) return fail("The first round is not ready.", 409);
       state.phase = "playing";
       await saveRoom(state);
       return Response.json({ room: roomView(state, true) });
@@ -190,8 +223,12 @@ export async function POST(request: Request) {
     if (action === "place") {
       const playerId = String(payload.playerId ?? "");
       const index = Number(payload.index);
-      const player = state.players.find((candidate) => candidate.id === playerId);
-      if (state.phase !== "playing" || playerId !== state.activePlayerId || !player) {
+      const player = state.players[state.activePlayerIndex];
+      const hostIsPlacing = player?.control === "host"
+        && requireHost(room, String(payload.hostToken ?? ""));
+      const activePlayerIsPlacing = player?.control === "phone"
+        && playerId === state.activePlayerId;
+      if (state.phase !== "playing" || !player || (!hostIsPlacing && !activePlayerIsPlacing)) {
         return fail("It is not this player’s turn.", 409);
       }
       if (!Number.isInteger(index) || index < 0 || index > player.timeline.length) {
@@ -200,12 +237,17 @@ export async function POST(request: Request) {
       state.placement = index;
       state.phase = "placed";
       await saveRoom(state);
-      return Response.json({ room: roomView(state, false) });
+      return Response.json({ room: roomView(state, hostIsPlacing) });
     }
 
     if (action === "retract") {
       const playerId = String(payload.playerId ?? "");
-      if (state.phase !== "placed" || playerId !== state.activePlayerId) {
+      const player = state.players[state.activePlayerIndex];
+      const hostIsRetracting = player?.control === "host"
+        && requireHost(room, String(payload.hostToken ?? ""));
+      const activePlayerIsRetracting = player?.control === "phone"
+        && playerId === state.activePlayerId;
+      if (state.phase !== "placed" || (!hostIsRetracting && !activePlayerIsRetracting)) {
         return fail("There is no placement to retract.", 409);
       }
       if (!state.rules.allowRetraction) return fail("Retractions are disabled for this game.", 409);
@@ -214,7 +256,7 @@ export async function POST(request: Request) {
       state.retractionUsed = true;
       state.phase = "playing";
       await saveRoom(state);
-      return Response.json({ room: roomView(state, false) });
+      return Response.json({ room: roomView(state, hostIsRetracting) });
     }
 
     if (action === "reveal") {
@@ -262,6 +304,7 @@ export async function POST(request: Request) {
       state.retractionUsed = false;
       state.result = null;
       state.phase = "playing";
+      state.round += 1;
       await saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
