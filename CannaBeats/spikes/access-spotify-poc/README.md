@@ -8,7 +8,9 @@ This spike proves the risky integration boundaries without loading the game engi
 - persistent, opaque server sessions;
 - server-enforced `host` and `player` roles;
 - browser-only Spotify Authorization Code with PKCE;
-- browser-only Spotify refresh-token persistence and Web Playback SDK playback.
+- browser-only Spotify refresh-token persistence and Web Playback SDK playback;
+- passkey-approved pairing of a separately packaged macOS host application;
+- P-256 device challenge proofs without sharing a browser cookie.
 
 The SQLite database has no Spotify columns. The server exposes only the public Spotify client ID and
 redirect URI. Spotify authorization codes, access tokens, refresh tokens, and profile data go directly
@@ -67,6 +69,18 @@ Do not create or deploy a Spotify client secret for this browser PKCE flow.
 Each host browser profile connects Spotify independently. A refresh credential is stored in that
 browser's local storage. Access credentials remain in JavaScript memory and are recreated from the
 local refresh credential when required. **Disconnect locally** clears the stored credential.
+
+## macOS host application pairing
+
+The adjacent `../macos-host-agent-poc` SwiftUI application generates a local P-256 signing key and
+asks this server for a ten-minute pairing code. A signed-in host enters that code in **CannaBeats Host
+applications**, confirms the displayed application name, and completes a fresh passkey assertion. The
+application then polls with a separate high-entropy secret and receives its agent identifier.
+
+Possession is proved by signing a one-time, two-minute server challenge. The server stores only the
+application public key and exposes revocation in the account interface. Pairing codes, polling
+secrets, and challenge tokens are hashed or expire quickly; the application receives no Spotify
+credential and no browser session cookie.
 
 ## Operational commands
 

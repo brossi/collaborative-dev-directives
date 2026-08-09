@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createPublicKey, randomBytes, randomUUID, timingSafeEqual, verify as verifySignature } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,7 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
 import {
+  generatePairingCode,
   normalizeInvitationCode,
   openDatabase,
   purgeExpired,
@@ -22,6 +23,9 @@ const moduleDirectory = fileURLToPath(new URL('.', import.meta.url));
 const SESSION_COOKIE = 'cb_session';
 const PENDING_COOKIE = 'cb_webauthn';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const PAIRING_TTL_MS = 10 * 60 * 1000;
+const AGENT_CHALLENGE_TTL_MS = 2 * 60 * 1000;
+const HOST_AGENT_PAIRING_LABEL = 'host_agent_pair:';
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -87,6 +91,27 @@ function cleanText(value, { field, minimum = 1, maximum = 80 }) {
     throw new HttpError(400, `${field} must be ${minimum}-${maximum} characters`);
   }
   return result;
+}
+
+function normalizePairingCode(value) {
+  return normalizeInvitationCode(value);
+}
+
+function validateAgentPublicKey(value) {
+  const encoded = String(value ?? '').trim();
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length > 512) {
+    throw new HttpError(400, 'Host application public key is invalid');
+  }
+  let key;
+  try {
+    key = createPublicKey({ key: Buffer.from(encoded, 'base64'), format: 'der', type: 'spki' });
+  } catch {
+    throw new HttpError(400, 'Host application public key is invalid');
+  }
+  if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails?.namedCurve !== 'prime256v1') {
+    throw new HttpError(400, 'Host application must use a P-256 signing key');
+  }
+  return key.export({ format: 'der', type: 'spki' }).toString('base64');
 }
 
 function userView(row) {
@@ -236,6 +261,7 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
 
   const authenticationLimiter = createRateLimiter();
   app.use('/api/auth', authenticationLimiter);
+  const agentPairingLimiter = createRateLimiter({ limit: 30 });
 
   app.get('/api/health', (_req, res) => {
     const database = db.prepare('SELECT 1 AS ok').get();
@@ -340,6 +366,9 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
 
   app.post('/api/auth/sign-in/verify', async (req, res) => {
     const pending = challengeFromRequest(req, 'authentication');
+    if (pending.label?.startsWith(HOST_AGENT_PAIRING_LABEL)) {
+      throw new HttpError(400, 'This passkey ceremony belongs to host application approval');
+    }
     const credentialRow = db.prepare(`
       SELECT passkey_credentials.*, users.display_name, users.role
       FROM passkey_credentials JOIN users ON users.id = passkey_credentials.user_id
@@ -443,6 +472,249 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
       .run(req.params.credentialId, req.user.id);
     if (result.changes !== 1) throw new HttpError(404, 'Passkey not found');
     writeAuditEvent(db, req.user.id, 'passkey.removed', req.params.credentialId);
+    res.status(204).end();
+  });
+
+  app.post('/api/host-agents/pair/start', agentPairingLimiter, (req, res) => {
+    purgeExpired(db);
+    const displayName = cleanText(req.body?.displayName, {
+      field: 'Host application name', maximum: 80,
+    });
+    const publicKeyDer = validateAgentPublicKey(req.body?.publicKeyDer);
+    const code = generatePairingCode();
+    const pairingSecret = randomToken();
+    const now = Date.now();
+    const expiresAt = now + PAIRING_TTL_MS;
+    db.prepare(`
+      INSERT INTO host_agent_pairings
+        (pairing_secret_hash, code_hash, public_key_der, display_name, created_at, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      sha256(pairingSecret), sha256(normalizePairingCode(code)), publicKeyDer,
+      displayName, now, expiresAt,
+    );
+    res.status(201).json({
+      code,
+      pairingSecret,
+      expiresAt: new Date(expiresAt).toISOString(),
+      verificationUrl: `${config.origin}/?pair=${encodeURIComponent(code)}`,
+    });
+  });
+
+  app.post('/api/host-agents/pair/status', (req, res) => {
+    purgeExpired(db);
+    const pairingSecret = String(req.body?.pairingSecret ?? '');
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(pairingSecret)) {
+      throw new HttpError(400, 'Pairing secret is invalid');
+    }
+    let pairing = db.prepare(`
+      SELECT * FROM host_agent_pairings WHERE pairing_secret_hash = ?
+    `).get(sha256(pairingSecret));
+    if (!pairing) throw new HttpError(404, 'Pairing request expired or was not found');
+    if (!pairing.approved_at) return res.json({ status: 'pending' });
+
+    if (!pairing.agent_id) {
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        pairing = db.prepare(`
+          SELECT * FROM host_agent_pairings WHERE pairing_secret_hash = ?
+        `).get(sha256(pairingSecret));
+        if (!pairing || !pairing.approved_by) throw new HttpError(409, 'Pairing approval was lost');
+        let agent = db.prepare('SELECT * FROM host_agents WHERE public_key_der = ?')
+          .get(pairing.public_key_der);
+        if (agent && (agent.user_id !== pairing.approved_by || agent.revoked_at)) {
+          throw new HttpError(409, 'This application key cannot be paired');
+        }
+        if (!agent) {
+          const agentId = randomUUID();
+          db.prepare(`
+            INSERT INTO host_agents (id, user_id, public_key_der, display_name, created_at)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(agentId, pairing.approved_by, pairing.public_key_der, pairing.display_name, Date.now());
+          agent = db.prepare('SELECT * FROM host_agents WHERE id = ?').get(agentId);
+          writeAuditEvent(db, pairing.approved_by, 'host_agent.paired', agentId);
+        }
+        db.prepare(`
+          UPDATE host_agent_pairings SET agent_id = ? WHERE pairing_secret_hash = ?
+        `).run(agent.id, sha256(pairingSecret));
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+    }
+
+    const agent = db.prepare(`
+      SELECT host_agents.id, host_agents.display_name, users.id AS user_id,
+             users.display_name AS user_display_name
+      FROM host_agents JOIN users ON users.id = host_agents.user_id
+      WHERE host_agents.id = (
+        SELECT agent_id FROM host_agent_pairings WHERE pairing_secret_hash = ?
+      )
+    `).get(sha256(pairingSecret));
+    res.json({
+      status: 'authorized',
+      agent: {
+        id: agent.id,
+        displayName: agent.display_name,
+        userId: agent.user_id,
+        userDisplayName: agent.user_display_name,
+      },
+    });
+  });
+
+  app.post('/api/host-agents/pair/approve/options', requireUser, async (req, res) => {
+    purgeExpired(db);
+    if (req.user.role !== 'host') throw new HttpError(403, 'Host role required');
+    const normalizedCode = normalizePairingCode(req.body?.code);
+    if (normalizedCode.length !== 8) throw new HttpError(400, 'Pairing code is invalid');
+    const pairing = db.prepare(`
+      SELECT * FROM host_agent_pairings WHERE code_hash = ? AND expires_at > ?
+    `).get(sha256(normalizedCode), Date.now());
+    if (!pairing) throw new HttpError(404, 'Pairing code expired or was not found');
+    if (pairing.approved_by && pairing.approved_by !== req.user.id) {
+      throw new HttpError(409, 'Pairing request was already approved');
+    }
+    const credentials = db.prepare(`
+      SELECT id, transports FROM passkey_credentials WHERE user_id = ?
+    `).all(req.user.id);
+    const options = await generateAuthenticationOptions({
+      rpID: config.rpID,
+      allowCredentials: credentials.map((credential) => ({
+        id: credential.id,
+        transports: JSON.parse(credential.transports),
+      })),
+      userVerification: 'required',
+      timeout: CHALLENGE_TTL_MS,
+    });
+    setChallenge(res, {
+      kind: 'authentication',
+      challenge: options.challenge,
+      userId: req.user.id,
+      label: `${HOST_AGENT_PAIRING_LABEL}${pairing.code_hash}`,
+    });
+    res.json({ options, application: { displayName: pairing.display_name } });
+  });
+
+  app.post('/api/host-agents/pair/approve/verify', requireUser, async (req, res) => {
+    const pending = challengeFromRequest(req, 'authentication');
+    if (!pending.label?.startsWith(HOST_AGENT_PAIRING_LABEL) || pending.user_id !== req.user.id) {
+      throw new HttpError(403, 'Pairing ceremony belongs to another request');
+    }
+    const credentialRow = db.prepare(`
+      SELECT * FROM passkey_credentials WHERE id = ? AND user_id = ?
+    `).get(req.body?.response?.id, req.user.id);
+    if (!credentialRow) throw new HttpError(401, 'Passkey is not authorized for this account');
+    const verification = await verifyAuthenticationResponse({
+      response: req.body.response,
+      expectedChallenge: pending.challenge,
+      expectedOrigin: config.origin,
+      expectedRPID: config.rpID,
+      credential: {
+        id: credentialRow.id,
+        publicKey: new Uint8Array(credentialRow.public_key),
+        counter: credentialRow.counter,
+        transports: JSON.parse(credentialRow.transports),
+      },
+      requireUserVerification: true,
+    });
+    if (!verification.verified) throw new HttpError(401, 'Passkey verification failed');
+    db.prepare(`
+      UPDATE passkey_credentials SET counter = ?, last_used_at = ? WHERE id = ?
+    `).run(verification.authenticationInfo.newCounter, Date.now(), credentialRow.id);
+
+    const pairingHash = pending.label.slice(HOST_AGENT_PAIRING_LABEL.length);
+    const pairing = db.prepare(`
+      SELECT * FROM host_agent_pairings WHERE code_hash = ? AND expires_at > ?
+    `).get(pairingHash, Date.now());
+    if (!pairing) throw new HttpError(404, 'Pairing request expired or was not found');
+    if (pairing.approved_by && pairing.approved_by !== req.user.id) {
+      throw new HttpError(409, 'Pairing request was already approved');
+    }
+    db.prepare(`
+      UPDATE host_agent_pairings SET approved_at = ?, approved_by = ? WHERE code_hash = ?
+    `).run(Date.now(), req.user.id, pairingHash);
+    writeAuditEvent(db, req.user.id, 'host_agent.approved', pairing.display_name);
+    res.json({ ok: true, message: `${pairing.display_name} is authorized for this host account.` });
+  });
+
+  app.post('/api/host-agents/challenge', (req, res) => {
+    purgeExpired(db);
+    const agentId = cleanText(req.body?.agentId, { field: 'Host application ID', maximum: 80 });
+    const agent = db.prepare('SELECT id FROM host_agents WHERE id = ? AND revoked_at IS NULL').get(agentId);
+    if (!agent) throw new HttpError(404, 'Host application is not authorized');
+    const challengeToken = randomToken();
+    const challenge = randomToken();
+    const now = Date.now();
+    const expiresAt = now + AGENT_CHALLENGE_TTL_MS;
+    db.prepare(`
+      INSERT INTO host_agent_challenges (token_hash, agent_id, challenge, created_at, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(sha256(challengeToken), agentId, challenge, now, expiresAt);
+    res.json({ challengeToken, challenge, expiresAt: new Date(expiresAt).toISOString() });
+  });
+
+  app.post('/api/host-agents/verify', (req, res) => {
+    const agentId = cleanText(req.body?.agentId, { field: 'Host application ID', maximum: 80 });
+    const challengeToken = String(req.body?.challengeToken ?? '');
+    const signature = String(req.body?.signature ?? '');
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(challengeToken)) {
+      throw new HttpError(400, 'Host application challenge is invalid');
+    }
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(signature) || signature.length > 256) {
+      throw new HttpError(400, 'Host application signature is invalid');
+    }
+    const pending = db.prepare(`
+      SELECT * FROM host_agent_challenges WHERE token_hash = ?
+    `).get(sha256(challengeToken));
+    db.prepare('DELETE FROM host_agent_challenges WHERE token_hash = ?').run(sha256(challengeToken));
+    if (!pending || pending.agent_id !== agentId || pending.expires_at <= Date.now()) {
+      throw new HttpError(400, 'Host application challenge expired or was already used');
+    }
+    const agent = db.prepare(`
+      SELECT host_agents.*, users.display_name AS user_display_name, users.role
+      FROM host_agents JOIN users ON users.id = host_agents.user_id
+      WHERE host_agents.id = ? AND host_agents.revoked_at IS NULL
+    `).get(agentId);
+    if (!agent) throw new HttpError(401, 'Host application is not authorized');
+    const publicKey = createPublicKey({
+      key: Buffer.from(agent.public_key_der, 'base64'), format: 'der', type: 'spki',
+    });
+    const verified = verifySignature(
+      'sha256', Buffer.from(pending.challenge), publicKey, Buffer.from(signature, 'base64'),
+    );
+    if (!verified) throw new HttpError(401, 'Host application signature was not accepted');
+    db.prepare('UPDATE host_agents SET last_seen_at = ? WHERE id = ?').run(Date.now(), agentId);
+    writeAuditEvent(db, agent.user_id, 'host_agent.proved', agentId);
+    res.json({
+      ok: true,
+      agent: { id: agent.id, displayName: agent.display_name },
+      user: { id: agent.user_id, displayName: agent.user_display_name, role: agent.role },
+      message: `Host application authorization confirmed for ${agent.user_display_name}.`,
+    });
+  });
+
+  app.get('/api/host-agents', requireUser, (req, res) => {
+    const agents = db.prepare(`
+      SELECT id, display_name, created_at, last_seen_at, revoked_at
+      FROM host_agents WHERE user_id = ? ORDER BY created_at DESC
+    `).all(req.user.id);
+    res.json({ agents: agents.map((agent) => ({
+      id: agent.id,
+      displayName: agent.display_name,
+      createdAt: new Date(agent.created_at).toISOString(),
+      lastSeenAt: agent.last_seen_at ? new Date(agent.last_seen_at).toISOString() : null,
+      revokedAt: agent.revoked_at ? new Date(agent.revoked_at).toISOString() : null,
+    })) });
+  });
+
+  app.delete('/api/host-agents/:agentId', requireUser, (req, res) => {
+    const result = db.prepare(`
+      UPDATE host_agents SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+    `).run(Date.now(), req.params.agentId, req.user.id);
+    if (result.changes !== 1) throw new HttpError(404, 'Host application not found');
+    db.prepare('DELETE FROM host_agent_challenges WHERE agent_id = ?').run(req.params.agentId);
+    writeAuditEvent(db, req.user.id, 'host_agent.revoked', req.params.agentId);
     res.status(204).end();
   });
 

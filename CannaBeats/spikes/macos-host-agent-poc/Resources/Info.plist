@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>CannaBeatsHostPoC</string>
+  <key>CFBundleIdentifier</key>
+  <string>social.cannabeats.host.poc</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>CannaBeats Host PoC</string>
+  <key>CFBundleDisplayName</key>
+  <string>CannaBeats Host PoC</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>14.2</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>CannaBeats captures the selected Spotify player’s audio so everyone in a private game can hear the same relay stream.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>CannaBeats uses macOS audio-capture permission to read a selected application’s playback.</string>
+</dict>
+</plist>
+

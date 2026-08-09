@@ -84,6 +84,20 @@
               <button class="secondary" type="submit">Add passkey</button>
             </form>
           </div>
+
+          <div id="host-agent-panel" class="subsection" hidden>
+            <h3>CannaBeats Host applications</h3>
+            <p>Pair a signed macOS host application with this account. Approval requires a fresh passkey check; Spotify credentials are never shared with the application.</p>
+            <form id="approve-host-agent-form" class="inline-form">
+              <label>
+                Pairing code shown by the Mac application
+                <input id="host-agent-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="9" placeholder="ABCD-EFGH" spellcheck="false" required>
+              </label>
+              <button class="primary" type="submit">Authorize application</button>
+            </form>
+            <output id="host-agent-result" class="result"></output>
+            <ul id="host-agent-list" class="credential-list"></ul>
+          </div>
         </div>
       </section>
 

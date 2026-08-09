@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -138,4 +138,66 @@ test('SQLite schema contains no Spotify token or account storage', () => {
   `).all();
   const applicationSchema = schema.filter((entry) => !entry.name.startsWith('sqlite_'));
   assert.equal(applicationSchema.some((entry) => /spotify|refresh_token|access_token/i.test(entry.sql)), false);
+});
+
+test('a native host application starts a secret-backed pairing without gaining authority', async () => {
+  const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  const publicKeyDer = publicKey.export({ format: 'der', type: 'spki' }).toString('base64');
+  const response = await post('/api/host-agents/pair/start', {
+    displayName: 'Test Mac', publicKeyDer,
+  });
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.match(body.code, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  assert.match(body.pairingSecret, /^[A-Za-z0-9_-]+$/);
+  assert.equal(body.verificationUrl, `${origin}/?pair=${body.code}`);
+
+  const stored = db.prepare(`
+    SELECT * FROM host_agent_pairings WHERE pairing_secret_hash = ?
+  `).get(sha256(body.pairingSecret));
+  assert.ok(stored);
+  assert.notEqual(stored.pairing_secret_hash, body.pairingSecret);
+  assert.notEqual(stored.code_hash, body.code.replace('-', ''));
+  const status = await post('/api/host-agents/pair/status', { pairingSecret: body.pairingSecret });
+  assert.deepEqual(await status.json(), { status: 'pending' });
+});
+
+test('an approved P-256 host application can prove its device identity once per challenge', async () => {
+  const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  const publicKeyDer = publicKey.export({ format: 'der', type: 'spki' }).toString('base64');
+  const start = await post('/api/host-agents/pair/start', {
+    displayName: 'Authorized Test Mac', publicKeyDer,
+  });
+  const pairing = await start.json();
+  const host = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  db.prepare(`
+    UPDATE host_agent_pairings SET approved_at = ?, approved_by = ?
+    WHERE pairing_secret_hash = ?
+  `).run(Date.now(), host.id, sha256(pairing.pairingSecret));
+
+  const claim = await post('/api/host-agents/pair/status', { pairingSecret: pairing.pairingSecret });
+  const claimed = await claim.json();
+  assert.equal(claimed.status, 'authorized');
+  assert.equal(claimed.agent.userId, host.id);
+
+  const challengeResponse = await post('/api/host-agents/challenge', { agentId: claimed.agent.id });
+  const challenge = await challengeResponse.json();
+  const signature = sign('sha256', Buffer.from(challenge.challenge), privateKey).toString('base64');
+  const proof = await post('/api/host-agents/verify', {
+    agentId: claimed.agent.id,
+    challengeToken: challenge.challengeToken,
+    signature,
+  });
+  assert.equal(proof.status, 200);
+  const verified = await proof.json();
+  assert.equal(verified.ok, true);
+  assert.equal(verified.user.id, host.id);
+  assert.match(verified.message, /Host application authorization confirmed/);
+
+  const replay = await post('/api/host-agents/verify', {
+    agentId: claimed.agent.id,
+    challengeToken: challenge.challengeToken,
+    signature,
+  });
+  assert.equal(replay.status, 400);
 });

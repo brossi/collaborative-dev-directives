@@ -46,13 +46,15 @@ async function api(path, options = {}) {
 
 function renderAccount() {
   const signedIn = Boolean(state.user);
+  const isHost = state.user?.role === 'host';
   byId('guest-panel').hidden = signedIn;
   byId('account-panel').hidden = !signedIn;
-  byId('spotify-card').hidden = !signedIn || state.user?.role !== 'host';
+  byId('spotify-card').hidden = !signedIn || !isHost;
+  byId('host-agent-panel').hidden = !signedIn || !isHost;
   if (!signedIn) return;
   byId('account-name').textContent = state.user.displayName;
   byId('account-role').textContent = `${state.user.role === 'host' ? 'Host' : 'Player'} account`;
-  byId('host-proof').hidden = state.user.role !== 'host';
+  byId('host-proof').hidden = !isHost;
 }
 
 async function loadSession() {
@@ -60,10 +62,78 @@ async function loadSession() {
     const result = await api('/api/me');
     state.user = result.user;
     await loadPasskeys();
+    if (state.user.role === 'host') await loadHostAgents();
   } catch {
     state.user = null;
   }
   renderAccount();
+}
+
+async function loadHostAgents() {
+  if (state.user?.role !== 'host') return;
+  const { agents } = await api('/api/host-agents');
+  const list = byId('host-agent-list');
+  list.replaceChildren();
+  for (const agent of agents) {
+    const item = document.createElement('li');
+    const description = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = agent.displayName;
+    const metadata = document.createElement('span');
+    metadata.textContent = agent.revokedAt
+      ? `Revoked ${new Date(agent.revokedAt).toLocaleString()}`
+      : agent.lastSeenAt
+        ? `Last proved ${new Date(agent.lastSeenAt).toLocaleString()}`
+        : 'Authorized; awaiting first device proof';
+    description.append(title, metadata);
+    item.append(description);
+    if (!agent.revokedAt) {
+      const revoke = document.createElement('button');
+      revoke.type = 'button';
+      revoke.className = 'text-button';
+      revoke.textContent = 'Revoke';
+      revoke.addEventListener('click', async () => {
+        if (!window.confirm(`Revoke “${agent.displayName}”?`)) return;
+        try {
+          await api(`/api/host-agents/${encodeURIComponent(agent.id)}`, { method: 'DELETE', body: '{}' });
+          await loadHostAgents();
+          showMessage('Host application revoked.');
+        } catch (error) { showMessage(errorMessage(error), 'error'); }
+      });
+      item.append(revoke);
+    }
+    list.append(item);
+  }
+}
+
+async function approveHostAgent(event) {
+  event.preventDefault();
+  try {
+    const code = byId('host-agent-code').value;
+    const result = await api('/api/host-agents/pair/approve/options', {
+      method: 'POST', body: JSON.stringify({ code }),
+    });
+    if (!window.confirm(`Authorize “${result.application.displayName}” for your host account?`)) return;
+    const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
+    const verified = await api('/api/host-agents/pair/approve/verify', {
+      method: 'POST', body: JSON.stringify({ response }),
+    });
+    byId('host-agent-result').textContent = verified.message;
+    byId('approve-host-agent-form').reset();
+    const url = new URL(location.href);
+    url.searchParams.delete('pair');
+    history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    await loadHostAgents();
+    showMessage('Host application approved.');
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+function prefillHostAgentPairingCode() {
+  const code = new URLSearchParams(location.search).get('pair');
+  if (!code) return;
+  byId('host-agent-code').value = code.toUpperCase();
 }
 
 async function loadPasskeys() {
@@ -389,6 +459,7 @@ function wireEvents() {
   byId('enroll-form').addEventListener('submit', enroll);
   byId('sign-in').addEventListener('click', signIn);
   byId('add-passkey-form').addEventListener('submit', addPasskey);
+  byId('approve-host-agent-form').addEventListener('submit', approveHostAgent);
   byId('sign-out').addEventListener('click', async () => {
     try {
       await api('/api/auth/sign-out', { method: 'POST', body: '{}' });
@@ -436,6 +507,7 @@ function wireEvents() {
 
 async function initialize() {
   wireEvents();
+  prefillHostAgentPairingCode();
   try {
     state.config = await api('/api/config');
     byId('connection-status').textContent = state.config.rpID;

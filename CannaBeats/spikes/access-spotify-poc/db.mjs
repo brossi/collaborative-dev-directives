@@ -19,6 +19,12 @@ export function generateInvitationCode() {
   return raw.match(/.{1,5}/g).join('-');
 }
 
+export function generatePairingCode() {
+  const bytes = randomBytes(8);
+  const raw = Array.from(bytes, (byte) => INVITATION_ALPHABET[byte & 31]).join('');
+  return `${raw.slice(0, 4)}-${raw.slice(4)}`;
+}
+
 export function uuidToBytes(uuid) {
   return Buffer.from(uuid.replaceAll('-', ''), 'hex');
 }
@@ -93,12 +99,45 @@ function migrate(db) {
       detail TEXT NOT NULL DEFAULT '',
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS host_agents (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      public_key_der TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      last_seen_at INTEGER,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS host_agents_user_id ON host_agents(user_id);
+
+    CREATE TABLE IF NOT EXISTS host_agent_pairings (
+      pairing_secret_hash TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL UNIQUE,
+      public_key_der TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      approved_at INTEGER,
+      approved_by TEXT REFERENCES users(id),
+      agent_id TEXT REFERENCES host_agents(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS host_agent_challenges (
+      token_hash TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES host_agents(id) ON DELETE CASCADE,
+      challenge TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
   `);
 }
 
 export function purgeExpired(db, now = Date.now()) {
   db.prepare('DELETE FROM webauthn_challenges WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM host_agent_challenges WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM host_agent_pairings WHERE expires_at <= ?').run(now);
 }
 
 export function createInvitation(db, { role = 'host', note = '', ttlHours = 168 } = {}) {

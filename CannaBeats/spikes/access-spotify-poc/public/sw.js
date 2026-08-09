@@ -1,4 +1,4 @@
-const CACHE = 'cannabeats-access-lab-v4';
+const CACHE = 'cannabeats-access-lab-v5';
 const ASSETS = ['/', '/styles.css', '/app.js', '/icon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
