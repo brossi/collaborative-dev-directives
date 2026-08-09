@@ -1,5 +1,5 @@
 import { createPublicKey, randomBytes, randomUUID, timingSafeEqual, verify as verifySignature } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -42,6 +42,13 @@ function integerEnvironment(name, fallback, minimum, maximum) {
   return value;
 }
 
+function secretEnvironment(overrides, overrideName, valueName, fileName) {
+  if (Object.hasOwn(overrides, overrideName)) return String(overrides[overrideName] ?? '').trim();
+  if (process.env[valueName]) return process.env[valueName].trim();
+  const path = process.env[fileName];
+  return path ? readFileSync(path, 'utf8').trim() : '';
+}
+
 export function readConfig(overrides = {}) {
   const origin = new URL(overrides.origin || process.env.APP_ORIGIN || 'http://localhost:3002');
   const rpID = overrides.rpID || process.env.RP_ID || origin.hostname;
@@ -51,6 +58,24 @@ export function readConfig(overrides = {}) {
   if (process.env.NODE_ENV === 'production' && origin.protocol !== 'https:') {
     throw new Error('APP_ORIGIN must use HTTPS in production');
   }
+  const relayOriginText = overrides.audioRelayOrigin ?? process.env.AUDIO_RELAY_ORIGIN ?? '';
+  const audioRelayOrigin = relayOriginText ? new URL(relayOriginText).origin : '';
+  const audioRelayIngestToken = secretEnvironment(
+    overrides, 'audioRelayIngestToken', 'AUDIO_RELAY_INGEST_TOKEN', 'AUDIO_RELAY_INGEST_TOKEN_FILE',
+  );
+  const audioRelayListenToken = secretEnvironment(
+    overrides, 'audioRelayListenToken', 'AUDIO_RELAY_LISTEN_TOKEN', 'AUDIO_RELAY_LISTEN_TOKEN_FILE',
+  );
+  const relayParts = [audioRelayOrigin, audioRelayIngestToken, audioRelayListenToken];
+  if (relayParts.some(Boolean) && !relayParts.every(Boolean)) {
+    throw new Error('Audio relay origin, ingest token, and listen token must be configured together');
+  }
+  if (audioRelayIngestToken && audioRelayIngestToken === audioRelayListenToken) {
+    throw new Error('Audio relay ingest and listen tokens must differ');
+  }
+  if (process.env.NODE_ENV === 'production' && audioRelayOrigin && !audioRelayOrigin.startsWith('https://')) {
+    throw new Error('AUDIO_RELAY_ORIGIN must use HTTPS in production');
+  }
   return {
     origin: origin.origin,
     rpID,
@@ -58,6 +83,9 @@ export function readConfig(overrides = {}) {
     port: overrides.port ?? integerEnvironment('PORT', 3002, 1, 65535),
     databasePath: overrides.databasePath || process.env.DATABASE_PATH || resolve(moduleDirectory, 'data/cannabeats-poc.sqlite'),
     spotifyClientId: overrides.spotifyClientId ?? process.env.SPOTIFY_CLIENT_ID ?? '',
+    audioRelayOrigin,
+    audioRelayIngestToken,
+    audioRelayListenToken,
     sessionTtlDays: overrides.sessionTtlDays ?? integerEnvironment('SESSION_TTL_DAYS', 30, 1, 365),
     trustProxy: overrides.trustProxy ?? process.env.TRUST_PROXY ?? 'loopback',
   };
@@ -243,6 +271,42 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
     `).run(sha256(token), userId, now, expiresAt, now);
     res.append('Set-Cookie', secureCookie(SESSION_COOKIE, token, config.sessionTtlDays * 24 * 60 * 60));
     res.append('Set-Cookie', clearCookie(PENDING_COOKIE));
+  }
+
+  function verifyHostAgentProof(body) {
+    const agentId = cleanText(body?.agentId, { field: 'Host application ID', maximum: 80 });
+    const challengeToken = String(body?.challengeToken ?? '');
+    const signature = String(body?.signature ?? '');
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(challengeToken)) {
+      throw new HttpError(400, 'Host application challenge is invalid');
+    }
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(signature) || signature.length > 256) {
+      throw new HttpError(400, 'Host application signature is invalid');
+    }
+    const challengeHash = sha256(challengeToken);
+    const pending = db.prepare(`
+      SELECT * FROM host_agent_challenges WHERE token_hash = ?
+    `).get(challengeHash);
+    db.prepare('DELETE FROM host_agent_challenges WHERE token_hash = ?').run(challengeHash);
+    if (!pending || pending.agent_id !== agentId || pending.expires_at <= Date.now()) {
+      throw new HttpError(400, 'Host application challenge expired or was already used');
+    }
+    const agent = db.prepare(`
+      SELECT host_agents.*, users.display_name AS user_display_name, users.role
+      FROM host_agents JOIN users ON users.id = host_agents.user_id
+      WHERE host_agents.id = ? AND host_agents.revoked_at IS NULL
+    `).get(agentId);
+    if (!agent) throw new HttpError(401, 'Host application is not authorized');
+    const publicKey = createPublicKey({
+      key: Buffer.from(agent.public_key_der, 'base64'), format: 'der', type: 'spki',
+    });
+    const verified = verifySignature(
+      'sha256', Buffer.from(pending.challenge), publicKey, Buffer.from(signature, 'base64'),
+    );
+    if (!verified) throw new HttpError(401, 'Host application signature was not accepted');
+    db.prepare('UPDATE host_agents SET last_seen_at = ? WHERE id = ?').run(Date.now(), agentId);
+    writeAuditEvent(db, agent.user_id, 'host_agent.proved', agentId);
+    return agent;
   }
 
   function storeCredential({ userId, response, registrationInfo, label }) {
@@ -655,42 +719,29 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
   });
 
   app.post('/api/host-agents/verify', (req, res) => {
-    const agentId = cleanText(req.body?.agentId, { field: 'Host application ID', maximum: 80 });
-    const challengeToken = String(req.body?.challengeToken ?? '');
-    const signature = String(req.body?.signature ?? '');
-    if (!/^[A-Za-z0-9_-]{32,128}$/.test(challengeToken)) {
-      throw new HttpError(400, 'Host application challenge is invalid');
-    }
-    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(signature) || signature.length > 256) {
-      throw new HttpError(400, 'Host application signature is invalid');
-    }
-    const pending = db.prepare(`
-      SELECT * FROM host_agent_challenges WHERE token_hash = ?
-    `).get(sha256(challengeToken));
-    db.prepare('DELETE FROM host_agent_challenges WHERE token_hash = ?').run(sha256(challengeToken));
-    if (!pending || pending.agent_id !== agentId || pending.expires_at <= Date.now()) {
-      throw new HttpError(400, 'Host application challenge expired or was already used');
-    }
-    const agent = db.prepare(`
-      SELECT host_agents.*, users.display_name AS user_display_name, users.role
-      FROM host_agents JOIN users ON users.id = host_agents.user_id
-      WHERE host_agents.id = ? AND host_agents.revoked_at IS NULL
-    `).get(agentId);
-    if (!agent) throw new HttpError(401, 'Host application is not authorized');
-    const publicKey = createPublicKey({
-      key: Buffer.from(agent.public_key_der, 'base64'), format: 'der', type: 'spki',
-    });
-    const verified = verifySignature(
-      'sha256', Buffer.from(pending.challenge), publicKey, Buffer.from(signature, 'base64'),
-    );
-    if (!verified) throw new HttpError(401, 'Host application signature was not accepted');
-    db.prepare('UPDATE host_agents SET last_seen_at = ? WHERE id = ?').run(Date.now(), agentId);
-    writeAuditEvent(db, agent.user_id, 'host_agent.proved', agentId);
+    const agent = verifyHostAgentProof(req.body);
     res.json({
       ok: true,
       agent: { id: agent.id, displayName: agent.display_name },
       user: { id: agent.user_id, displayName: agent.user_display_name, role: agent.role },
       message: `Host application authorization confirmed for ${agent.user_display_name}.`,
+    });
+  });
+
+  app.post('/api/host-agents/relay-grant', (req, res) => {
+    if (!config.audioRelayOrigin || !config.audioRelayIngestToken || !config.audioRelayListenToken) {
+      throw new HttpError(503, 'The audio relay is not configured');
+    }
+    const agent = verifyHostAgentProof(req.body);
+    if (agent.role !== 'host') throw new HttpError(403, 'Host role required');
+    writeAuditEvent(db, agent.user_id, 'host_agent.relay_grant', agent.id);
+    res.json({
+      relay: {
+        origin: config.audioRelayOrigin,
+        ingestToken: config.audioRelayIngestToken,
+        listenToken: config.audioRelayListenToken,
+        mode: 'poc-shared-static',
+      },
     });
   });
 

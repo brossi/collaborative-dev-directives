@@ -1,4 +1,5 @@
 import AppKit
+import AudioTapBridge
 import Combine
 import Foundation
 
@@ -60,6 +61,10 @@ private struct AgentProofResponse: Decodable {
     let ok: Bool
     let user: User
     let message: String
+}
+
+private struct RelayGrantResponse: Decodable {
+    let relay: RelayGrant
 }
 
 private struct EmptyRequest: Encodable {}
@@ -152,11 +157,18 @@ final class HostAgentModel: ObservableObject {
     @Published private(set) var status = "Ready to pair this Mac."
     @Published private(set) var errorMessage = ""
     @Published private(set) var isBusy = false
+    @Published private(set) var audioProcesses: [CBAudioProcessInfo] = []
+    @Published var selectedAudioProcessID: UInt32 = 0
+    @Published private(set) var isRelaying = false
+    @Published private(set) var audioStatus = "Play Spotify audio, then refresh the process list."
+    @Published private(set) var audioMetrics = "No audio captured yet."
 
     private var signingKey: DeviceSigningKey?
     private var pairingSecret: String?
     private var pairingExpiresAt: Date?
     private var pollingTask: Task<Void, Never>?
+    private var relaySession: RelayAudioSession?
+    private var metricsTimer: Timer?
 
     init() {
         let defaults = UserDefaults.standard
@@ -177,10 +189,14 @@ final class HostAgentModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
+        refreshAudioProcesses()
     }
 
     var isPaired: Bool { agentID != nil }
     var canOpenAuthorization: Bool { verificationURL != nil }
+    var selectedAudioProcess: CBAudioProcessInfo? {
+        audioProcesses.first { $0.objectID == selectedAudioProcessID }
+    }
 
     func startPairing() async {
         guard !isBusy else { return }
@@ -294,8 +310,64 @@ final class HostAgentModel: ObservableObject {
         }
     }
 
+    func refreshAudioProcesses() {
+        let previous = selectedAudioProcessID
+        audioProcesses = CBAudioTap.audioOutputProcesses()
+        if audioProcesses.contains(where: { $0.objectID == previous }) {
+            return
+        }
+        let preferred = audioProcesses.first { process in
+            let identity = "\(process.displayName) \(process.bundleIdentifier)".lowercased()
+            return identity.contains("spotify") || identity.contains("cannabeats")
+        }
+        selectedAudioProcessID = preferred?.objectID ?? audioProcesses.first?.objectID ?? 0
+        audioStatus = audioProcesses.isEmpty
+            ? "No process is currently producing audio. Start Spotify playback and refresh."
+            : "Choose the process producing the Spotify audio."
+    }
+
+    func startSharedAudio() async {
+        guard !isBusy, !isRelaying, let agentID, selectedAudioProcess != nil else { return }
+        isBusy = true
+        errorMessage = ""
+        audioStatus = "Requesting an authenticated relay grant…"
+        defer { isBusy = false }
+
+        do {
+            let grant = try await fetchRelayGrant(agentID: agentID)
+            let session = RelayAudioSession()
+            try session.start(
+                processObjectID: selectedAudioProcessID,
+                grant: grant,
+                stateHandler: { [weak self] message in
+                    Task { @MainActor in self?.audioStatus = message }
+                }
+            )
+            relaySession = session
+            isRelaying = true
+            audioStatus = "Process tap started. Waiting for relayed playback…"
+            startMetricsTimer()
+        } catch {
+            relaySession?.stop()
+            relaySession = nil
+            isRelaying = false
+            errorMessage = error.localizedDescription
+            audioStatus = "Shared audio did not start."
+        }
+    }
+
+    func stopSharedAudio() {
+        metricsTimer?.invalidate()
+        metricsTimer = nil
+        relaySession?.stop()
+        relaySession = nil
+        isRelaying = false
+        audioStatus = "Shared audio stopped; direct playback is restored."
+    }
+
     func resetLocalAuthorization() {
         pollingTask?.cancel()
+        stopSharedAudio()
         do {
             try DeviceSigningKey.delete()
         } catch {
@@ -330,6 +402,56 @@ final class HostAgentModel: ObservableObject {
                 if Task.isCancelled { return }
                 await self.checkPairingOnce()
                 if self.agentID != nil { return }
+            }
+        }
+    }
+
+    private func fetchRelayGrant(agentID: String) async throws -> RelayGrant {
+        let client = try HostAPIClient(originText: serverOrigin)
+        let key: DeviceSigningKey
+        if let signingKey {
+            key = signingKey
+        } else if let stored = try DeviceSigningKey.load() {
+            key = stored
+        } else {
+            throw HostAgentError.missingKey
+        }
+        signingKey = key
+        let challenge: AgentChallenge = try await client.post(
+            "/api/host-agents/challenge",
+            body: AgentIDRequest(agentId: agentID)
+        )
+        guard let challengeData = challenge.challenge.data(using: .utf8) else {
+            throw HostAgentError.invalidChallenge
+        }
+        let signature = try key.signature(for: challengeData).base64EncodedString()
+        let response: RelayGrantResponse = try await client.post(
+            "/api/host-agents/relay-grant",
+            body: AgentProofRequest(
+                agentId: agentID,
+                challengeToken: challenge.challengeToken,
+                signature: signature
+            )
+        )
+        return response.relay
+    }
+
+    private func startMetricsTimer() {
+        metricsTimer?.invalidate()
+        metricsTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, let session = self.relaySession else { return }
+                let seconds = session.sampleRate > 0
+                    ? Double(session.capturedFrames) / session.sampleRate
+                    : 0
+                let peak = session.peakLevel > 0
+                    ? 20 * log10(Double(session.peakLevel))
+                    : -.infinity
+                let peakText = peak.isFinite ? String(format: "%.1f dBFS", peak) : "silence"
+                self.audioMetrics = String(
+                    format: "Captured %.1f s • Peak %@ • Dropped upload packets %llu",
+                    seconds, peakText, session.droppedUploadPackets
+                )
             }
         }
     }

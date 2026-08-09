@@ -5,6 +5,18 @@ import { DatabaseSync } from 'node:sqlite';
 
 const INVITATION_ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
 
+function randomAlphabetText(length) {
+  const result = [];
+  const limit = 256 - (256 % INVITATION_ALPHABET.length);
+  while (result.length < length) {
+    for (const byte of randomBytes(length - result.length)) {
+      if (byte >= limit) continue;
+      result.push(INVITATION_ALPHABET[byte % INVITATION_ALPHABET.length]);
+    }
+  }
+  return result.join('');
+}
+
 export function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -14,14 +26,12 @@ export function normalizeInvitationCode(value) {
 }
 
 export function generateInvitationCode() {
-  const bytes = randomBytes(20);
-  const raw = Array.from(bytes, (byte) => INVITATION_ALPHABET[byte & 31]).join('');
+  const raw = randomAlphabetText(20);
   return raw.match(/.{1,5}/g).join('-');
 }
 
 export function generatePairingCode() {
-  const bytes = randomBytes(8);
-  const raw = Array.from(bytes, (byte) => INVITATION_ALPHABET[byte & 31]).join('');
+  const raw = randomAlphabetText(8);
   return `${raw.slice(0, 4)}-${raw.slice(4)}`;
 }
 

@@ -7,7 +7,7 @@ struct CannaBeatsHostPoCApp: App {
     var body: some Scene {
         WindowGroup {
             HostAgentView(model: model)
-                .frame(minWidth: 620, minHeight: 560)
+                .frame(minWidth: 680, minHeight: 720)
         }
         .windowResizability(.contentMinSize)
     }
@@ -155,13 +155,60 @@ private struct HostAgentView: View {
     }
 
     private var audioSection: some View {
-        GroupBox("Next proof boundary") {
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Core Audio process tap", systemImage: "waveform")
+        GroupBox("Shared audio proof") {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Spotify process → private relay → this Mac", systemImage: "waveform")
                     .font(.headline)
-                Text("Once pairing is confirmed, the next spike will attach the existing process-tap prototype to this signed application, mute the selected Spotify process while captured, and exchange game-scoped relay grants using this device identity.")
+                Text("Start Spotify playback before refreshing. Select the audio-producing process—not necessarily the browser’s main process. While sharing, macOS mutes that process’s direct output and this app plays the same relay stream the other players receive.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                HStack {
+                    Picker("Audio process", selection: $model.selectedAudioProcessID) {
+                        if model.audioProcesses.isEmpty {
+                            Text("No active audio process").tag(UInt32(0))
+                        }
+                        ForEach(model.audioProcesses, id: \.objectID) { process in
+                            Text("\(process.displayName) — PID \(process.processIdentifier)")
+                                .tag(process.objectID)
+                        }
+                    }
+                    .disabled(model.isBusy || model.isRelaying)
+                    Button("Refresh") { model.refreshAudioProcesses() }
+                        .disabled(model.isBusy || model.isRelaying)
+                }
+
+                if let process = model.selectedAudioProcess,
+                   !process.bundleIdentifier.isEmpty {
+                    Text(process.bundleIdentifier)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+
+                HStack {
+                    if model.isRelaying {
+                        Button("Stop shared audio", role: .destructive) {
+                            model.stopSharedAudio()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Start shared audio") {
+                            Task { await model.startSharedAudio() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(
+                            model.isBusy || !model.isPaired || model.selectedAudioProcess == nil
+                        )
+                    }
+                    if model.isBusy { ProgressView().controlSize(.small) }
+                }
+
+                Text(model.audioStatus)
+                    .foregroundStyle(model.errorMessage.isEmpty ? .primary : .secondary)
+                Text(model.audioMetrics)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
             .padding(6)
         }

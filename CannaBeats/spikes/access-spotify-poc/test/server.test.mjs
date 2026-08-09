@@ -15,6 +15,9 @@ const config = readConfig({
   rpID: 'poc.test',
   databasePath,
   spotifyClientId: 'public-test-client-id',
+  audioRelayOrigin: 'https://relay.poc.test',
+  audioRelayIngestToken: 'test-ingest-token-not-a-secret',
+  audioRelayListenToken: 'test-listen-token-not-a-secret',
   trustProxy: false,
   sessionTtlDays: 30,
   port: 0,
@@ -200,4 +203,22 @@ test('an approved P-256 host application can prove its device identity once per 
     signature,
   });
   assert.equal(replay.status, 400);
+
+  const relayChallengeResponse = await post('/api/host-agents/challenge', { agentId: claimed.agent.id });
+  const relayChallenge = await relayChallengeResponse.json();
+  const relaySignature = sign('sha256', Buffer.from(relayChallenge.challenge), privateKey).toString('base64');
+  const grant = await post('/api/host-agents/relay-grant', {
+    agentId: claimed.agent.id,
+    challengeToken: relayChallenge.challengeToken,
+    signature: relaySignature,
+  });
+  assert.equal(grant.status, 200);
+  assert.deepEqual(await grant.json(), {
+    relay: {
+      origin: 'https://relay.poc.test',
+      ingestToken: 'test-ingest-token-not-a-secret',
+      listenToken: 'test-listen-token-not-a-secret',
+      mode: 'poc-shared-static',
+    },
+  });
 });

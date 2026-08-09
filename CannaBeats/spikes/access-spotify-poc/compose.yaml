@@ -22,6 +22,9 @@ services:
       PORT: "3002"
       DATABASE_PATH: /data/cannabeats-poc.sqlite
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      AUDIO_RELAY_ORIGIN: ${AUDIO_RELAY_ORIGIN:-https://cannaudio.cannabeats.social}
+      AUDIO_RELAY_INGEST_TOKEN_FILE: ${AUDIO_RELAY_INGEST_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-ingest-token}
+      AUDIO_RELAY_LISTEN_TOKEN_FILE: ${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}
       TRUST_PROXY: loopback
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       INVITATION_TTL_HOURS: ${INVITATION_TTL_HOURS:-168}
@@ -29,6 +32,7 @@ services:
       - "127.0.0.1:3002:3002"
     volumes:
       - cannabeats_poc_data:/data
+      - ${AUDIO_RELAY_SECRET_DIR:-./secrets}:/run/secrets/cannabeats:ro
     mem_limit: 512m
     cpus: 0.75
     pids_limit: 128

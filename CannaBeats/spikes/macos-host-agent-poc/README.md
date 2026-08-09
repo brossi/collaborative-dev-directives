@@ -2,12 +2,9 @@
 
 This spike proves that a separately packaged macOS application can be approved
 by an existing passkey-authenticated CannaBeats host account and subsequently
-prove possession of its own device signing key.
-
-It deliberately stops before audio capture. The next boundary is to move the
-working Core Audio process-tap mechanics from `btaudio-learning` into this
-signed application and use the authorized agent to obtain game-scoped relay
-credentials.
+prove possession of its own device signing key. It then uses that proof to
+obtain an in-memory relay grant, capture one selected Core Audio process, and
+play the host's audio back through the same remote stream listeners receive.
 
 ## Security boundary
 
@@ -21,6 +18,15 @@ credentials.
 - Device proofs use one-time, two-minute server challenges. Replays fail.
 - The application never receives a Spotify credential or browser session
   cookie.
+- Relay credentials are returned only after a fresh signed device challenge
+  and are retained in memory for the running audio session.
+- The process tap uses `CATapMutedWhenTapped`, so the selected source's direct
+  output is replaced by relay playback instead of being heard twice.
+
+The deployed learning relay still has one shared source slot and static
+ingest/listen credentials. The server-mediated grant proves the trust boundary,
+but it is not yet a game-scoped or expiring relay capability. That is required
+before this design moves beyond the private PoC.
 
 This is an ad-hoc-signed development bundle. Stable distribution requires a
 Developer ID signature and notarization so macOS privacy consent remains tied
@@ -40,7 +46,7 @@ The application defaults to `https://poc.cannabeats.social`. The corresponding
 server endpoints and browser approval interface live in the adjacent
 `access-spotify-poc` spike.
 
-## End-to-end proof
+## Authorization proof
 
 1. Open the application and choose **Pair this Mac**.
 2. The application generates its key, obtains a one-time pairing code, and
@@ -55,3 +61,24 @@ server endpoints and browser approval interface live in the adjacent
 The CannaBeats account page lists the authorized application and can revoke it.
 Deleting the local identity does not silently revoke the server record; the UI
 reminds the user to revoke it explicitly.
+
+## Shared-audio proof
+
+1. Start Spotify playback in the native Spotify application or the installed
+   CannaBeats PWA. Keep audio playing while selecting a process.
+2. In the host app, choose **Refresh** under **Shared audio proof**.
+3. Select the process currently producing the Spotify audio. With a browser or
+   PWA this can be a web-content process rather than the browser's main process.
+4. Choose **Start shared audio** and approve macOS **Screen & System Audio
+   Recording** access if prompted. macOS may require the app to be restarted
+   after the first permission change.
+5. The selected process's direct output should become silent, then return
+   through `cannaudio.cannabeats.social`. The status should say the host is
+   listening through the same relay stream as players.
+6. Confirm that captured seconds increase, peak is above `silence`, and dropped
+   upload packets remain at zero. Choose **Stop shared audio** to remove the tap
+   and restore direct playback.
+
+The capture callback conversion is intentionally simple for this spike. A
+production host app should replace its Objective-C `NSData` allocation on the
+real-time audio callback with a preallocated lock-free buffer.

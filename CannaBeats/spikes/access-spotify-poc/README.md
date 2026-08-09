@@ -10,7 +10,8 @@ This spike proves the risky integration boundaries without loading the game engi
 - browser-only Spotify Authorization Code with PKCE;
 - browser-only Spotify refresh-token persistence and Web Playback SDK playback;
 - passkey-approved pairing of a separately packaged macOS host application;
-- P-256 device challenge proofs without sharing a browser cookie.
+- P-256 device challenge proofs without sharing a browser cookie;
+- signed-device delivery of in-memory audio-relay credentials.
 
 The SQLite database has no Spotify columns. The server exposes only the public Spotify client ID and
 redirect URI. Spotify authorization codes, access tokens, refresh tokens, and profile data go directly
@@ -81,6 +82,14 @@ Possession is proved by signing a one-time, two-minute server challenge. The ser
 application public key and exposes revocation in the account interface. Pairing codes, polling
 secrets, and challenge tokens are hashed or expire quickly; the application receives no Spotify
 credential and no browser session cookie.
+
+For the audio spike, a second signed one-time challenge gates
+`POST /api/host-agents/relay-grant`. The endpoint reads the existing relay's
+ingest and listen credentials from read-only files mounted under
+`/run/secrets/cannabeats`; credentials are not stored in SQLite or exposed to
+the browser. The current relay enforces static shared credentials, so the
+returned grant is explicitly labeled `poc-shared-static`. Production needs
+game-scoped, expiring capabilities enforced by the relay itself.
 
 ## Operational commands
 
