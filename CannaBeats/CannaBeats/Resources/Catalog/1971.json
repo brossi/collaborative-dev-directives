@@ -20,7 +20,7 @@
       "genres": [
         "rock"
       ],
-      "uri": null
+      "uri": "spotify:track:6rovOdp3HgK1DeAMYDzoA7"
     },
     {
       "title": "It's Too Late",
@@ -30,7 +30,7 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": null
+      "uri": "spotify:track:12q3V8ShACq2PSWINMc2rC"
     },
     {
       "title": "One Bad Apple",
@@ -125,7 +125,7 @@
         "soul",
         "r&b"
       ],
-      "uri": null
+      "uri": "spotify:track:76lrpneaFuAxiMAbnNc6Hu"
     },
     {
       "title": "Smiling Faces Sometimes",
@@ -211,7 +211,7 @@
         "rock",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:0YItGamQj3bIeeUvKt36Kd"
     },
     {
       "title": "Ain't No Sunshine",
@@ -249,7 +249,7 @@
         "soul",
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:4f01Vg5ijzmTu9CI9jPTAR"
     },
     {
       "title": "Superstar",
@@ -259,7 +259,7 @@
         "rock",
         "soundtrack"
       ],
-      "uri": null
+      "uri": "spotify:track:1D1p0w1Hcpjoi8rf75tnpe"
     },
     {
       "title": "Amos Moses",
@@ -287,7 +287,7 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": "spotify:track:1Gv6f7m5ZNDcInxGA8PsLS"
     }
   ]
 }
