@@ -1,0 +1,453 @@
+const state = {
+  config: null,
+  user: null,
+  spotify: { accessToken: null, expiresAt: 0, player: null, deviceId: null },
+};
+
+const SPOTIFY_REFRESH_KEY = 'cannabeats.spotify.refreshToken';
+const SPOTIFY_VERIFIER_KEY = 'cannabeats.spotify.pkceVerifier';
+const SPOTIFY_STATE_KEY = 'cannabeats.spotify.oauthState';
+const SPOTIFY_SCOPES = [
+  'streaming',
+  'user-read-email',
+  'user-read-private',
+  'user-read-playback-state',
+  'user-modify-playback-state',
+].join(' ');
+
+const byId = (id) => document.getElementById(id);
+
+function showMessage(message, kind = 'info') {
+  const element = byId('message');
+  element.textContent = message;
+  element.dataset.kind = kind;
+  element.hidden = false;
+  clearTimeout(showMessage.timer);
+  showMessage.timer = setTimeout(() => { element.hidden = true; }, 6_000);
+}
+
+function errorMessage(error) {
+  if (error?.name === 'NotAllowedError') return 'The device canceled or could not complete the passkey prompt.';
+  return error?.message || 'Something unexpected happened.';
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${response.status})`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function renderAccount() {
+  const signedIn = Boolean(state.user);
+  byId('guest-panel').hidden = signedIn;
+  byId('account-panel').hidden = !signedIn;
+  byId('spotify-card').hidden = !signedIn || state.user?.role !== 'host';
+  if (!signedIn) return;
+  byId('account-name').textContent = state.user.displayName;
+  byId('account-role').textContent = `${state.user.role === 'host' ? 'Host' : 'Player'} account`;
+  byId('host-proof').hidden = state.user.role !== 'host';
+}
+
+async function loadSession() {
+  try {
+    const result = await api('/api/me');
+    state.user = result.user;
+    await loadPasskeys();
+  } catch {
+    state.user = null;
+  }
+  renderAccount();
+}
+
+async function loadPasskeys() {
+  if (!state.user) return;
+  const { passkeys } = await api('/api/passkeys');
+  const list = byId('passkey-list');
+  list.replaceChildren();
+  for (const passkey of passkeys) {
+    const item = document.createElement('li');
+    const description = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = passkey.label;
+    const metadata = document.createElement('span');
+    metadata.textContent = `${passkey.deviceType === 'multiDevice' ? 'Synced/multi-device' : 'Single-device'} · ${passkey.backedUp ? 'backed up' : 'not reported backed up'}`;
+    description.append(title, metadata);
+    item.append(description);
+    if (passkeys.length > 1) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'text-button';
+      remove.textContent = 'Remove';
+      remove.addEventListener('click', async () => {
+        if (!window.confirm(`Remove “${passkey.label}”?`)) return;
+        try {
+          await api(`/api/passkeys/${encodeURIComponent(passkey.id)}`, { method: 'DELETE' });
+          await loadPasskeys();
+          showMessage('Passkey removed.');
+        } catch (error) {
+          showMessage(errorMessage(error), 'error');
+        }
+      });
+      item.append(remove);
+    }
+    list.append(item);
+  }
+}
+
+async function enroll(event) {
+  event.preventDefault();
+  try {
+    const result = await api('/api/auth/enroll/options', {
+      method: 'POST',
+      body: JSON.stringify({
+        displayName: byId('display-name').value,
+        invitationCode: byId('invitation-code').value,
+      }),
+    });
+    const response = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: result.options });
+    const verified = await api('/api/auth/enroll/verify', {
+      method: 'POST',
+      body: JSON.stringify({ response }),
+    });
+    state.user = verified.user;
+    renderAccount();
+    await loadPasskeys();
+    byId('enroll-form').reset();
+    showMessage('Passkey created and account authorized.');
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+async function signIn() {
+  try {
+    const result = await api('/api/auth/sign-in/options', { method: 'POST', body: '{}' });
+    const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
+    const verified = await api('/api/auth/sign-in/verify', {
+      method: 'POST',
+      body: JSON.stringify({ response }),
+    });
+    state.user = verified.user;
+    renderAccount();
+    await loadPasskeys();
+    showMessage('Signed in with your passkey.');
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+async function addPasskey(event) {
+  event.preventDefault();
+  try {
+    const result = await api('/api/auth/passkeys/options', {
+      method: 'POST',
+      body: JSON.stringify({ label: byId('passkey-label').value }),
+    });
+    const response = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: result.options });
+    await api('/api/auth/passkeys/verify', {
+      method: 'POST',
+      body: JSON.stringify({ response }),
+    });
+    await loadPasskeys();
+    showMessage('Additional passkey authorized.');
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
+function spotifyRefreshToken() {
+  return localStorage.getItem(SPOTIFY_REFRESH_KEY);
+}
+
+function renderSpotifyState() {
+  const configured = Boolean(state.config?.spotifyClientId);
+  const connected = Boolean(spotifyRefreshToken());
+  byId('spotify-connect').disabled = !configured;
+  byId('spotify-verify').disabled = !configured || !connected;
+  byId('spotify-refresh').disabled = !configured || !connected;
+  byId('spotify-disconnect').disabled = !connected;
+  byId('spotify-player-start').disabled = !configured || !connected;
+  byId('spotify-play-track').disabled = !state.spotify.deviceId;
+  byId('spotify-state').textContent = !configured
+    ? 'Spotify is disabled until a public client ID is configured on the server.'
+    : connected
+      ? 'A Spotify refresh credential is stored only in this browser profile.'
+      : 'Spotify is not connected in this browser.';
+}
+
+function spotifyLog(value) {
+  byId('spotify-log').textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function connectSpotify() {
+  if (!state.config.spotifyClientId) throw new Error('Spotify client ID is not configured');
+  const verifier = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(64)));
+  const stateValue = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(24)));
+  const challengeBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  sessionStorage.setItem(SPOTIFY_VERIFIER_KEY, verifier);
+  sessionStorage.setItem(SPOTIFY_STATE_KEY, stateValue);
+  const parameters = new URLSearchParams({
+    client_id: state.config.spotifyClientId,
+    response_type: 'code',
+    redirect_uri: state.config.spotifyRedirectUri,
+    code_challenge_method: 'S256',
+    code_challenge: bytesToBase64Url(new Uint8Array(challengeBytes)),
+    state: stateValue,
+    scope: SPOTIFY_SCOPES,
+  });
+  location.assign(`https://accounts.spotify.com/authorize?${parameters}`);
+}
+
+async function exchangeSpotifyCode(code) {
+  const verifier = sessionStorage.getItem(SPOTIFY_VERIFIER_KEY);
+  if (!verifier) throw new Error('Spotify PKCE verifier is missing; start the connection again');
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: state.config.spotifyClientId,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: state.config.spotifyRedirectUri,
+      code_verifier: verifier,
+    }),
+  });
+  if (!response.ok) throw new Error(`Spotify token exchange failed (${response.status})`);
+  const token = await response.json();
+  if (!token.refresh_token) throw new Error('Spotify did not return a refresh token');
+  localStorage.setItem(SPOTIFY_REFRESH_KEY, token.refresh_token);
+  state.spotify.accessToken = token.access_token;
+  state.spotify.expiresAt = Date.now() + token.expires_in * 1000;
+  sessionStorage.removeItem(SPOTIFY_VERIFIER_KEY);
+  sessionStorage.removeItem(SPOTIFY_STATE_KEY);
+}
+
+async function refreshSpotifyToken(force = false) {
+  if (!force && state.spotify.accessToken && state.spotify.expiresAt > Date.now() + 60_000) {
+    return state.spotify.accessToken;
+  }
+  const refreshToken = spotifyRefreshToken();
+  if (!refreshToken) throw new Error('Connect Spotify on this device first');
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: state.config.spotifyClientId,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  });
+  if (!response.ok) {
+    if (response.status === 400 || response.status === 401) disconnectSpotify();
+    throw new Error(`Spotify refresh failed (${response.status}); reconnect if authorization expired`);
+  }
+  const token = await response.json();
+  state.spotify.accessToken = token.access_token;
+  state.spotify.expiresAt = Date.now() + token.expires_in * 1000;
+  if (token.refresh_token) localStorage.setItem(SPOTIFY_REFRESH_KEY, token.refresh_token);
+  renderSpotifyState();
+  return state.spotify.accessToken;
+}
+
+async function spotifyApi(path, options = {}) {
+  const token = await refreshSpotifyToken();
+  const response = await fetch(`https://api.spotify.com/v1${path}`, {
+    ...options,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...options.headers },
+  });
+  if (!response.ok) throw new Error(`Spotify API request failed (${response.status})`);
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function disconnectSpotify() {
+  state.spotify.player?.disconnect();
+  state.spotify = { accessToken: null, expiresAt: 0, player: null, deviceId: null };
+  localStorage.removeItem(SPOTIFY_REFRESH_KEY);
+  sessionStorage.removeItem(SPOTIFY_VERIFIER_KEY);
+  sessionStorage.removeItem(SPOTIFY_STATE_KEY);
+  renderSpotifyState();
+  spotifyLog('Spotify authorization removed from this browser.');
+}
+
+function loadSpotifySdk() {
+  if (window.Spotify) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('Spotify SDK did not become ready within 15 seconds'));
+    }, 15_000);
+    const finish = (callback) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      callback();
+    };
+    window.onSpotifyWebPlaybackSDKReady = () => finish(resolve);
+    const script = document.createElement('script');
+    script.src = 'https://sdk.scdn.co/spotify-player.js';
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.onerror = () => finish(() => reject(new Error('Could not load Spotify Web Playback SDK')));
+    script.onload = () => {
+      if (window.Spotify) finish(resolve);
+    };
+    document.head.append(script);
+  });
+}
+
+async function startSpotifyPlayer() {
+  spotifyLog('Loading Spotify Web Playback SDK…');
+  await loadSpotifySdk();
+  if (state.spotify.player) return state.spotify.deviceId;
+  spotifyLog('Spotify SDK loaded. Creating the private browser player…');
+  const player = new Spotify.Player({
+    name: 'CannaBeats Access Lab',
+    volume: 0.65,
+    getOAuthToken: (callback) => refreshSpotifyToken().then(callback).catch((error) => spotifyLog(errorMessage(error))),
+  });
+  player.addListener('ready', ({ device_id: deviceId }) => {
+    state.spotify.deviceId = deviceId;
+    renderSpotifyState();
+    spotifyLog({ ready: true, deviceId, note: 'Browser player is ready.' });
+  });
+  player.addListener('not_ready', ({ device_id: deviceId }) => spotifyLog({ ready: false, deviceId }));
+  player.addListener('player_state_changed', (playbackState) => {
+    if (!playbackState) {
+      spotifyLog('Spotify player state is unavailable.');
+      return;
+    }
+    spotifyLog({
+      paused: playbackState.paused,
+      positionMs: playbackState.position,
+      track: playbackState.track_window?.current_track?.name || null,
+      artist: playbackState.track_window?.current_track?.artists?.map((artist) => artist.name).join(', ') || null,
+    });
+  });
+  player.addListener('initialization_error', ({ message }) => spotifyLog(`Spotify initialization error: ${message}`));
+  player.addListener('authentication_error', ({ message }) => spotifyLog(`Spotify authentication error: ${message}`));
+  player.addListener('account_error', ({ message }) => spotifyLog(`Spotify account error: ${message}`));
+  player.addListener('playback_error', ({ message }) => spotifyLog(`Spotify playback error: ${message}`));
+  player.addListener('autoplay_failed', () => spotifyLog('Spotify autoplay was blocked; press Play test track again.'));
+  player.activateElement().catch(() => {});
+  spotifyLog('Browser player created. Connecting to Spotify…');
+  const connected = await Promise.race([
+    player.connect(),
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error('Spotify player connection timed out after 20 seconds')),
+      20_000,
+    )),
+  ]);
+  if (!connected) throw new Error('Spotify browser player could not connect');
+  state.spotify.player = player;
+  spotifyLog('Spotify browser player connected; waiting for its device ID…');
+}
+
+async function handleSpotifyCallback() {
+  const parameters = new URLSearchParams(location.search);
+  if (!parameters.has('code') && !parameters.has('error')) return;
+  try {
+    if (parameters.has('error')) throw new Error(`Spotify authorization failed: ${parameters.get('error')}`);
+    const expectedState = sessionStorage.getItem(SPOTIFY_STATE_KEY);
+    if (!expectedState || !constantState(expectedState, parameters.get('state'))) {
+      throw new Error('Spotify authorization state did not match');
+    }
+    await exchangeSpotifyCode(parameters.get('code'));
+    history.replaceState({}, '', '/');
+    renderSpotifyState();
+    spotifyLog('Spotify connected. The refresh credential exists only in this browser profile.');
+    showMessage('Spotify connected locally.');
+  } catch (error) {
+    spotifyLog(errorMessage(error));
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+function constantState(left, right) {
+  if (typeof right !== 'string' || left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return difference === 0;
+}
+
+function wireEvents() {
+  byId('enroll-form').addEventListener('submit', enroll);
+  byId('sign-in').addEventListener('click', signIn);
+  byId('add-passkey-form').addEventListener('submit', addPasskey);
+  byId('sign-out').addEventListener('click', async () => {
+    try {
+      await api('/api/auth/sign-out', { method: 'POST', body: '{}' });
+      state.user = null;
+      renderAccount();
+      showMessage('Signed out.');
+    } catch (error) { showMessage(errorMessage(error), 'error'); }
+  });
+  byId('prove-host').addEventListener('click', async () => {
+    try {
+      const result = await api('/api/host/prove', { method: 'POST', body: '{}' });
+      byId('host-result').textContent = result.message;
+    } catch (error) { showMessage(errorMessage(error), 'error'); }
+  });
+  byId('spotify-connect').addEventListener('click', () => connectSpotify().catch((error) => showMessage(errorMessage(error), 'error')));
+  byId('spotify-verify').addEventListener('click', async () => {
+    try {
+      const profile = await spotifyApi('/me');
+      spotifyLog({ displayName: profile.display_name, product: profile.product, country: profile.country });
+    } catch (error) { spotifyLog(errorMessage(error)); }
+  });
+  byId('spotify-refresh').addEventListener('click', async () => {
+    try {
+      await refreshSpotifyToken(true);
+      spotifyLog('Access token refreshed. Any rotated refresh credential was saved locally.');
+    } catch (error) { spotifyLog(errorMessage(error)); }
+  });
+  byId('spotify-disconnect').addEventListener('click', disconnectSpotify);
+  byId('spotify-player-start').addEventListener('click', () => startSpotifyPlayer().catch((error) => spotifyLog(errorMessage(error))));
+  byId('spotify-play-track').addEventListener('click', async () => {
+    try {
+      if (!state.spotify.player) throw new Error('Start the browser player first');
+      await state.spotify.player.activateElement();
+      const uri = byId('spotify-track').value.trim();
+      if (!/^spotify:track:[A-Za-z0-9]+$/.test(uri)) throw new Error('Enter a Spotify track URI');
+      await spotifyApi(`/me/player/play?device_id=${encodeURIComponent(state.spotify.deviceId)}`, {
+        method: 'PUT', body: JSON.stringify({ uris: [uri] }),
+      });
+      await state.spotify.player.resume();
+      const volume = await state.spotify.player.getVolume();
+      spotifyLog({ commandAccepted: true, playing: uri, browserVolume: volume });
+    } catch (error) { spotifyLog(errorMessage(error)); }
+  });
+}
+
+async function initialize() {
+  wireEvents();
+  try {
+    state.config = await api('/api/config');
+    byId('connection-status').textContent = state.config.rpID;
+    byId('connection-status').dataset.ready = 'true';
+    renderSpotifyState();
+    await loadSession();
+    await handleSpotifyCallback();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  } catch (error) {
+    byId('connection-status').textContent = 'Server unavailable';
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+initialize();

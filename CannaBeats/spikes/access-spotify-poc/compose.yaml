@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: .
+    image: cannabeats/access-spotify-poc:local
+    container_name: cannabeats-access-poc
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:-https://poc.cannabeats.social}
+      RP_ID: ${RP_ID:-poc.cannabeats.social}
+      RP_NAME: ${RP_NAME:-CannaBeats PoC}
+      PORT: "3002"
+      DATABASE_PATH: /data/cannabeats-poc.sqlite
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      TRUST_PROXY: loopback
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+      INVITATION_TTL_HOURS: ${INVITATION_TTL_HOURS:-168}
+    ports:
+      - "127.0.0.1:3002:3002"
+    volumes:
+      - cannabeats_poc_data:/data
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  cannabeats_poc_data:
+    name: cannabeats_poc_data

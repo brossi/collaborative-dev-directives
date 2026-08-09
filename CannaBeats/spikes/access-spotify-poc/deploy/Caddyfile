@@ -1,0 +1,14 @@
+office.vw-inc.com, www.office.vw-inc.com {
+    reverse_proxy 127.0.0.1:8000
+    encode zstd gzip
+}
+
+ecb.138-197-80-223.nip.io {
+    reverse_proxy 127.0.0.1:3001
+    encode zstd gzip
+}
+
+poc.cannabeats.social {
+    reverse_proxy 127.0.0.1:3002
+    encode zstd gzip
+}

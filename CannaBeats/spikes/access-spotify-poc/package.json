@@ -1,0 +1,20 @@
+{
+  "name": "cannabeats-access-spotify-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "NODE_ENV=development node --watch server.mjs",
+    "invite": "node cli.mjs invite",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "13.3.0",
+    "@simplewebauthn/server": "13.3.2",
+    "express": "5.2.1"
+  }
+}

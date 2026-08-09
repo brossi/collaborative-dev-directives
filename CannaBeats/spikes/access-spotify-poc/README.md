@@ -1,0 +1,87 @@
+# CannaBeats access and Spotify PoC
+
+This spike proves the risky integration boundaries without loading the game engine:
+
+- invitation-only account enrollment;
+- user-verifying, discoverable WebAuthn passkeys;
+- multiple passkeys attached to one CannaBeats account;
+- persistent, opaque server sessions;
+- server-enforced `host` and `player` roles;
+- browser-only Spotify Authorization Code with PKCE;
+- browser-only Spotify refresh-token persistence and Web Playback SDK playback.
+
+The SQLite database has no Spotify columns. The server exposes only the public Spotify client ID and
+redirect URI. Spotify authorization codes, access tokens, refresh tokens, and profile data go directly
+between the host browser and Spotify.
+
+## Local development
+
+WebAuthn treats `localhost` as a secure development context:
+
+```sh
+npm install
+APP_ORIGIN=http://localhost:3002 RP_ID=localhost npm start
+```
+
+Create a host invitation in a second terminal:
+
+```sh
+APP_ORIGIN=http://localhost:3002 RP_ID=localhost npm run invite -- --role host --note "Ben"
+```
+
+Open `http://localhost:3002`, expand **I have an invitation**, and use the code once.
+
+## Remote environment
+
+The PoC origin and WebAuthn relying-party ID are deliberately pinned:
+
+```text
+APP_ORIGIN=https://poc.cannabeats.social
+RP_ID=poc.cannabeats.social
+```
+
+Changing the hostname later creates a different WebAuthn security boundary. Passkeys registered to
+this disposable hostname will not authenticate a future production hostname unless the production
+deployment intentionally chooses a shared parent RP ID from the beginning.
+
+The Docker service binds only to `127.0.0.1:3002`. Caddy terminates public HTTPS and proxies to that
+loopback port. The Compose stack has a 512 MB memory limit, a 0.75 CPU limit, no Linux capabilities,
+a read-only root filesystem, and its own named SQLite volume.
+
+## Spotify setup
+
+Create or select a Spotify developer application and register this exact redirect URI:
+
+```text
+https://poc.cannabeats.social/spotify/callback
+```
+
+Set only its public client ID in `.env`:
+
+```text
+SPOTIFY_CLIENT_ID=...
+```
+
+Do not create or deploy a Spotify client secret for this browser PKCE flow.
+
+Each host browser profile connects Spotify independently. A refresh credential is stored in that
+browser's local storage. Access credentials remain in JavaScript memory and are recreated from the
+local refresh credential when required. **Disconnect locally** clears the stored credential.
+
+## Operational commands
+
+Create an invitation inside the running container:
+
+```sh
+docker compose exec app node cli.mjs invite --role host --note "Sibling name"
+```
+
+Inspect health without exposing the application port publicly:
+
+```sh
+curl --fail http://127.0.0.1:3002/api/health
+docker inspect --format '{{.State.Health.Status}}' cannabeats-access-poc
+```
+
+The invitation value is displayed once. SQLite stores only its SHA-256 digest. Passkey public keys,
+credential counters, roles, sessions, and security audit events are stored server-side.
