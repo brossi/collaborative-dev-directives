@@ -16,6 +16,7 @@ struct CannaBeatsHostPoCApp: App {
 private struct HostAgentView: View {
     @ObservedObject var model: HostAgentModel
     @State private var confirmReset = false
+    @State private var showManualAudioControls = false
 
     var body: some View {
         ScrollView {
@@ -157,34 +158,11 @@ private struct HostAgentView: View {
     private var audioSection: some View {
         GroupBox("Shared audio proof") {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Spotify process → private relay → this Mac", systemImage: "waveform")
+                Label("Start the game from here", systemImage: "waveform")
                     .font(.headline)
-                Text("Start Spotify playback before refreshing. Select the audio-producing process—not necessarily the browser’s main process. While sharing, macOS mutes that process’s direct output and this app plays the same relay stream the other players receive.")
+                Text("Prepare the relay first, then let this app open CannaBeats. It watches for the PWA’s Spotify audio and attaches automatically. Once attached, the source’s direct output is muted and this Mac listens through the same relay stream as the players.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                HStack {
-                    Picker("Audio process", selection: $model.selectedAudioProcessID) {
-                        if model.audioProcesses.isEmpty {
-                            Text("No active audio process").tag(UInt32(0))
-                        }
-                        ForEach(model.audioProcesses, id: \.objectID) { process in
-                            Text("\(process.displayName) — PID \(process.processIdentifier)")
-                                .tag(process.objectID)
-                        }
-                    }
-                    .disabled(model.isBusy || model.isRelaying)
-                    Button("Refresh") { model.refreshAudioProcesses() }
-                        .disabled(model.isBusy || model.isRelaying)
-                }
-
-                if let process = model.selectedAudioProcess,
-                   !process.bundleIdentifier.isEmpty {
-                    Text(process.bundleIdentifier)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
 
                 HStack {
                     if model.isRelaying {
@@ -192,16 +170,28 @@ private struct HostAgentView: View {
                             model.stopSharedAudio()
                         }
                         .buttonStyle(.borderedProminent)
+                    } else if model.isAwaitingAudioProcess {
+                        ProgressView()
+                            .controlSize(.small)
+                        Button("Open CannaBeats again") { model.openCannaBeats() }
+                            .buttonStyle(.borderedProminent)
+                        Button("Cancel") { model.cancelAudioPreparation() }
+                            .buttonStyle(.bordered)
                     } else {
-                        Button("Start shared audio") {
-                            Task { await model.startSharedAudio() }
+                        Button("Prepare shared audio & open CannaBeats") {
+                            Task { await model.prepareAndOpenCannaBeats() }
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(
-                            model.isBusy || !model.isPaired || model.selectedAudioProcess == nil
-                        )
+                        .controlSize(.large)
+                        .disabled(model.isBusy || !model.isPaired)
                     }
                     if model.isBusy { ProgressView().controlSize(.small) }
+                }
+
+                if !model.isPaired {
+                    Text("Authorize this Mac above before preparing shared audio.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Text(model.audioStatus)
@@ -209,6 +199,42 @@ private struct HostAgentView: View {
                 Text(model.audioMetrics)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+
+                DisclosureGroup(
+                    "Troubleshooting: choose an audio process manually",
+                    isExpanded: $showManualAudioControls
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Picker("Audio process", selection: $model.selectedAudioProcessID) {
+                                if model.audioProcesses.isEmpty {
+                                    Text("No active audio process").tag(UInt32(0))
+                                }
+                                ForEach(model.audioProcesses, id: \.objectID) { process in
+                                    Text("\(process.displayName) — PID \(process.processIdentifier)")
+                                        .tag(process.objectID)
+                                }
+                            }
+                            .disabled(model.isBusy || model.isRelaying)
+                            Button("Refresh") { model.refreshAudioProcesses() }
+                                .disabled(model.isBusy || model.isRelaying)
+                        }
+
+                        if let process = model.selectedAudioProcess,
+                           !process.bundleIdentifier.isEmpty {
+                            Text(process.bundleIdentifier)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+
+                        Button("Start with selected process") {
+                            Task { await model.startSharedAudio() }
+                        }
+                        .disabled(model.isBusy || model.isRelaying || !model.isPaired || model.selectedAudioProcess == nil)
+                    }
+                    .padding(.top, 8)
+                }
             }
             .padding(6)
         }

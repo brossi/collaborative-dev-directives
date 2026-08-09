@@ -64,20 +64,25 @@ reminds the user to revoke it explicitly.
 
 ## Shared-audio proof
 
-1. Start Spotify playback in the native Spotify application or the installed
-   CannaBeats PWA. Keep audio playing while selecting a process.
-2. In the host app, choose **Refresh** under **Shared audio proof**.
-3. Select the process currently producing the Spotify audio. With a browser or
-   PWA this can be a web-content process rather than the browser's main process.
-4. Choose **Start shared audio** and approve macOS **Screen & System Audio
-   Recording** access if prompted. macOS may require the app to be restarted
-   after the first permission change.
-5. The selected process's direct output should become silent, then return
+1. Start the native host app before opening CannaBeats.
+2. Choose **Prepare shared audio & open CannaBeats**. The app authenticates the
+   relay grant, snapshots existing audio processes, and opens the installed
+   CannaBeats PWA. If the PWA is not installed, it opens the website instead.
+3. In CannaBeats, connect Spotify if needed, start the browser player, and begin
+   playback. The host app watches for the newly active audio process and
+   attaches automatically; no process selection is normally required.
+4. Approve macOS **Screen & System Audio Recording** access if prompted. macOS
+   may require the host app to be restarted after the first permission change.
+5. The detected process's direct output should become silent, then return
    through `cannaudio.cannabeats.social`. The status should say the host is
    listening through the same relay stream as players.
 6. Confirm that captured seconds increase, peak is above `silence`, and dropped
    upload packets remain at zero. Choose **Stop shared audio** to remove the tap
    and restore direct playback.
+
+If automatic discovery does not identify the correct WebKit process, expand
+**Troubleshooting: choose an audio process manually**, refresh while Spotify is
+playing, and start with the selected process.
 
 The capture callback conversion is intentionally simple for this spike. A
 production host app should replace its Objective-C `NSData` allocation on the

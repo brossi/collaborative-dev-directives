@@ -160,7 +160,8 @@ final class HostAgentModel: ObservableObject {
     @Published private(set) var audioProcesses: [CBAudioProcessInfo] = []
     @Published var selectedAudioProcessID: UInt32 = 0
     @Published private(set) var isRelaying = false
-    @Published private(set) var audioStatus = "Play Spotify audio, then refresh the process list."
+    @Published private(set) var isAwaitingAudioProcess = false
+    @Published private(set) var audioStatus = "Start here to prepare sharing and open CannaBeats."
     @Published private(set) var audioMetrics = "No audio captured yet."
 
     private var signingKey: DeviceSigningKey?
@@ -169,6 +170,9 @@ final class HostAgentModel: ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var relaySession: RelayAudioSession?
     private var metricsTimer: Timer?
+    private var processDiscoveryTimer: Timer?
+    private var baselineAudioProcessIDs: Set<UInt32> = []
+    private var preparedRelayGrant: RelayGrant?
 
     init() {
         let defaults = UserDefaults.standard
@@ -326,15 +330,72 @@ final class HostAgentModel: ObservableObject {
             : "Choose the process producing the Spotify audio."
     }
 
-    func startSharedAudio() async {
-        guard !isBusy, !isRelaying, let agentID, selectedAudioProcess != nil else { return }
+    func prepareAndOpenCannaBeats() async {
+        guard !isBusy, !isRelaying, !isAwaitingAudioProcess, let agentID else { return }
         isBusy = true
         errorMessage = ""
-        audioStatus = "Requesting an authenticated relay grant…"
+        audioStatus = "Authenticating this host app and preparing the relay…"
         defer { isBusy = false }
 
         do {
             let grant = try await fetchRelayGrant(agentID: agentID)
+            preparedRelayGrant = grant
+            let existing = CBAudioTap.audioOutputProcesses()
+            baselineAudioProcessIDs = Set(existing.map(\.objectID))
+            audioProcesses = existing
+            isAwaitingAudioProcess = true
+            audioStatus = "CannaBeats is opening. Connect Spotify and start the browser player; sharing will begin when audio starts."
+            startAudioProcessDiscovery()
+            openCannaBeats()
+        } catch {
+            preparedRelayGrant = nil
+            errorMessage = error.localizedDescription
+            audioStatus = "Shared audio preparation failed."
+        }
+    }
+
+    func openCannaBeats() {
+        guard let origin = try? HostAPIClient(originText: serverOrigin).origin else { return }
+        if let applicationURL = installedPWA(for: origin) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            NSWorkspace.shared.openApplication(at: applicationURL, configuration: configuration) { [weak self] _, error in
+                guard let error else { return }
+                Task { @MainActor in
+                    self?.errorMessage = "The installed CannaBeats app did not open: \(error.localizedDescription)"
+                    NSWorkspace.shared.open(origin)
+                }
+            }
+        } else {
+            NSWorkspace.shared.open(origin)
+        }
+    }
+
+    func cancelAudioPreparation() {
+        processDiscoveryTimer?.invalidate()
+        processDiscoveryTimer = nil
+        preparedRelayGrant = nil
+        baselineAudioProcessIDs.removeAll()
+        isAwaitingAudioProcess = false
+        audioStatus = "Shared audio preparation cancelled."
+    }
+
+    func startSharedAudio() async {
+        guard !isBusy, !isRelaying, let agentID, selectedAudioProcess != nil else { return }
+        isBusy = true
+        errorMessage = ""
+        audioStatus = preparedRelayGrant == nil
+            ? "Requesting an authenticated relay grant…"
+            : "Attaching to the selected audio process…"
+        defer { isBusy = false }
+
+        do {
+            let grant: RelayGrant
+            if let preparedRelayGrant {
+                grant = preparedRelayGrant
+            } else {
+                grant = try await fetchRelayGrant(agentID: agentID)
+            }
             let session = RelayAudioSession()
             try session.start(
                 processObjectID: selectedAudioProcessID,
@@ -344,12 +405,19 @@ final class HostAgentModel: ObservableObject {
                 }
             )
             relaySession = session
+            preparedRelayGrant = nil
+            processDiscoveryTimer?.invalidate()
+            processDiscoveryTimer = nil
+            isAwaitingAudioProcess = false
             isRelaying = true
             audioStatus = "Process tap started. Waiting for relayed playback…"
             startMetricsTimer()
         } catch {
             relaySession?.stop()
             relaySession = nil
+            preparedRelayGrant = nil
+            baselineAudioProcessIDs.removeAll()
+            isAwaitingAudioProcess = false
             isRelaying = false
             errorMessage = error.localizedDescription
             audioStatus = "Shared audio did not start."
@@ -359,8 +427,13 @@ final class HostAgentModel: ObservableObject {
     func stopSharedAudio() {
         metricsTimer?.invalidate()
         metricsTimer = nil
+        processDiscoveryTimer?.invalidate()
+        processDiscoveryTimer = nil
         relaySession?.stop()
         relaySession = nil
+        preparedRelayGrant = nil
+        baselineAudioProcessIDs.removeAll()
+        isAwaitingAudioProcess = false
         isRelaying = false
         audioStatus = "Shared audio stopped; direct playback is restored."
     }
@@ -454,5 +527,65 @@ final class HostAgentModel: ObservableObject {
                 )
             }
         }
+    }
+
+    private func startAudioProcessDiscovery() {
+        processDiscoveryTimer?.invalidate()
+        processDiscoveryTimer = Timer.scheduledTimer(
+            withTimeInterval: 0.5,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in self?.discoverNewAudioProcess() }
+        }
+    }
+
+    private func discoverNewAudioProcess() {
+        guard isAwaitingAudioProcess, !isBusy, !isRelaying else { return }
+        let active = CBAudioTap.audioOutputProcesses()
+        audioProcesses = active
+        let candidates = active.filter {
+            !baselineAudioProcessIDs.contains($0.objectID) &&
+                $0.processIdentifier != ProcessInfo.processInfo.processIdentifier
+        }
+        guard !candidates.isEmpty else { return }
+        guard let preferred = candidates.first(where: { process in
+            let identity = "\(process.displayName) \(process.bundleIdentifier)".lowercased()
+            return identity.contains("cannabeats") || identity.contains("spotify") ||
+                identity.contains("webkit") || identity.contains("safari") ||
+                identity.contains("chrome") || identity.contains("firefox") ||
+                identity.contains("edge")
+        }) else {
+            audioStatus = "New audio appeared, but its source is unclear. Use the troubleshooting process picker if CannaBeats is playing."
+            return
+        }
+        selectedAudioProcessID = preferred.objectID
+        processDiscoveryTimer?.invalidate()
+        processDiscoveryTimer = nil
+        audioStatus = "Detected \(preferred.displayName). Starting shared audio…"
+        Task { await startSharedAudio() }
+    }
+
+    private func installedPWA(for origin: URL) -> URL? {
+        let applications = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Applications", isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: applications,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        for application in entries where application.pathExtension == "app" {
+            let infoURL = application
+                .appendingPathComponent("Contents", isDirectory: true)
+                .appendingPathComponent("Info.plist")
+            guard let data = try? Data(contentsOf: infoURL),
+                  let raw = try? PropertyListSerialization.propertyList(from: data, format: nil),
+                  let info = raw as? [String: Any],
+                  let manifest = info["Manifest"] as? [String: Any],
+                  let startText = manifest["start_url"] as? String,
+                  let startURL = URL(string: startText),
+                  startURL.host == origin.host else { continue }
+            return application
+        }
+        return nil
     }
 }
