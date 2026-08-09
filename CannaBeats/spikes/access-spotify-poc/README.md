@@ -12,10 +12,25 @@ This spike proves the risky integration boundaries without loading the game engi
 - passkey-approved pairing of a separately packaged macOS host application;
 - P-256 device challenge proofs without sharing a browser cookie;
 - signed-device delivery of in-memory audio-relay credentials.
+- passkey-approved, revocable desktop-client installation credentials;
+- authenticated game-session creation, desktop join/resume, and lobby membership polling.
 
 The SQLite database has no Spotify columns. The server exposes only the public Spotify client ID and
 redirect URI. Spotify authorization codes, access tokens, refresh tokens, and profile data go directly
 between the host browser and Spotify.
+
+## Desktop client pairing and lobby slice
+
+The adjacent `../../clients/desktop-client` Tauri application starts a ten-minute device
+authorization request and opens this site in the user's default browser. A signed-in account must
+confirm the named installation and complete a fresh passkey assertion. The desktop app keeps the
+resulting opaque credential in the operating system credential store; its bundled web UI never
+receives the value.
+
+Hosts can create a minimal test lobby from this page. A paired desktop installation can join with the
+six-character game code or resume an active lobby already associated with its account. The game code
+only locates the lobby: all join, resume, and polling endpoints require the revocable desktop
+credential. No gameplay or audio transport is part of this slice yet.
 
 ## Local development
 

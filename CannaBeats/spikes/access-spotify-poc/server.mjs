@@ -26,6 +26,8 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const PAIRING_TTL_MS = 10 * 60 * 1000;
 const AGENT_CHALLENGE_TTL_MS = 2 * 60 * 1000;
 const HOST_AGENT_PAIRING_LABEL = 'host_agent_pair:';
+const DESKTOP_PAIRING_LABEL = 'desktop_pair:';
+const GAME_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -125,6 +127,15 @@ function normalizePairingCode(value) {
   return normalizeInvitationCode(value);
 }
 
+function makeGameCode() {
+  const bytes = randomBytes(6);
+  return Array.from(bytes, (byte) => GAME_CODE_ALPHABET[byte % GAME_CODE_ALPHABET.length]).join('');
+}
+
+function normalizeGameCode(value) {
+  return normalizeInvitationCode(value).slice(0, 6);
+}
+
 function validateAgentPublicKey(value) {
   const encoded = String(value ?? '').trim();
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length > 512) {
@@ -207,7 +218,8 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
     res.set('Cache-Control', 'no-store');
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       const origin = req.get('origin');
-      if (!origin || !constantTimeTextEqual(origin, config.origin)) {
+      const nativeDesktopRequest = !origin && req.path.startsWith('/desktop/');
+      if (!nativeDesktopRequest && (!origin || !constantTimeTextEqual(origin, config.origin))) {
         return next(new HttpError(403, 'Request origin was not accepted'));
       }
     }
@@ -258,6 +270,58 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
     if (!user) return next(new HttpError(401, 'Sign in required'));
     req.user = user;
     next();
+  }
+
+  function currentDesktopUser(req) {
+    const authorization = req.get('authorization') ?? '';
+    const match = /^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(authorization);
+    if (!match) return null;
+    const tokenHash = sha256(match[1]);
+    const session = db.prepare(`
+      SELECT desktop_sessions.token_hash, desktop_sessions.display_name AS application_name,
+             desktop_sessions.expires_at, users.*
+      FROM desktop_sessions JOIN users ON users.id = desktop_sessions.user_id
+      WHERE desktop_sessions.token_hash = ? AND desktop_sessions.revoked_at IS NULL
+    `).get(tokenHash);
+    if (!session || session.expires_at <= Date.now()) return null;
+    db.prepare('UPDATE desktop_sessions SET last_seen_at = ? WHERE token_hash = ?')
+      .run(Date.now(), tokenHash);
+    return session;
+  }
+
+  function requireDesktopUser(req, _res, next) {
+    const user = currentDesktopUser(req);
+    if (!user) return next(new HttpError(401, 'Desktop application authorization required'));
+    req.user = user;
+    next();
+  }
+
+  function gameSessionView(code) {
+    const session = db.prepare(`
+      SELECT game_sessions.*, users.display_name AS host_display_name
+      FROM game_sessions JOIN users ON users.id = game_sessions.host_user_id
+      WHERE game_sessions.code = ?
+    `).get(code);
+    if (!session) return null;
+    const members = db.prepare(`
+      SELECT users.id, users.display_name, users.role, game_session_members.joined_at,
+             game_session_members.last_seen_at
+      FROM game_session_members JOIN users ON users.id = game_session_members.user_id
+      WHERE game_session_members.session_code = ? ORDER BY game_session_members.joined_at ASC
+    `).all(code);
+    return {
+      code: session.code,
+      status: session.status,
+      host: { id: session.host_user_id, displayName: session.host_display_name },
+      members: members.map((member) => ({
+        id: member.id,
+        displayName: member.display_name,
+        role: member.role,
+        joinedAt: new Date(member.joined_at).toISOString(),
+      })),
+      createdAt: new Date(session.created_at).toISOString(),
+      updatedAt: new Date(session.updated_at).toISOString(),
+    };
   }
 
   function issueSession(res, userId) {
@@ -326,6 +390,7 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
   const authenticationLimiter = createRateLimiter();
   app.use('/api/auth', authenticationLimiter);
   const agentPairingLimiter = createRateLimiter({ limit: 30 });
+  const desktopPairingLimiter = createRateLimiter({ limit: 20 });
 
   app.get('/api/health', (_req, res) => {
     const database = db.prepare('SELECT 1 AS ok').get();
@@ -430,8 +495,9 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
 
   app.post('/api/auth/sign-in/verify', async (req, res) => {
     const pending = challengeFromRequest(req, 'authentication');
-    if (pending.label?.startsWith(HOST_AGENT_PAIRING_LABEL)) {
-      throw new HttpError(400, 'This passkey ceremony belongs to host application approval');
+    if (pending.label?.startsWith(HOST_AGENT_PAIRING_LABEL)
+      || pending.label?.startsWith(DESKTOP_PAIRING_LABEL)) {
+      throw new HttpError(400, 'This passkey ceremony belongs to application approval');
     }
     const credentialRow = db.prepare(`
       SELECT passkey_credentials.*, users.display_name, users.role
@@ -470,6 +536,279 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
     if (token) db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
     res.append('Set-Cookie', clearCookie(SESSION_COOKIE));
     res.status(204).end();
+  });
+
+  app.post('/api/desktop/authorizations/start', desktopPairingLimiter, (req, res) => {
+    purgeExpired(db);
+    const displayName = cleanText(req.body?.displayName, {
+      field: 'Desktop application name', maximum: 80,
+    });
+    let code = generatePairingCode();
+    while (db.prepare('SELECT 1 FROM desktop_authorizations WHERE code_hash = ?').get(
+      sha256(normalizePairingCode(code)),
+    )) code = generatePairingCode();
+    const authorizationToken = randomToken();
+    const now = Date.now();
+    const expiresAt = now + PAIRING_TTL_MS;
+    db.prepare(`
+      INSERT INTO desktop_authorizations
+        (token_hash, code_hash, display_name, created_at, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      sha256(authorizationToken), sha256(normalizePairingCode(code)), displayName, now, expiresAt,
+    );
+    res.status(201).json({
+      status: 'pending',
+      code,
+      authorizationToken,
+      expiresAt: new Date(expiresAt).toISOString(),
+      verificationUrl: `${config.origin}/?client_pair=${encodeURIComponent(code)}`,
+    });
+  });
+
+  app.post('/api/desktop/authorizations/status', desktopPairingLimiter, (req, res) => {
+    purgeExpired(db);
+    const authorizationToken = String(req.body?.authorizationToken ?? '');
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(authorizationToken)) {
+      throw new HttpError(400, 'Desktop authorization token is invalid');
+    }
+    const tokenHash = sha256(authorizationToken);
+    const authorization = db.prepare(`
+      SELECT desktop_authorizations.*, users.display_name AS user_display_name, users.role
+      FROM desktop_authorizations LEFT JOIN users ON users.id = desktop_authorizations.approved_by
+      WHERE desktop_authorizations.token_hash = ?
+    `).get(tokenHash);
+    if (!authorization) throw new HttpError(404, 'Desktop authorization expired or was not found');
+    if (!authorization.approved_by) return res.json({ status: 'pending' });
+
+    const now = Date.now();
+    const expiresAt = now + config.sessionTtlDays * 24 * 60 * 60 * 1000;
+    db.prepare(`
+      INSERT INTO desktop_sessions
+        (token_hash, user_id, display_name, created_at, expires_at, last_seen_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(token_hash) DO UPDATE SET last_seen_at = excluded.last_seen_at
+    `).run(
+      tokenHash, authorization.approved_by, authorization.display_name, now, expiresAt, now,
+    );
+    db.prepare('UPDATE desktop_authorizations SET claimed_at = ? WHERE token_hash = ?')
+      .run(now, tokenHash);
+    res.json({
+      status: 'authorized',
+      user: {
+        id: authorization.approved_by,
+        displayName: authorization.user_display_name,
+        role: authorization.role,
+      },
+      application: { displayName: authorization.display_name },
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  });
+
+  app.post('/api/desktop/authorizations/approve/options', requireUser, async (req, res) => {
+    purgeExpired(db);
+    const normalizedCode = normalizePairingCode(req.body?.code);
+    if (normalizedCode.length !== 8) throw new HttpError(400, 'Desktop pairing code is invalid');
+    const authorization = db.prepare(`
+      SELECT * FROM desktop_authorizations WHERE code_hash = ? AND expires_at > ?
+    `).get(sha256(normalizedCode), Date.now());
+    if (!authorization) throw new HttpError(404, 'Desktop pairing code expired or was not found');
+    if (authorization.approved_by && authorization.approved_by !== req.user.id) {
+      throw new HttpError(409, 'Desktop pairing request was already approved');
+    }
+    const credentials = db.prepare(`
+      SELECT id, transports FROM passkey_credentials WHERE user_id = ?
+    `).all(req.user.id);
+    const options = await generateAuthenticationOptions({
+      rpID: config.rpID,
+      allowCredentials: credentials.map((credential) => ({
+        id: credential.id,
+        transports: JSON.parse(credential.transports),
+      })),
+      userVerification: 'required',
+      timeout: CHALLENGE_TTL_MS,
+    });
+    setChallenge(res, {
+      kind: 'authentication',
+      challenge: options.challenge,
+      userId: req.user.id,
+      label: `${DESKTOP_PAIRING_LABEL}${authorization.code_hash}`,
+    });
+    res.json({ options, application: { displayName: authorization.display_name } });
+  });
+
+  app.post('/api/desktop/authorizations/approve/verify', requireUser, async (req, res) => {
+    const pending = challengeFromRequest(req, 'authentication');
+    if (!pending.label?.startsWith(DESKTOP_PAIRING_LABEL) || pending.user_id !== req.user.id) {
+      throw new HttpError(403, 'Desktop pairing ceremony belongs to another request');
+    }
+    const credentialRow = db.prepare(`
+      SELECT * FROM passkey_credentials WHERE id = ? AND user_id = ?
+    `).get(req.body?.response?.id, req.user.id);
+    if (!credentialRow) throw new HttpError(401, 'Passkey is not authorized for this account');
+    const verification = await verifyAuthenticationResponse({
+      response: req.body.response,
+      expectedChallenge: pending.challenge,
+      expectedOrigin: config.origin,
+      expectedRPID: config.rpID,
+      credential: {
+        id: credentialRow.id,
+        publicKey: new Uint8Array(credentialRow.public_key),
+        counter: credentialRow.counter,
+        transports: JSON.parse(credentialRow.transports),
+      },
+      requireUserVerification: true,
+    });
+    if (!verification.verified) throw new HttpError(401, 'Passkey verification failed');
+    db.prepare('UPDATE passkey_credentials SET counter = ?, last_used_at = ? WHERE id = ?')
+      .run(verification.authenticationInfo.newCounter, Date.now(), credentialRow.id);
+
+    const codeHash = pending.label.slice(DESKTOP_PAIRING_LABEL.length);
+    const authorization = db.prepare(`
+      SELECT * FROM desktop_authorizations WHERE code_hash = ? AND expires_at > ?
+    `).get(codeHash, Date.now());
+    if (!authorization) throw new HttpError(404, 'Desktop pairing request expired or was not found');
+    if (authorization.approved_by && authorization.approved_by !== req.user.id) {
+      throw new HttpError(409, 'Desktop pairing request was already approved');
+    }
+    db.prepare(`
+      UPDATE desktop_authorizations SET approved_at = ?, approved_by = ? WHERE code_hash = ?
+    `).run(Date.now(), req.user.id, codeHash);
+    writeAuditEvent(db, req.user.id, 'desktop_application.approved', authorization.display_name);
+    res.json({
+      ok: true,
+      message: `${authorization.display_name} is authorized for ${req.user.display_name}.`,
+    });
+  });
+
+  app.get('/api/desktop-applications', requireUser, (req, res) => {
+    purgeExpired(db);
+    const applications = db.prepare(`
+      SELECT token_hash, display_name, created_at, expires_at, last_seen_at, revoked_at
+      FROM desktop_sessions WHERE user_id = ? ORDER BY created_at DESC
+    `).all(req.user.id);
+    res.json({ applications: applications.map((application) => ({
+      id: application.token_hash,
+      displayName: application.display_name,
+      createdAt: new Date(application.created_at).toISOString(),
+      expiresAt: new Date(application.expires_at).toISOString(),
+      lastSeenAt: new Date(application.last_seen_at).toISOString(),
+      revokedAt: application.revoked_at ? new Date(application.revoked_at).toISOString() : null,
+    })) });
+  });
+
+  app.delete('/api/desktop-applications/:applicationId', requireUser, (req, res) => {
+    if (!/^[a-f0-9]{64}$/.test(req.params.applicationId)) {
+      throw new HttpError(400, 'Desktop application ID is invalid');
+    }
+    const result = db.prepare(`
+      UPDATE desktop_sessions SET revoked_at = ?
+      WHERE token_hash = ? AND user_id = ? AND revoked_at IS NULL
+    `).run(Date.now(), req.params.applicationId, req.user.id);
+    if (result.changes !== 1) throw new HttpError(404, 'Desktop application not found');
+    writeAuditEvent(db, req.user.id, 'desktop_application.revoked', req.params.applicationId);
+    res.status(204).end();
+  });
+
+  app.get('/api/desktop/me', requireDesktopUser, (req, res) => {
+    res.json({
+      user: userView(req.user),
+      application: { displayName: req.user.application_name },
+    });
+  });
+
+  app.delete('/api/desktop/session', requireDesktopUser, (req, res) => {
+    const result = db.prepare(`
+      UPDATE desktop_sessions SET revoked_at = ?
+      WHERE token_hash = ? AND revoked_at IS NULL
+    `).run(Date.now(), req.user.token_hash);
+    if (result.changes !== 1) throw new HttpError(404, 'Desktop session not found');
+    writeAuditEvent(db, req.user.id, 'desktop_application.disconnected', req.user.application_name);
+    res.status(204).end();
+  });
+
+  app.post('/api/game-sessions', requireUser, (req, res) => {
+    if (req.user.role !== 'host') throw new HttpError(403, 'Host role required');
+    let code = makeGameCode();
+    while (db.prepare('SELECT 1 FROM game_sessions WHERE code = ?').get(code)) code = makeGameCode();
+    const now = Date.now();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.prepare(`
+        INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+        VALUES (?, ?, 'lobby', ?, ?)
+      `).run(code, req.user.id, now, now);
+      db.prepare(`
+        INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+        VALUES (?, ?, ?, ?)
+      `).run(code, req.user.id, now, now);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+    writeAuditEvent(db, req.user.id, 'game_session.created', code);
+    res.status(201).json({ session: gameSessionView(code) });
+  });
+
+  app.get('/api/game-sessions/current', requireUser, (req, res) => {
+    const sessions = db.prepare(`
+      SELECT game_sessions.code FROM game_sessions
+      JOIN game_session_members ON game_session_members.session_code = game_sessions.code
+      WHERE game_session_members.user_id = ? AND game_sessions.status != 'ended'
+      ORDER BY game_session_members.last_seen_at DESC
+    `).all(req.user.id);
+    res.json({ sessions: sessions.map((session) => gameSessionView(session.code)) });
+  });
+
+  app.get('/api/game-sessions/:code', requireUser, (req, res) => {
+    const code = normalizeGameCode(req.params.code);
+    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    const member = db.prepare(`
+      SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
+    `).get(code, req.user.id);
+    if (!member) throw new HttpError(404, 'Game session not found');
+    res.json({ session: gameSessionView(code) });
+  });
+
+  app.post('/api/desktop/game-sessions/join', requireDesktopUser, (req, res) => {
+    const code = normalizeGameCode(req.body?.code);
+    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    const session = db.prepare('SELECT status FROM game_sessions WHERE code = ?').get(code);
+    if (!session) throw new HttpError(404, 'Game session not found');
+    if (session.status !== 'lobby') throw new HttpError(409, 'This game has already started');
+    const now = Date.now();
+    db.prepare(`
+      INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+    `).run(code, req.user.id, now, now);
+    db.prepare('UPDATE game_sessions SET updated_at = ? WHERE code = ?').run(now, code);
+    writeAuditEvent(db, req.user.id, 'game_session.joined', code);
+    res.json({ session: gameSessionView(code) });
+  });
+
+  app.get('/api/desktop/game-sessions/current', requireDesktopUser, (req, res) => {
+    const sessions = db.prepare(`
+      SELECT game_sessions.code FROM game_sessions
+      JOIN game_session_members ON game_session_members.session_code = game_sessions.code
+      WHERE game_session_members.user_id = ? AND game_sessions.status != 'ended'
+      ORDER BY game_session_members.last_seen_at DESC
+    `).all(req.user.id);
+    res.json({ sessions: sessions.map((session) => gameSessionView(session.code)) });
+  });
+
+  app.get('/api/desktop/game-sessions/:code', requireDesktopUser, (req, res) => {
+    const code = normalizeGameCode(req.params.code);
+    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    const member = db.prepare(`
+      SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
+    `).get(code, req.user.id);
+    if (!member) throw new HttpError(404, 'Game session not found');
+    db.prepare(`
+      UPDATE game_session_members SET last_seen_at = ? WHERE session_code = ? AND user_id = ?
+    `).run(Date.now(), code, req.user.id);
+    res.json({ session: gameSessionView(code) });
   });
 
   app.get('/api/passkeys', requireUser, (req, res) => {

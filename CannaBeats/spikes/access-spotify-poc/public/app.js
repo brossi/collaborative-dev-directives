@@ -1,6 +1,8 @@
 const state = {
   config: null,
   user: null,
+  gameSession: null,
+  gameSessionTimer: null,
   spotify: { accessToken: null, expiresAt: 0, player: null, deviceId: null },
 };
 
@@ -51,6 +53,7 @@ function renderAccount() {
   byId('account-panel').hidden = !signedIn;
   byId('spotify-card').hidden = !signedIn || !isHost;
   byId('host-agent-panel').hidden = !signedIn || !isHost;
+  byId('game-session-card').hidden = !signedIn || !isHost;
   if (!signedIn) return;
   byId('account-name').textContent = state.user.displayName;
   byId('account-role').textContent = `${state.user.role === 'host' ? 'Host' : 'Player'} account`;
@@ -62,11 +65,133 @@ async function loadSession() {
     const result = await api('/api/me');
     state.user = result.user;
     await loadPasskeys();
+    await loadDesktopApplications();
     if (state.user.role === 'host') await loadHostAgents();
+    if (state.user.role === 'host') await loadCurrentGameSession();
   } catch {
     state.user = null;
+    state.gameSession = null;
   }
   renderAccount();
+  renderGameSession();
+}
+
+async function loadDesktopApplications() {
+  if (!state.user) return;
+  const { applications } = await api('/api/desktop-applications');
+  const list = byId('desktop-application-list');
+  list.replaceChildren();
+  for (const application of applications) {
+    const item = document.createElement('li');
+    const description = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = application.displayName;
+    const metadata = document.createElement('span');
+    metadata.textContent = application.revokedAt
+      ? `Revoked ${new Date(application.revokedAt).toLocaleString()}`
+      : `Last connected ${new Date(application.lastSeenAt).toLocaleString()}`;
+    description.append(title, metadata);
+    item.append(description);
+    if (!application.revokedAt) {
+      const revoke = document.createElement('button');
+      revoke.type = 'button';
+      revoke.className = 'text-button';
+      revoke.textContent = 'Revoke';
+      revoke.addEventListener('click', async () => {
+        if (!window.confirm(`Revoke “${application.displayName}”?`)) return;
+        try {
+          await api(`/api/desktop-applications/${encodeURIComponent(application.id)}`, {
+            method: 'DELETE', body: '{}',
+          });
+          await loadDesktopApplications();
+          showMessage('Desktop application revoked.');
+        } catch (error) { showMessage(errorMessage(error), 'error'); }
+      });
+      item.append(revoke);
+    }
+    list.append(item);
+  }
+}
+
+async function approveDesktopApplication(event) {
+  event.preventDefault();
+  try {
+    const code = byId('desktop-application-code').value;
+    const result = await api('/api/desktop/authorizations/approve/options', {
+      method: 'POST', body: JSON.stringify({ code }),
+    });
+    if (!window.confirm(`Authorize “${result.application.displayName}” for your CannaBeats account?`)) return;
+    const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
+    const verified = await api('/api/desktop/authorizations/approve/verify', {
+      method: 'POST', body: JSON.stringify({ response }),
+    });
+    byId('desktop-application-result').textContent = verified.message;
+    byId('approve-desktop-application-form').reset();
+    const url = new URL(location.href);
+    url.searchParams.delete('client_pair');
+    history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    await loadDesktopApplications();
+    showMessage('Desktop application approved.');
+  } catch (error) {
+    showMessage(errorMessage(error), 'error');
+  }
+}
+
+function prefillDesktopApplicationCode() {
+  const code = new URLSearchParams(location.search).get('client_pair');
+  if (!code) return;
+  byId('desktop-application-code').value = code.toUpperCase();
+}
+
+function renderGameSession() {
+  const details = byId('game-session-details');
+  const session = state.gameSession;
+  details.hidden = !session;
+  if (!session) return;
+  byId('game-session-code').textContent = `${session.code.slice(0, 3)}-${session.code.slice(3)}`;
+  byId('game-session-status').textContent = `${session.status === 'lobby' ? 'Waiting in lobby' : session.status} · ${session.members.length} connected account${session.members.length === 1 ? '' : 's'}`;
+  const list = byId('game-session-members');
+  list.replaceChildren();
+  for (const member of session.members) {
+    const item = document.createElement('li');
+    const description = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = member.displayName;
+    const metadata = document.createElement('span');
+    metadata.textContent = member.id === session.host.id ? 'Session host' : 'Desktop client';
+    description.append(name, metadata);
+    item.append(description);
+    list.append(item);
+  }
+}
+
+function startGameSessionPolling() {
+  clearInterval(state.gameSessionTimer);
+  if (!state.gameSession) return;
+  state.gameSessionTimer = setInterval(async () => {
+    try {
+      const result = await api(`/api/game-sessions/${encodeURIComponent(state.gameSession.code)}`);
+      state.gameSession = result.session;
+      renderGameSession();
+    } catch {
+      clearInterval(state.gameSessionTimer);
+    }
+  }, 2_000);
+}
+
+async function loadCurrentGameSession() {
+  const result = await api('/api/game-sessions/current');
+  state.gameSession = result.sessions[0] ?? null;
+  renderGameSession();
+  startGameSessionPolling();
+}
+
+async function createGameSession() {
+  const result = await api('/api/game-sessions', { method: 'POST', body: '{}' });
+  state.gameSession = result.session;
+  renderGameSession();
+  startGameSessionPolling();
+  showMessage(`Game session ${result.session.code} is ready.`);
 }
 
 async function loadHostAgents() {
@@ -460,11 +585,17 @@ function wireEvents() {
   byId('sign-in').addEventListener('click', signIn);
   byId('add-passkey-form').addEventListener('submit', addPasskey);
   byId('approve-host-agent-form').addEventListener('submit', approveHostAgent);
+  byId('approve-desktop-application-form').addEventListener('submit', approveDesktopApplication);
+  byId('create-game-session').addEventListener('click', () => createGameSession()
+    .catch((error) => showMessage(errorMessage(error), 'error')));
   byId('sign-out').addEventListener('click', async () => {
     try {
       await api('/api/auth/sign-out', { method: 'POST', body: '{}' });
       state.user = null;
+      state.gameSession = null;
+      clearInterval(state.gameSessionTimer);
       renderAccount();
+      renderGameSession();
       showMessage('Signed out.');
     } catch (error) { showMessage(errorMessage(error), 'error'); }
   });
@@ -508,6 +639,7 @@ function wireEvents() {
 async function initialize() {
   wireEvents();
   prefillHostAgentPairingCode();
+  prefillDesktopApplicationCode();
   try {
     state.config = await api('/api/config');
     byId('connection-status').textContent = state.config.rpID;

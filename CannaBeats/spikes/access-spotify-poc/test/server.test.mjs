@@ -50,6 +50,14 @@ async function post(path, body = {}, headers = {}) {
   });
 }
 
+async function nativePost(path, body = {}, headers = {}) {
+  return fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+}
+
 test('health, public config, and defensive headers are present', async () => {
   const response = await fetch(`${baseUrl}/api/health`);
   assert.equal(response.status, 200);
@@ -221,4 +229,89 @@ test('an approved P-256 host application can prove its device identity once per 
       mode: 'poc-shared-static',
     },
   });
+});
+
+test('a desktop installation needs explicit approval before its revocable credential works', async () => {
+  const start = await nativePost('/api/desktop/authorizations/start', {
+    displayName: 'CannaBeats Client on Test Laptop',
+  });
+  assert.equal(start.status, 201);
+  const pairing = await start.json();
+  assert.match(pairing.code, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  assert.match(pairing.authorizationToken, /^[A-Za-z0-9_-]{32,128}$/);
+  assert.equal(pairing.verificationUrl, `${origin}/?client_pair=${pairing.code}`);
+  const stored = db.prepare(`
+    SELECT * FROM desktop_authorizations WHERE token_hash = ?
+  `).get(sha256(pairing.authorizationToken));
+  assert.ok(stored);
+  assert.notEqual(stored.token_hash, pairing.authorizationToken);
+
+  const pending = await nativePost('/api/desktop/authorizations/status', {
+    authorizationToken: pairing.authorizationToken,
+  });
+  assert.deepEqual(await pending.json(), { status: 'pending' });
+
+  const user = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  db.prepare(`
+    UPDATE desktop_authorizations SET approved_at = ?, approved_by = ? WHERE token_hash = ?
+  `).run(Date.now(), user.id, sha256(pairing.authorizationToken));
+  const authorized = await nativePost('/api/desktop/authorizations/status', {
+    authorizationToken: pairing.authorizationToken,
+  });
+  assert.equal(authorized.status, 200);
+  const authorization = await authorized.json();
+  assert.equal(authorization.status, 'authorized');
+  assert.equal(authorization.user.id, user.id);
+
+  const me = await fetch(`${baseUrl}/api/desktop/me`, {
+    headers: { Authorization: `Bearer ${pairing.authorizationToken}` },
+  });
+  assert.equal(me.status, 200);
+  assert.equal((await me.json()).application.displayName, 'CannaBeats Client on Test Laptop');
+
+  db.prepare('UPDATE desktop_sessions SET revoked_at = ? WHERE token_hash = ?')
+    .run(Date.now(), sha256(pairing.authorizationToken));
+  const revoked = await fetch(`${baseUrl}/api/desktop/me`, {
+    headers: { Authorization: `Bearer ${pairing.authorizationToken}` },
+  });
+  assert.equal(revoked.status, 401);
+});
+
+test('an authenticated desktop client can join and resume a host-created lobby', async () => {
+  const now = Date.now();
+  const host = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  const hostSessionToken = `game-host-session-${randomUUID()}`;
+  db.prepare(`
+    INSERT INTO sessions (token_hash, user_id, created_at, expires_at, last_seen_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(sha256(hostSessionToken), host.id, now, now + 60_000, now);
+  const created = await post('/api/game-sessions', {}, { Cookie: `cb_session=${hostSessionToken}` });
+  assert.equal(created.status, 201);
+  const game = (await created.json()).session;
+  assert.match(game.code, /^[A-Z2-9]{6}$/);
+  assert.equal(game.members.length, 1);
+
+  const playerId = randomUUID();
+  const playerToken = `desktop-player-${randomUUID()}`;
+  db.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)')
+    .run(playerId, 'Test Desktop Player', 'player', now);
+  db.prepare(`
+    INSERT INTO desktop_sessions
+      (token_hash, user_id, display_name, created_at, expires_at, last_seen_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(sha256(playerToken), playerId, 'Test Windows PC', now, now + 60_000, now);
+
+  const joined = await nativePost('/api/desktop/game-sessions/join', { code: game.code }, {
+    Authorization: `Bearer ${playerToken}`,
+  });
+  assert.equal(joined.status, 200);
+  assert.equal((await joined.json()).session.members.length, 2);
+
+  const resumed = await fetch(`${baseUrl}/api/desktop/game-sessions/current`, {
+    headers: { Authorization: `Bearer ${playerToken}` },
+  });
+  assert.equal(resumed.status, 200);
+  const sessions = (await resumed.json()).sessions;
+  assert.equal(sessions[0].code, game.code);
+  assert.equal(sessions[0].members.some((member) => member.id === playerId), true);
 });

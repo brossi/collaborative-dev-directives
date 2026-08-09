@@ -1,0 +1,203 @@
+const invoke = window.__TAURI__.core.invoke;
+
+const state = {
+  user: null,
+  application: null,
+  sessions: [],
+  lobby: null,
+  authorizationTimer: null,
+  lobbyTimer: null,
+};
+
+const byId = (id) => document.getElementById(id);
+
+function message(text, kind = 'info') {
+  const toast = byId('message');
+  toast.textContent = text;
+  toast.dataset.kind = kind;
+  toast.hidden = false;
+  clearTimeout(message.timer);
+  message.timer = setTimeout(() => { toast.hidden = true; }, 6_000);
+}
+
+function errorText(error) {
+  return typeof error === 'string' ? error : error?.message || 'Something unexpected happened.';
+}
+
+function formatCode(code) {
+  const normalized = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (normalized.length <= 3) return normalized;
+  const midpoint = normalized.length <= 6 ? 3 : 4;
+  return `${normalized.slice(0, midpoint)}-${normalized.slice(midpoint)}`;
+}
+
+function renderAccount() {
+  const authorized = Boolean(state.user);
+  byId('connect-card').hidden = authorized;
+  byId('client-card').hidden = !authorized;
+  if (!authorized) return;
+  byId('account-name').textContent = state.user.displayName;
+  byId('application-name').textContent = `${state.application.displayName} · ${state.user.role === 'host' ? 'Host-capable account' : 'Player account'}`;
+  renderResumeSessions();
+}
+
+function renderResumeSessions() {
+  const panel = byId('resume-panel');
+  const buttons = byId('resume-buttons');
+  buttons.replaceChildren();
+  panel.hidden = state.sessions.length === 0;
+  for (const session of state.sessions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary';
+    button.textContent = `${formatCode(session.code)} · ${session.members.length} connected`;
+    button.addEventListener('click', () => showLobby(session));
+    buttons.append(button);
+  }
+}
+
+function renderLobby() {
+  const lobby = state.lobby;
+  byId('lobby-card').hidden = !lobby;
+  if (!lobby) return;
+  byId('lobby-code').textContent = formatCode(lobby.code);
+  byId('lobby-title').textContent = lobby.status === 'lobby' ? 'Waiting in the lobby' : `Game ${lobby.status}`;
+  byId('lobby-host').textContent = `Hosted by ${lobby.host.displayName}`;
+  const members = byId('lobby-members');
+  members.replaceChildren();
+  for (const member of lobby.members) {
+    const item = document.createElement('li');
+    const name = document.createElement('strong');
+    name.textContent = member.displayName;
+    const role = document.createElement('span');
+    role.textContent = member.id === lobby.host.id ? 'Host' : 'Connected client';
+    item.append(name, role);
+    members.append(item);
+  }
+}
+
+function showLobby(session) {
+  state.lobby = session;
+  renderLobby();
+  clearInterval(state.lobbyTimer);
+  state.lobbyTimer = setInterval(refreshLobby, 2_000);
+}
+
+async function refreshLobby() {
+  if (!state.lobby) return;
+  try {
+    state.lobby = await invoke('refresh_session', { code: state.lobby.code });
+    const index = state.sessions.findIndex((session) => session.code === state.lobby.code);
+    if (index >= 0) state.sessions[index] = state.lobby;
+    renderLobby();
+    renderResumeSessions();
+  } catch (error) {
+    clearInterval(state.lobbyTimer);
+    message(errorText(error), 'error');
+  }
+}
+
+async function bootstrap() {
+  const result = await invoke('bootstrap');
+  byId('service-origin').textContent = new URL(result.origin).hostname;
+  state.user = result.user;
+  state.application = result.application;
+  state.sessions = result.sessions;
+  renderAccount();
+  if (state.sessions.length) showLobby(state.sessions[0]);
+}
+
+async function beginAuthorization() {
+  const button = byId('connect');
+  button.disabled = true;
+  try {
+    const platform = navigator.userAgent.includes('Windows') ? 'Windows PC' : navigator.userAgent.includes('Mac') ? 'Mac' : 'computer';
+    const result = await invoke('begin_authorization', { displayName: `CannaBeats Client on this ${platform}` });
+    byId('pairing-code').textContent = result.code;
+    byId('connect-start').hidden = true;
+    byId('connect-pending').hidden = false;
+    await invoke('open_authorization_page');
+    clearInterval(state.authorizationTimer);
+    state.authorizationTimer = setInterval(pollAuthorization, 2_000);
+  } catch (error) {
+    message(errorText(error), 'error');
+    button.disabled = false;
+  }
+}
+
+async function pollAuthorization() {
+  try {
+    const result = await invoke('poll_authorization');
+    if (result.status !== 'authorized') return;
+    clearInterval(state.authorizationTimer);
+    state.user = result.user;
+    state.application = result.application;
+    state.sessions = await invoke('list_sessions');
+    byId('pairing-status').textContent = 'Authorization confirmed.';
+    renderAccount();
+    message(`Connected as ${state.user.displayName}.`);
+  } catch (error) {
+    clearInterval(state.authorizationTimer);
+    byId('pairing-status').textContent = errorText(error);
+    message(errorText(error), 'error');
+  }
+}
+
+async function joinGame(event) {
+  event.preventDefault();
+  const button = event.submitter;
+  button.disabled = true;
+  try {
+    const session = await invoke('join_session', { code: byId('game-code').value });
+    const index = state.sessions.findIndex((candidate) => candidate.code === session.code);
+    if (index >= 0) state.sessions[index] = session;
+    else state.sessions.unshift(session);
+    renderResumeSessions();
+    showLobby(session);
+    byId('join-form').reset();
+    message(`Joined ${formatCode(session.code)}.`);
+  } catch (error) {
+    message(errorText(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function disconnect() {
+  if (!window.confirm('Disconnect and revoke this desktop installation?')) return;
+  try {
+    await invoke('disconnect');
+    clearInterval(state.lobbyTimer);
+    state.user = null;
+    state.application = null;
+    state.sessions = [];
+    state.lobby = null;
+    renderLobby();
+    renderAccount();
+    byId('connect-start').hidden = false;
+    byId('connect-pending').hidden = true;
+    byId('connect').disabled = false;
+    message('This desktop installation was revoked.');
+  } catch (error) {
+    message(errorText(error), 'error');
+  }
+}
+
+function wireEvents() {
+  byId('connect').addEventListener('click', beginAuthorization);
+  byId('open-approval').addEventListener('click', () => invoke('open_authorization_page').catch((error) => message(errorText(error), 'error')));
+  byId('open-account').addEventListener('click', () => invoke('open_account_page').catch((error) => message(errorText(error), 'error')));
+  byId('disconnect').addEventListener('click', disconnect);
+  byId('join-form').addEventListener('submit', joinGame);
+  byId('game-code').addEventListener('input', (event) => {
+    const caretAtEnd = event.target.selectionStart === event.target.value.length;
+    event.target.value = formatCode(event.target.value).slice(0, 7);
+    if (caretAtEnd) event.target.setSelectionRange(event.target.value.length, event.target.value.length);
+  });
+}
+
+wireEvents();
+bootstrap().catch((error) => {
+  byId('service-origin').textContent = 'Service unavailable';
+  message(errorText(error), 'error');
+});

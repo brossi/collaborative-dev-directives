@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "The bundled CannaBeats client UI has no native plugin permissions.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
+

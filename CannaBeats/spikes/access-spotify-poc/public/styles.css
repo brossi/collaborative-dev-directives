@@ -87,6 +87,8 @@ input { width: 100%; min-height: 2.8rem; border: 1px solid var(--line); border-r
 .button-group { display: flex; flex-wrap: wrap; gap: 0.65rem; margin: 1rem 0; }
 .subsection { border-top: 1px solid var(--line); margin-top: 1.5rem; padding-top: 1.5rem; }
 .result { display: block; margin-top: 0.8rem; color: var(--green); }
+.game-code-label { margin-bottom: 0.25rem; color: var(--muted); font-size: 0.8rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+.game-code { display: block; margin-bottom: 0.65rem; color: var(--gold); font-size: clamp(2rem, 8vw, 3.4rem); font-weight: 850; letter-spacing: 0.14em; }
 
 .credential-list { display: grid; gap: 0.6rem; padding: 0; list-style: none; }
 .credential-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.75rem; background: rgb(0 0 0 / 12%); }

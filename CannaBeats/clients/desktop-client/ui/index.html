@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <link rel="stylesheet" href="styles.css">
+    <title>CannaBeats</title>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Private desktop client</p>
+        <h1>CannaBeats</h1>
+      </div>
+      <span id="service-origin" class="status">Starting…</span>
+    </header>
+
+    <main>
+      <section id="connect-card" class="card" aria-labelledby="connect-title">
+        <p class="step">One-time setup</p>
+        <h2 id="connect-title">Connect this installation</h2>
+        <p class="lede">Your default browser will ask you to approve this app with your CannaBeats passkey. The approval is saved in this computer’s protected credential store and can be revoked from your account.</p>
+        <div id="connect-start">
+          <button id="connect" class="primary" type="button">Connect CannaBeats</button>
+        </div>
+        <div id="connect-pending" class="pairing" hidden>
+          <p>Confirm this code in the browser:</p>
+          <output id="pairing-code" class="pairing-code"></output>
+          <p id="pairing-status" class="muted">Waiting for passkey approval…</p>
+          <button id="open-approval" class="secondary" type="button">Open approval page again</button>
+        </div>
+      </section>
+
+      <section id="client-card" class="card" aria-labelledby="client-title" hidden>
+        <div class="account-row">
+          <div>
+            <p class="step">Connected account</p>
+            <h2 id="client-title"><span id="account-name"></span></h2>
+            <p id="application-name" class="muted"></p>
+          </div>
+          <div class="account-actions">
+            <button id="open-account" class="secondary" type="button">Manage access</button>
+            <button id="disconnect" class="danger" type="button">Disconnect this app</button>
+          </div>
+        </div>
+
+        <form id="join-form" class="join-form">
+          <label for="game-code">Game code</label>
+          <div class="join-row">
+            <input id="game-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="7" placeholder="ABC-123" spellcheck="false" required>
+            <button class="primary" type="submit">Join game</button>
+          </div>
+        </form>
+
+        <div id="resume-panel" class="resume-panel" hidden>
+          <p class="muted">Resume a lobby from this account</p>
+          <div id="resume-buttons" class="button-group"></div>
+        </div>
+      </section>
+
+      <section id="lobby-card" class="card lobby" aria-labelledby="lobby-title" hidden>
+        <div class="lobby-heading">
+          <div>
+            <p class="step">Game session</p>
+            <h2 id="lobby-title">Waiting in the lobby</h2>
+          </div>
+          <output id="lobby-code" class="lobby-code"></output>
+        </div>
+        <p id="lobby-host" class="muted"></p>
+        <ul id="lobby-members" class="member-list"></ul>
+        <p class="fine-print">This client refreshes the lobby automatically. Gameplay and shared audio are the next integration slice.</p>
+      </section>
+    </main>
+
+    <div id="message" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
+

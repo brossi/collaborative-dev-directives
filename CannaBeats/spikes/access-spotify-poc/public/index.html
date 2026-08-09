@@ -98,6 +98,39 @@
             <output id="host-agent-result" class="result"></output>
             <ul id="host-agent-list" class="credential-list"></ul>
           </div>
+
+          <div id="desktop-application-panel" class="subsection">
+            <h3>CannaBeats desktop applications</h3>
+            <p>Authorize a desktop installation with the code it shows. A fresh passkey check is required, and you can revoke the installation here at any time.</p>
+            <form id="approve-desktop-application-form" class="inline-form">
+              <label>
+                Pairing code shown by the desktop application
+                <input id="desktop-application-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="9" placeholder="ABCD-EFGH" spellcheck="false" required>
+              </label>
+              <button class="primary" type="submit">Authorize desktop app</button>
+            </form>
+            <output id="desktop-application-result" class="result"></output>
+            <ul id="desktop-application-list" class="credential-list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="game-session-card" class="card" aria-labelledby="game-session-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="step">Client test</p>
+            <h2 id="game-session-title">Game session lobby</h2>
+          </div>
+          <span class="privacy">Authenticated accounts only</span>
+        </div>
+        <p>Create the smallest possible lobby so a paired desktop client can join or resume it. The code locates the lobby; it does not authorize the player.</p>
+        <button id="create-game-session" class="primary" type="button">Create test game session</button>
+        <div id="game-session-details" class="subsection" hidden>
+          <p class="game-code-label">Game code</p>
+          <output id="game-session-code" class="game-code"></output>
+          <p id="game-session-status"></p>
+          <h3>Connected accounts</h3>
+          <ul id="game-session-members" class="credential-list"></ul>
         </div>
       </section>
 
@@ -138,6 +171,8 @@
           <li>Only a server-issued invitation can create an account.</li>
           <li>Only a registered passkey can restore an authenticated session.</li>
           <li>Only a host-role account can pass the protected host check.</li>
+          <li>A desktop installation needs explicit passkey approval and remains independently revocable.</li>
+          <li>A game code locates a lobby but never replaces account authentication.</li>
           <li>Spotify refresh credentials remain in this browser profile.</li>
         </ul>
       </section>
