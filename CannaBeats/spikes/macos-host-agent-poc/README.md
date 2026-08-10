@@ -67,12 +67,12 @@ reminds the user to revoke it explicitly.
 1. Start the native host app before opening CannaBeats.
 2. Choose **Create new game & open CannaBeats**, or enter a host-owned game code
    and choose **Use existing game & open**. The app proves its device identity,
-   creates or validates the server lobby, and displays the real code before it
-   does anything else.
+   creates or validates the real four-character game room, and displays its
+   code before it does anything else.
 3. The app authenticates the relay grant, snapshots existing audio processes,
-   and opens the installed CannaBeats PWA at `?game=REALCODE`. If the PWA is not
+   and opens the installed CannaBeats PWA at `/game?room=CODE`. If the PWA is not
    installed, it opens the same URL in the default browser. The authenticated
-   PWA selects that exact session.
+   game loads that room into the existing lobby, rules, and gameplay UI.
 4. In CannaBeats, connect Spotify if needed, start the browser player, and begin
    playback. The host app watches for the newly active audio process and
    attaches automatically; no process selection is normally required.

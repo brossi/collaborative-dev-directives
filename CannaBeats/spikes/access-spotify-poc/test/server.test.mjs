@@ -18,12 +18,31 @@ const config = readConfig({
   audioRelayOrigin: 'https://relay.poc.test',
   audioRelayIngestToken: 'test-ingest-token-not-a-secret',
   audioRelayListenToken: 'test-listen-token-not-a-secret',
+  gameServiceOrigin: 'http://game.test',
+  gameServiceToken: 'test-game-service-token-not-a-secret',
   trustProxy: false,
   sessionTtlDays: 30,
   port: 0,
 });
 const db = openDatabase(databasePath);
-const { app } = createApp({ config, db });
+const gameRooms = new Map();
+let nextGameCode = 0;
+async function gameServiceFetch(_url, options) {
+  assert.equal(options.headers['X-CannaBeats-Internal-Token'], config.gameServiceToken);
+  const payload = JSON.parse(options.body);
+  if (payload.action === 'create') {
+    const code = `T22${String((nextGameCode += 1) + 1)}`;
+    const room = { code, phase: 'lobby', ownerUserId: payload.ownerUserId };
+    gameRooms.set(code, room);
+    return Response.json({ room, created: true }, { status: 201 });
+  }
+  const room = gameRooms.get(payload.code);
+  if (!room || room.ownerUserId !== payload.ownerUserId) {
+    return Response.json({ error: 'Game room was not found for this host account.' }, { status: 404 });
+  }
+  return Response.json({ room, created: false });
+}
+const { app } = createApp({ config, db, gameServiceFetch });
 let server;
 let baseUrl;
 
@@ -249,12 +268,12 @@ test('an approved P-256 host application can prove its device identity once per 
   assert.equal(createdResponse.status, 201);
   const created = await createdResponse.json();
   assert.equal(created.created, true);
-  assert.match(created.session.code, /^[A-Z2-9]{6}$/);
+  assert.match(created.session.code, /^[A-Z2-9]{4}$/);
   assert.equal(created.session.host.id, host.id);
+  assert.equal(created.launchPath, `/game?room=${created.session.code}`);
 
-  const formattedCode = `${created.session.code.slice(0, 3)}-${created.session.code.slice(3)}`;
   const existingResponse = await signedHostPost(
-    '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: formattedCode },
+    '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: created.session.code },
   );
   assert.equal(existingResponse.status, 200);
   const existing = await existingResponse.json();
@@ -262,18 +281,11 @@ test('an approved P-256 host application can prove its device identity once per 
   assert.equal(existing.session.code, created.session.code);
 
   const otherHostId = randomUUID();
-  const otherCode = 'ZZZ999';
+  const otherCode = 'ZZ99';
   const now = Date.now();
   db.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)')
     .run(otherHostId, 'Other Test Host', 'host', now);
-  db.prepare(`
-    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
-    VALUES (?, ?, 'lobby', ?, ?)
-  `).run(otherCode, otherHostId, now, now);
-  db.prepare(`
-    INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
-    VALUES (?, ?, ?, ?)
-  `).run(otherCode, otherHostId, now, now);
+  gameRooms.set(otherCode, { code: otherCode, phase: 'lobby', ownerUserId: otherHostId });
   const otherHostSession = await signedHostPost(
     '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: otherCode },
   );

@@ -21,7 +21,7 @@ test("entry screen contains the host and player paths", async () => {
   assert.match(page, /Join a game/);
   assert.match(page, /Lock placement/);
   assert.match(page, /Scan to join/);
-  assert.match(page, /joinUrl\.pathname = `\/join\/\$\{room\.code\}`/);
+  assert.match(page, /joinUrl\.pathname = cannabeatsPath\(`\/join\/\$\{room\.code\}`\)/);
 });
 
 test("QR players get a focused name entry page", async () => {
@@ -30,7 +30,7 @@ test("QR players get a focused name entry page", async () => {
   assert.match(join, /What should we call you\?/);
   assert.match(join, /action: "join"/);
   assert.match(join, /sessionStorage\.setItem\(SESSION_KEY/);
-  assert.match(join, /window\.location\.replace\("\/"\)/);
+  assert.match(join, /window\.location\.replace\(cannabeatsPath\("\/"\)\)/);
   assert.doesNotMatch(join, /Host a game/);
 });
 
@@ -93,7 +93,7 @@ test("starter preview metadata and UI are gone", async () => {
 });
 
 test("the song catalogue remains in the server bundle", async () => {
-  const clientDirectory = fileURLToPath(new URL("../dist/client/", import.meta.url));
+  const clientDirectory = fileURLToPath(new URL("../.next/static/", import.meta.url));
   const clientFiles = await textFilesWithin(clientDirectory);
   const clientBundle = (await Promise.all(clientFiles.map((file) => readFile(file, "utf8")))).join("\n");
 
@@ -101,7 +101,9 @@ test("the song catalogue remains in the server bundle", async () => {
   assert.doesNotMatch(clientBundle, /spotify:track:/);
   assert.doesNotMatch(clientBundle, /The playable catalogue is exhausted/);
 
-  const serverBundle = await readFile(new URL("../dist/server/index.js", import.meta.url), "utf8");
+  const serverDirectory = fileURLToPath(new URL("../.next/server/", import.meta.url));
+  const serverFiles = await textFilesWithin(serverDirectory);
+  const serverBundle = (await Promise.all(serverFiles.map((file) => readFile(file, "utf8")))).join("\n");
   assert.match(serverBundle, /spotify:track:/);
   assert.match(serverBundle, /The playable catalogue is exhausted/);
 });
@@ -166,9 +168,9 @@ test("host game setup retains persisted presets and uses weighted era selection"
   assert.equal(page.match(/onBlur=\{\(event\) => normalizeNumberDisplay/g)?.length, 3);
   assert.match(session, /HOST_RULES_KEY = "cannabeats-host-rules"/);
   assert.match(page, /localStorage\.setItem\(HOST_RULES_KEY, hostRules\)/);
-  assert.match(page, /gameRequest\(\{ action: "create", rules: rememberedHostRules\(\) \}\)/);
+  assert.match(page, /Room creation is restricted to an authorized Host app/);
   assert.match(styles, /\.preset-grid/);
-  assert.match(route, /rules: normalizeRules\(payload\.rules \?\? DEFAULT_GAME_RULES\)/);
+  assert.match(route, /rules: normalizeRules\(rules \?\? DEFAULT_GAME_RULES\)/);
   assert.match(route, /action === "rules"/);
   assert.match(route, /Rules are locked after the game starts/);
   assert.match(route, /song\.year >= state\.rules\.minYear/);
@@ -220,12 +222,12 @@ test("every game supports phone and host-controlled players", async () => {
   assert.match(route, /action === "addPlayer"/);
   assert.match(route, /action === "removePlayer"/);
   assert.match(route, /control: "phone" as const/);
-  assert.match(route, /control: "host" as const/);
+  assert.match(route, /control: "host"/);
   assert.match(route, /const hostIsPlacing = player\?\.control === "host"/);
   assert.match(route, /const activePlayerIsPlacing = player\?\.control === "phone"/);
   assert.match(route, /const hostIsRetracting = player\?\.control === "host"/);
   assert.match(route, /if \(action === "skip"\)[\s\S]*state\.round \+= 1/);
-  assert.match(page, /Create game/);
+  assert.match(page, /Start in the CannaBeats Host app/);
   assert.doesNotMatch(page, /Mix phones \+ this screen/);
   assert.doesNotMatch(page, /room\.inputMode/);
   assert.match(page, /className="host-player-form"/);

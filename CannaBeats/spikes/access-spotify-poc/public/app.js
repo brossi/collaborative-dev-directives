@@ -10,6 +10,8 @@ const state = {
 const SPOTIFY_REFRESH_KEY = 'cannabeats.spotify.refreshToken';
 const SPOTIFY_VERIFIER_KEY = 'cannabeats.spotify.pkceVerifier';
 const SPOTIFY_STATE_KEY = 'cannabeats.spotify.oauthState';
+const GAME_SPOTIFY_AUTH_KEY = 'cannabeats-spotify-authorization';
+const GAME_SPOTIFY_RETURN_KEY = 'cannabeats.spotify.gameCallbackReturn';
 const SPOTIFY_SCOPES = [
   'streaming',
   'user-read-email',
@@ -70,14 +72,7 @@ async function loadSession() {
     await loadPasskeys();
     await loadDesktopApplications();
     if (state.user.role === 'host') await loadHostAgents();
-    if (state.user.role === 'host') {
-      try {
-        await loadRequestedOrCurrentGameSession();
-      } catch (error) {
-        state.gameSession = null;
-        showMessage(errorMessage(error), 'error');
-      }
-    }
+    state.gameSession = null;
   } catch {
     state.user = null;
     state.gameSession = null;
@@ -764,6 +759,16 @@ function wireEvents() {
 }
 
 async function initialize() {
+  if (location.pathname === '/spotify/callback'
+      && localStorage.getItem(GAME_SPOTIFY_AUTH_KEY)) {
+    const returnPath = localStorage.getItem(GAME_SPOTIFY_RETURN_KEY) ?? '';
+    if (returnPath === '/game' || returnPath.startsWith('/game/')) {
+      const target = new URL(returnPath, location.origin);
+      target.search = location.search;
+      location.replace(target);
+      return;
+    }
+  }
   wireEvents();
   prefillHostAgentPairingCode();
   setupDesktopApprovalRoute();

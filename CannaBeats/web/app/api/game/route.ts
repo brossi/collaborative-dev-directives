@@ -1,50 +1,170 @@
-import { env } from "cloudflare:workers";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { mkdirSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 type RoomRow = {
   code: string;
-  host_token: string;
+  host_user_id: string;
   state: string;
 };
 
-let schemaReady: Promise<unknown> | undefined;
+type Principal = {
+  id: string;
+  display_name: string;
+  role: "host" | "player";
+};
 
-function database() {
-  if (!env.DB) throw new Error("Room storage is unavailable.");
-  schemaReady ??= env.DB.prepare(`
-    CREATE TABLE IF NOT EXISTS rooms (
-      code TEXT PRIMARY KEY,
-      host_token TEXT NOT NULL,
-      state TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-  return env.DB;
+const SESSION_COOKIE = "cb_session";
+const GAME_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+let db: DatabaseSync | undefined;
+let dbPath = "";
+
+function sha256(value: string) {
+  return createHash("sha256").update(value).digest("hex");
 }
 
-async function ready() {
-  database();
-  await schemaReady;
+function database() {
+  const configuredPath = process.env.CANNABEATS_DATABASE_PATH
+    ?? resolve(process.cwd(), ".data/cannabeats.sqlite");
+  if (db && dbPath === configuredPath) return db;
+  db?.close();
+  mkdirSync(dirname(configuredPath), { recursive: true });
+  db = new DatabaseSync(configuredPath);
+  dbPath = configuredPath;
+  db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      code TEXT PRIMARY KEY,
+      host_user_id TEXT NOT NULL REFERENCES users(id),
+      state TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS rooms_host_user_id ON rooms(host_user_id);
+
+    CREATE TABLE IF NOT EXISTS room_player_identities (
+      room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      player_id TEXT NOT NULL,
+      joined_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      PRIMARY KEY (room_code, user_id),
+      UNIQUE (room_code, player_id)
+    );
+    CREATE INDEX IF NOT EXISTS room_player_identities_user_id
+      ON room_player_identities(user_id);
+  `);
+  return db;
+}
+
+function parseCookies(header = "") {
+  return Object.fromEntries(
+    header.split(";").map((entry) => entry.trim()).filter(Boolean).map((entry) => {
+      const separator = entry.indexOf("=");
+      if (separator === -1) return [entry, ""];
+      return [entry.slice(0, separator), decodeURIComponent(entry.slice(separator + 1))];
+    }),
+  );
+}
+
+function currentPrincipal(request: Request): Principal | null {
+  const authorization = request.headers.get("authorization") ?? "";
+  const bearer = /^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(authorization);
+  if (bearer) {
+    const principal = database().prepare(`
+      SELECT users.id, users.display_name, users.role
+      FROM desktop_sessions JOIN users ON users.id = desktop_sessions.user_id
+      WHERE desktop_sessions.token_hash = ?
+        AND desktop_sessions.revoked_at IS NULL
+        AND desktop_sessions.expires_at > ?
+    `).get(sha256(bearer[1]), Date.now()) as Principal | undefined;
+    if (principal) {
+      database().prepare(`
+        UPDATE desktop_sessions SET last_seen_at = ? WHERE token_hash = ?
+      `).run(Date.now(), sha256(bearer[1]));
+      return principal;
+    }
+  }
+
+  const token = parseCookies(request.headers.get("cookie") ?? "")[SESSION_COOKIE];
+  if (!token) return null;
+  const principal = database().prepare(`
+    SELECT users.id, users.display_name, users.role
+    FROM sessions JOIN users ON users.id = sessions.user_id
+    WHERE sessions.token_hash = ? AND sessions.expires_at > ?
+  `).get(sha256(token), Date.now()) as Principal | undefined;
+  if (principal) {
+    database().prepare("UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?")
+      .run(Date.now(), sha256(token));
+  }
+  return principal ?? null;
+}
+
+function internalToken() {
+  const direct = process.env.CANNABEATS_GAME_SERVICE_TOKEN?.trim();
+  if (direct) return direct;
+  const file = process.env.CANNABEATS_GAME_SERVICE_TOKEN_FILE;
+  return file ? readFileSync(file, "utf8").trim() : "";
+}
+
+function constantTimeEqual(left: string, right: string) {
+  const first = Buffer.from(left);
+  const second = Buffer.from(right);
+  return first.length === second.length && timingSafeEqual(first, second);
+}
+
+function isInternalRequest(request: Request) {
+  const expected = internalToken();
+  const supplied = request.headers.get("x-cannabeats-internal-token") ?? "";
+  return Boolean(expected && supplied && constantTimeEqual(expected, supplied));
+}
+
+function mutationOriginAccepted(request: Request) {
+  if (isInternalRequest(request) || request.headers.has("authorization")) return true;
+  const expected = new URL(
+    process.env.CANNABEATS_APP_ORIGIN ?? new URL(request.url).origin,
+  ).origin;
+  const supplied = request.headers.get("origin") ?? "";
+  return Boolean(supplied && constantTimeEqual(expected, supplied));
 }
 
 function fail(message: string, status = 400) {
-  return Response.json({ error: message }, { status });
+  return Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
 function makeCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+  return Array.from(randomBytes(4), (byte) => GAME_CODE_ALPHABET[byte % GAME_CODE_ALPHABET.length]).join("");
 }
 
-async function loadRoom(code: string) {
-  await ready();
-  const row = await database()
-    .prepare("SELECT code, host_token, state FROM rooms WHERE code = ?")
-    .bind(code)
-    .first<RoomRow>();
+function newRoomState(code: string, rules: unknown): RoomState {
+  return {
+    code,
+    phase: "lobby",
+    players: [],
+    activePlayerId: null,
+    activePlayerIndex: 0,
+    round: 0,
+    currentSong: null,
+    placement: null,
+    retractionUsed: false,
+    result: null,
+    winnerId: null,
+    rules: normalizeRules(rules ?? DEFAULT_GAME_RULES),
+    usedUris: [],
+  };
+}
+
+function loadRoom(code: string) {
+  const row = database().prepare(`
+    SELECT code, host_user_id, state FROM rooms WHERE code = ?
+  `).get(code) as RoomRow | undefined;
   if (!row) return null;
   const state = JSON.parse(row.state) as RoomState & { inputMode?: unknown };
   for (const player of state.players) {
@@ -56,11 +176,9 @@ async function loadRoom(code: string) {
   return { row, state };
 }
 
-async function saveRoom(state: RoomState) {
-  await database()
-    .prepare("UPDATE rooms SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE code = ?")
-    .bind(JSON.stringify(state), state.code)
-    .run();
+function saveRoom(state: RoomState) {
+  database().prepare("UPDATE rooms SET state = ?, updated_at = ? WHERE code = ?")
+    .run(JSON.stringify(state), Date.now(), state.code);
 }
 
 function pickSong(state: RoomState): Song {
@@ -101,104 +219,164 @@ function roomView(state: RoomState, isHost: boolean): RoomView {
   };
 }
 
-function requireHost(room: { row: RoomRow; state: RoomState }, token?: string) {
-  return Boolean(token && token === room.row.host_token);
+function requirePrincipal(request: Request) {
+  const principal = currentPrincipal(request);
+  if (!principal) throw new Response("Sign in required", { status: 401 });
+  return principal;
+}
+
+function isHost(room: { row: RoomRow }, principal: Principal) {
+  return room.row.host_user_id === principal.id;
+}
+
+function principalControlsPlayer(roomCode: string, principal: Principal, playerId: string) {
+  return Boolean(database().prepare(`
+    SELECT 1 FROM room_player_identities
+    WHERE room_code = ? AND user_id = ? AND player_id = ?
+  `).get(roomCode, principal.id, playerId));
+}
+
+function errorResponse(error: unknown) {
+  if (error instanceof Response) return fail(
+    error.status === 401 ? "Sign in required." : "Request was not accepted.",
+    error.status,
+  );
+  return fail(error instanceof Error ? error.message : "Unexpected error", 500);
 }
 
 export async function GET(request: Request) {
   try {
+    const principal = requirePrincipal(request);
     const url = new URL(request.url);
     const code = url.searchParams.get("code")?.trim().toUpperCase() ?? "";
-    const token = url.searchParams.get("hostToken") ?? undefined;
     if (!code) return fail("Room code is required.");
-    const room = await loadRoom(code);
+    const room = loadRoom(code);
     if (!room) return fail("Room not found.", 404);
-    return Response.json({ room: roomView(room.state, requireHost(room, token)) });
+    return Response.json(
+      { room: roomView(room.state, isHost(room, principal)) },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Unexpected error", 500);
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: Request) {
   try {
+    if (!mutationOriginAccepted(request)) return fail("Request origin was not accepted.", 403);
     const payload = (await request.json()) as Record<string, unknown>;
     const action = String(payload.action ?? "");
 
-    if (action === "create") {
-      await ready();
+    if (action === "create" || action === "resume") {
+      if (!isInternalRequest(request)) return fail("The CannaBeats Host application must prepare this room.", 403);
+      const ownerUserId = String(payload.ownerUserId ?? "");
+      const owner = database().prepare(`
+        SELECT id, display_name, role FROM users WHERE id = ? AND role = 'host'
+      `).get(ownerUserId) as Principal | undefined;
+      if (!owner) return fail("Host account was not found.", 404);
+
+      if (action === "resume") {
+        const code = String(payload.code ?? "").trim().toUpperCase();
+        if (!/^[A-Z2-9]{4}$/.test(code)) return fail("Game code is invalid.");
+        const room = loadRoom(code);
+        if (!room || room.row.host_user_id !== owner.id) {
+          return fail("Game room was not found for this host account.", 404);
+        }
+        if (room.state.phase === "finished") return fail("This game has already finished.", 409);
+        return Response.json({ room: roomView(room.state, true), created: false });
+      }
+
       let code = makeCode();
-      while (await loadRoom(code)) code = makeCode();
-      const hostToken = crypto.randomUUID();
-      const state: RoomState = {
-        code,
-        phase: "lobby",
-        players: [],
-        activePlayerId: null,
-        activePlayerIndex: 0,
-        round: 0,
-        currentSong: null,
-        placement: null,
-        retractionUsed: false,
-        result: null,
-        winnerId: null,
-        rules: normalizeRules(payload.rules ?? DEFAULT_GAME_RULES),
-        usedUris: [],
-      };
-      await database()
-        .prepare("INSERT INTO rooms (code, host_token, state) VALUES (?, ?, ?)")
-        .bind(code, hostToken, JSON.stringify(state))
-        .run();
-      const requestOrigin = new URL(request.url).origin;
-      const joinOrigin = (env as { PUBLIC_JOIN_ORIGIN?: string }).PUBLIC_JOIN_ORIGIN ?? requestOrigin;
-      return Response.json({ room: roomView(state, true), hostToken, joinOrigin }, { status: 201 });
+      while (loadRoom(code)) code = makeCode();
+      const state = newRoomState(code, payload.rules);
+      const now = Date.now();
+      database().prepare(`
+        INSERT INTO rooms (code, host_user_id, state, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(code, owner.id, JSON.stringify(state), now, now);
+      const joinOrigin = process.env.CANNABEATS_PUBLIC_GAME_ORIGIN
+        ?? `${new URL(request.url).origin}${process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? ""}`;
+      return Response.json(
+        { room: roomView(state, true), created: true, joinOrigin },
+        { status: 201 },
+      );
     }
 
+    const principal = requirePrincipal(request);
     const code = String(payload.code ?? "").trim().toUpperCase();
-    const room = await loadRoom(code);
+    const room = loadRoom(code);
     if (!room) return fail("Room not found.", 404);
     const state = room.state;
+    const callerIsHost = isHost(room, principal);
 
     if (action === "join") {
+      const existing = database().prepare(`
+        SELECT player_id FROM room_player_identities WHERE room_code = ? AND user_id = ?
+      `).get(code, principal.id) as { player_id: string } | undefined;
+      if (existing && state.players.some((player) => player.id === existing.player_id)) {
+        database().prepare(`
+          UPDATE room_player_identities SET last_seen_at = ? WHERE room_code = ? AND user_id = ?
+        `).run(Date.now(), code, principal.id);
+        return Response.json({ room: roomView(state, callerIsHost), playerId: existing.player_id });
+      }
       if (state.phase !== "lobby") return fail("This game has already started.");
-      const name = String(payload.name ?? "").trim().slice(0, 24);
+      const name = String(payload.name ?? principal.display_name).trim().slice(0, 24);
       if (!name) return fail("Player name is required.");
-      const player = { id: crypto.randomUUID(), name, control: "phone" as const, timeline: [] };
+      if (existing) {
+        database().prepare(`
+          DELETE FROM room_player_identities WHERE room_code = ? AND user_id = ?
+        `).run(code, principal.id);
+      }
+      const player = { id: randomUUID(), name, control: "phone" as const, timeline: [] };
       state.players.push(player);
-      await saveRoom(state);
-      return Response.json({ room: roomView(state, false), playerId: player.id }, { status: 201 });
+      const now = Date.now();
+      database().exec("BEGIN IMMEDIATE");
+      try {
+        saveRoom(state);
+        database().prepare(`
+          INSERT INTO room_player_identities (room_code, user_id, player_id, joined_at, last_seen_at)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(code, principal.id, player.id, now, now);
+        database().exec("COMMIT");
+      } catch (error) {
+        database().exec("ROLLBACK");
+        throw error;
+      }
+      return Response.json({ room: roomView(state, callerIsHost), playerId: player.id }, { status: 201 });
     }
 
     if (action === "addPlayer") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("Players are locked after the game starts.", 409);
       const name = String(payload.name ?? "").trim().slice(0, 24);
       if (!name) return fail("Player name is required.");
-      const player = { id: crypto.randomUUID(), name, control: "host" as const, timeline: [] };
-      state.players.push(player);
-      await saveRoom(state);
+      state.players.push({ id: randomUUID(), name, control: "host", timeline: [] });
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) }, { status: 201 });
     }
 
     if (action === "removePlayer") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("Players are locked after the game starts.", 409);
       const playerId = String(payload.playerId ?? "");
       if (!state.players.some((player) => player.id === playerId)) return fail("Player not found.", 404);
       state.players = state.players.filter((player) => player.id !== playerId);
-      await saveRoom(state);
+      database().prepare("DELETE FROM room_player_identities WHERE room_code = ? AND player_id = ?")
+        .run(code, playerId);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "rules") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("Rules are locked after the game starts.", 409);
       state.rules = normalizeRules(payload.rules);
-      await saveRoom(state);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "start") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("The game has already started.");
       if (!state.players.length) return fail("At least one player is required.");
       for (const player of state.players) player.timeline = [pickSong(state)];
@@ -208,15 +386,15 @@ export async function POST(request: Request) {
       state.round = 1;
       state.retractionUsed = false;
       state.phase = "ready";
-      await saveRoom(state);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "begin") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "ready" || !state.currentSong) return fail("The first round is not ready.", 409);
       state.phase = "playing";
-      await saveRoom(state);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
@@ -224,10 +402,10 @@ export async function POST(request: Request) {
       const playerId = String(payload.playerId ?? "");
       const index = Number(payload.index);
       const player = state.players[state.activePlayerIndex];
-      const hostIsPlacing = player?.control === "host"
-        && requireHost(room, String(payload.hostToken ?? ""));
+      const hostIsPlacing = player?.control === "host" && callerIsHost;
       const activePlayerIsPlacing = player?.control === "phone"
-        && playerId === state.activePlayerId;
+        && playerId === state.activePlayerId
+        && principalControlsPlayer(code, principal, playerId);
       if (state.phase !== "playing" || !player || (!hostIsPlacing && !activePlayerIsPlacing)) {
         return fail("It is not this player’s turn.", 409);
       }
@@ -236,17 +414,17 @@ export async function POST(request: Request) {
       }
       state.placement = index;
       state.phase = "placed";
-      await saveRoom(state);
-      return Response.json({ room: roomView(state, hostIsPlacing) });
+      saveRoom(state);
+      return Response.json({ room: roomView(state, callerIsHost) });
     }
 
     if (action === "retract") {
       const playerId = String(payload.playerId ?? "");
       const player = state.players[state.activePlayerIndex];
-      const hostIsRetracting = player?.control === "host"
-        && requireHost(room, String(payload.hostToken ?? ""));
+      const hostIsRetracting = player?.control === "host" && callerIsHost;
       const activePlayerIsRetracting = player?.control === "phone"
-        && playerId === state.activePlayerId;
+        && playerId === state.activePlayerId
+        && principalControlsPlayer(code, principal, playerId);
       if (state.phase !== "placed" || (!hostIsRetracting && !activePlayerIsRetracting)) {
         return fail("There is no placement to retract.", 409);
       }
@@ -255,12 +433,12 @@ export async function POST(request: Request) {
       state.placement = null;
       state.retractionUsed = true;
       state.phase = "playing";
-      await saveRoom(state);
-      return Response.json({ room: roomView(state, hostIsRetracting) });
+      saveRoom(state);
+      return Response.json({ room: roomView(state, callerIsHost) });
     }
 
     if (action === "reveal") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "placed" || !state.currentSong || state.placement === null) {
         return fail("Wait for the active player to lock a placement.", 409);
       }
@@ -273,12 +451,12 @@ export async function POST(request: Request) {
       if (correct) player.timeline.splice(state.placement, 0, state.currentSong);
       if (player.timeline.length >= state.rules.targetScore) state.winnerId = player.id;
       state.phase = "revealed";
-      await saveRoom(state);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "advance") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "revealed") return fail("Reveal this round first.", 409);
       if (state.winnerId) {
         state.phase = "finished";
@@ -292,12 +470,12 @@ export async function POST(request: Request) {
         state.round += 1;
         state.phase = "playing";
       }
-      await saveRoom(state);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
     if (action === "skip") {
-      if (!requireHost(room, String(payload.hostToken ?? ""))) return fail("Host access required.", 403);
+      if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "playing" && state.phase !== "placed") return fail("There is no active song to skip.", 409);
       state.currentSong = pickSong(state);
       state.placement = null;
@@ -305,12 +483,12 @@ export async function POST(request: Request) {
       state.result = null;
       state.phase = "playing";
       state.round += 1;
-      await saveRoom(state);
+      saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
 
     return fail("Unknown action.");
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Unexpected error", 500);
+    return errorResponse(error);
   }
 }

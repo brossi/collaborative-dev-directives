@@ -78,6 +78,14 @@ export function readConfig(overrides = {}) {
   if (process.env.NODE_ENV === 'production' && audioRelayOrigin && !audioRelayOrigin.startsWith('https://')) {
     throw new Error('AUDIO_RELAY_ORIGIN must use HTTPS in production');
   }
+  const gameServiceOriginText = overrides.gameServiceOrigin ?? process.env.GAME_SERVICE_INTERNAL_ORIGIN ?? '';
+  const gameServiceOrigin = gameServiceOriginText ? new URL(gameServiceOriginText).origin : '';
+  const gameServiceToken = secretEnvironment(
+    overrides, 'gameServiceToken', 'GAME_SERVICE_TOKEN', 'GAME_SERVICE_TOKEN_FILE',
+  );
+  if (Boolean(gameServiceOrigin) !== Boolean(gameServiceToken)) {
+    throw new Error('Game service origin and token must be configured together');
+  }
   return {
     origin: origin.origin,
     rpID,
@@ -88,6 +96,8 @@ export function readConfig(overrides = {}) {
     audioRelayOrigin,
     audioRelayIngestToken,
     audioRelayListenToken,
+    gameServiceOrigin,
+    gameServiceToken,
     sessionTtlDays: overrides.sessionTtlDays ?? integerEnvironment('SESSION_TTL_DAYS', 30, 1, 365),
     trustProxy: overrides.trustProxy ?? process.env.TRUST_PROXY ?? 'loopback',
   };
@@ -181,7 +191,11 @@ function createRateLimiter({ limit = 30, windowMs = 10 * 60 * 1000 } = {}) {
   };
 }
 
-export function createApp({ config = readConfig(), db = openDatabase(config.databasePath) } = {}) {
+export function createApp({
+  config = readConfig(),
+  db = openDatabase(config.databasePath),
+  gameServiceFetch = fetch,
+} = {}) {
   const app = express();
   const browserBundle = resolve(moduleDirectory, 'node_modules/@simplewebauthn/browser/dist/bundle/index.umd.min.js');
   const publicDirectory = resolve(moduleDirectory, 'public');
@@ -361,6 +375,44 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
       WHERE session_code = ? AND user_id = ?
     `).run(Date.now(), code, hostUserId);
     return gameSessionView(code);
+  }
+
+  async function prepareRealGameRoom(agent, rawCode) {
+    if (!config.gameServiceOrigin || !config.gameServiceToken) {
+      throw new HttpError(503, 'The full game service is not configured');
+    }
+    const hasExistingCode = typeof rawCode === 'string' && rawCode.trim().length > 0;
+    const code = hasExistingCode ? normalizeGameCode(rawCode) : '';
+    if (hasExistingCode && code.length !== 4) throw new HttpError(400, 'Game code is invalid');
+    const response = await gameServiceFetch(`${config.gameServiceOrigin}/game/api/game`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CannaBeats-Internal-Token': config.gameServiceToken,
+      },
+      body: JSON.stringify({
+        action: hasExistingCode ? 'resume' : 'create',
+        ownerUserId: agent.user_id,
+        ...(hasExistingCode ? { code } : {}),
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new HttpError(response.status, result.error || 'The game room could not be prepared');
+    const roomCode = normalizeGameCode(result.room?.code);
+    if (roomCode.length !== 4) throw new HttpError(502, 'The game service returned an invalid room');
+    const now = new Date().toISOString();
+    return {
+      created: response.status === 201 || result.created === true,
+      session: {
+        code: roomCode,
+        status: result.room.phase,
+        host: { id: agent.user_id, displayName: agent.user_display_name },
+        members: [],
+        createdAt: now,
+        updatedAt: now,
+      },
+      launchPath: `/game?room=${encodeURIComponent(roomCode)}`,
+    };
   }
 
   function issueSession(res, userId) {
@@ -1124,21 +1176,19 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
     });
   });
 
-  app.post('/api/host-agents/game-sessions/prepare', (req, res) => {
+  app.post('/api/host-agents/game-sessions/prepare', async (req, res) => {
     const agent = verifyHostAgentProof(req.body);
     if (agent.role !== 'host') throw new HttpError(403, 'Host role required');
     const hasExistingCode = typeof req.body?.code === 'string'
       && req.body.code.trim().length > 0;
-    const session = hasExistingCode
-      ? existingGameSessionForHost(agent.user_id, req.body.code)
-      : createGameSessionForHost(agent.user_id);
+    const prepared = await prepareRealGameRoom(agent, req.body?.code);
     writeAuditEvent(
       db,
       agent.user_id,
       hasExistingCode ? 'host_agent.game_session_selected' : 'host_agent.game_session_created',
-      session.code,
+      prepared.session.code,
     );
-    res.status(hasExistingCode ? 200 : 201).json({ session, created: !hasExistingCode });
+    res.status(prepared.created ? 201 : 200).json(prepared);
   });
 
   app.get('/api/host-agents', requireUser, (req, res) => {

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../../../lib/session";
+import { cannabeatsPath } from "../../../lib/paths";
 
 export default function JoinRoom({ code }: { code: string }) {
   const [name, setName] = useState("");
@@ -22,7 +23,7 @@ export default function JoinRoom({ code }: { code: string }) {
     setError("");
     try {
       const chosenName = name.trim();
-      const response = await fetch("/api/game", {
+      const response = await fetch(cannabeatsPath("/api/game"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "join", code, name: chosenName }),
@@ -33,7 +34,7 @@ export default function JoinRoom({ code }: { code: string }) {
       const session: GameSession = { code, playerId: payload.playerId };
       localStorage.setItem(PLAYER_NAME_KEY, chosenName);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      window.location.replace("/");
+      window.location.replace(cannabeatsPath("/"));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to join this room.");
       setBusy(false);
@@ -65,7 +66,7 @@ export default function JoinRoom({ code }: { code: string }) {
           </button>
         </form>
         {error && <p className="error-message" role="alert">{error}</p>}
-        <Link className="join-back" href="/">Enter a different room code</Link>
+        <Link className="join-back" href={cannabeatsPath("/")}>Enter a different room code</Link>
       </section>
     </main>
   );

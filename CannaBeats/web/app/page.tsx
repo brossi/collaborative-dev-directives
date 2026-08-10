@@ -3,12 +3,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import type { Player, RoomView } from "../lib/game";
-import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, normalizeRules, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
+import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
 import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
+import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 
 async function gameRequest(body: Record<string, unknown>) {
-  const response = await fetch("/api/game", {
+  const response = await fetch(cannabeatsPath("/api/game"), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -16,17 +17,6 @@ async function gameRequest(body: Record<string, unknown>) {
   const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string };
   if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
   return payload;
-}
-
-function rememberedHostRules() {
-  const saved = localStorage.getItem(HOST_RULES_KEY);
-  if (!saved) return undefined;
-  try {
-    return normalizeRules(JSON.parse(saved));
-  } catch {
-    localStorage.removeItem(HOST_RULES_KEY);
-    return undefined;
-  }
 }
 
 function normalizeNumberDisplay(input: HTMLInputElement, value: number) {
@@ -260,10 +250,12 @@ export default function Home() {
   const refresh = useCallback(async (current: GameSession) => {
     const params = new URLSearchParams({ code: current.code });
     if (current.hostToken) params.set("hostToken", current.hostToken);
-    const response = await fetch(`/api/game?${params}`, { cache: "no-store" });
+    const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, { cache: "no-store" });
     const payload = await response.json() as { room?: RoomView; error?: string };
     if (!response.ok) throw new Error(payload.error ?? "Unable to refresh the room.");
-    setRoom(payload.room ?? null);
+    if (!payload.room) throw new Error("The room response was incomplete.");
+    setRoom(payload.room);
+    return payload.room;
   }, []);
 
   useEffect(() => {
@@ -271,8 +263,27 @@ export default function Home() {
     const saved = sessionStorage.getItem(SESSION_KEY);
     const savedName = localStorage.getItem(PLAYER_NAME_KEY)?.trim();
     const timer = window.setTimeout(() => {
-      if (sharedCode) setRoomCode(sharedCode);
       if (savedName) setName((current) => current || savedName);
+      if (sharedCode) {
+        const launched: GameSession = {
+          code: sharedCode,
+          joinOrigin: `${window.location.origin}${CANNABEATS_BASE_PATH}`,
+        };
+        void refresh(launched).then((view) => {
+          if (!view.isHost) {
+            setRoom(null);
+            setRoomCode(sharedCode);
+            return;
+          }
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(launched));
+          setSession(launched);
+          window.history.replaceState({}, "", cannabeatsPath("/"));
+        }).catch((reason: Error) => {
+          setRoomCode(sharedCode);
+          setError(reason.message);
+        });
+        return;
+      }
       if (!saved) return;
       try {
         const restored = JSON.parse(saved) as GameSession;
@@ -303,7 +314,7 @@ export default function Home() {
     if (!room?.isHost || room.phase !== "lobby") return;
     let cancelled = false;
     const joinUrl = new URL(session?.joinOrigin ?? window.location.origin);
-    joinUrl.pathname = `/join/${room.code}`;
+    joinUrl.pathname = cannabeatsPath(`/join/${room.code}`);
     joinUrl.search = "";
     void QRCode.toDataURL(joinUrl.toString(), {
       width: 240,
@@ -383,22 +394,6 @@ export default function Home() {
     if (await act({ action: "retract", ...credentials })) setSelection(null);
   }
 
-  async function createRoom() {
-    setBusy(true);
-    setError("");
-    try {
-      const payload = await gameRequest({ action: "create", rules: rememberedHostRules() });
-      const next = { code: payload.room!.code, hostToken: payload.hostToken!, joinOrigin: payload.joinOrigin };
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
-      setSession(next);
-      setRoom(payload.room!);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Unable to create a room.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function addHostPlayer(event: FormEvent) {
     event.preventDefault();
     const chosenName = hostPlayerName.trim();
@@ -472,7 +467,7 @@ export default function Home() {
           <div className="logo-frame">
             {/* This local, already-sized brand image does not need runtime optimization. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/cannabeats-logo-640.jpg" width="640" height="640" alt="CannaBeats — Premium Quality" />
+            <img src={cannabeatsPath("/cannabeats-logo-640.jpg")} width="640" height="640" alt="CannaBeats — Premium Quality" />
           </div>
           <p className="welcome-lede">Listen closely. Place the song in time. Trust your ears.</p>
         </section>
@@ -480,18 +475,8 @@ export default function Home() {
           <div className="entry-block">
             <p className="step-label">On the shared screen</p>
             <h2>Host a game</h2>
-            <p>Invite players by QR code, or add anyone who will use this screen.</p>
-            {!spotify.supportedOrigin ? (
-              <a className="spotify-button" href="http://127.0.0.1:3000/">Open the private host screen</a>
-            ) : spotify.isReady ? (
-              <p className="spotify-status"><i /> Spotify is ready in CannaBeats</p>
-            ) : (
-              <button className="spotify-button" type="button" onClick={() => void spotify.connect()} disabled={spotify.status === "connecting"}>
-                {spotify.status === "connecting" ? "Connecting Spotify…" : "Connect Spotify"}
-              </button>
-            )}
-            <button className="primary-button" onClick={createRoom} disabled={busy || !spotify.supportedOrigin || !spotify.isReady}>Create game</button>
-            {(spotify.error || !spotify.isConfigured) && <p className="error-message" role="alert">{spotify.error || "Spotify is not configured for this build."}</p>}
+            <p>Start in the CannaBeats Host app. It creates the real room, prepares shared audio, and opens this full setup screen automatically.</p>
+            <p className="spotify-status"><i /> Room creation is restricted to an authorized Host app</p>
           </div>
           <div className="or-rule"><span>or</span></div>
           <form className="entry-block" onSubmit={joinRoom}>
@@ -571,7 +556,7 @@ export default function Home() {
         <section className="host-round-bar" aria-label="Current round controls">
           {/* The square brand artwork becomes a compact game icon on the shared screen. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="host-brand-icon" src="/cannabeats-logo-640.jpg" width="104" height="104" alt="CannaBeats" />
+          <img className="host-brand-icon" src={cannabeatsPath("/cannabeats-logo-640.jpg")} width="104" height="104" alt="CannaBeats" />
           <div className="host-round-copy">
             <p className={`host-round-state ${room.phase === "revealed" && room.result ? (room.result.correct ? "correct" : "incorrect") : ""}`}>
               {room.phase === "ready"

@@ -45,6 +45,8 @@ declare global {
 
 const TOKEN_KEY = "cannabeats-spotify-token";
 const AUTH_KEY = "cannabeats-spotify-authorization";
+const ACCESS_POC_REFRESH_KEY = "cannabeats.spotify.refreshToken";
+const CALLBACK_RETURN_KEY = "cannabeats.spotify.gameCallbackReturn";
 const CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID?.trim() ?? "";
 const SCOPES = ["streaming", "user-read-email", "user-read-private", "user-modify-playback-state"];
 const artworkCache = new Map<string, SpotifyTrackArtwork>();
@@ -62,7 +64,7 @@ function subscribeToOrigin() {
 }
 
 function redirectUri() {
-  return `${window.location.origin}/`;
+  return `${window.location.origin}/spotify/callback`;
 }
 
 function randomString(length = 64) {
@@ -80,7 +82,10 @@ async function challengeFor(verifier: string) {
 
 function storedToken(): StoredToken | null {
   const value = localStorage.getItem(TOKEN_KEY);
-  if (!value) return null;
+  if (!value) {
+    const refreshToken = localStorage.getItem(ACCESS_POC_REFRESH_KEY)?.trim() ?? "";
+    return refreshToken ? { accessToken: "", refreshToken, expiresAt: 0 } : null;
+  }
   try {
     return JSON.parse(value) as StoredToken;
   } catch {
@@ -96,6 +101,7 @@ function saveToken(payload: { access_token: string; refresh_token?: string; expi
     expiresAt: Date.now() + payload.expires_in * 1000,
   };
   localStorage.setItem(TOKEN_KEY, JSON.stringify(token));
+  if (token.refreshToken) localStorage.setItem(ACCESS_POC_REFRESH_KEY, token.refreshToken);
   return token;
 }
 
@@ -243,6 +249,7 @@ export function useSpotifyPlayer() {
       const payload = await response.json() as { access_token: string; refresh_token: string; expires_in: number };
       saveToken(payload);
       localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(CALLBACK_RETURN_KEY);
       window.history.replaceState({}, "", window.location.pathname);
       await initialize();
     }
@@ -272,6 +279,7 @@ export function useSpotifyPlayer() {
     const verifier = randomString();
     const state = randomString(32);
     localStorage.setItem(AUTH_KEY, JSON.stringify({ verifier, state } satisfies PendingAuthorization));
+    localStorage.setItem(CALLBACK_RETURN_KEY, window.location.pathname);
     const authorize = new URL("https://accounts.spotify.com/authorize");
     authorize.search = new URLSearchParams({
       client_id: CLIENT_ID,

@@ -25,6 +25,8 @@ services:
       AUDIO_RELAY_ORIGIN: ${AUDIO_RELAY_ORIGIN:-https://cannaudio.cannabeats.social}
       AUDIO_RELAY_INGEST_TOKEN_FILE: ${AUDIO_RELAY_INGEST_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-ingest-token}
       AUDIO_RELAY_LISTEN_TOKEN_FILE: ${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}
+      GAME_SERVICE_INTERNAL_ORIGIN: http://game:3000
+      GAME_SERVICE_TOKEN_FILE: ${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}
       TRUST_PROXY: loopback
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       INVITATION_TTL_HOURS: ${INVITATION_TTL_HOURS:-168}
@@ -36,6 +38,54 @@ services:
     mem_limit: 512m
     cpus: 0.75
     pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  game:
+    build:
+      context: ${CANNABEATS_GAME_CONTEXT:-./game}
+      args:
+        NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
+        NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+    image: cannabeats/game:local
+    container_name: cannabeats-game
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /app/.next/cache:size=64m,mode=0755,uid=1000,gid=1000
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      CANNABEATS_APP_ORIGIN: ${APP_ORIGIN:-https://poc.cannabeats.social}
+      CANNABEATS_PUBLIC_GAME_ORIGIN: ${APP_ORIGIN:-https://poc.cannabeats.social}/game
+      CANNABEATS_DATABASE_PATH: /data/cannabeats-poc.sqlite
+      CANNABEATS_GAME_SERVICE_TOKEN_FILE: ${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}
+      NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
+    ports:
+      - "127.0.0.1:3003:3000"
+    volumes:
+      - cannabeats_poc_data:/data
+      - ${AUDIO_RELAY_SECRET_DIR:-./secrets}:/run/secrets/cannabeats:ro
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 192
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/game/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
     logging:
       driver: json-file
       options:

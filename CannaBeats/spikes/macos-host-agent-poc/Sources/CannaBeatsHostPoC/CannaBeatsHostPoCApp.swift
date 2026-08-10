@@ -239,7 +239,7 @@ private struct HostAgentView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Resolve the game before opening CannaBeats", systemImage: "person.3.sequence.fill")
                     .font(.headline)
-                Text("Create a new server lobby for the game you are about to configure, or enter the code for an existing lobby owned by this host account. The real code is passed into the PWA when it opens.")
+                Text("Create a real CannaBeats game room, or enter the code for an unfinished room owned by this host account. The app opens the existing full game lobby where you configure rules, add players, and start play.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -251,7 +251,7 @@ private struct HostAgentView: View {
                 .disabled(model.isBusy || model.isRelaying || model.isAwaitingAudioProcess || !model.isPaired)
 
                 HStack {
-                    TextField("Six-character game code", text: $model.existingGameCode)
+                    TextField("Four-character game code", text: $model.existingGameCode)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 260)
                         .disabled(model.isBusy || model.isRelaying || model.isAwaitingAudioProcess)

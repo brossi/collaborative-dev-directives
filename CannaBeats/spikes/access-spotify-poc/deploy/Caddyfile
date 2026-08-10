@@ -9,6 +9,12 @@ ecb.138-197-80-223.nip.io {
 }
 
 poc.cannabeats.social {
-    reverse_proxy 127.0.0.1:3002
+    @game path /game /game/*
+    handle @game {
+        reverse_proxy 127.0.0.1:3003
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3002
+    }
     encode zstd gzip
 }

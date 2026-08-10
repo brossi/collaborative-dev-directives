@@ -142,6 +142,27 @@ function migrate(db) {
     );
     CREATE INDEX IF NOT EXISTS game_session_members_user_id ON game_session_members(user_id);
 
+    CREATE TABLE IF NOT EXISTS rooms (
+      code TEXT PRIMARY KEY,
+      host_user_id TEXT NOT NULL REFERENCES users(id),
+      state TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS rooms_host_user_id ON rooms(host_user_id);
+
+    CREATE TABLE IF NOT EXISTS room_player_identities (
+      room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      player_id TEXT NOT NULL,
+      joined_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      PRIMARY KEY (room_code, user_id),
+      UNIQUE (room_code, player_id)
+    );
+    CREATE INDEX IF NOT EXISTS room_player_identities_user_id
+      ON room_player_identities(user_id);
+
     CREATE TABLE IF NOT EXISTS audit_events (
       id TEXT PRIMARY KEY,
       user_id TEXT,

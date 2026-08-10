@@ -75,7 +75,10 @@ export function normalizeRules(value: unknown): GameRules {
   const candidate = value && typeof value === "object" ? value as Partial<GameRules> : {};
   const minYear = boundedNumber(candidate.minYear, DEFAULT_GAME_RULES.minYear, CATALOG_YEAR_MIN, CATALOG_YEAR_MAX);
   const maxYear = boundedNumber(candidate.maxYear, DEFAULT_GAME_RULES.maxYear, minYear, CATALOG_YEAR_MAX);
-  const candidateWeights = candidate.eraWeights && typeof candidate.eraWeights === "object" ? candidate.eraWeights : {};
+  const candidateWeights: Partial<Record<EraId, unknown>> = candidate.eraWeights
+    && typeof candidate.eraWeights === "object"
+    ? candidate.eraWeights
+    : {};
   const eraWeights = Object.fromEntries(ERA_BUCKETS.map(({ id }) => [
     id,
     boundedNumber(candidateWeights[id], DEFAULT_GAME_RULES.eraWeights[id], 0, 100),

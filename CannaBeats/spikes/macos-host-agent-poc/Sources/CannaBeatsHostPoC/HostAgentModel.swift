@@ -217,11 +217,9 @@ final class HostAgentModel: ObservableObject {
 
     var isPaired: Bool { agentID != nil }
     var canOpenAuthorization: Bool { verificationURL != nil }
-    var canUseExistingGameCode: Bool { normalizeGameCode(existingGameCode).count == 6 }
+    var canUseExistingGameCode: Bool { normalizeGameCode(existingGameCode).count == 4 }
     var formattedActiveGameCode: String {
-        guard activeGameCode.count == 6 else { return activeGameCode }
-        let midpoint = activeGameCode.index(activeGameCode.startIndex, offsetBy: 3)
-        return "\(activeGameCode[..<midpoint])-\(activeGameCode[midpoint...])"
+        activeGameCode
     }
     var selectedAudioProcess: CBAudioProcessInfo? {
         audioProcesses.first { $0.objectID == selectedAudioProcessID }
@@ -361,8 +359,8 @@ final class HostAgentModel: ObservableObject {
 
     func useExistingGameAndOpenCannaBeats() async {
         let code = normalizeGameCode(existingGameCode)
-        guard code.count == 6 else {
-            errorMessage = "Enter a valid six-character game code."
+        guard code.count == 4 else {
+            errorMessage = "Enter a valid four-character game code."
             gameSessionStatus = "The existing game code is invalid."
             return
         }
@@ -415,8 +413,8 @@ final class HostAgentModel: ObservableObject {
     private func openCannaBeats(gameCode: String) {
         guard let origin = try? HostAPIClient(originText: serverOrigin).origin,
               var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) else { return }
-        components.path = "/"
-        components.queryItems = [URLQueryItem(name: "game", value: gameCode)]
+        components.path = "/game"
+        components.queryItems = [URLQueryItem(name: "room", value: gameCode)]
         guard let launchURL = components.url else { return }
         if let applicationURL = installedPWA(for: origin) {
             let configuration = NSWorkspace.OpenConfiguration()
@@ -619,9 +617,7 @@ final class HostAgentModel: ObservableObject {
     }
 
     private func formattedGameCode(_ code: String) -> String {
-        guard code.count == 6 else { return code }
-        let midpoint = code.index(code.startIndex, offsetBy: 3)
-        return "\(code[..<midpoint])-\(code[midpoint...])"
+        code
     }
 
     private func startMetricsTimer() {
