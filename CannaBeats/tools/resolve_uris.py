@@ -30,8 +30,22 @@ never re-spent. Output is written even on crash/Ctrl-C, atomically.
 Songs that can't be matched are marked "unresolved": true (skipped on
 re-runs unless --retry-unresolved) — paste a track link from the Spotify
 app into the JSON as "spotify:track:<id>" for those.
+
+TRACK LOG (--tracks, default mappings/spotify-tracks.jsonl)
+Every resolution also appends the WHOLE chosen track object, keyed by
+title|artist|year. The module itself keeps only "uri", and nothing ever
+re-issues a search for a song that already has one — so a field not captured
+here is unrecoverable without paying full quota again. What it buys:
+  - spotify_artist_ids — artist identity by IDENTIFIER. Comparing credit
+    strings provably cannot work (see _common.artists_match); this is what
+    replaces it, and it costs nothing because the response already carries it.
+  - isrc — the recording identifier, stable across pressings, joins to
+    MusicBrainz.
+  - the rest of the object, verbatim, to be pruned at read time.
+The file doubles as a fill_from_datasets.py mappings source.
 """
 import argparse
+import contextlib
 import difflib
 import json
 import os
@@ -65,6 +79,7 @@ def artist_matches(track: dict, artist: str) -> bool:
 
 
 def score_items(items, title: str, artist: str):
+    """[(title_similarity, track)] for candidates crediting our act."""
     want = normalize(title)
     scored = []
     for track in items:
@@ -74,8 +89,25 @@ def score_items(items, title: str, artist: str):
         similarity = difflib.SequenceMatcher(None, want, got).ratio()
         if similarity < 0.6:
             continue
-        scored.append((similarity, track.get("popularity", 0), track))
+        scored.append((similarity, track))
     return scored
+
+
+def pick_best(scored):
+    """Highest rounded title similarity wins; Spotify's own relevance order
+    breaks ties, because Python's sort is stable (reverse=True included).
+
+    There used to be a `popularity` tie-breaker here. Search results carry
+    `popularity: None` — every item, always (verified 2026-08-10, 10/10) — so
+    the key sorted nothing, and would have raised TypeError comparing None to
+    int the day Spotify populated it for some rows but not others. Real
+    popularity needs /v1/tracks/{id}, one request per track against the daily
+    quota; relevance order is the honest tie-break until that is worth paying
+    for.
+    """
+    if not scored:
+        return None
+    return sorted(scored, key=lambda s: round(s[0], 1), reverse=True)[0][1]
 
 
 def best_match(token: str, title: str, artist: str, thorough: bool, budget: int):
@@ -92,14 +124,76 @@ def best_match(token: str, title: str, artist: str, thorough: bool, budget: int)
         result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10",
                          budget=budget)
         scored = score_items(result.get("tracks", {}).get("items", []), title, artist)
-    if not scored:
-        return None
-    scored.sort(key=lambda s: (round(s[0], 1), s[1]), reverse=True)
-    return scored[0][2]
+    return pick_best(scored)
 
 
 def song_key(song: dict) -> str:
     return f"{song['title']}|{song['artist']}|{song['year']}"
+
+
+def track_record(song: dict, track: dict) -> dict:
+    """One sidecar row: everything the search response told us about the track
+    we chose, keyed by the same identity the catalog and the app use.
+
+    The catalog module gets only `uri` — the clients decode it and neither has
+    any use for the rest. This row is where the rest survives, and it is the
+    only place it CAN survive: nothing re-issues a search for a song that
+    already has a URI, so a field dropped here is gone until someone pays for
+    a full re-crawl against the daily quota.
+
+    Field notes:
+      - `spotify_artist_ids` is the point of the exercise. Artist identity by
+        credit string provably cannot work (see _common.artists_match); these
+        IDs are what replaces it.
+      - `spotify_artist_names` records Spotify's own spelling for audit. It is
+        NOT positionally paired with the ID list (an artist object may lack an
+        id) — `track["artists"]` is the aligned truth.
+      - `isrc` identifies the RECORDING, stable across album pressings and the
+        join key to MusicBrainz. Three of four "Bohemian Rhapsody" search hits
+        share GBUM71029604; the 2010 edition is a different master.
+      - `album_release_date` is captured but is NOT a release year. Which date
+        you get depends on which pressing matched: that same song's hits are
+        dated 1975, 2010, 2021 and 2018 (verified 2026-08-10). This is the
+        recording-entity fragmentation that made MusicBrainz useless for dates.
+        `releaseYear` comes from Wikidata P577 — see harvest_release_dates.py.
+      - `title`/`artist`/`year`/`spotify_id` make the file a drop-in mappings
+        source for fill_from_datasets.py at no extra cost.
+      - `track` is the whole object, ~1.8 KB with market=US pinned. Prune at
+        read time, never at fetch time.
+    """
+    artists = track.get("artists", [])
+    album = track.get("album", {})
+    return {
+        "key": song_key(song),
+        "title": song["title"],
+        "artist": song["artist"],
+        "year": song["year"],
+        "spotify_id": track.get("id"),
+        "spotify_artist_ids": [a["id"] for a in artists if a.get("id")],
+        "spotify_artist_names": [a.get("name", "") for a in artists],
+        "isrc": track.get("external_ids", {}).get("isrc"),
+        "album_release_date": album.get("release_date"),
+        "album_release_date_precision": album.get("release_date_precision"),
+        "album_name": album.get("name"),
+        "track": track,
+    }
+
+
+@contextlib.contextmanager
+def append_track(path: pathlib.Path):
+    """Yield a `log(record)` that appends one JSON object per line and flushes.
+
+    Append-only and flushed per row on purpose: these rows cost quota, and a
+    Ctrl-C or a crash mid-run must not lose the ones already paid for. A key
+    may appear twice if --retry-unresolved re-searches a song; that is history,
+    not corruption, and readers should take the last row for a key.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as handle:
+        def log(record: dict) -> None:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+            handle.flush()
+        yield log
 
 
 def load_merged(path: str, out_path: pathlib.Path) -> dict:
@@ -131,9 +225,14 @@ def save(module: dict, out_path: pathlib.Path) -> None:
 
 
 def main() -> None:
+    here = pathlib.Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("files", nargs="+", help="catalog module JSON files")
     parser.add_argument("--out", required=True, help="output directory for resolved modules")
+    parser.add_argument("--tracks", type=pathlib.Path,
+                        default=here / "mappings" / "spotify-tracks.jsonl",
+                        help="append-only log of the whole chosen track object per "
+                             "resolved song (artist IDs, ISRC); never re-fetchable free")
     parser.add_argument("--budget", type=int, default=400,
                         help="max API requests this run (default 400 — stay under the "
                              "per-developer-account daily quota, observed at ~600-1000)")
@@ -157,66 +256,70 @@ def main() -> None:
     total = resolved = failed = 0
     stop_reason = None
     try:
-        for path in args.files:
-            if stop_reason:
-                break
-            out_path = out_dir / pathlib.Path(path).name
-            module = load_merged(path, out_path)
-            pending = [s for s in module["songs"] if not s.get("uri")
-                       and (args.retry_unresolved or not s.get("unresolved"))]
-            if not pending:
-                skipped = sum(1 for s in module["songs"] if s.get("unresolved"))
-                note = f" ({skipped} known-unresolved skipped)" if skipped else ""
-                save(module, out_path)  # keep output in sync with source edits
-                print(f"skip {path} (done{note})", file=sys.stderr, flush=True)
-                continue
-            print(f"resolving {path}: {len(pending)} songs "
-                  f"[{counter.made}/{args.budget} requests spent]",
-                  file=sys.stderr, flush=True)
-            file_done = False
-            try:
-                for done, song in enumerate(pending, 1):
-                    per_song = 2 if args.thorough else 1
-                    if counter.made + per_song > args.budget:
-                        stop_reason = f"request budget ({args.budget}) reached"
-                        break
-                    total += 1
-                    try:
-                        track = best_match(token, song["title"], song["artist"],
-                                           args.thorough, args.budget)
-                    except TokenExpired:
-                        print("access token expired; refreshing", file=sys.stderr, flush=True)
-                        token = get_token(client_id, client_secret)
-                        track = best_match(token, song["title"], song["artist"],
-                                           args.thorough, args.budget)
-                    except QuotaExceeded as quota:
-                        if quota.retry_after == 0:
+        with append_track(args.tracks) as log_track:
+            for path in args.files:
+                if stop_reason:
+                    break
+                out_path = out_dir / pathlib.Path(path).name
+                module = load_merged(path, out_path)
+                pending = [s for s in module["songs"] if not s.get("uri")
+                           and (args.retry_unresolved or not s.get("unresolved"))]
+                if not pending:
+                    skipped = sum(1 for s in module["songs"] if s.get("unresolved"))
+                    note = f" ({skipped} known-unresolved skipped)" if skipped else ""
+                    save(module, out_path)  # keep output in sync with source edits
+                    print(f"skip {path} (done{note})", file=sys.stderr, flush=True)
+                    continue
+                print(f"resolving {path}: {len(pending)} songs "
+                      f"[{counter.made}/{args.budget} requests spent]",
+                      file=sys.stderr, flush=True)
+                file_done = False
+                try:
+                    for done, song in enumerate(pending, 1):
+                        per_song = 2 if args.thorough else 1
+                        if counter.made + per_song > args.budget:
                             stop_reason = f"request budget ({args.budget}) reached"
+                            break
+                        total += 1
+                        try:
+                            track = best_match(token, song["title"], song["artist"],
+                                               args.thorough, args.budget)
+                        except TokenExpired:
+                            print("access token expired; refreshing", file=sys.stderr, flush=True)
+                            token = get_token(client_id, client_secret)
+                            track = best_match(token, song["title"], song["artist"],
+                                               args.thorough, args.budget)
+                        except QuotaExceeded as quota:
+                            if quota.retry_after == 0:
+                                stop_reason = f"request budget ({args.budget}) reached"
+                            else:
+                                hours = quota.retry_after / 3600
+                                stop_reason = (f"daily quota exhausted (Retry-After "
+                                               f"{quota.retry_after}s ~ {hours:.1f}h) — "
+                                               "quota is per developer account")
+                            break
+                        if track:
+                            song["uri"] = track["uri"]
+                            song.pop("unresolved", None)
+                            # Before anything else: the module keeps only the
+                            # URI, and this search will never be re-issued.
+                            log_track(track_record(song, track))
+                            resolved += 1
                         else:
-                            hours = quota.retry_after / 3600
-                            stop_reason = (f"daily quota exhausted (Retry-After "
-                                           f"{quota.retry_after}s ~ {hours:.1f}h) — "
-                                           "quota is per developer account")
-                        break
-                    if track:
-                        song["uri"] = track["uri"]
-                        song.pop("unresolved", None)
-                        resolved += 1
+                            failed += 1
+                            song["unresolved"] = True  # skip next run unless --retry-unresolved
+                            print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}",
+                                  file=sys.stderr, flush=True)
+                        if done % 10 == 0:
+                            print(f"  ...{done}/{len(pending)}", file=sys.stderr, flush=True)
+                        time.sleep(0.6)  # stay far inside the rolling 30s rate-limit window
                     else:
-                        failed += 1
-                        song["unresolved"] = True  # skip next run unless --retry-unresolved
-                        print(f"UNRESOLVED  {song['year']}  {song['title']} / {song['artist']}",
-                              file=sys.stderr, flush=True)
-                    if done % 10 == 0:
-                        print(f"  ...{done}/{len(pending)}", file=sys.stderr, flush=True)
-                    time.sleep(0.6)  # stay far inside the rolling 30s rate-limit window
-                else:
-                    file_done = True
-            finally:
-                # ALWAYS save — a crash or Ctrl-C must never lose paid lookups.
-                save(module, out_path)
-                suffix = "" if file_done else " (partial)"
-                print(f"wrote {out_path}{suffix}", file=sys.stderr, flush=True)
+                        file_done = True
+                finally:
+                    # ALWAYS save — a crash or Ctrl-C must never lose paid lookups.
+                    save(module, out_path)
+                    suffix = "" if file_done else " (partial)"
+                    print(f"wrote {out_path}{suffix}", file=sys.stderr, flush=True)
     except KeyboardInterrupt:
         stop_reason = "interrupted (Ctrl-C)"
     print(f"resolved {resolved}/{total} this run ({failed} marked unresolved; "
