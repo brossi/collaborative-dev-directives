@@ -121,27 +121,19 @@ test("either side of a matching year is accepted", async () => {
 
   assert.match(route, /previous\.year <= state\.currentSong\.year/);
   assert.match(route, /state\.currentSong\.year <= next\.year/);
+  assert.match(route, /if \(action === "place"\)[\s\S]*revealPlacement\(state\)/);
 });
 
-test("a locked placement is shown and can be retracted once", async () => {
-  const [page, styles, route, game] = await Promise.all([
+test("a submitted placement immediately returns the answer to the host", async () => {
+  const [page, route] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(game, /retractionUsed: boolean/);
-  assert.match(page, /Mystery song locked here/);
-  assert.match(page, /Retract placement/);
-  assert.match(page, /lockedPlacement=\{room\.phase === "placed" \? room\.placement : null\}/);
-  assert.match(page, /host-mystery-card/);
-  assert.match(styles, /\.host-mystery-card/);
-  assert.match(page, /action: "retract"/);
-  assert.match(route, /if \(state\.retractionUsed\)/);
-  assert.match(route, /if \(!state\.rules\.allowRetraction\)/);
-  assert.match(route, /state\.retractionUsed = true/);
-  assert.match(route, /state\.retractionUsed = false/);
+  assert.match(route, /if \(action === "place"\)[\s\S]*revealPlacement\(state\)/);
+  assert.match(page, /room\.phase === "revealed" && room\.currentSong/);
+  assert.match(page, /Correct placement/);
+  assert.doesNotMatch(page, /Retract placement|Change placement/);
 });
 
 test("host game setup retains persisted presets and uses weighted era selection", async () => {
@@ -236,7 +228,7 @@ test("every game supports phone and host-controlled players", async () => {
   assert.match(page, /hostControlsActivePlayer/);
   assert.match(page, /className=\{`host-placement-gap/);
   assert.match(page, /action: "place", hostToken: session\.hostToken/);
-  assert.match(page, /Change placement/);
+  assert.doesNotMatch(page, /Change placement/);
   assert.match(styles, /\.host-placement-gap/);
   assert.match(page, /className="host-row-lock"/);
   assert.match(styles, /\.host-row-lock/);

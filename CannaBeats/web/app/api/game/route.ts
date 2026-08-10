@@ -189,6 +189,22 @@ function roomView(state: RoomState, isHost: boolean): RoomView {
   };
 }
 
+function revealPlacement(state: RoomState) {
+  if (!state.currentSong || state.placement === null) {
+    throw new Error("The submitted placement is incomplete.");
+  }
+  const player = state.players[state.activePlayerIndex];
+  if (!player) throw new Error("The active player was not found.");
+  const previous = player.timeline[state.placement - 1];
+  const next = player.timeline[state.placement];
+  const correct = (!previous || previous.year <= state.currentSong.year)
+    && (!next || state.currentSong.year <= next.year);
+  state.result = { correct, index: state.placement };
+  if (correct) player.timeline.splice(state.placement, 0, state.currentSong);
+  if (player.timeline.length >= state.rules.targetScore) state.winnerId = player.id;
+  state.phase = "revealed";
+}
+
 function requirePrincipal(request: Request) {
   const principal = currentPrincipal(request);
   if (!principal) throw new Response("Sign in required", { status: 401 });
@@ -405,7 +421,7 @@ export async function POST(request: Request) {
         return fail("Choose a valid timeline position.");
       }
       state.placement = index;
-      state.phase = "placed";
+      revealPlacement(state);
       saveRoom(state);
       return Response.json({ room: roomView(state, callerIsHost) });
     }
@@ -434,15 +450,7 @@ export async function POST(request: Request) {
       if (state.phase !== "placed" || !state.currentSong || state.placement === null) {
         return fail("Wait for the active player to lock a placement.", 409);
       }
-      const player = state.players[state.activePlayerIndex];
-      const previous = player.timeline[state.placement - 1];
-      const next = player.timeline[state.placement];
-      const correct = (!previous || previous.year <= state.currentSong.year)
-        && (!next || state.currentSong.year <= next.year);
-      state.result = { correct, index: state.placement };
-      if (correct) player.timeline.splice(state.placement, 0, state.currentSong);
-      if (player.timeline.length >= state.rules.targetScore) state.winnerId = player.id;
-      state.phase = "revealed";
+      revealPlacement(state);
       saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }

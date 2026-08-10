@@ -189,6 +189,31 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(added.status, 201);
   assert.equal((await added.json()).room.players.length, 2);
 
+  const started = await gamePost(
+    { action: "start", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(started.status, 200);
+  const readyRoom = (await started.json()).room;
+  const begun = await gamePost(
+    { action: "begin", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(begun.status, 200);
+  const activePlayer = readyRoom.players.find((player) => player.id === readyRoom.activePlayerId);
+  const placementHeaders = activePlayer.control === "host"
+    ? { Cookie: `cb_session=${hostCookie}`, Origin: origin }
+    : { Authorization: `Bearer ${playerToken}` };
+  const submitted = await gamePost(
+    { action: "place", code: sessionCode, playerId: activePlayer.id, index: 0 },
+    placementHeaders,
+  );
+  assert.equal(submitted.status, 200);
+  const answeredRoom = (await submitted.json()).room;
+  assert.equal(answeredRoom.phase, "revealed");
+  assert.ok(answeredRoom.currentSong);
+  assert.equal(typeof answeredRoom.result.correct, "boolean");
+
   const resumed = await gamePost(
     { action: "prepare", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
