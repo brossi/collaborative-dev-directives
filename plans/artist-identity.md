@@ -186,6 +186,36 @@ confident error. Both run; candidates merge by Q-number. The union also fixed
 `skos:altLabel` resolves the glyph spellings `ARTIST_ALIASES` was kept for
 (`P!nk` → Q160009, `Ke$ha` → Q33605), which is what lets §5 delete that table.
 
+### 3b. An assistant can work this queue, attributed ✅ (`80969d5`)
+
+421 of the 690 decided. **3,476 of 3,616 song rows now sit on an identified
+artist** (was 3,221); 269 left to audit.
+
+The earlier "nothing automated fills the decision column" conflated two things.
+§0 proves no **function of the characters** can work. Reading a candidate list
+beside real song titles is not that — it is the judgement the column asks for.
+No rule was added: no threshold, no similarity score.
+
+`--reviewer assistant` stamps `source: "assistant"`. Those rows **stay in the
+queue**, answer pre-filled in `decision`, author in `reviewed_by`; only
+`--reviewer human` retires one. An assistant may choose only among candidates
+already stored on the row, so it cannot invent a Q-number.
+
+Reading the queue found two things the grouping had hidden ✅:
+
+- `Frankie Lymon & The Teenagers` resolved to **"Nicolás Sestito"** — wrong, and
+  sitting in a block that looked bulk-confirmable.
+- `trimmed:backing-band` was over-broad. `& The Weeknd`, `& The Supremes`,
+  `& The Fresh Prince` match `& the` but name a second **act**;
+  `DJ Jazzy Jeff & The Fresh Prince` reduces to DJ Jazzy Jeff, discarding Will
+  Smith. The possessive is the signal, so the shape split: **24** backing-band,
+  **30** named-group.
+
+Left undecided on purpose: those three, plus `Jimmie Rodgers` — one credit
+covering **two different artists** (Blue Yodel 1928, Honeycomb 1957), which is a
+catalog defect not a registry one — and the 1920s vaudeville names where several
+same-named candidates carry no distinguishing evidence.
+
 ### 3a. What Phase 3 is inheriting
 
 690 credits need a human. Known shapes, so the audit can be batched:
@@ -197,6 +227,9 @@ confident error. Both run; candidates merge by Q-number. The union also fixed
 - **`multi` is mostly real ambiguity** — `Jim Jones` (3), `Michael Jackson` vs
   Michael R. Jackson, `TLC` vs The Learning Company, `Pink` vs someone whose
   alias is Pink.
+- **One credit, two artists**: `Jimmie Rodgers` mixes the 1928 country singer
+  with the 1957 pop singer. A registry decision cannot fix that — the catalog
+  rows need splitting.
 - **`none` includes diacritic misses** — the catalog spells it `Beyonce`,
   Wikidata `Beyoncé`. «unverified» how many of the 85 this accounts for; a scan
   of accent-folded label equality against the 85 would settle it.
