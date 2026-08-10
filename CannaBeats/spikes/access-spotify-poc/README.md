@@ -116,6 +116,22 @@ game-scoped, expiring capabilities enforced by the relay itself.
 
 ## Operational commands
 
+The browser invitation generator is available at `/admin/host-invitations` to
+signed-in accounts with the `manage_host_invitations` capability. The account
+page shows its link only to those users, and both the HTML route and API enforce
+the capability server-side. Administration is independent of the host/player
+role and is granted explicitly:
+
+```sh
+docker compose exec app node cli.mjs admin-access list
+docker compose exec app node cli.mjs admin-access grant --user-id USER_UUID
+docker compose exec app node cli.mjs admin-access revoke --user-id USER_UUID
+```
+
+Generated secrets are shown once in the paste-ready email. Only their hashes
+remain in SQLite. The administrator's current display name is used as the email
+signature; no administrator identity is hardcoded in the application.
+
 Create an invitation inside the running container:
 
 ```sh

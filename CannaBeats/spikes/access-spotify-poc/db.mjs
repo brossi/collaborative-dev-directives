@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const INVITATION_ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
+export const MANAGE_HOST_INVITATIONS = 'manage_host_invitations';
 
 function randomAlphabetText(length) {
   const result = [];
@@ -55,6 +56,16 @@ function migrate(db) {
       role TEXT NOT NULL CHECK (role IN ('host', 'player')),
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS user_capabilities (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      capability TEXT NOT NULL,
+      granted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, capability)
+    );
+    CREATE INDEX IF NOT EXISTS user_capabilities_capability
+      ON user_capabilities(capability);
 
     CREATE TABLE IF NOT EXISTS passkey_credentials (
       id TEXT PRIMARY KEY,
@@ -305,6 +316,34 @@ export function createInvitation(db, { role = 'host', note = '', ttlHours = 168 
     VALUES (?, ?, ?, ?, ?)
   `).run(sha256(normalizeInvitationCode(code)), role, String(note).slice(0, 200), now, expiresAt);
   return { code, role, note, expiresAt };
+}
+
+export function userCapabilities(db, userId) {
+  return db.prepare(`
+    SELECT capability FROM user_capabilities WHERE user_id = ? ORDER BY capability
+  `).all(userId).map((entry) => entry.capability);
+}
+
+export function userHasCapability(db, userId, capability) {
+  return Boolean(db.prepare(`
+    SELECT 1 FROM user_capabilities WHERE user_id = ? AND capability = ?
+  `).get(userId, capability));
+}
+
+export function grantUserCapability(db, { userId, capability, grantedBy = null }) {
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!user) throw new Error('User was not found');
+  return db.prepare(`
+    INSERT INTO user_capabilities (user_id, capability, granted_by, created_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, capability) DO NOTHING
+  `).run(userId, capability, grantedBy, Date.now()).changes === 1;
+}
+
+export function revokeUserCapability(db, { userId, capability }) {
+  return db.prepare(`
+    DELETE FROM user_capabilities WHERE user_id = ? AND capability = ?
+  `).run(userId, capability).changes === 1;
 }
 
 export function writeAuditEvent(db, userId, event, detail = '') {

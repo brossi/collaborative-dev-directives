@@ -24,11 +24,30 @@ refuses to create an invitation if no published installer is available.
 
 Generate the one-time host-account invitation only when the recipient is ready:
 
+1. Sign in at `https://poc.cannabeats.social` with an account that has the
+   `manage_host_invitations` capability.
+2. Open **Host invitation administration** and choose **Open invitation
+   generator**.
+3. Enter the recipient, expiration, and download limit, then copy the generated
+   email before leaving the page.
+
+The capability is assigned independently of the host/player account role. The
+first administrator is granted explicitly during deployment; another enrolled
+user can be added later without changing application code:
+
+```sh
+docker compose exec app node cli.mjs admin-access list
+docker compose exec app node cli.mjs admin-access grant --user-id USER_UUID
+docker compose exec app node cli.mjs admin-access revoke --user-id USER_UUID
+```
+
+The server-side command remains available as an operational fallback:
+
 ```sh
 ./spikes/macos-host-agent-poc/scripts/create-host-invitation.sh "Family member name" 48 5
 ```
 
-The command prints a complete email containing a fragment-protected setup URL,
+Both paths produce a complete email containing a fragment-protected setup URL,
 a fragment-protected installer page, the one-time invitation as a fallback,
 and the setup/game instructions. Paste that content into an email. Neither
 capability is stored in plaintext by CannaBeats, and email link scanners cannot

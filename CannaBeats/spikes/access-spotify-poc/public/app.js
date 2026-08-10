@@ -55,6 +55,8 @@ function renderAccount() {
   byId('spotify-card').hidden = !signedIn || !isHost;
   byId('host-agent-panel').hidden = !signedIn || !isHost;
   byId('game-session-card').hidden = !signedIn || !isHost;
+  byId('host-invitation-admin').hidden = !signedIn
+    || !state.user.capabilities?.includes('manage_host_invitations');
   if (signedIn) {
     byId('account-name').textContent = state.user.displayName;
     byId('account-role').textContent = `${state.user.role === 'host' ? 'Host' : 'Player'} account`;

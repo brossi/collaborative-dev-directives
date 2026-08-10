@@ -8,6 +8,7 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY --chown=node:node db.mjs cli.mjs onboarding.mjs server.mjs ./
 COPY --chown=node:node public ./public
+COPY --chown=node:node private ./private
 RUN mkdir -p /data && chown node:node /data
 
 USER node

@@ -11,13 +11,17 @@ import {
 } from '@simplewebauthn/server';
 import {
   generatePairingCode,
+  MANAGE_HOST_INVITATIONS,
   normalizeInvitationCode,
   openDatabase,
   purgeExpired,
   sha256,
+  userCapabilities,
+  userHasCapability,
   uuidToBytes,
   writeAuditEvent,
 } from './db.mjs';
+import { createHostOnboarding, renderHostOnboardingEmail } from './onboarding.mjs';
 
 const moduleDirectory = fileURLToPath(new URL('.', import.meta.url));
 const SESSION_COOKIE = 'cb_session';
@@ -165,8 +169,13 @@ function validateAgentPublicKey(value) {
   return key.export({ format: 'der', type: 'spki' }).toString('base64');
 }
 
-function userView(row) {
-  return { id: row.id, displayName: row.display_name, role: row.role };
+function userView(db, row) {
+  return {
+    id: row.id,
+    displayName: row.display_name,
+    role: row.role,
+    capabilities: userCapabilities(db, row.id),
+  };
 }
 
 function constantTimeTextEqual(left, right) {
@@ -201,6 +210,7 @@ export function createApp({
   const app = express();
   const browserBundle = resolve(moduleDirectory, 'node_modules/@simplewebauthn/browser/dist/bundle/index.umd.min.js');
   const publicDirectory = resolve(moduleDirectory, 'public');
+  const privateDirectory = resolve(moduleDirectory, 'private');
 
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
@@ -286,6 +296,15 @@ export function createApp({
     if (!user) return next(new HttpError(401, 'Sign in required'));
     req.user = user;
     next();
+  }
+
+  function requireCapability(capability) {
+    return (req, _res, next) => {
+      if (!req.user || !userHasCapability(db, req.user.id, capability)) {
+        return next(new HttpError(403, 'Administrative capability required'));
+      }
+      next();
+    };
   }
 
   function currentDesktopUser(req) {
@@ -444,6 +463,7 @@ export function createApp({
   const agentPairingLimiter = createRateLimiter({ limit: 30 });
   const desktopPairingLimiter = createRateLimiter({ limit: 20 });
   const releaseDownloadLimiter = createRateLimiter({ limit: 20, windowMs: 10 * 60 * 1000 });
+  const adminInvitationLimiter = createRateLimiter({ limit: 20, windowMs: 10 * 60 * 1000 });
 
   app.get('/api/health', (_req, res) => {
     const database = db.prepare('SELECT 1 AS ok').get();
@@ -492,8 +512,58 @@ export function createApp({
   app.get('/api/me', (req, res) => {
     const user = currentUser(req);
     if (!user) throw new HttpError(401, 'Sign in required');
-    res.json({ user: userView(user) });
+    res.json({ user: userView(db, user) });
   });
+
+  app.get(
+    '/api/admin/host-invitations',
+    requireUser,
+    requireCapability(MANAGE_HOST_INVITATIONS),
+    (_req, res) => {
+      res.json({
+        installerAvailable: Boolean(config.hostReleasePath && existsSync(config.hostReleasePath)),
+        defaults: { ttlHours: 48, maxDownloads: 5 },
+      });
+    },
+  );
+
+  app.post(
+    '/api/admin/host-invitations',
+    adminInvitationLimiter,
+    requireUser,
+    requireCapability(MANAGE_HOST_INVITATIONS),
+    (req, res) => {
+      const recipientName = cleanText(req.body?.recipientName, {
+        field: 'Recipient name', maximum: 60,
+      });
+      const ttlHours = Number(req.body?.ttlHours);
+      const maxDownloads = Number(req.body?.maxDownloads);
+      if (!Number.isInteger(ttlHours) || ttlHours < 1 || ttlHours > 168) {
+        throw new HttpError(400, 'Invitation lifetime must be between 1 and 168 hours');
+      }
+      if (!Number.isInteger(maxDownloads) || maxDownloads < 1 || maxDownloads > 20) {
+        throw new HttpError(400, 'Maximum downloads must be between 1 and 20');
+      }
+      if (!config.hostReleasePath || !existsSync(config.hostReleasePath)) {
+        throw new HttpError(503, 'The notarized CannaBeats Host installer is not available yet');
+      }
+      const onboarding = createHostOnboarding(db, {
+        recipientName,
+        origin: config.origin,
+        releasePath: config.hostReleasePath,
+        releaseName: config.hostReleaseName,
+        ttlHours,
+        maxDownloads,
+      });
+      writeAuditEvent(db, req.user.id, 'host_invitation.created', recipientName);
+      res.status(201).json({
+        recipientName: onboarding.recipientName,
+        expiresAt: new Date(onboarding.expiresAt).toISOString(),
+        maxDownloads: onboarding.maxDownloads,
+        email: renderHostOnboardingEmail(onboarding, { senderName: req.user.display_name }),
+      });
+    },
+  );
 
   app.post('/api/auth/enroll/options', async (req, res) => {
     purgeExpired(db);
@@ -562,7 +632,7 @@ export function createApp({
     }
     issueSession(res, pending.user_id);
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(pending.user_id);
-    res.status(201).json({ user: userView(user) });
+    res.status(201).json({ user: userView(db, user) });
   });
 
   app.post('/api/auth/sign-in/options', async (_req, res) => {
@@ -607,7 +677,7 @@ export function createApp({
     `).run(verification.authenticationInfo.newCounter, Date.now(), credentialRow.id);
     writeAuditEvent(db, credentialRow.user_id, 'session.signed_in', credentialRow.id);
     issueSession(res, credentialRow.user_id);
-    res.json({ user: userView({
+    res.json({ user: userView(db, {
       id: credentialRow.user_id,
       display_name: credentialRow.display_name,
       role: credentialRow.role,
@@ -815,7 +885,7 @@ export function createApp({
 
   app.get('/api/desktop/me', requireDesktopUser, (req, res) => {
     res.json({
-      user: userView(req.user),
+      user: userView(db, req.user),
       application: { displayName: req.user.application_name },
     });
   });
@@ -1253,6 +1323,15 @@ export function createApp({
     res.set('Cache-Control', 'no-store');
     res.sendFile(resolve(publicDirectory, 'host-download.html'));
   });
+  app.get(
+    '/admin/host-invitations',
+    requireUser,
+    requireCapability(MANAGE_HOST_INVITATIONS),
+    (_req, res) => {
+      res.set('Cache-Control', 'private, no-store');
+      res.sendFile(resolve(privateDirectory, 'admin-host-invitations.html'));
+    },
+  );
   app.get(['/', '/spotify/callback', '/desktop/approve'], (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.sendFile(resolve(publicDirectory, 'index.html'));

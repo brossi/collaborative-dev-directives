@@ -4,7 +4,14 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
-import { createInvitation, openDatabase, sha256 } from '../db.mjs';
+import {
+  createInvitation,
+  grantUserCapability,
+  MANAGE_HOST_INVITATIONS,
+  openDatabase,
+  revokeUserCapability,
+  sha256,
+} from '../db.mjs';
 import { createHostOnboarding, renderHostOnboardingEmail } from '../onboarding.mjs';
 import { createApp, readConfig } from '../server.mjs';
 
@@ -206,6 +213,47 @@ test('host onboarding creates paste-ready instructions and a deliberate tokenize
   }
   const exhausted = await post('/api/host-release/download', { token: downloadToken });
   assert.equal(exhausted.status, 410);
+});
+
+test('host invitation administration is an assignable capability, not a hardcoded user', async () => {
+  const now = Date.now();
+  const userId = randomUUID();
+  const sessionToken = 'test-session-invitation-administrator';
+  db.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)')
+    .run(userId, 'Invite Administrator', 'player', now);
+  db.prepare(`
+    INSERT INTO sessions (token_hash, user_id, created_at, expires_at, last_seen_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(sha256(sessionToken), userId, now, now + 60_000, now);
+  const cookie = { Cookie: `cb_session=${sessionToken}` };
+
+  assert.equal((await fetch(`${baseUrl}/admin/host-invitations`)).status, 401);
+  assert.equal((await fetch(`${baseUrl}/admin/host-invitations`, { headers: cookie })).status, 403);
+  assert.equal((await fetch(`${baseUrl}/api/admin/host-invitations`, { headers: cookie })).status, 403);
+
+  grantUserCapability(db, { userId, capability: MANAGE_HOST_INVITATIONS });
+  const page = await fetch(`${baseUrl}/admin/host-invitations`, { headers: cookie });
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Generate invitation/);
+  const me = await fetch(`${baseUrl}/api/me`, { headers: cookie });
+  assert.deepEqual((await me.json()).user.capabilities, [MANAGE_HOST_INVITATIONS]);
+
+  const generated = await post('/api/admin/host-invitations', {
+    recipientName: 'Next Host', ttlHours: 24, maxDownloads: 3,
+  }, cookie);
+  assert.equal(generated.status, 201);
+  const invitation = await generated.json();
+  assert.equal(invitation.recipientName, 'Next Host');
+  assert.match(invitation.email, /Subject: Your private CannaBeats Host invitation/);
+  assert.match(invitation.email, /—Invite Administrator\n$/);
+  assert.ok(db.prepare(`
+    SELECT 1 FROM audit_events WHERE user_id = ? AND event = 'host_invitation.created'
+  `).get(userId));
+
+  assert.equal(revokeUserCapability(db, { userId, capability: MANAGE_HOST_INVITATIONS }), true);
+  assert.equal((await post('/api/admin/host-invitations', {
+    recipientName: 'Denied Host', ttlHours: 24, maxDownloads: 3,
+  }, cookie)).status, 403);
 });
 
 test('host role is enforced from the server session', async () => {

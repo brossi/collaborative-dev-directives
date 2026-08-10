@@ -24,7 +24,7 @@ body {
     linear-gradient(155deg, #0b1510 15%, #0e1913 70%, #111b14);
 }
 
-button, input { font: inherit; }
+button, input, select, textarea { font: inherit; }
 
 button {
   min-height: 2.75rem;
@@ -36,9 +36,10 @@ button {
 }
 
 button:disabled { cursor: not-allowed; opacity: 0.45; }
-button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .primary { background: var(--green); color: #07120b; }
 .secondary { border-color: var(--line); background: var(--surface-raised); color: var(--text); }
+.button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; width: fit-content; border: 1px solid transparent; border-radius: 0.7rem; padding: 0.68rem 1rem; font-weight: 700; text-decoration: none; }
 .danger { border-color: #7d3d39; background: transparent; color: var(--danger); }
 .text-button { min-height: auto; padding: 0.25rem; background: transparent; color: var(--danger); }
 
@@ -85,7 +86,8 @@ details { border-top: 1px solid var(--line); padding-top: 1.25rem; }
 summary { color: var(--green); font-weight: 700; cursor: pointer; }
 .form-stack { display: grid; gap: 1rem; margin-top: 1.25rem; max-width: 34rem; }
 label { display: grid; gap: 0.4rem; color: var(--muted); font-size: 0.9rem; font-weight: 650; }
-input { width: 100%; min-height: 2.8rem; border: 1px solid var(--line); border-radius: 0.65rem; padding: 0.6rem 0.75rem; color: var(--text); background: #0d1b13; }
+input, select, textarea { width: 100%; min-height: 2.8rem; border: 1px solid var(--line); border-radius: 0.65rem; padding: 0.6rem 0.75rem; color: var(--text); background: #0d1b13; }
+.email-output { min-height: 32rem; resize: vertical; line-height: 1.45; }
 .inline-form { display: grid; grid-template-columns: minmax(12rem, 24rem) auto; align-items: end; gap: 0.75rem; }
 .button-group { display: flex; flex-wrap: wrap; gap: 0.65rem; margin: 1rem 0; }
 .subsection { border-top: 1px solid var(--line); margin-top: 1.5rem; padding-top: 1.5rem; }

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#15261d">
+    <meta name="referrer" content="no-referrer">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+    <title>Host invitations · CannaBeats</title>
+    <script src="/admin-host-invitations.js" defer></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Private administration</p>
+        <h1>Host invitations</h1>
+        <p class="lede">Create a private account invitation, limited installer link, and paste-ready setup email.</p>
+      </div>
+      <a class="button-link secondary" href="/">Back to CannaBeats</a>
+    </header>
+
+    <main>
+      <section class="card" aria-labelledby="generator-title">
+        <div class="section-heading">
+          <div>
+            <p class="step">Authorized administrator</p>
+            <h2 id="generator-title">Generate invitation</h2>
+          </div>
+          <span id="admin-name" class="privacy">Checking access…</span>
+        </div>
+        <p id="release-status">Checking installer availability…</p>
+        <form id="invitation-form" class="form-stack">
+          <label>
+            Recipient name
+            <input id="recipient-name" autocomplete="name" maxlength="60" required>
+          </label>
+          <label>
+            Expires after
+            <select id="ttl-hours">
+              <option value="24">24 hours</option>
+              <option value="48" selected>48 hours</option>
+              <option value="72">3 days</option>
+              <option value="168">7 days</option>
+            </select>
+          </label>
+          <label>
+            Maximum installer downloads
+            <input id="max-downloads" type="number" min="1" max="20" value="5" required>
+          </label>
+          <button id="generate-invitation" class="primary" type="submit" disabled>Generate private invitation</button>
+        </form>
+        <output id="generator-status" class="result" role="status" aria-live="polite"></output>
+      </section>
+
+      <section id="email-card" class="card" aria-labelledby="email-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="step">Shown once</p>
+            <h2 id="email-title">Invitation email</h2>
+          </div>
+          <button id="copy-email" class="secondary" type="button">Copy email</button>
+        </div>
+        <p>Copy this now. CannaBeats stores only hashes of the invitation and download credentials, so this exact email cannot be reconstructed later.</p>
+        <textarea id="invitation-email" class="email-output" readonly spellcheck="false"></textarea>
+      </section>
+    </main>
+  </body>
+</html>

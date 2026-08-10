@@ -64,7 +64,7 @@ export function createHostOnboarding(db, {
   };
 }
 
-export function renderHostOnboardingEmail(onboarding) {
+export function renderHostOnboardingEmail(onboarding, { senderName = 'CannaBeats' } = {}) {
   const firstName = onboarding.recipientName.split(' ')[0];
   const expires = new Date(onboarding.expiresAt).toLocaleString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -108,6 +108,6 @@ For each round, start the song, let the active player place it on their timeline
 
 If anything fails during setup, send me the exact status shown in CannaBeats Host before resetting or removing the local identity.
 
-—Ben
+—${String(senderName).trim() || 'CannaBeats'}
 `;
 }
