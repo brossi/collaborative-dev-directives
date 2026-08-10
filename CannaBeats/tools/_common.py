@@ -17,6 +17,31 @@ import urllib.request
 
 PAREN = re.compile(r"[\(\[].*?[\)\]]")
 PUNCT = re.compile(r"[^a-z0-9 ]")
+# Acts that spell letters with punctuation. norm() strips the glyph, so "P!nk"
+# becomes "pnk" and shares nothing with a catalog spelling of "Pink".
+#
+# This is a table and not a rule because no rule works. Similarity on the
+# stripped forms cannot separate the cases: "seal"/"seals" are DIFFERENT acts
+# and score 0.889, while "pnk"/"pink" are the SAME act and score 0.857. The
+# distributions overlap, so any threshold either admits Seals & Crofts as Seal
+# or drops P!nk. Per-character rules fare no better — "Panic!" and "$ign" are
+# both word-boundary glyphs needing opposite treatment.
+#
+# The durable fix is not string matching at all: Spotify, MusicBrainz and
+# Wikidata all publish stable artist IDs. Match on those and this table dies.
+# Until then, entries are added only from an OBSERVED failure, never guessed.
+ARTIST_ALIASES = {
+    "pnk": "pink",      # P!nk       — cost a one-off script to recover 8 songs
+    "keha": "kesha",    # Ke$ha
+    "ign": "sign",      # Ty Dolla $ign
+    "aap": "asap",      # A$AP Rocky / A$AP Ferg
+}
+
+
+def _dealias(token: str) -> str:
+    return ARTIST_ALIASES.get(token, token)
+
+
 # Separator-style patterns only: they need whitespace on both sides, so a
 # trailing "X" in a band name ("Lil Nas X") is never treated as a feat. cut.
 FEAT = re.compile(r"\s+(?:featuring|feat\.?|ft\.?|with)\s+.*$")
@@ -26,7 +51,11 @@ PLAYLIST_ID = re.compile(r"playlist[/:]([A-Za-z0-9]+)")
 
 def norm(text: str) -> str:
     """Canonical fuzzy-compare form: lowercase, accents folded to ascii,
-    "&" -> " and ", (…)/[…] spans dropped, non-alphanumerics stripped."""
+    "&" -> " and ", (…)/[…] spans dropped, non-alphanumerics stripped.
+
+    Punctuation is removed, not interpreted: "P!nk" -> "pnk". Restoring the
+    letter belongs to ARTIST_ALIASES, which only the artist path consults —
+    titles must not be second-guessed this way ("Oh!" is not "Ohi")."""
     text = text.lower()
     text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
     text = text.replace("&", " and ")
@@ -43,7 +72,56 @@ def primary_artist(artist: str) -> str:
     cut = FEAT.sub("", artist.lower())
     cut = FEAT_X.sub("", cut)
     cut = re.split(r",| and | & ", cut)[0]
-    return norm(cut)
+    return " ".join(_dealias(t) for t in norm(cut).split())
+
+
+# norm() rewrites "&" to " and " — correct for comparing titles, ruinous when
+# the result is treated as a bag of significant words. "Cardi B, Bad Bunny & J
+# Balvin" and "Gerry and the Pacemakers" then share "and"; "The Beatles" and
+# "The Rolling Stones" share "the". Both matched under a single-shared-token
+# rule and produced confident, wrong answers.
+ARTIST_STOPWORDS = frozenset({
+    "the", "and", "a", "an", "of", "featuring", "feat", "with", "his", "her",
+    "their", "band", "orchestra", "group", "presents", "vs", "x", "duo", "trio",
+})
+
+
+def significant_tokens(artist: str) -> set:
+    """norm() tokens with filler dropped and glyph spellings de-aliased."""
+    return {_dealias(t) for t in norm(artist).split()
+            if t not in ARTIST_STOPWORDS and len(t) > 1}
+
+
+def artists_match(candidate: str, ours: str) -> bool:
+    """True when two artist credits plausibly name the same act.
+
+    Judge on what the two credits DO NOT share. Shared words carry no
+    information about whether these are the same act — "Original Broadway Cast
+    of Annie" and "Original Broadway Cast of Nine" agree on three words and are
+    different shows, while "Wham!" and "Wham! featuring George Michael" agree on
+    one and are the same act. Only the residue discriminates.
+
+      1. same primary artist                          -> match
+      2. one side's significant words contain the
+         other's (a credit truncated to its lead)      -> match
+      3. anything else                                 -> no match
+
+    Deliberately no fuzzy step. Similarity cannot separate real variants from
+    real collisions here — "seal"/"seals" are different acts at 0.889 and
+    "pnk"/"pink" are the same act at 0.857 — so any threshold trades one error
+    for the other. A false accept plays the wrong song; a false reject only
+    leaves a URI unresolved. Glyph spellings are handled by ARTIST_ALIASES,
+    which is auditable, and properly by artist IDs when we start storing them.
+    """
+    if not candidate or not ours:
+        return False
+    ours_primary = primary_artist(ours)
+    if ours_primary and primary_artist(candidate) == ours_primary:
+        return True
+    theirs, mine = significant_tokens(candidate), significant_tokens(ours)
+    if not theirs or not mine:
+        return False
+    return theirs <= mine or mine <= theirs
 
 
 def playlist_id(arg: str) -> str:

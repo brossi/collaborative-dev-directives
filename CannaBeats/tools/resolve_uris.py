@@ -40,28 +40,28 @@ import sys
 import time
 import urllib.parse
 
-from _common import (QuotaExceeded, TokenExpired, api_get, counter, get_token,
-                     norm as normalize, primary_artist)
+from _common import (QuotaExceeded, TokenExpired, api_get, artists_match,
+                     counter, get_token, norm as normalize, primary_artist,
+                     significant_tokens)
 from env import load_dotenv
 
 API = "https://api.spotify.com/v1"
 
 
 def artist_matches(track: dict, artist: str) -> bool:
-    """True when the candidate track shares at least one normalized artist
-    token with our catalog artist (or its primary artist matches). A wrong
-    artist is the wrong song no matter how well the title scores."""
-    want_tokens = set(normalize(artist).split())
-    want_primary = primary_artist(artist)
-    if not want_tokens and not want_primary:
+    """True when any credited artist on the track plausibly names our act.
+
+    Delegates to _common.artists_match so there is one definition of "same
+    artist" across the tools. The previous local rule accepted a single shared
+    normalized token, which matched The Beatles to The Rolling Stones on "the"
+    — survivable here only because Spotify's own artist: filter had already
+    narrowed the candidates, and dangerous for cast credits where "broadway"
+    and "cast" are near-universal filler.
+    """
+    if not significant_tokens(artist) and not primary_artist(artist):
         return True  # nothing to compare against ("?" norms to "")
-    for candidate in track.get("artists", []):
-        got = normalize(candidate.get("name", ""))
-        if want_tokens & set(got.split()):
-            return True
-        if want_primary and (got == want_primary or primary_artist(candidate.get("name", "")) == want_primary):
-            return True
-    return False
+    return any(artists_match(candidate.get("name", ""), artist)
+               for candidate in track.get("artists", []))
 
 
 def score_items(items, title: str, artist: str):
