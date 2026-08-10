@@ -57,22 +57,28 @@ URIs are included.
 
 1. The host creates a room, enters shared-screen players by name, and lets phone
    players join by QR or room code.
-2. The game gives every player an anchor song, randomly chooses who starts, and
+2. On the hosted deployment, the host may reserve the managed Spotify source
+   for this game or continue using Spotify on the host device.
+3. The game gives every player an anchor song, randomly chooses who starts, and
    prepares the first mystery song without playing it.
-3. The host announces the first player and starts the song when everyone is
+4. The host announces the first player and starts the song when everyone is
    ready.
-4. The active player chooses and locks an insertion point using the control
+5. The active player chooses and locks an insertion point using the control
    assigned to them: the shared host timeline or their phone.
-5. The host reveals the answer; the server validates the placement.
-6. Correct cards stay in the timeline. The first player to ten wins.
+6. The host or any authenticated member can pause/resume managed playback for
+   everyone. Track selection remains controlled by host-only game actions.
+7. The host reveals the answer; the server validates the placement.
+8. Correct cards stay in the timeline. The first player to ten wins.
 
-Room state is stored in one D1 table and clients poll it every 1.2 seconds. This
-is intentionally simpler than a socket layer and is sufficient for the family
-prototype.
+Room, membership, managed-source lease, and playback-command state are stored
+server-side, and clients poll every 1.2 seconds. This is intentionally simpler
+than a socket layer and is sufficient for the family prototype. Spotify and
+relay credentials are not stored in game tables.
 
 ## Checks
 
 ```sh
 npm test
+npm run test:do
 npm run lint
 ```

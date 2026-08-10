@@ -57,8 +57,14 @@ source calls the public CannaBeats and relay hostnames.
 ```text
 Xvfb :20
   ├── Chrome + persistent profile
-  │     └── loopback source UI :4781
+  │     ├── loopback source UI :4781
+  │     └── lease commands from controller :4782
   └── x11vnc 127.0.0.1:5900
+
+CannaBeats game API
+  → authenticated source poll/ack
+  → cannabeats-source-controller :4782
+  → Chrome play/pause/resume
 
 Chrome audio
   → PulseAudio sink cannabeats_source
@@ -72,12 +78,18 @@ The services are:
 - `cannabeats-display`: the virtual graphical display;
 - `cannabeats-audio`: the isolated virtual sink and monitor source;
 - `cannabeats-source-agent`: the loopback-only setup/control page;
+- `cannabeats-source-controller`: the device-authenticated lease poller and
+  loopback command broker;
 - `cannabeats-browser`: graphical Chrome using the persistent source profile;
 - `cannabeats-vnc`: loopback-only interactive access; and
 - `cannabeats-relay-push`: the relay publisher, deliberately disabled until a
   game-session lease controller starts it.
 
-The relay credential is readable by `cannabeats-relay`, not by the Chrome user.
+The source device token is readable by `cannabeats-controller`, and only its
+SHA-256 hash is stored by the game server. The controller has sudo permission
+for exactly two commands: starting and stopping `cannabeats-relay-push`. The
+relay credential is readable by `cannabeats-relay`, not by either the
+controller or Chrome user.
 The Spotify credential is held in Chrome's local storage under
 `/var/lib/cannabeats-source/chrome-profile`; it is not sent to the CannaBeats
 server or exposed to a game host.
@@ -122,16 +134,30 @@ The callback bridge avoids registering a loopback redirect URI and does not put
 the refresh credential on the CannaBeats server. The loopback agent also strips
 OAuth query strings from its logs.
 
-## Relay operation during the spike
+## Lease and command lifecycle
 
-The publisher must not run continuously because the current repeater accepts a
-single upstream source. Until the session lease controller exists, use these
-commands only for a controlled test:
+1. An authenticated host selects **Use managed Spotify source** in an existing
+   CannaBeats lobby.
+2. The game server atomically reserves one online source for that session. A
+   source and a session can each have only one active lease.
+3. The host's normal room polling renews the lease. If the host disappears, the
+   90-second lease expires and its pending commands are deleted.
+4. The source controller sees the lease, starts the relay publisher, and
+   exposes only that lease's oldest pending command to Chrome.
+5. Beginning, advancing, or skipping a round queues the selected track from the
+   canonical game state. The browser cannot choose a different URI.
+6. Any authenticated member of that game may queue pause or resume. Only the
+   host may acquire/release a source or cause a track-selection command.
+7. Chrome acknowledges a command only after the Web Playback SDK confirms its
+   paused/playing state. The game UI receives that status through its existing
+   room polling.
+8. Release, game completion, or lease expiry makes the browser pause and the
+   controller stop the relay publisher.
 
-```bash
-systemctl start cannabeats-relay-push
-systemctl stop cannabeats-relay-push
-```
+Chrome is launched with `--autoplay-policy=no-user-gesture-required` on this
+dedicated, noninteractive source. This avoids a silent autoplay failure after
+a browser restart. The source UI still reports SDK state before acknowledging
+success.
 
 The PulseAudio device presents to PortAudio as 44.1 kHz stereo. The repeater
 negotiates and reports that source-defined format to listeners.
@@ -149,11 +175,15 @@ negotiates and reports that source-defined format to listeners.
 - [x] The Spotify authorization survived a browser restart.
 - [x] Browser, relay, and Spotify credentials have separate Unix access.
 - [x] Tailscale enrollment and Tailscale SSH are enabled.
+- [x] Authenticated single-owner lease and ordered command queue are deployed.
+- [x] A host can reacquire an expired source during an active game.
+- [x] Play, pause, and resume were driven through the production CannaBeats API;
+  SDK state and relayed PCM independently confirmed the results.
+- [x] Explicit release and lease expiry both pause playback and stop the relay.
 - [ ] Verify private administration from an operator device, then remove the
   temporary public SSH allowlist.
-- [ ] Add an authenticated, single-owner game-session lease and command queue.
-- [ ] Verify play/pause from CannaBeats, droplet restart recovery, and lease
-  cleanup.
+- [x] A full droplet reboot restored Chrome, the controller, Tailscale, the
+  Spotify credential, leased playback, and non-silent relay delivery.
 
 ## Rebuild notes
 
@@ -164,4 +194,7 @@ package is a separate spike dependency and must be installed into
 must be transferred out of band to
 `/etc/cannabeats-managed-source/relay-ingest-token` with owner
 `cannabeats-relay` and mode `0400`. Never commit it, print it, or put it in a
-snapshot.
+snapshot. The source device token belongs at
+`/etc/cannabeats-managed-source/source-token`, owned by
+`cannabeats-controller` with mode `0400`; register only its SHA-256 hash in
+`managed_audio_sources`.
