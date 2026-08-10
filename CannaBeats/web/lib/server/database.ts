@@ -24,6 +24,29 @@ export function database() {
   dbPath = configuredPath;
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
   db.exec(`
+    CREATE TABLE IF NOT EXISTS game_runs (
+      id TEXT PRIMARY KEY,
+      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
+      state TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      ended_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS game_runs_session_code ON game_runs(session_code);
+
+    CREATE TABLE IF NOT EXISTS game_run_player_identities (
+      run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      player_id TEXT NOT NULL,
+      joined_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      PRIMARY KEY (run_id, user_id),
+      UNIQUE (run_id, player_id)
+    );
+    CREATE INDEX IF NOT EXISTS game_run_player_identities_user_id
+      ON game_run_player_identities(user_id);
+
+    /* Legacy engine-room tables remain readable during migration, but are no longer canonical. */
     CREATE TABLE IF NOT EXISTS rooms (
       code TEXT PRIMARY KEY,
       host_user_id TEXT NOT NULL REFERENCES users(id),
@@ -49,6 +72,7 @@ export function database() {
       token_hash TEXT PRIMARY KEY,
       desktop_session_hash TEXT NOT NULL REFERENCES desktop_sessions(token_hash) ON DELETE CASCADE,
       room_code TEXT,
+      session_code TEXT REFERENCES game_sessions(code),
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL
     );
@@ -63,5 +87,17 @@ export function database() {
     CREATE INDEX IF NOT EXISTS desktop_web_sessions_desktop_session
       ON desktop_web_sessions(desktop_session_hash);
   `);
+  const gameSessionColumns = new Set(
+    db.prepare("PRAGMA table_info(game_sessions)").all().map((column) => (column as { name: string }).name),
+  );
+  if (!gameSessionColumns.has("active_run_id")) {
+    db.exec("ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT");
+  }
+  const ticketColumns = new Set(
+    db.prepare("PRAGMA table_info(desktop_web_tickets)").all().map((column) => (column as { name: string }).name),
+  );
+  if (!ticketColumns.has("session_code")) {
+    db.exec("ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)");
+  }
   return db;
 }

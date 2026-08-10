@@ -1,5 +1,4 @@
-import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
@@ -8,8 +7,9 @@ import { database, sha256 } from "../../../lib/server/database";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type RoomRow = {
-  code: string;
+type RunRow = {
+  id: string;
+  session_code: string;
   host_user_id: string;
   state: string;
 };
@@ -22,7 +22,6 @@ type Principal = {
 
 const SESSION_COOKIE = "cb_session";
 const DESKTOP_WEB_COOKIE = "cb_desktop_web";
-const GAME_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function parseCookies(header = "") {
   return Object.fromEntries(
@@ -90,27 +89,14 @@ function currentPrincipal(request: Request): Principal | null {
   return principal ?? null;
 }
 
-function internalToken() {
-  const direct = process.env.CANNABEATS_GAME_SERVICE_TOKEN?.trim();
-  if (direct) return direct;
-  const file = process.env.CANNABEATS_GAME_SERVICE_TOKEN_FILE;
-  return file ? readFileSync(file, "utf8").trim() : "";
-}
-
 function constantTimeEqual(left: string, right: string) {
   const first = Buffer.from(left);
   const second = Buffer.from(right);
   return first.length === second.length && timingSafeEqual(first, second);
 }
 
-function isInternalRequest(request: Request) {
-  const expected = internalToken();
-  const supplied = request.headers.get("x-cannabeats-internal-token") ?? "";
-  return Boolean(expected && supplied && constantTimeEqual(expected, supplied));
-}
-
 function mutationOriginAccepted(request: Request) {
-  if (isInternalRequest(request) || request.headers.has("authorization")) return true;
+  if (request.headers.has("authorization")) return true;
   const expected = new URL(
     process.env.CANNABEATS_APP_ORIGIN ?? new URL(request.url).origin,
   ).origin;
@@ -120,10 +106,6 @@ function mutationOriginAccepted(request: Request) {
 
 function fail(message: string, status = 400) {
   return Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
-}
-
-function makeCode() {
-  return Array.from(randomBytes(4), (byte) => GAME_CODE_ALPHABET[byte % GAME_CODE_ALPHABET.length]).join("");
 }
 
 function newRoomState(code: string, rules: unknown): RoomState {
@@ -146,8 +128,10 @@ function newRoomState(code: string, rules: unknown): RoomState {
 
 function loadRoom(code: string) {
   const row = database().prepare(`
-    SELECT code, host_user_id, state FROM rooms WHERE code = ?
-  `).get(code) as RoomRow | undefined;
+    SELECT game_runs.id, game_runs.session_code, game_sessions.host_user_id, game_runs.state
+    FROM game_sessions JOIN game_runs ON game_runs.id = game_sessions.active_run_id
+    WHERE game_sessions.code = ?
+  `).get(code) as RunRow | undefined;
   if (!row) return null;
   const state = JSON.parse(row.state) as RoomState & { inputMode?: unknown };
   for (const player of state.players) {
@@ -160,7 +144,10 @@ function loadRoom(code: string) {
 }
 
 function saveRoom(state: RoomState) {
-  database().prepare("UPDATE rooms SET state = ?, updated_at = ? WHERE code = ?")
+  database().prepare(`
+    UPDATE game_runs SET state = ?, updated_at = ?
+    WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
+  `)
     .run(JSON.stringify(state), Date.now(), state.code);
 }
 
@@ -208,15 +195,22 @@ function requirePrincipal(request: Request) {
   return principal;
 }
 
-function isHost(room: { row: RoomRow }, principal: Principal) {
+function isHost(room: { row: RunRow }, principal: Principal) {
   return room.row.host_user_id === principal.id;
 }
 
 function principalControlsPlayer(roomCode: string, principal: Principal, playerId: string) {
   return Boolean(database().prepare(`
-    SELECT 1 FROM room_player_identities
-    WHERE room_code = ? AND user_id = ? AND player_id = ?
+    SELECT 1 FROM game_run_player_identities
+    WHERE run_id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
+      AND user_id = ? AND player_id = ?
   `).get(roomCode, principal.id, playerId));
+}
+
+function isLobbyMember(code: string, principal: Principal) {
+  return Boolean(database().prepare(`
+    SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
+  `).get(code, principal.id));
 }
 
 function errorResponse(error: unknown) {
@@ -233,8 +227,9 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const code = url.searchParams.get("code")?.trim().toUpperCase() ?? "";
     if (!code) return fail("Room code is required.");
+    if (!isLobbyMember(code, principal)) return fail("Game session not found.", 404);
     const room = loadRoom(code);
-    if (!room) return fail("Room not found.", 404);
+    if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
     return Response.json(
       { room: roomView(room.state, isHost(room, principal)) },
       { headers: { "Cache-Control": "no-store" } },
@@ -250,33 +245,34 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as Record<string, unknown>;
     const action = String(payload.action ?? "");
 
-    if (action === "create" || action === "resume") {
-      if (!isInternalRequest(request)) return fail("The CannaBeats Host application must prepare this room.", 403);
-      const ownerUserId = String(payload.ownerUserId ?? "");
-      const owner = database().prepare(`
-        SELECT id, display_name, role FROM users WHERE id = ? AND role = 'host'
-      `).get(ownerUserId) as Principal | undefined;
-      if (!owner) return fail("Host account was not found.", 404);
-
-      if (action === "resume") {
-        const code = String(payload.code ?? "").trim().toUpperCase();
-        if (!/^[A-Z2-9]{4}$/.test(code)) return fail("Game code is invalid.");
-        const room = loadRoom(code);
-        if (!room || room.row.host_user_id !== owner.id) {
-          return fail("Game room was not found for this host account.", 404);
-        }
-        if (room.state.phase === "finished") return fail("This game has already finished.", 409);
-        return Response.json({ room: roomView(room.state, true), created: false });
-      }
-
-      let code = makeCode();
-      while (loadRoom(code)) code = makeCode();
+    if (action === "prepare") {
+      const principal = requirePrincipal(request);
+      const code = String(payload.code ?? "").trim().toUpperCase();
+      if (!/^[A-Z2-9]{6}$/.test(code)) return fail("Game code is invalid.");
+      const lobby = database().prepare(`
+        SELECT host_user_id, active_run_id, status FROM game_sessions WHERE code = ?
+      `).get(code) as { host_user_id: string; active_run_id: string | null; status: string } | undefined;
+      if (!lobby || lobby.host_user_id !== principal.id) return fail("Host access required.", 403);
+      if (lobby.status === "ended") return fail("This lobby has ended.", 409);
+      const existing = loadRoom(code);
+      if (existing) return Response.json({ room: roomView(existing.state, true), created: false });
+      const runId = randomUUID();
       const state = newRoomState(code, payload.rules);
       const now = Date.now();
-      database().prepare(`
-        INSERT INTO rooms (code, host_user_id, state, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(code, owner.id, JSON.stringify(state), now, now);
+      database().exec("BEGIN IMMEDIATE");
+      try {
+        database().prepare(`
+          INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(runId, code, JSON.stringify(state), now, now);
+        database().prepare(`
+          UPDATE game_sessions SET active_run_id = ?, updated_at = ? WHERE code = ?
+        `).run(runId, now, code);
+        database().exec("COMMIT");
+      } catch (error) {
+        database().exec("ROLLBACK");
+        throw error;
+      }
       const joinOrigin = process.env.CANNABEATS_PUBLIC_GAME_ORIGIN
         ?? `${new URL(request.url).origin}${process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? ""}`;
       return Response.json(
@@ -287,19 +283,25 @@ export async function POST(request: Request) {
 
     const principal = requirePrincipal(request);
     const code = String(payload.code ?? "").trim().toUpperCase();
+    if (!/^[A-Z2-9]{6}$/.test(code)) return fail("Game code is invalid.");
+    if (action !== "join" && !isLobbyMember(code, principal)) return fail("Game session not found.", 404);
     const room = loadRoom(code);
-    if (!room) return fail("Room not found.", 404);
+    if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
     const state = room.state;
     const callerIsHost = isHost(room, principal);
 
     if (action === "join") {
+      const lobby = database().prepare(`SELECT status FROM game_sessions WHERE code = ?`).get(code) as { status: string } | undefined;
+      if (!lobby) return fail("Game session not found.", 404);
+      if (lobby.status === "ended") return fail("This game session has ended.", 409);
       const existing = database().prepare(`
-        SELECT player_id FROM room_player_identities WHERE room_code = ? AND user_id = ?
-      `).get(code, principal.id) as { player_id: string } | undefined;
+        SELECT player_id FROM game_run_player_identities
+        WHERE run_id = ? AND user_id = ?
+      `).get(room.row.id, principal.id) as { player_id: string } | undefined;
       if (existing && state.players.some((player) => player.id === existing.player_id)) {
         database().prepare(`
-          UPDATE room_player_identities SET last_seen_at = ? WHERE room_code = ? AND user_id = ?
-        `).run(Date.now(), code, principal.id);
+          UPDATE game_run_player_identities SET last_seen_at = ? WHERE run_id = ? AND user_id = ?
+        `).run(Date.now(), room.row.id, principal.id);
         return Response.json({ room: roomView(state, callerIsHost), playerId: existing.player_id });
       }
       if (state.phase !== "lobby") return fail("This game has already started.");
@@ -307,8 +309,8 @@ export async function POST(request: Request) {
       if (!name) return fail("Player name is required.");
       if (existing) {
         database().prepare(`
-          DELETE FROM room_player_identities WHERE room_code = ? AND user_id = ?
-        `).run(code, principal.id);
+          DELETE FROM game_run_player_identities WHERE run_id = ? AND user_id = ?
+        `).run(room.row.id, principal.id);
       }
       const player = { id: randomUUID(), name, control: "phone" as const, timeline: [] };
       state.players.push(player);
@@ -317,9 +319,14 @@ export async function POST(request: Request) {
       try {
         saveRoom(state);
         database().prepare(`
-          INSERT INTO room_player_identities (room_code, user_id, player_id, joined_at, last_seen_at)
+          INSERT INTO game_run_player_identities (run_id, user_id, player_id, joined_at, last_seen_at)
           VALUES (?, ?, ?, ?, ?)
-        `).run(code, principal.id, player.id, now, now);
+        `).run(room.row.id, principal.id, player.id, now, now);
+        database().prepare(`
+          INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+        `).run(code, principal.id, now, now);
         database().exec("COMMIT");
       } catch (error) {
         database().exec("ROLLBACK");
@@ -344,8 +351,8 @@ export async function POST(request: Request) {
       const playerId = String(payload.playerId ?? "");
       if (!state.players.some((player) => player.id === playerId)) return fail("Player not found.", 404);
       state.players = state.players.filter((player) => player.id !== playerId);
-      database().prepare("DELETE FROM room_player_identities WHERE room_code = ? AND player_id = ?")
-        .run(code, playerId);
+      database().prepare("DELETE FROM game_run_player_identities WHERE run_id = ? AND player_id = ?")
+        .run(room.row.id, playerId);
       saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
@@ -369,6 +376,8 @@ export async function POST(request: Request) {
       state.round = 1;
       state.retractionUsed = false;
       state.phase = "ready";
+      database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
+        .run(Date.now(), code);
       saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }
@@ -443,6 +452,7 @@ export async function POST(request: Request) {
       if (state.phase !== "revealed") return fail("Reveal this round first.", 409);
       if (state.winnerId) {
         state.phase = "finished";
+        database().prepare("UPDATE game_runs SET ended_at = ? WHERE id = ?").run(Date.now(), room.row.id);
       } else {
         state.activePlayerIndex = (state.activePlayerIndex + 1) % state.players.length;
         state.activePlayerId = state.players[state.activePlayerIndex].id;

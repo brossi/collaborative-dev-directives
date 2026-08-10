@@ -23,7 +23,7 @@ export function GET(request: Request) {
     WHERE desktop_web_tickets.token_hash = ?
   `).get(ticketHash) as {
     desktop_session_hash: string;
-    room_code: string | null;
+    session_code: string | null;
     expires_at: number;
     desktop_expires_at: number;
     revoked_at: number | null;
@@ -44,7 +44,7 @@ export function GET(request: Request) {
 
   const basePath = process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? "";
   const destination = new URL(`${basePath || ""}/`, url.origin);
-  if (pending.room_code) destination.searchParams.set("room", pending.room_code);
+  if (pending.session_code) destination.searchParams.set("session", pending.session_code);
   const maxAge = Math.max(1, Math.floor((expiresAt - now) / 1000));
   return new Response(null, {
     status: 303,

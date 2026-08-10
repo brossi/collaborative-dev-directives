@@ -128,6 +128,7 @@ function migrate(db) {
       code TEXT PRIMARY KEY,
       host_user_id TEXT NOT NULL REFERENCES users(id),
       status TEXT NOT NULL CHECK (status IN ('lobby', 'playing', 'ended')) DEFAULT 'lobby',
+      active_run_id TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -167,6 +168,7 @@ function migrate(db) {
       token_hash TEXT PRIMARY KEY,
       desktop_session_hash TEXT NOT NULL REFERENCES desktop_sessions(token_hash) ON DELETE CASCADE,
       room_code TEXT,
+      session_code TEXT REFERENCES game_sessions(code),
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL
     );
@@ -220,6 +222,10 @@ function migrate(db) {
       expires_at INTEGER NOT NULL
     );
   `);
+  const gameSessionColumns = new Set(db.prepare('PRAGMA table_info(game_sessions)').all().map((column) => column.name));
+  if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
+  const ticketColumns = new Set(db.prepare('PRAGMA table_info(desktop_web_tickets)').all().map((column) => column.name));
+  if (!ticketColumns.has('session_code')) db.exec('ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)');
 }
 
 export function purgeExpired(db, now = Date.now()) {

@@ -102,47 +102,69 @@ async function gamePost(body, headers = {}) {
   });
 }
 
-test("the Host service creates a real room and only its owner receives host authority", async () => {
+test("an authenticated lobby owns an internal game run and preserves host authority", async () => {
+  const sessionCode = "TEST23";
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+    VALUES (?, ?, 'lobby', ?, ?)
+  `).run(sessionCode, hostId, now, now);
+  db.prepare(`
+    INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+    VALUES (?, ?, ?, ?)
+  `).run(sessionCode, hostId, now, now);
+
+  const beforePreparation = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
+    headers: { Cookie: `cb_session=${hostCookie}` },
+  });
+  assert.equal(beforePreparation.status, 409);
+
   const createdResponse = await gamePost(
-    { action: "create", ownerUserId: hostId },
-    { "X-CannaBeats-Internal-Token": internalToken },
+    { action: "prepare", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(createdResponse.status, 201);
   const created = await createdResponse.json();
-  assert.match(created.room.code, /^[A-Z2-9]{4}$/);
+  assert.equal(created.room.code, sessionCode);
   assert.equal(created.room.phase, "lobby");
   assert.equal(created.room.isHost, true);
+  const lobby = db.prepare("SELECT active_run_id FROM game_sessions WHERE code = ?").get(sessionCode);
+  assert.match(lobby.active_run_id, /^[0-9a-f-]{36}$/);
+  assert.equal(db.prepare("SELECT session_code FROM game_runs WHERE id = ?").get(lobby.active_run_id).session_code, sessionCode);
+  assert.equal(db.prepare("SELECT 1 FROM rooms WHERE code = ?").get(sessionCode), undefined);
 
-  const anonymous = await fetch(`${origin}/game/api/game?code=${created.room.code}`);
+  const anonymous = await fetch(`${origin}/game/api/game?code=${sessionCode}`);
   assert.equal(anonymous.status, 401);
 
-  const hostView = await fetch(`${origin}/game/api/game?code=${created.room.code}`, {
+  const hostView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Cookie: `cb_session=${hostCookie}` },
   });
   assert.equal(hostView.status, 200);
   assert.equal((await hostView.json()).room.isHost, true);
 
-  const playerView = await fetch(`${origin}/game/api/game?code=${created.room.code}`, {
+  const playerView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Authorization: `Bearer ${playerToken}` },
   });
-  assert.equal(playerView.status, 200);
-  assert.equal((await playerView.json()).room.isHost, false);
+  assert.equal(playerView.status, 404);
 
   const launchTicket = `desktop-launch-${randomUUID()}`;
   db.prepare(`
     INSERT INTO desktop_web_tickets
-      (token_hash, desktop_session_hash, room_code, created_at, expires_at)
+      (token_hash, desktop_session_hash, session_code, created_at, expires_at)
     VALUES (?, ?, ?, ?, ?)
-  `).run(sha256(launchTicket), sha256(playerToken), created.room.code, Date.now(), Date.now() + 60_000);
+  `).run(sha256(launchTicket), sha256(playerToken), sessionCode, Date.now(), Date.now() + 60_000);
+  db.prepare(`
+    INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+    VALUES (?, ?, ?, ?)
+  `).run(sessionCode, playerId, Date.now(), Date.now());
   const handoff = await fetch(
     `${origin}/game/desktop?ticket=${encodeURIComponent(launchTicket)}`,
     { redirect: "manual" },
   );
   assert.equal(handoff.status, 303);
-  assert.equal(new URL(handoff.headers.get("location")).searchParams.get("room"), created.room.code);
+  assert.equal(new URL(handoff.headers.get("location")).searchParams.get("session"), sessionCode);
   assert.match(handoff.headers.get("set-cookie"), /^cb_desktop_web=.*HttpOnly; Secure; SameSite=Strict/);
   const desktopWebCookie = handoff.headers.get("set-cookie").split(";", 1)[0];
-  const webView = await fetch(`${origin}/game/api/game?code=${created.room.code}`, {
+  const webView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Cookie: desktopWebCookie },
   });
   assert.equal(webView.status, 200);
@@ -154,29 +176,23 @@ test("the Host service creates a real room and only its owner receives host auth
   assert.equal(replayedHandoff.status, 401);
 
   const joined = await gamePost(
-    { action: "join", code: created.room.code, name: "Desktop Player" },
+    { action: "join", code: sessionCode, name: "Desktop Player" },
     { Authorization: `Bearer ${playerToken}` },
   );
   assert.equal(joined.status, 201);
   assert.equal((await joined.json()).room.players.length, 1);
 
   const added = await gamePost(
-    { action: "addPlayer", code: created.room.code, name: "Shared Screen Player" },
+    { action: "addPlayer", code: sessionCode, name: "Shared Screen Player" },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(added.status, 201);
   assert.equal((await added.json()).room.players.length, 2);
 
-  const browserCreate = await gamePost(
-    { action: "create", ownerUserId: hostId },
+  const resumed = await gamePost(
+    { action: "prepare", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
-  assert.equal(browserCreate.status, 403);
-
-  const resumed = await gamePost(
-    { action: "resume", ownerUserId: hostId, code: created.room.code },
-    { "X-CannaBeats-Internal-Token": internalToken },
-  );
   assert.equal(resumed.status, 200);
-  assert.equal((await resumed.json()).room.code, created.room.code);
+  assert.equal((await resumed.json()).room.code, sessionCode);
 });

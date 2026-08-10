@@ -12,7 +12,7 @@ client and engine served to the PWA:
   ticket, then navigates its webview into the full `/game` client;
 - the game consumes that ticket once and sets a twelve-hour HttpOnly webview session tied to the
   revocable desktop credential;
-- a player can enter a four-character code and use the existing lobby, timeline, placement, and
+- a player can enter a six-character lobby code and use the existing lobby, timeline, placement, and
   scoring UI rather than a parallel desktop-only lobby model;
 - disconnecting revokes the server credential and removes the local credential-store entry.
 

@@ -237,13 +237,13 @@ private struct HostAgentView: View {
     private var gameSessionSection: some View {
         GroupBox("Game session") {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Resolve the game before opening CannaBeats", systemImage: "person.3.sequence.fill")
+                Label("Choose a lobby before opening CannaBeats", systemImage: "person.3.sequence.fill")
                     .font(.headline)
-                Text("Create a real CannaBeats game room, or enter the code for an unfinished room owned by this host account. The app opens the existing full game lobby where you configure rules, add players, and start play.")
+                Text("Create a CannaBeats lobby, or enter the code for an existing lobby owned by this host account. The app then opens the existing game setup inside that lobby, where you configure rules, add gameplay seats, and start play.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Button("Create new game & open CannaBeats") {
+                Button("Create new lobby & open CannaBeats") {
                     Task { await model.createGameAndOpenCannaBeats() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -251,11 +251,11 @@ private struct HostAgentView: View {
                 .disabled(model.isBusy || model.isRelaying || model.isAwaitingAudioProcess || !model.isPaired)
 
                 HStack {
-                    TextField("Four-character game code", text: $model.existingGameCode)
+                    TextField("Six-character lobby code", text: $model.existingGameCode)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 260)
                         .disabled(model.isBusy || model.isRelaying || model.isAwaitingAudioProcess)
-                    Button("Use existing game & open") {
+                    Button("Use existing lobby & open") {
                         Task { await model.useExistingGameAndOpenCannaBeats() }
                     }
                     .buttonStyle(.bordered)

@@ -217,7 +217,7 @@ final class HostAgentModel: ObservableObject {
 
     var isPaired: Bool { agentID != nil }
     var canOpenAuthorization: Bool { verificationURL != nil }
-    var canUseExistingGameCode: Bool { normalizeGameCode(existingGameCode).count == 4 }
+    var canUseExistingGameCode: Bool { normalizeGameCode(existingGameCode).count == 6 }
     var formattedActiveGameCode: String {
         activeGameCode
     }
@@ -359,9 +359,9 @@ final class HostAgentModel: ObservableObject {
 
     func useExistingGameAndOpenCannaBeats() async {
         let code = normalizeGameCode(existingGameCode)
-        guard code.count == 4 else {
-            errorMessage = "Enter a valid four-character game code."
-            gameSessionStatus = "The existing game code is invalid."
+        guard code.count == 6 else {
+            errorMessage = "Enter a valid six-character lobby code."
+            gameSessionStatus = "The existing lobby code is invalid."
             return
         }
         existingGameCode = formattedGameCode(code)
@@ -414,7 +414,7 @@ final class HostAgentModel: ObservableObject {
         guard let origin = try? HostAPIClient(originText: serverOrigin).origin,
               var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) else { return }
         components.path = "/game"
-        components.queryItems = [URLQueryItem(name: "room", value: gameCode)]
+        components.queryItems = [URLQueryItem(name: "session", value: gameCode)]
         guard let launchURL = components.url else { return }
         if let applicationURL = installedPWA(for: origin) {
             let configuration = NSWorkspace.OpenConfiguration()

@@ -49,14 +49,14 @@ test("player names persist locally but remain editable", async () => {
   assert.match(page, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
 });
 
-test("room sessions survive reloads and transient connection gaps", async () => {
+test("lobby game sessions survive reloads and transient connection gaps", async () => {
   const [page, playLan] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../scripts/play-lan.mjs", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /setSession\(restored\)/);
-  assert.match(page, /Rejoining the room…/);
+  assert.match(page, /Rejoining the game…/);
   assert.match(page, /Your place is saved\. We’ll reconnect automatically\./);
   assert.match(page, /temporarily unavailable\. Retrying…/);
   assert.doesNotMatch(page, /refresh\(restored\)\.catch\(\(\) => sessionStorage\.removeItem/);
@@ -168,7 +168,7 @@ test("host game setup retains persisted presets and uses weighted era selection"
   assert.equal(page.match(/onBlur=\{\(event\) => normalizeNumberDisplay/g)?.length, 3);
   assert.match(session, /HOST_RULES_KEY = "cannabeats-host-rules"/);
   assert.match(page, /localStorage\.setItem\(HOST_RULES_KEY, hostRules\)/);
-  assert.match(page, /Room creation is restricted to an authorized Host app/);
+  assert.match(page, /Lobby creation is restricted to an authorized Host app/);
   assert.match(styles, /\.preset-grid/);
   assert.match(route, /rules: normalizeRules\(rules \?\? DEFAULT_GAME_RULES\)/);
   assert.match(route, /action === "rules"/);

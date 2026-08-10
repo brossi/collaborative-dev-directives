@@ -70,7 +70,7 @@ reminds the user to revoke it explicitly.
    creates or validates the real four-character game room, and displays its
    code before it does anything else.
 3. The app authenticates the relay grant, snapshots existing audio processes,
-   and opens the installed CannaBeats PWA at `/game?room=CODE`. If the PWA is not
+   and opens the installed CannaBeats PWA at `/game?session=CODE`. If the PWA is not
    installed, it opens the same URL in the default browser. The authenticated
    game loads that room into the existing lobby, rules, and gameplay UI.
 4. In CannaBeats, connect Spotify if needed, start the browser player, and begin

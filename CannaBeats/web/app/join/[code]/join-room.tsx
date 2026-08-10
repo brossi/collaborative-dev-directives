@@ -29,14 +29,14 @@ export default function JoinRoom({ code }: { code: string }) {
         body: JSON.stringify({ action: "join", code, name: chosenName }),
       });
       const payload = await response.json() as { error?: string; playerId?: string };
-      if (!response.ok || !payload.playerId) throw new Error(payload.error ?? "Unable to join this room.");
+      if (!response.ok || !payload.playerId) throw new Error(payload.error ?? "Unable to join this lobby.");
 
       const session: GameSession = { code, playerId: payload.playerId };
       localStorage.setItem(PLAYER_NAME_KEY, chosenName);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
       window.location.replace(cannabeatsPath("/"));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Unable to join this room.");
+      setError(reason instanceof Error ? reason.message : "Unable to join this lobby.");
       setBusy(false);
     }
   }
@@ -45,7 +45,7 @@ export default function JoinRoom({ code }: { code: string }) {
     <main className="join-shell">
       <section className="join-card">
         <div className="join-note" aria-hidden="true">♪</div>
-        <p className="eyebrow">Joining room {code}</p>
+        <p className="eyebrow">Joining lobby {code}</p>
         <h1>What should we call you?</h1>
         <p className="helper">Add your name, then get ready to place the music in time.</p>
         <form className="join-form" onSubmit={join}>
@@ -66,7 +66,7 @@ export default function JoinRoom({ code }: { code: string }) {
           </button>
         </form>
         {error && <p className="error-message" role="alert">{error}</p>}
-        <Link className="join-back" href={cannabeatsPath("/")}>Enter a different room code</Link>
+        <Link className="join-back" href={cannabeatsPath("/")}>Enter a different lobby code</Link>
       </section>
     </main>
   );

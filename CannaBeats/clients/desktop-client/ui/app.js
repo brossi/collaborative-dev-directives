@@ -127,7 +127,7 @@ function wireEvents() {
   byId('open-game').addEventListener('click', openGame);
   byId('game-code').addEventListener('input', (event) => {
     const caretAtEnd = event.target.selectionStart === event.target.value.length;
-    event.target.value = formatCode(event.target.value).slice(0, 4);
+    event.target.value = formatCode(event.target.value).replace('-', '').slice(0, 6);
     if (caretAtEnd) event.target.setSelectionRange(event.target.value.length, event.target.value.length);
   });
 }

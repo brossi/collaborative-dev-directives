@@ -268,9 +268,13 @@ test('an approved P-256 host application can prove its device identity once per 
   assert.equal(createdResponse.status, 201);
   const created = await createdResponse.json();
   assert.equal(created.created, true);
-  assert.match(created.session.code, /^[A-Z2-9]{4}$/);
+  assert.match(created.session.code, /^[A-Z2-9]{6}$/);
   assert.equal(created.session.host.id, host.id);
-  assert.equal(created.launchPath, `/game?room=${created.session.code}`);
+  assert.equal(created.session.members[0].id, host.id);
+  assert.equal('activeRunId' in created.session, false);
+  assert.equal(db.prepare('SELECT active_run_id FROM game_sessions WHERE code = ?')
+    .get(created.session.code).active_run_id, null);
+  assert.equal(created.launchPath, `/game?session=${created.session.code}`);
 
   const existingResponse = await signedHostPost(
     '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: created.session.code },
@@ -281,11 +285,14 @@ test('an approved P-256 host application can prove its device identity once per 
   assert.equal(existing.session.code, created.session.code);
 
   const otherHostId = randomUUID();
-  const otherCode = 'ZZ99';
+  const otherCode = 'ZZ99ZZ';
   const now = Date.now();
   db.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)')
     .run(otherHostId, 'Other Test Host', 'host', now);
-  gameRooms.set(otherCode, { code: otherCode, phase: 'lobby', ownerUserId: otherHostId });
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+    VALUES (?, ?, 'lobby', ?, ?)
+  `).run(otherCode, otherHostId, now, now);
   const otherHostSession = await signedHostPost(
     '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: otherCode },
   );
@@ -350,7 +357,12 @@ test('a desktop installation needs explicit approval before its revocable creden
   assert.equal(me.status, 200);
   assert.equal((await me.json()).application.displayName, 'CannaBeats Client on Test Laptop');
 
-  const launchResponse = await nativePost('/api/desktop/game-launch', {}, {
+  const sessionCode = 'DESK23';
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+    VALUES (?, ?, 'lobby', ?, ?)
+  `).run(sessionCode, user.id, Date.now(), Date.now());
+  const launchResponse = await nativePost('/api/desktop/game-launch', { code: sessionCode }, {
     Authorization: `Bearer ${pairing.authorizationToken}`,
   });
   assert.equal(launchResponse.status, 201);
@@ -362,6 +374,12 @@ test('a desktop installation needs explicit approval before its revocable creden
   assert.match(launchTicket, /^[A-Za-z0-9_-]{32,128}$/);
   assert.ok(db.prepare('SELECT 1 FROM desktop_web_tickets WHERE token_hash = ?')
     .get(sha256(launchTicket)));
+  assert.ok(db.prepare(`
+    SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
+  `).get(sessionCode, user.id));
+  assert.equal(db.prepare(`
+    SELECT session_code FROM desktop_web_tickets WHERE token_hash = ?
+  `).get(sha256(launchTicket)).session_code, sessionCode);
 
   db.prepare('UPDATE desktop_sessions SET revoked_at = ? WHERE token_hash = ?')
     .run(Date.now(), sha256(pairing.authorizationToken));
@@ -371,7 +389,27 @@ test('a desktop installation needs explicit approval before its revocable creden
   assert.equal(revoked.status, 401);
 });
 
-test('the discarded parallel lobby API is no longer exposed', async () => {
-  assert.equal((await post('/api/game-sessions')).status, 404);
-  assert.equal((await nativePost('/api/desktop/game-sessions/join', { code: 'ABC123' })).status, 404);
+test('the lobby API requires authority and exists independently of an engine run', async () => {
+  assert.equal((await post('/api/game-sessions')).status, 401);
+  assert.equal((await nativePost('/api/desktop/game-sessions/join', { code: 'ABC123' })).status, 401);
+
+  const host = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  const browserToken = `lobby-browser-${randomUUID()}`;
+  const now = Date.now();
+  db.prepare(`
+    INSERT INTO sessions (token_hash, user_id, created_at, expires_at, last_seen_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(sha256(browserToken), host.id, now, now + 60_000, now);
+  const createdResponse = await post('/api/game-sessions', {}, { Cookie: `cb_session=${browserToken}` });
+  assert.equal(createdResponse.status, 201);
+  const { session } = await createdResponse.json();
+  assert.match(session.code, /^[A-Z2-9]{6}$/);
+  assert.equal('activeRunId' in session, false);
+  assert.equal(db.prepare('SELECT 1 FROM rooms WHERE code = ?').get(session.code), undefined);
+
+  const current = await fetch(`${baseUrl}/api/game-sessions/current`, {
+    headers: { Cookie: `cb_session=${browserToken}` },
+  });
+  assert.equal(current.status, 200);
+  assert.ok((await current.json()).sessions.some((candidate) => candidate.code === session.code));
 });

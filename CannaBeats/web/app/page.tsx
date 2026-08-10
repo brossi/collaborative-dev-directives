@@ -259,7 +259,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const sharedCode = new URLSearchParams(window.location.search).get("room")?.trim().toUpperCase();
+    const sharedCode = new URLSearchParams(window.location.search).get("session")?.trim().toUpperCase();
     const saved = sessionStorage.getItem(SESSION_KEY);
     const savedName = localStorage.getItem(PLAYER_NAME_KEY)?.trim();
     const timer = window.setTimeout(() => {
@@ -269,19 +269,17 @@ export default function Home() {
           code: sharedCode,
           joinOrigin: `${window.location.origin}${CANNABEATS_BASE_PATH}`,
         };
-        void refresh(launched).then((view) => {
-          if (!view.isHost) {
-            setRoom(null);
-            setRoomCode(sharedCode);
-            return;
-          }
-          sessionStorage.setItem(SESSION_KEY, JSON.stringify(launched));
-          setSession(launched);
-          window.history.replaceState({}, "", cannabeatsPath("/"));
-        }).catch((reason: Error) => {
-          setRoomCode(sharedCode);
-          setError(reason.message);
-        });
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(launched));
+        setSession(launched);
+        window.history.replaceState({}, "", cannabeatsPath("/"));
+        void refresh(launched)
+          .catch(async () => {
+            const payload = await gameRequest({ action: "prepare", code: sharedCode });
+            if (!payload.room) throw new Error("The game response was incomplete.");
+            setRoom(payload.room);
+            return payload.room;
+          })
+          .catch((reason: Error) => setError(reason.message));
         return;
       }
       if (!saved) return;
@@ -449,8 +447,8 @@ export default function Home() {
       <main className="join-shell">
         <section className="join-card">
           <div className="join-note" aria-hidden="true">♪</div>
-          <p className="eyebrow">Room {session.code}</p>
-          <h1>Rejoining the room…</h1>
+          <p className="eyebrow">Lobby {session.code}</p>
+          <h1>Rejoining the game…</h1>
           <p className="helper">Your place is saved. We’ll reconnect automatically.</p>
           {error && <p className="error-message" role="status">{error}</p>}
           <button className="text-button" type="button" onClick={leaveRoom}>Leave room</button>
@@ -475,16 +473,16 @@ export default function Home() {
           <div className="entry-block">
             <p className="step-label">On the shared screen</p>
             <h2>Host a game</h2>
-            <p>Start in the CannaBeats Host app. It creates the real room, prepares shared audio, and opens this full setup screen automatically.</p>
-            <p className="spotify-status"><i /> Room creation is restricted to an authorized Host app</p>
+            <p>Start in the CannaBeats Host app. It creates or selects the lobby, prepares shared audio, and opens this full setup screen automatically.</p>
+            <p className="spotify-status"><i /> Lobby creation is restricted to an authorized Host app</p>
           </div>
           <div className="or-rule"><span>or</span></div>
           <form className="entry-block" onSubmit={joinRoom}>
             <p className="step-label">On each player’s phone</p>
             <h2>Join a game</h2>
-            <label>Room code<input value={roomCode} onChange={(event) => setRoomCode(event.target.value.toUpperCase())} maxLength={4} autoCapitalize="characters" required /></label>
+            <label>Lobby code<input value={roomCode} onChange={(event) => setRoomCode(event.target.value.toUpperCase())} maxLength={6} autoCapitalize="characters" required /></label>
             <label>Your name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={24} required /></label>
-            <button className="secondary-button" disabled={busy}>Join room</button>
+            <button className="secondary-button" disabled={busy}>Join lobby</button>
           </form>
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>
@@ -496,7 +494,7 @@ export default function Home() {
     return (
       <main className="game-shell lobby-shell">
         <header className="game-header">
-          <div><p className="eyebrow">CannaBeats room</p><h1>{room.code}</h1></div>
+          <div><p className="eyebrow">CannaBeats lobby</p><h1>{room.code}</h1></div>
           <button className="text-button" onClick={leaveRoom}>Leave</button>
         </header>
         <section className="lobby-card">
