@@ -3,6 +3,13 @@ import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
+import {
+  acquireManagedAudioLease,
+  enqueueManagedAudioCommand,
+  managedAudioView,
+  releaseManagedAudioLease,
+  renewManagedAudioLease,
+} from "../../../lib/server/managed-audio";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -327,8 +334,12 @@ export async function GET(request: Request) {
     if (!isLobbyMember(code, principal)) return fail("Game session not found.", 404);
     const room = loadRoom(code);
     if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
+    const callerIsHost = isHost(room, principal);
     return Response.json(
-      { room: roomView(room.state, isHost(room, principal)) },
+      {
+        room: roomView(room.state, callerIsHost),
+        audio: callerIsHost ? renewManagedAudioLease(code) : managedAudioView(code),
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -482,6 +493,29 @@ export async function POST(request: Request) {
     const state = room.state;
     const callerIsHost = isHost(room, principal);
 
+    if (action === "audioAcquire") {
+      if (!callerIsHost) return fail("Host access required.", 403);
+      if (state.phase !== "lobby") return fail("Choose the audio source before the game starts.", 409);
+      return Response.json({ room: roomView(state, true), audio: acquireManagedAudioLease(code, principal.id) });
+    }
+
+    if (action === "audioRelease") {
+      if (!callerIsHost) return fail("Host access required.", 403);
+      return Response.json({ room: roomView(state, true), audio: releaseManagedAudioLease(code) });
+    }
+
+    if (action === "audioControl") {
+      if (state.phase !== "playing" && state.phase !== "placed") {
+        return fail("Playback controls are not active for this round.", 409);
+      }
+      const command = String(payload.command ?? "");
+      if (command !== "pause" && command !== "resume") return fail("Playback command is invalid.");
+      return Response.json({
+        room: roomView(state, callerIsHost),
+        audio: enqueueManagedAudioCommand(code, principal.id, command),
+      });
+    }
+
     if (action === "join") {
       const joined = joinPlayer(room, principal, payload.name);
       return Response.json(
@@ -530,6 +564,10 @@ export async function POST(request: Request) {
       if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("The game has already started.");
       if (!state.players.length) return fail("At least one player is required.");
+      const audio = renewManagedAudioLease(code);
+      if (audio.mode === "managed" && !audio.sourceOnline) {
+        return fail("The managed audio source is offline.", 409);
+      }
       for (const player of state.players) player.timeline = [pickSong(state)];
       state.activePlayerIndex = Math.floor(Math.random() * state.players.length);
       state.activePlayerId = state.players[state.activePlayerIndex].id;
@@ -552,7 +590,11 @@ export async function POST(request: Request) {
       if (state.phase !== "ready" || !state.currentSong) return fail("The first round is not ready.", 409);
       state.phase = "playing";
       saveRoom(state);
-      return Response.json({ room: roomView(state, true) });
+      const audio = renewManagedAudioLease(code);
+      if (audio.mode === "managed") {
+        enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+      }
+      return Response.json({ room: roomView(state, true), audio: managedAudioView(code) });
     }
 
     if (action === "place") {
@@ -621,7 +663,12 @@ export async function POST(request: Request) {
         state.phase = "playing";
       }
       saveRoom(state);
-      return Response.json({ room: roomView(state, true) });
+      if (state.phase === "finished") {
+        releaseManagedAudioLease(code);
+      } else if (managedAudioView(code).mode === "managed") {
+        enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong?.uri);
+      }
+      return Response.json({ room: roomView(state, true), audio: managedAudioView(code) });
     }
 
     if (action === "skip") {
@@ -634,7 +681,10 @@ export async function POST(request: Request) {
       state.phase = "playing";
       state.round += 1;
       saveRoom(state);
-      return Response.json({ room: roomView(state, true) });
+      if (managedAudioView(code).mode === "managed") {
+        enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+      }
+      return Response.json({ room: roomView(state, true), audio: managedAudioView(code) });
     }
 
     return fail("Unknown action.");

@@ -32,7 +32,7 @@ class Handler(BaseHTTPRequestHandler):
                 "frame-src https://sdk.scdn.co",
                 "script-src 'self' https://sdk.scdn.co",
                 "style-src 'self'",
-                "connect-src 'self' https://accounts.spotify.com https://api.spotify.com wss://dealer.spotify.com",
+                "connect-src 'self' http://127.0.0.1:4782 https://accounts.spotify.com https://api.spotify.com wss://dealer.spotify.com",
                 "media-src 'self' blob: https://*.scdn.co",
                 "worker-src 'self' blob:",
             )),

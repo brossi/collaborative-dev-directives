@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import type { Player, RoomView } from "../lib/game";
+import type { AudioControlView, Player, RoomView } from "../lib/game";
 import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
 import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
@@ -14,7 +14,7 @@ async function gameRequest(body: Record<string, unknown>) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string; guestInvite?: string; expiresAt?: number };
+  const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string; guestInvite?: string; expiresAt?: number };
   if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
   return payload;
 }
@@ -233,6 +233,7 @@ function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri
 
 export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
+  const [audio, setAudio] = useState<AudioControlView>({ mode: "local", sourceOnline: false, status: "disconnected" });
   const [session, setSession] = useState<GameSession | null>(null);
   const [name, setName] = useState("");
   const [hostPlayerName, setHostPlayerName] = useState("");
@@ -251,10 +252,11 @@ export default function Home() {
     const params = new URLSearchParams({ code: current.code });
     if (current.hostToken) params.set("hostToken", current.hostToken);
     const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, { cache: "no-store" });
-    const payload = await response.json() as { room?: RoomView; error?: string };
+    const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string };
     if (!response.ok) throw new Error(payload.error ?? "Unable to refresh the room.");
     if (!payload.room) throw new Error("The room response was incomplete.");
     setRoom(payload.room);
+    if (payload.audio) setAudio(payload.audio);
     return payload.room;
   }, []);
 
@@ -362,11 +364,16 @@ export default function Home() {
   const isMyTurn = Boolean(currentPlayer?.control === "phone" && room?.activePlayerId === currentPlayer.id);
   const hostControlsActivePlayer = Boolean(room?.isHost && activePlayer?.control === "host");
   const selected = selection && selection.round === room?.round ? selection.index : null;
-  const playbackLabel = spotify.status === "playing"
+  const managedPlaybackActive = audio.mode === "managed"
+    && ["starting", "playing", "resuming"].includes(audio.status);
+  const playbackLabel = audio.mode === "managed"
+    ? managedPlaybackActive ? "Pause" : "Resume"
+    : spotify.status === "playing"
     ? "Pause"
     : spotify.status === "paused"
       ? "Resume"
       : "Play";
+  const playbackReady = audio.mode === "managed" ? audio.sourceOnline : spotify.isReady;
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return false;
@@ -374,9 +381,11 @@ export default function Home() {
     setError("");
     try {
       const payload = await gameRequest({ ...body, code: session.code });
+      if (payload.audio) setAudio(payload.audio);
       if (payload.room) {
         setRoom(payload.room);
-        if (playNewSong && payload.room.phase === "playing" && payload.room.currentSong?.uri) {
+        const managed = (payload.audio ?? audio).mode === "managed";
+        if (!managed && playNewSong && payload.room.phase === "playing" && payload.room.currentSong?.uri) {
           await spotify.play(payload.room.currentSong.uri);
         }
       }
@@ -426,10 +435,17 @@ export default function Home() {
   }
 
   function leaveRoom() {
-    if (room?.isHost) void spotify.stop();
+    if (room?.isHost) {
+      if (audio.mode === "managed" && session) {
+        void gameRequest({ action: "audioRelease", code: session.code });
+      } else {
+        void spotify.stop();
+      }
+    }
     sessionStorage.removeItem(SESSION_KEY);
     setSession(null);
     setRoom(null);
+    setAudio({ mode: "local", sourceOnline: false, status: "disconnected" });
     setSelection(null);
     setError("");
   }
@@ -444,6 +460,18 @@ export default function Home() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function controlSharedPlayback() {
+    if (audio.mode === "managed") {
+      await act({ action: "audioControl", command: managedPlaybackActive ? "pause" : "resume" });
+      return;
+    }
+    await controlPlayback(() => spotify.status === "playing"
+      ? spotify.pause()
+      : spotify.status === "paused"
+        ? spotify.resume()
+        : spotify.play(room!.currentSong!.uri!));
   }
 
   if (session && !room) {
@@ -541,9 +569,19 @@ export default function Home() {
                   <p className="helper">Phone guests scan this private invitation; add shared-screen players above. Room code: <strong>{room.code}</strong></p>
                 </div>
               </div>
-              <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready in CannaBeats" : "Reconnect Spotify before starting"}</p>
-              {!spotify.isReady && <button className="spotify-button" type="button" onClick={() => void spotify.connect()}>Connect Spotify</button>}
-              <button className="primary-button" disabled={!room.players.length || busy || !spotify.isReady} onClick={() => act({ action: "start", hostToken: session.hostToken })}>Set up game</button>
+              {audio.mode === "managed" ? (
+                <>
+                  <p className="spotify-status"><i /> {audio.sourceOnline ? `${audio.sourceName ?? "Managed source"} is reserved for this game` : "Managed source is reconnecting"}</p>
+                  <button className="text-button" disabled={busy} type="button" onClick={() => void act({ action: "audioRelease" })}>Use Spotify on this device instead</button>
+                </>
+              ) : (
+                <>
+                  <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready on this device" : "Choose managed audio or connect Spotify here"}</p>
+                  <button className="spotify-button" disabled={busy} type="button" onClick={() => void act({ action: "audioAcquire" })}>Use managed Spotify source</button>
+                  {!spotify.isReady && <button className="secondary-button" type="button" onClick={() => void spotify.connect()}>Connect Spotify on this device</button>}
+                </>
+              )}
+              <button className="primary-button" disabled={!room.players.length || busy || !playbackReady} onClick={() => act({ action: "start", hostToken: session.hostToken })}>Set up game</button>
             </>
           ) : <p className="waiting-note"><i /> Waiting for the host to start</p>}
         </section>
@@ -586,11 +624,7 @@ export default function Home() {
                 type="button"
                 aria-label={`${playbackLabel} mystery song`}
                 disabled={busy || !room.currentSong?.uri}
-                onClick={() => void controlPlayback(() => spotify.status === "playing"
-                  ? spotify.pause()
-                  : spotify.status === "paused"
-                    ? spotify.resume()
-                    : spotify.play(room.currentSong!.uri!))}
+                onClick={() => void controlSharedPlayback()}
               >
                 {playbackLabel}
               </button>
@@ -610,11 +644,11 @@ export default function Home() {
                 <button
                   className="text-button"
                   type="button"
-                  aria-label={spotify.status === "playing" ? "Pause mystery song" : "Resume mystery song"}
+                  aria-label={`${playbackLabel} mystery song`}
                   disabled={busy || !room.currentSong?.uri}
-                  onClick={() => void controlPlayback(() => spotify.status === "playing" ? spotify.pause() : spotify.resume())}
+                  onClick={() => void controlSharedPlayback()}
                 >
-                  {spotify.status === "playing" ? "Pause" : "Resume"}
+                  {playbackLabel}
                 </button>
                 {hostControlsActivePlayer && room.rules.allowRetraction && !room.retractionUsed && <button className="text-button" disabled={busy} onClick={() => void retractPlacement()}>Change placement</button>}
                 </>
@@ -626,6 +660,9 @@ export default function Home() {
         <header className="player-header">
           <strong>{currentPlayer.name}</strong>
           <span>{currentPlayer.timeline.length} / {room.rules.targetScore}</span>
+          {audio.mode === "managed" && (room.phase === "playing" || room.phase === "placed") && (
+            <button className="text-button" disabled={busy || !audio.sourceOnline} onClick={() => void controlSharedPlayback()} type="button">{playbackLabel}</button>
+          )}
         </header>
       )}
 

@@ -116,6 +116,47 @@ export function database() {
     );
     CREATE INDEX IF NOT EXISTS desktop_web_sessions_desktop_session
       ON desktop_web_sessions(desktop_session_hash);
+
+    CREATE TABLE IF NOT EXISTS managed_audio_sources (
+      id TEXT PRIMARY KEY,
+      display_name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+      created_at INTEGER NOT NULL,
+      last_seen_at INTEGER,
+      device_id TEXT,
+      last_error TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS managed_audio_leases (
+      id TEXT PRIMARY KEY,
+      source_id TEXT NOT NULL UNIQUE REFERENCES managed_audio_sources(id) ON DELETE CASCADE,
+      session_code TEXT NOT NULL UNIQUE REFERENCES game_sessions(code) ON DELETE CASCADE,
+      acquired_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      acquired_at INTEGER NOT NULL,
+      renewed_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      playback_status TEXT NOT NULL DEFAULT 'ready',
+      last_error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS managed_audio_leases_expires_at
+      ON managed_audio_leases(expires_at);
+
+    CREATE TABLE IF NOT EXISTS managed_audio_commands (
+      id TEXT PRIMARY KEY,
+      lease_id TEXT NOT NULL REFERENCES managed_audio_leases(id) ON DELETE CASCADE,
+      source_id TEXT NOT NULL REFERENCES managed_audio_sources(id) ON DELETE CASCADE,
+      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
+      kind TEXT NOT NULL CHECK (kind IN ('play', 'pause', 'resume')),
+      track_uri TEXT,
+      requested_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      delivered_at INTEGER,
+      completed_at INTEGER,
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS managed_audio_commands_pending
+      ON managed_audio_commands(source_id, completed_at, created_at);
   `);
   const gameSessionColumns = new Set(
     db.prepare("PRAGMA table_info(game_sessions)").all().map((column) => (column as { name: string }).name),

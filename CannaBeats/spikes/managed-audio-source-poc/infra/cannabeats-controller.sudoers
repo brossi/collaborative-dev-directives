@@ -1,0 +1,1 @@
+cannabeats-controller ALL=(root) NOPASSWD: /usr/bin/systemctl start cannabeats-relay-push.service, /usr/bin/systemctl stop cannabeats-relay-push.service

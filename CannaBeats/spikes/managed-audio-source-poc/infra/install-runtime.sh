@@ -33,6 +33,7 @@ apt-get install --yes --no-install-recommends \
   pulseaudio \
   pulseaudio-utils \
   python3-venv \
+  sudo \
   tailscale \
   x11vnc \
   xvfb
@@ -48,10 +49,15 @@ if ! id cannabeats-relay >/dev/null 2>&1; then
   useradd --system --create-home --home-dir /var/lib/cannabeats-relay \
     --shell /usr/sbin/nologin cannabeats-relay
 fi
+if ! id cannabeats-controller >/dev/null 2>&1; then
+  useradd --system --create-home --home-dir /var/lib/cannabeats-controller \
+    --shell /usr/sbin/nologin cannabeats-controller
+fi
 usermod --append --groups cannabeats-audio cannabeats-source
 usermod --append --groups cannabeats-audio cannabeats-relay
 chmod 0700 /var/lib/cannabeats-source
 chmod 0700 /var/lib/cannabeats-relay
+chmod 0700 /var/lib/cannabeats-controller
 install -d -o root -g root -m 0755 /etc/cannabeats-managed-source
 
 if [[ ! -e /swapfile ]]; then
@@ -67,7 +73,10 @@ install -m 0644 infra/cannabeats-audio.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-browser.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-vnc.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-source-agent.service /etc/systemd/system/
+install -m 0644 infra/cannabeats-source-controller.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-relay-push.service /etc/systemd/system/
+install -o root -g root -m 0440 infra/cannabeats-controller.sudoers /etc/sudoers.d/cannabeats-controller
+visudo -cf /etc/sudoers.d/cannabeats-controller
 
 systemctl daemon-reload
 systemctl enable --now tailscaled
@@ -75,6 +84,7 @@ systemctl enable --now \
   cannabeats-display.service \
   cannabeats-audio.service \
   cannabeats-source-agent.service \
+  cannabeats-source-controller.service \
   cannabeats-browser.service \
   cannabeats-vnc.service
 

@@ -2,7 +2,15 @@ const REFRESH_KEY = 'cannabeats.managed.spotify.refreshToken';
 const VERIFIER_KEY = 'cannabeats.managed.spotify.pkceVerifier';
 const STATE_KEY = 'cannabeats.managed.spotify.oauthState';
 const SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
-const state = { config: null, accessToken: null, expiresAt: 0, player: null, deviceId: null };
+const state = {
+  config: null,
+  accessToken: null,
+  expiresAt: 0,
+  player: null,
+  deviceId: null,
+  managedLeaseId: null,
+  managedCommandId: null,
+};
 const byId = (id) => document.getElementById(id);
 
 function log(value) {
@@ -146,6 +154,82 @@ async function startPlayer() {
   render();
 }
 
+async function ensurePlayerReady() {
+  if (!state.deviceId) await startPlayer();
+  const deadline = Date.now() + 15_000;
+  while (!state.deviceId && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  if (!state.deviceId || !state.player) throw new Error('Spotify browser player did not become ready');
+}
+
+async function executeManagedCommand(command) {
+  await ensurePlayerReady();
+  if (command.kind === 'play') {
+    if (!/^spotify:track:[A-Za-z0-9]+$/.test(command.trackUri ?? '')) {
+      throw new Error('Managed play command did not contain a valid Spotify track');
+    }
+    await spotifyApi(`/me/player/play?device_id=${encodeURIComponent(state.deviceId)}`, {
+      method: 'PUT', body: JSON.stringify({ uris: [command.trackUri] }),
+    });
+    await state.player.resume();
+    return 'playing';
+  }
+  if (command.kind === 'pause') {
+    await state.player.pause();
+    return 'paused';
+  }
+  if (command.kind === 'resume') {
+    await state.player.resume();
+    return 'playing';
+  }
+  throw new Error('Managed playback command is not supported');
+}
+
+async function completeManagedCommand(command, ok, playbackStatus, error = null) {
+  const response = await fetch('http://127.0.0.1:4782/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      commandId: command.id,
+      ok,
+      playbackStatus,
+      error,
+      deviceId: state.deviceId,
+    }),
+  });
+  if (!response.ok) throw new Error(`Managed command acknowledgement failed (${response.status})`);
+}
+
+async function pollManagedController() {
+  const response = await fetch('http://127.0.0.1:4782/state', { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Managed source controller is unavailable (${response.status})`);
+  const controller = await response.json();
+  if (!controller.lease) {
+    if (state.managedLeaseId && state.player) {
+      await state.player.pause().catch(() => {});
+      log('Managed session released. Playback and relay output are stopped.');
+    }
+    state.managedLeaseId = null;
+    return;
+  }
+  state.managedLeaseId = controller.lease.id;
+  const command = controller.command;
+  if (!command || command.id === state.managedCommandId) return;
+  state.managedCommandId = command.id;
+  try {
+    log(`Managed ${command.kind} command received for game ${controller.lease.sessionCode}.`);
+    const playbackStatus = await executeManagedCommand(command);
+    await completeManagedCommand(command, true, playbackStatus);
+    log(`Managed ${command.kind} command completed for game ${controller.lease.sessionCode}.`);
+  } catch (error) {
+    await completeManagedCommand(command, false, 'error', error.message).catch(() => {});
+    log(`Managed ${command.kind} command failed: ${error.message}`);
+  } finally {
+    state.managedCommandId = null;
+  }
+}
+
 byId('connect').addEventListener('click', () => connect().catch((error) => log(error.message)));
 byId('verify').addEventListener('click', () => spotifyApi('/me').then((profile) => log({
   displayName: profile.display_name, product: profile.product, country: profile.country,
@@ -179,6 +263,15 @@ async function initialize() {
   state.config = await fetch('/config').then((response) => response.json());
   await handleCallback();
   render();
+  let polling = false;
+  const poll = async () => {
+    if (polling) return;
+    polling = true;
+    try { await pollManagedController(); } catch {}
+    finally { polling = false; }
+  };
+  await poll();
+  setInterval(() => { void poll(); }, 750);
 }
 
 initialize().catch((error) => log(error.message));

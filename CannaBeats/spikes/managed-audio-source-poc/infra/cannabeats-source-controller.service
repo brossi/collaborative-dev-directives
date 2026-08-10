@@ -1,0 +1,27 @@
+[Unit]
+Description=CannaBeats managed audio-source lease controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cannabeats-controller
+Group=cannabeats-controller
+WorkingDirectory=/opt/cannabeats-managed-source
+Environment=PYTHONUNBUFFERED=1
+Environment=CANNABEATS_AUDIO_SOURCE_API=https://poc.cannabeats.social/game/api/audio-source
+Environment=CANNABEATS_AUDIO_SOURCE_TOKEN_FILE=/etc/cannabeats-managed-source/source-token
+ExecStart=/usr/bin/python3 /opt/cannabeats-managed-source/controller.py
+Restart=on-failure
+RestartSec=3
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadOnlyPaths=/etc/cannabeats-managed-source/source-token
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 [Unit]
 Description=CannaBeats managed Spotify browser
-Requires=cannabeats-display.service cannabeats-audio.service cannabeats-source-agent.service
-After=network-online.target cannabeats-display.service cannabeats-audio.service cannabeats-source-agent.service
+Requires=cannabeats-display.service cannabeats-audio.service cannabeats-source-agent.service cannabeats-source-controller.service
+After=network-online.target cannabeats-display.service cannabeats-audio.service cannabeats-source-agent.service cannabeats-source-controller.service
 Wants=network-online.target
 
 [Service]

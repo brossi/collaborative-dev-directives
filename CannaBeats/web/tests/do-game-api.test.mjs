@@ -11,6 +11,8 @@ import { openDatabase, sha256 } from "../../spikes/access-spotify-poc/db.mjs";
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "cannabeats-game-test-"));
 const databasePath = join(temporaryDirectory, "game.sqlite");
 const internalToken = "game-api-test-internal-token";
+const managedSourceToken = `managed-source-${randomUUID().replaceAll("-", "")}`;
+const managedSourceId = randomUUID();
 const hostCookie = `host-browser-${randomUUID()}`;
 const playerToken = `desktop-player-${randomUUID()}`;
 const db = openDatabase(databasePath);
@@ -87,6 +89,12 @@ before(async () => {
   processHandle.stdout.on("data", (chunk) => { serverOutput += chunk; });
   processHandle.stderr.on("data", (chunk) => { serverOutput += chunk; });
   await waitForHealth();
+  await sourcePost({ action: "poll" }, "source-schema-initializer-token-value");
+  db.prepare(`
+    INSERT INTO managed_audio_sources
+      (id, display_name, token_hash, enabled, created_at, last_seen_at)
+    VALUES (?, ?, ?, 1, ?, ?)
+  `).run(managedSourceId, "Test Managed Source", sha256(managedSourceToken), Date.now(), Date.now());
 });
 
 after(async () => {
@@ -102,6 +110,14 @@ async function gamePost(body, headers = {}) {
   return fetch(`${origin}/game/api/game`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(body),
+  });
+}
+
+async function sourcePost(body, token = managedSourceToken) {
+  return fetch(`${origin}/game/api/audio-source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });
 }
@@ -186,6 +202,12 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(joined.status, 201);
   assert.equal((await joined.json()).room.players.length, 1);
 
+  const playerCannotAcquireSource = await gamePost(
+    { action: "audioAcquire", code: sessionCode },
+    { Authorization: `Bearer ${playerToken}` },
+  );
+  assert.equal(playerCannotAcquireSource.status, 403);
+
   const added = await gamePost(
     { action: "addPlayer", code: sessionCode, name: "Shared Screen Player" },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
@@ -204,6 +226,24 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(themed.status, 200);
   assert.equal((await themed.json()).room.rules.catalogScope, "broadway-tv-movies");
 
+  const unauthenticatedSource = await sourcePost({ action: "poll" }, "not-a-real-source-token-value-000000");
+  assert.equal(unauthenticatedSource.status, 401);
+  const sourceHeartbeat = await sourcePost({ action: "poll", deviceId: "test-device" });
+  assert.equal(sourceHeartbeat.status, 200);
+  assert.equal((await sourceHeartbeat.json()).lease, null);
+  const acquired = await gamePost(
+    { action: "audioAcquire", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(acquired.status, 200);
+  const acquiredPayload = await acquired.json();
+  assert.equal(acquiredPayload.audio.mode, "managed");
+  assert.equal(acquiredPayload.audio.sourceOnline, true);
+  assert.equal(
+    db.prepare("SELECT 1 FROM managed_audio_sources WHERE token_hash = ?").get(managedSourceToken),
+    undefined,
+  );
+
   const started = await gamePost(
     { action: "start", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
@@ -219,6 +259,58 @@ test("an authenticated lobby owns an internal game run and preserves host author
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(begun.status, 200);
+  const playPoll = await sourcePost({ action: "poll", deviceId: "test-device" });
+  assert.equal(playPoll.status, 200);
+  const playWork = await playPoll.json();
+  assert.equal(playWork.lease.sessionCode, sessionCode);
+  assert.equal(playWork.command.kind, "play");
+  assert.match(playWork.command.trackUri, /^spotify:track:/);
+  const playComplete = await sourcePost({
+    action: "complete",
+    commandId: playWork.command.id,
+    ok: true,
+    playbackStatus: "playing",
+    deviceId: "test-device",
+  });
+  assert.equal(playComplete.status, 200);
+
+  const playerPaused = await gamePost(
+    { action: "audioControl", code: sessionCode, command: "pause" },
+    { Authorization: `Bearer ${playerToken}` },
+  );
+  assert.equal(playerPaused.status, 200);
+  assert.equal((await playerPaused.json()).audio.status, "pausing");
+  const playerCannotInjectTrack = await gamePost(
+    { action: "audioControl", code: sessionCode, command: "play", trackUri: "spotify:track:attacker" },
+    { Authorization: `Bearer ${playerToken}` },
+  );
+  assert.equal(playerCannotInjectTrack.status, 400);
+  const pausePoll = await sourcePost({ action: "poll", deviceId: "test-device" });
+  const pauseWork = await pausePoll.json();
+  assert.equal(pauseWork.command.kind, "pause");
+  const pauseComplete = await sourcePost({
+    action: "complete",
+    commandId: pauseWork.command.id,
+    ok: true,
+    playbackStatus: "paused",
+    deviceId: "test-device",
+  });
+  assert.equal(pauseComplete.status, 200);
+  const hostResumed = await gamePost(
+    { action: "audioControl", code: sessionCode, command: "resume" },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(hostResumed.status, 200);
+  const resumePoll = await sourcePost({ action: "poll", deviceId: "test-device" });
+  const resumeWork = await resumePoll.json();
+  assert.equal(resumeWork.command.kind, "resume");
+  assert.equal((await sourcePost({
+    action: "complete",
+    commandId: resumeWork.command.id,
+    ok: true,
+    playbackStatus: "playing",
+    deviceId: "test-device",
+  })).status, 200);
   const activePlayer = readyRoom.players.find((player) => player.id === readyRoom.activePlayerId);
   const placementHeaders = activePlayer.control === "host"
     ? { Cookie: `cb_session=${hostCookie}`, Origin: origin }
@@ -261,6 +353,14 @@ test("an authenticated lobby owns an internal game run and preserves host author
   );
   assert.equal(resumed.status, 200);
   assert.equal((await resumed.json()).room.code, sessionCode);
+
+  const released = await gamePost(
+    { action: "audioRelease", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(released.status, 200);
+  assert.equal((await released.json()).audio.mode, "local");
+  assert.equal((await (await sourcePost({ action: "poll", deviceId: "test-device" })).json()).lease, null);
 });
 
 test("a host-issued capability admits an accountless guest only to its lobby", async () => {

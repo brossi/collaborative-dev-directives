@@ -52,3 +52,12 @@ export type RoomState = {
 export type RoomView = Omit<RoomState, "usedUris"> & {
   isHost: boolean;
 };
+
+export type AudioControlView = {
+  mode: "local" | "managed";
+  leaseId?: string;
+  sourceName?: string;
+  sourceOnline: boolean;
+  status: "disconnected" | "ready" | "starting" | "playing" | "pausing" | "paused" | "resuming" | "error";
+  error?: string;
+};
