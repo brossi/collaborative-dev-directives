@@ -268,7 +268,7 @@ trimmed:named-group,DJ Jazzy Jeff & The Fresh Prince,1,& The Fresh Prince,,,"Q55
 trimmed:named-group,Danny Kaye & The Andrews Sisters,1,& The Andrews Sisters,Q213425,assistant,"Q213425 Danny Kaye [spotify, mb]","Q213425 Danny Kaye [human, spotify, mb, via 'Danny Kaye']","Civilization (Bongo, Bongo, Bongo) (1947)",assistant,Danny Kaye & The Andrews Sisters | Danny Kaye,Danny Kaye
 trimmed:named-group,Diana Ross and the Supremes,1,and the Supremes,Q36290,assistant,"Q36290 Diana Ross [spotify, mb]","Q36290 Diana Ross [human, spotify, mb, via 'Diana Ross']",Love Child (1968),assistant,Diana Ross and the Supremes | Diana Ross,Diana Ross
 trimmed:named-group,Dion & The Belmonts,1,& The Belmonts,Q1226921,assistant,"Q1226921 Dion DiMucci [spotify, mb]","Q1226921 Dion DiMucci [human, spotify, mb, via 'Dion']",A Teenager in Love (1959),assistant,Dion & The Belmonts | Dion,Dion
-trimmed:named-group,Frankie Lymon & The Teenagers,1,& The Teenagers,,,Q683420 Nicolás Sestito [mb],"Q683420 Nicolás Sestito ~ Frankie Lymon [human, mb, via 'Frankie Lymon']",Why Do Fools Fall in Love (1956),single-shortened,Frankie Lymon & The Teenagers | Frankie Lymon,Frankie Lymon
+trimmed:named-group,Frankie Lymon & The Teenagers,1,& The Teenagers,Q683420,assistant,Q683420 Nicolás Sestito [mb],"Q683420 Nicolás Sestito ~ Frankie Lymon [human, mb, via 'Frankie Lymon']",Why Do Fools Fall in Love (1956),assistant,Frankie Lymon & The Teenagers | Frankie Lymon,Frankie Lymon
 trimmed:named-group,Gary Puckett and the Union Gap,1,and the Union Gap,Q22132530,assistant,Q22132530 Gary Puckett [mb],"Q22132530 Gary Puckett [human, mb, via 'Gary Puckett']",Young Girl (1968),assistant,Gary Puckett and the Union Gap | Gary Puckett,Gary Puckett
 trimmed:named-group,Keala Settle & The Greatest Showman Ensemble,1,& The Greatest Showman Ensemble,Q13560560,assistant,"Q13560560 Keala Settle [spotify, mb]","Q13560560 Keala Settle [human, spotify, mb, via 'Keala Settle']",This Is Me (2017),assistant,Keala Settle & The Greatest Showman Ensemble | Keala Settle,Keala Settle
 trimmed:named-group,Merrilee Rush and the Turnabouts,1,and the Turnabouts,Q6820153,assistant,Q6820153 Merrilee Rush [mb],"Q6820153 Merrilee Rush [human, mb, via 'Merrilee Rush']",Angel of the Morning (1968),assistant,Merrilee Rush and the Turnabouts | Merrilee Rush,Merrilee Rush
@@ -427,7 +427,7 @@ trimmed:co-credited,Will Ferrell & My Marianne,1,& My Marianne,Q218503,assistant
 trimmed:co-credited,Zac Efron & Zendaya,1,& Zendaya,Q45229,assistant,"Q45229 Zac Efron [spotify, mb]","Q45229 Zac Efron [human, spotify, mb, via 'Zac Efron']",Rewrite the Stars (2017),assistant,Zac Efron & Zendaya | Zac Efron,Zac Efron
 trimmed:co-credited,Zedd & Alessia Cara,1,& Alessia Cara,Q21088,assistant,"Q21088 Zedd [spotify, mb]","Q21088 Zedd [human, spotify, mb, via 'Zedd']",Stay (2017),assistant,Zedd & Alessia Cara | Zedd,Zedd
 trimmed:co-credited,"Zedd, Maren Morris & Grey",1,", Maren Morris & Grey",Q21088,assistant,"Q21088 Zedd [spotify, mb]","Q21088 Zedd [human, spotify, mb, via 'Zedd']",The Middle (2018),assistant,"Zedd, Maren Morris & Grey | Zedd",Zedd
-trimmed:co-credited,"Zoe Saldana, Karla Sofia Gascon",1,", Karla Sofia Gascon",,,"Q190162 Zoe Sandalia [spotify, mb]","Q190162 Zoe Sandalia ~ Zoe Saldaña [human, spotify, mb, via 'Zoe Saldana']",El Mal (2024),single-shortened,"Zoe Saldana, Karla Sofia Gascon | Zoe Saldana",Zoe Saldana
+trimmed:co-credited,"Zoe Saldana, Karla Sofia Gascon",1,", Karla Sofia Gascon",Q190162,assistant,"Q190162 Zoe Sandalia [spotify, mb]","Q190162 Zoe Sandalia ~ Zoe Saldaña [human, spotify, mb, via 'Zoe Saldana']",El Mal (2024),assistant,"Zoe Saldana, Karla Sofia Gascon | Zoe Saldana",Zoe Saldana
 multi,Harry James,11,,Q163861,assistant,Q163861 Harry James [mb],"Q163861 Harry James [human, mb]
 Q2424156 Thomas Garnet Henry James ~ T. G. H. James [human, mb]",Ciribiribin (1939); You Made Me Love You (1941); I Don't Want to Walk Without You (1942); Mister Five by Five (1942),assistant,Harry James,Harry James
 multi,Michael Jackson,9,,Q2831,assistant,"Q2831 Michael Jackson [spotify, mb]","Q2831 Michael Jackson [human, spotify, mb]
@@ -899,88 +899,3 @@ multi,We Five,1,,Q7977554,assistant,"Q7977554 We Five [spotify, mb]","Q7977554 W
 Q20086421 We Five [musical group, mb]",You Were on My Mind (1965),assistant,We Five,We Five
 multi,"William Daniels, Original Broadway Cast of 1776",1,", Original Broadway Cast of 1776",Q370181,assistant,Q370181 William Daniels [mb],"Q370181 William Daniels [human, mb, via 'William Daniels']
 Q4912425 Billy Daniels [human, mb, via 'William Daniels']","Sit Down, John (1969)",assistant,"William Daniels, Original Broadway Cast of 1776 | William Daniels",William Daniels
-none,Art Landry and His Orchestra,2,,,,,,"Dreamy Melody (1923); Five Foot Two, Eyes of Blue (Has Anybody Seen My Girl?) (1926)",none,Art Landry and His Orchestra | Art Landry,
-none,Beyonce,2,,,,,,Cuff It (2023); Texas Hold 'Em (2024),none,Beyonce,
-none,Charles King,2,,,,,,Broadway Melody (1929); You Were Meant for Me (1929),none,Charles King,
-none,Don Bestor,2,,,,,,Forty-Second Street (1933); Shuffle Off to Buffalo (1933),none,Don Bestor,
-none,Encanto Cast,2,,,,,,We Don't Talk About Bruno (2022); We Don't Talk About Bruno (2022),none,Encanto Cast,
-none,Original Broadway Cast of Fiddler on the Roof,2,,,,,,"Matchmaker (1964); Sunrise, Sunset (1964)",none,Original Broadway Cast of Fiddler on the Roof,
-none,Original London Cast of Mamma Mia!,2,,,,,,Dancing Queen (1999); Mamma Mia (1999),none,Original London Cast of Mamma Mia!,
-none,2Pac featuring K-Ci and JoJo,1,,,,,,How Do U Want It (1996),none,2Pac featuring K-Ci and JoJo | 2Pac,
-none,A.R. Rahman,1,,,,,,Jai Ho (2008),none,A.R. Rahman,
-none,"A.R. Rahman, Sukhwinder Singh",1,,,,,,Jai Ho (2008),none,"A.R. Rahman, Sukhwinder Singh | A.R. Rahman",
-none,Andrea True Connection,1,,,,,,"More, More, More (1976)",none,Andrea True Connection,
-none,Arthur Gibbs and His Gang,1,,,,,,Charleston (1923),none,Arthur Gibbs and His Gang | Arthur Gibbs,
-none,Auli'i Cravalho,1,,,,,,How Far I'll Go (2016),none,Auli'i Cravalho,
-none,Beyonce feat. Jay-Z,1,,,,,,Drunk in Love (2014),none,Beyonce feat. Jay-Z | Beyonce,
-none,Bo Donaldson and the Heywoods,1,,,,,,Billy Don't Be a Hero (1974),none,Bo Donaldson and the Heywoods | Bo Donaldson,
-none,Bonnie Franklin,1,,,,,,Applause (1970),none,Bonnie Franklin,
-none,"Brody Grant, Sky Lakota-Lynch",1,,,,,,Stay Gold (2024),none,"Brody Grant, Sky Lakota-Lynch | Brody Grant",
-none,Cast of Schmigadoon!,1,,,,,,Corn Puddin' (2021),none,Cast of Schmigadoon!,
-none,Clarence Williams' Blue Five,1,,,,,,Everybody Loves My Baby (1924),none,Clarence Williams' Blue Five,
-none,Club Royal Orchestra,1,,,,,,The Sheik of Araby (1922),none,Club Royal Orchestra,
-none,Daisy Jones & The Six,1,,,,,,Look At Us Now (Honeycomb) (2023),none,Daisy Jones & The Six | Daisy Jones,
-none,Diddy - Dirty Money feat. Skylar Grey,1,,,,,,Coming Home (2011),none,Diddy - Dirty Money feat. Skylar Grey | Diddy - Dirty Money,
-none,Dionne and Friends,1,,,,,,That's What Friends Are For (1986),none,Dionne and Friends | Dionne,
-none,Eslabon Armado & Peso Pluma,1,,,,,,Ella Baila Sola (2023),none,Eslabon Armado & Peso Pluma | Eslabon Armado,
-none,Ferrante and Teicher,1,,,,,,Exodus (1961),none,Ferrante and Teicher | Ferrante,
-none,Frida,1,,,,,,I Know There's Something Going On (1983),none,Frida,
-none,"HUNTR/X: EJAE, Audrey Nuna & REI AMI",1,,,,,,Golden (2025),none,"HUNTR/X: EJAE, Audrey Nuna & REI AMI | HUNTR/X: EJAE",
-none,Halsey,1,,,,,,Without Me (2019),none,Halsey,
-none,Hot,1,,,,,,Angel in Your Arms (1977),none,Hot,
-none,Jimmy Gilmer and the Fireballs,1,,,,,,Sugar Shack (1963),none,Jimmy Gilmer and the Fireballs | Jimmy Gilmer,
-none,John Lloyd Young,1,,,,,,Can't Take My Eyes Off You (2005),none,John Lloyd Young,
-none,"John Lloyd Young, Original Broadway Cast of Jersey Boys",1,,,,,,Sherry (2005),none,"John Lloyd Young, Original Broadway Cast of Jersey Boys | John Lloyd Young",
-none,Johnny Standley,1,,,,,,It's in the Book (1952),none,Johnny Standley,
-none,Jordin Sparks duet with Chris Brown,1,,,,,,No Air (2008),none,Jordin Sparks duet with Chris Brown | Jordin Sparks duet,
-none,Jorgen Ingmann,1,,,,,,Apache (1961),none,Jorgen Ingmann,
-none,Ken Griffin,1,,,,,,"You Can't Be True, Dear (1948)",none,Ken Griffin,
-none,La La Land Cast,1,,,,,,Another Day of Sun (2016),none,La La Land Cast,
-none,Larry Owens,1,,,,,,Inner White Girl (2019),none,Larry Owens,
-none,Little Stevie Wonder,1,,,,,,Fingertips (Pt. 2) (1963),none,Little Stevie Wonder,
-none,Mr. Acker Bilk,1,,,,,,Stranger on the Shore (1962),none,Mr. Acker Bilk,
-none,Nashville Cast feat. Sam Palladio & Clare Bowen,1,,,,,,If I Didn't Know Better (2012),none,Nashville Cast feat. Sam Palladio & Clare Bowen | Nashville Cast,
-none,Original Broadway Cast of A Chorus Line,1,,,,,,One (1975),none,Original Broadway Cast of A Chorus Line,
-none,Original Broadway Cast of A Gentleman's Guide to Love and Murder,1,,,,,,I've Decided to Marry You (2014),none,Original Broadway Cast of A Gentleman's Guide to Love and Murder | Original Broadway Cast of A Gentleman's Guide to Love,
-none,Original Broadway Cast of Ain't Misbehavin',1,,,,,,Ain't Misbehavin' (1978),none,Original Broadway Cast of Ain't Misbehavin',
-none,Original Broadway Cast of Annie,1,,,,,,It's the Hard Knock Life (1977),none,Original Broadway Cast of Annie,
-none,Original Broadway Cast of Cats,1,,,,,,Jellicle Songs for Jellicle Cats (1983),none,Original Broadway Cast of Cats,
-none,Original Broadway Cast of Fiorello!,1,,,,,,Little Tin Box (1960),none,Original Broadway Cast of Fiorello!,
-none,Original Broadway Cast of Fosse,1,,,,,,Big Spender (1999),none,Original Broadway Cast of Fosse,
-none,Original Broadway Cast of Hairspray,1,,,,,,You Can't Stop the Beat (2002),none,Original Broadway Cast of Hairspray,
-none,Original Broadway Cast of Hamilton,1,,,,,,Alexander Hamilton (2015),none,Original Broadway Cast of Hamilton,
-none,Original Broadway Cast of Jerome Robbins' Broadway,1,,,,,,"New York, New York (1989)",none,Original Broadway Cast of Jerome Robbins' Broadway,
-none,Original Broadway Cast of Jersey Boys,1,,,,,,"December, 1963 (Oh What a Night) (2005)",none,Original Broadway Cast of Jersey Boys,
-none,Original Broadway Cast of Kimberly Akimbo,1,,,,,,Great Adventure (2023),none,Original Broadway Cast of Kimberly Akimbo,
-none,Original Broadway Cast of Les Miserables,1,,,,,,One Day More (1987),none,Original Broadway Cast of Les Miserables,
-none,Original Broadway Cast of Nine,1,,,,,,Be Italian (1982),none,Original Broadway Cast of Nine,
-none,Original Broadway Cast of Rent,1,,,,,,Seasons of Love (1996),none,Original Broadway Cast of Rent,
-none,Original Broadway Cast of Spamalot,1,,,,,,Always Look on the Bright Side of Life (2005),none,Original Broadway Cast of Spamalot,
-none,Original Broadway Cast of Sweeney Todd,1,,,,,,Not While I'm Around (1979),none,Original Broadway Cast of Sweeney Todd,
-none,Original Broadway Cast of The Book of Mormon,1,,,,,,Hello! (2011),none,Original Broadway Cast of The Book of Mormon,
-none,Original Broadway Cast of The Lion King,1,,,,,,Circle of Life (1997),none,Original Broadway Cast of The Lion King,
-none,Original Broadway Cast of The Producers,1,,,,,,Springtime for Hitler (2001),none,Original Broadway Cast of The Producers,
-none,Original Broadway Cast of The Wiz,1,,,,,,Ease on Down the Road (1975),none,Original Broadway Cast of The Wiz,
-none,Original Broadway Cast of Titanic,1,,,,,,Godspeed Titanic (1997),none,Original Broadway Cast of Titanic,
-none,Original Broadway Cast of Two Gentlemen of Verona,1,,,,,,Night Letter (1971),none,Original Broadway Cast of Two Gentlemen of Verona,
-none,Original London Cast of Billy Elliot,1,,,,,,Electricity (2005),none,Original London Cast of Billy Elliot,
-none,Painty the Pirate & Kids,1,,,,,,SpongeBob SquarePants Theme Song (1999),none,Painty the Pirate & Kids | Painty the Pirate,
-none,ROSE & Bruno Mars,1,,,,,,APT. (2025),none,ROSE & Bruno Mars | ROSE,
-none,"Rahul Sipligunj, Kaala Bhairava",1,,,,,,Naatu Naatu (2022),none,"Rahul Sipligunj, Kaala Bhairava | Rahul Sipligunj",
-none,SSgt. Barry Sadler,1,,,,,,The Ballad of the Green Berets (1966),none,SSgt. Barry Sadler,
-none,Salt-n-Pepa,1,,,,,,Shoop (1994),none,Salt-n-Pepa,
-none,Salt-n-Pepa featuring En Vogue,1,,,,,,Whatta Man (1994),none,Salt-n-Pepa featuring En Vogue | Salt-n-Pepa,
-none,Silento,1,,,,,,Watch Me (Whip/Nae Nae) (2015),none,Silento,
-none,Silk Sonic (Bruno Mars & Anderson .Paak),1,,,,,,Leave the Door Open (2021),none,Silk Sonic (Bruno Mars & Anderson .Paak) | Silk Sonic (Bruno Mars,
-none,Sinead O'Connor,1,,,,,,Nothing Compares 2 U (1990),none,Sinead O'Connor,
-none,Sydney Lucas,1,,,,,,Ring of Keys (2015),none,Sydney Lucas,
-none,The Happiness Boys,1,,,,,,"Where Do You Work-a, John? (1926)",none,The Happiness Boys,
-none,The Harmonicats,1,,,,,,Peg o' My Heart (1947),none,The Harmonicats,
-none,The High Hatters,1,,,,,,"Sing, You Sinners (1930)",none,The High Hatters,
-none,The Marias,1,,,,,,No One Noticed (2025),none,The Marias,
-none,The Mash,1,,,,,,Suicide Is Painless (1970),none,The Mash,
-none,The Rocky Horror Picture Show Original Cast,1,,,,,,Time Warp (1975),none,The Rocky Horror Picture Show Original Cast,
-none,The Tony Rich Project,1,,,,,,Nobody Knows (1996),none,The Tony Rich Project,
-none,Virginia Capers,1,,,,,,A Whole Lotta Sunlight (1973),none,Virginia Capers,
-none,blackbear,1,,,,,,Hot Girl Bummer (2020),none,blackbear,
-none,will.i.am feat. Britney Spears,1,,,,,,Scream & Shout (2013),none,will.i.am feat. Britney Spears | will.i.am,

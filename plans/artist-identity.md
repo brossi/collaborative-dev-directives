@@ -9,26 +9,44 @@ Phases 1–3 landed 2026-08-10: `8d3864c` (capture) + `d1ad4f0` (the ranking fix
 it exposed) · `5194271` (registry) · `0fe0caa` (review tooling) + `80969d5`
 (assistant pass). All tests green: 131 Python, 23 web, lint clean.
 
-**Immediate next task — Phase 4 (§5), or the remaining 118 audit rows.**
+**Immediate next task — Phase 4 (§5), or the remaining 33 audit rows.**
 The co-credited pass landed 2026-08-10 (`39d003e`).
 
 ```sh
 cd CannaBeats
 python3 tools/review_artist_registry.py                       # emit if stale
-# author a two-column credit,decision CSV; then:
+python3 tools/review_artist_registry.py --include-deferred     # ...with the 85 parked ones
+# author a two-column credit,decision CSV (ok | none | defer | Qnnn); then:
 python3 tools/review_artist_registry.py --csv <file> --apply --reviewer assistant --dry-run
 python3 tools/review_artist_registry.py --csv <file> --apply --reviewer assistant
 python3 -m unittest discover -s tools -p 'test_*.py'
 ```
 
 **State right now:** 1,969 credits · 1,279 `single-exact` · 572 `assistant` ·
-31 `multi` · 85 `none` · 2 `single-shortened`. **3,476 / 3,616 song rows sit on
-an identified artist.** 118 undecided: 85 `none`, 31 `multi`, 2 named-group.
+31 `multi` · 85 `none` (all deferred) · 2 `single-shortened`. **3,476 / 3,616
+song rows sit on an identified artist.** **33 rows left to audit**, covering 50
+songs: 31 `multi` and 2 named-group. All 33 have Wikipedia-backed candidates,
+and 27 of them carry a disambiguator — see the article-title note below.
 
-The `none` rows have no candidate at all (diacritic misses like
-`Beyonce`→Beyoncé, and cast credits that legitimately have no entity), so they
-need a hand-entered Q-number, which only `--reviewer human` may supply. The 31
-`multi` rows got a lot easier — see the article-title note below.
+**The 85 `none` rows are DEFERRED** (Ben, 2026-08-10): they matched no Wikidata
+entity at all, so there is nothing to read and nothing to choose between, and
+re-reading them every pass was pure cost. `defer` is deliberately NOT a
+decision — see the `decision` column docs in `review_artist_registry.py`. The
+rows keep `source: wikidata` / `confidence: none`, claim no entity, record no
+reviewer, and `rederive_rows()` still replays over them. They are simply not
+shown. `--include-deferred` brings them back.
+
+⚠ **They are "no entity FOUND", not "no entity EXISTS"** — do not read the
+deferral as a finding. Probed 2026-08-10: `Beyonce`→Beyoncé (Q36153),
+`Sinead O'Connor`→Q193982, `Salt-n-Pepa`→Q1545961, `The Marias`→Q85807852,
+`Silento`→Q20354248, `Mr. Acker Bilk`→Acker Bilk (Q45610) all resolve under
+their correctly-spelled label. Wikidata label matching is exact, so the
+catalog's unaccented spellings miss. Roughly a third of the 85 are recoverable
+that way; most of the rest are `Original Broadway Cast of X` credits that
+genuinely have no artist entity. Deferring costs nothing here: a future
+harvest that folds diacritics would resolve these to `single-exact` and every
+downstream join would pick them up regardless of the flag, because the flag
+only filters the review CSV.
 
 **The two "known-wrong IDs" were NOT wrong** ⚠ — this corrects an earlier claim
 in this same block. `Frankie Lymon & The Teenagers` → Q683420 and

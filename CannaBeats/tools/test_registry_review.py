@@ -21,10 +21,10 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from harvest_artist_ids import rederive_rows
-from review_artist_registry import (DECISION_NONE, DECISION_OK, SHAPE_ORDER,
-                                    apply_decisions, emit_csv, needs_review,
-                                    parse_decisions, removed_text, review_shape,
-                                    unresolved_qids)
+from review_artist_registry import (DECISION_DEFER, DECISION_NONE, DECISION_OK,
+                                    SHAPE_ORDER, apply_decisions, emit_csv,
+                                    needs_review, parse_decisions, removed_text,
+                                    review_shape, unresolved_qids)
 
 
 def row(credit, confidence, songs=1, wikidata=None, candidates=None, **extra):
@@ -94,6 +94,90 @@ class AConflictingArticleTitleIsShownNotHidden(unittest.TestCase):
             {"wikidata": "Q218091", "name": "Seal", "spotify_artist_id": None,
              "musicbrainz_artist_id": None, "types": []}]})]
         self.assertIn("Q218091 Seal", self.emit(rows)[0]["candidates"])
+
+
+class DeferringParksARowWithoutDecidingIt(unittest.TestCase):
+    """85 credits resolved to no Wikidata entity at all, so there is nothing to
+    read and nothing to choose between — they are unanswerable rather than
+    hard. Ben deferred them 2026-08-10 rather than keep re-reading them.
+
+    A deferral is NOT a decision, and the difference matters: `none` asserts
+    "there is genuinely no entity for this credit", which is a claim later
+    harvests must not overturn. `defer` asserts nothing at all — it only says
+    "not worth my time yet". So it must leave wikidata/source/confidence alone,
+    or a shrug would be recorded as a finding.
+    """
+
+    def emit(self, rows, **kwargs):
+        buffer = io.StringIO()
+        emit_csv(rows, {}, buffer)
+        return list(csv.DictReader(io.StringIO(buffer.getvalue())))
+
+    def test_a_deferred_row_leaves_the_queue(self):
+        rows = [row("Beyonce", "none", 2), row("Rihana", "none", 1)]
+        apply_decisions(rows, {"Rihana": DECISION_DEFER})
+        self.assertEqual([r["credit"] for r in needs_review(rows)], ["Beyonce"])
+
+    def test_deferring_asserts_nothing_about_the_entity(self):
+        rows = [row("Beyonce", "none", 2)]
+        apply_decisions(rows, {"Beyonce": DECISION_DEFER})
+        self.assertTrue(rows[0]["deferred"])
+        self.assertIsNone(rows[0]["wikidata"])
+        # The tells that separate a shrug from a finding.
+        self.assertEqual(rows[0]["source"], "wikidata")
+        self.assertEqual(rows[0]["confidence"], "none")
+
+    def test_a_deferred_row_is_not_confirmed_absent(self):
+        # `none` is a decision a later harvest must not overturn; `defer` is
+        # not. Conflating them would silently retire 85 credits as answered.
+        deferred, absent = [row("Beyonce", "none", 2)], [row("Beyonce", "none", 2)]
+        apply_decisions(deferred, {"Beyonce": DECISION_DEFER})
+        apply_decisions(absent, {"Beyonce": DECISION_NONE})
+        self.assertNotEqual(deferred[0]["source"], absent[0]["source"])
+
+    def test_include_deferred_brings_them_back_ready_to_edit(self):
+        rows = [row("Beyonce", "none", 2)]
+        apply_decisions(rows, {"Beyonce": DECISION_DEFER})
+        back = needs_review(rows, include_deferred=True)
+        self.assertEqual([r["credit"] for r in back], ["Beyonce"])
+        self.assertEqual(self.emit(back)[0]["decision"], DECISION_DEFER)
+
+    def test_deciding_a_deferred_row_wakes_it_up(self):
+        rows = [row("Beyonce", "none", 2, candidates={"Beyonce": [
+            candidate("Q36153", "Beyoncé")]})]
+        apply_decisions(rows, {"Beyonce": DECISION_DEFER})
+        apply_decisions(rows, {"Beyonce": "Q36153"}, reviewer="assistant")
+        self.assertFalse(rows[0].get("deferred"))
+        self.assertEqual(rows[0]["wikidata"], "Q36153")
+
+    def test_an_assistant_may_defer_without_naming_a_candidate(self):
+        # The guard rejects a Q-number an assistant did not get from the row.
+        # A deferral names no entity, so it must not trip that guard.
+        rows = [row("Beyonce", "none", 2)]
+        self.assertEqual(apply_decisions(rows, {"Beyonce": DECISION_DEFER},
+                                         reviewer="assistant"), 1)
+
+    def test_deferring_twice_is_idempotent(self):
+        rows = [row("Beyonce", "none", 2)]
+        apply_decisions(rows, {"Beyonce": DECISION_DEFER})
+        self.assertEqual(apply_decisions(rows, {"Beyonce": DECISION_DEFER}), 0)
+
+    def test_a_deferral_survives_rederive(self):
+        # rederive_rows() deliberately does NOT skip a deferred row — it never
+        # asked to be treated as decided — so the flag has to outlive the
+        # decide() replay under it, or 85 rows quietly rejoin the queue.
+        rows = [row("Beyonce", "none", 2)]
+        apply_decisions(rows, {"Beyonce": DECISION_DEFER})
+        rederive_rows(rows)
+        self.assertTrue(rows[0]["deferred"])
+        self.assertEqual(needs_review(rows), [])
+
+    def test_the_keyword_is_read_as_a_keyword_not_a_qid(self):
+        # Spreadsheets change case on export; everything that is not ok/none
+        # gets upper-cased as a Q-number, which would make "DEFER" an entity.
+        parsed = parse_decisions(io.StringIO(
+            "credit,decision\nBeyonce,Defer\nRihana, DEFER \n"))
+        self.assertEqual(parsed, {"Beyonce": DECISION_DEFER, "Rihana": DECISION_DEFER})
 
 
 class NeedsReviewPicksTheUncertainRows(unittest.TestCase):

@@ -17,7 +17,17 @@ WHAT GOES IN THE `decision` COLUMN
              or paste any Q-number you looked up yourself)
     ok       what was harvested is right — confirm it as-is
     none     there genuinely is no Wikidata entity for this credit
+    defer    park it: not worth deciding yet. Leaves the queue, asserts nothing
     (blank)  not reviewed yet; the row is left exactly as it is
+
+    `none` and `defer` are easy to confuse and must not be. `none` is a
+    FINDING — "I looked, there is no entity" — and it is durable, so a later
+    harvest turning up a candidate does not overturn it. `defer` is the
+    ABSENCE of a finding: the row keeps its harvested state untouched and
+    rederive still replays over it, it simply stops being shown. Ben deferred
+    the 85 credits that matched no Wikidata entity at all on 2026-08-10:
+    nothing to read and nothing to choose between, so re-reading them every
+    pass was pure cost. `--include-deferred` brings them back.
 
 WHY THIS EXISTS AT ALL
     Deciding whether "Seal" and "Seals and Crofts" are the same act is not a
@@ -77,6 +87,8 @@ REVIEW_CSV = HERE / "mappings" / "artist-registry-review.csv"
 
 DECISION_OK = "ok"
 DECISION_NONE = "none"
+# Not a decision — a deferral. See apply_decisions.
+DECISION_DEFER = "defer"
 # Everything except a settled machine answer and an already-audited row.
 REVIEWABLE = ("single-shortened", "multi", "none")
 
@@ -150,7 +162,7 @@ def removed_text(row) -> str:
 MAX_EXAMPLES = 4
 
 
-def needs_review(rows) -> list:
+def needs_review(rows, include_deferred=False) -> list:
     """Uncertain rows, grouped by shape and then most songs first.
 
     Grouping beats a flat song-count ordering here because the file is meant to
@@ -165,6 +177,7 @@ def needs_review(rows) -> list:
     """
     pending = [row for row in rows
                if row.get("source") != "human"
+               and (include_deferred or not row.get("deferred"))
                and (row["confidence"] in REVIEWABLE
                     or row.get("source") in REVIEWED)]
     return sorted(pending, key=lambda row: (SHAPE_ORDER.index(review_shape(row)),
@@ -178,6 +191,8 @@ def prior_decision(row) -> str:
     rather than blank: the human is reviewing a proposal, not re-deriving it
     from scratch. Leaving the cell alone accepts it; editing it overrides.
     """
+    if row.get("deferred"):
+        return DECISION_DEFER
     if row.get("source") not in REVIEWED:
         return ""
     return row["wikidata"] or DECISION_NONE
@@ -265,8 +280,9 @@ def parse_decisions(handle) -> dict:
         if not raw:
             continue
         lowered = raw.lower()
-        decisions[record["credit"]] = (lowered if lowered in (DECISION_OK, DECISION_NONE)
-                                       else raw.upper())
+        decisions[record["credit"]] = (
+            lowered if lowered in (DECISION_OK, DECISION_NONE, DECISION_DEFER)
+            else raw.upper())
     return decisions
 
 
@@ -283,7 +299,7 @@ def unresolved_qids(rows, decisions) -> dict:
     by_credit = {row["credit"]: row for row in rows}
     missing = {}
     for credit, decision in decisions.items():
-        if decision in (DECISION_OK, DECISION_NONE):
+        if decision in (DECISION_OK, DECISION_NONE, DECISION_DEFER):
             continue
         row = by_credit.get(credit)
         if row is not None and decision not in _candidate_index(row):
@@ -308,6 +324,18 @@ def apply_decisions(rows, decisions, extra=None, reviewer="human") -> int:
         row = by_credit.get(credit)
         if row is None:
             raise ValueError(f"decision for a credit not in the registry: {credit!r}")
+        if decision == DECISION_DEFER:
+            # A deferral is NOT a decision, and the gap matters. `none` claims
+            # "there is genuinely no entity for this credit" — a finding a
+            # later harvest must not overturn. `defer` claims nothing: it says
+            # only "not worth reading yet". So it touches wikidata, source and
+            # confidence not at all, and rederive_rows() still replays over it.
+            # Recording a shrug as a finding would retire the credit for good.
+            if row.get("deferred"):
+                continue  # keep --apply idempotent
+            row["deferred"] = True
+            applied += 1
+            continue
         if decision == DECISION_OK:
             if not row["wikidata"]:
                 raise ValueError(
@@ -340,9 +368,14 @@ def apply_decisions(rows, decisions, extra=None, reviewer="human") -> int:
                      row["spotify_artist_id_source"]
                      if chosen["spotify_artist_id"] == row["spotify_artist_id"]
                      else "human")}
-        if all(row.get(key) == value for key, value in after.items()):
+        if not row.get("deferred") and all(row.get(key) == value
+                                           for key, value in after.items()):
             continue  # already applied; keep --apply idempotent
         row.update(after)
+        # Answering a parked row wakes it. Popping rather than writing False
+        # keeps the key off the ~1,850 rows that were never deferred, so the
+        # idempotency check above still short-circuits for them.
+        row.pop("deferred", None)
         applied += 1
     return applied
 
@@ -398,6 +431,9 @@ def main() -> None:
                         help="who made these calls. 'assistant' rows stay in the "
                              "queue with their answer pre-filled for a human to "
                              "accept or override (default: human)")
+    parser.add_argument("--include-deferred", action="store_true",
+                        help="put parked rows back in the CSV, so a `defer` can "
+                             "be overwritten with a real decision")
     args = parser.parse_args()
 
     rows = read_rows(args.registry)
@@ -414,7 +450,7 @@ def main() -> None:
                 sys.exit(f"{args.csv} holds {len(unapplied)} decision(s) not yet in "
                          f"the registry. Apply them first (--apply), or move the "
                          f"file aside — regenerating would discard them.")
-        pending = needs_review(rows)
+        pending = needs_review(rows, include_deferred=args.include_deferred)
         args.csv.parent.mkdir(parents=True, exist_ok=True)
         with args.csv.open("w", newline="") as handle:
             emit_csv(pending, catalog_examples(args.catalog), handle)
@@ -424,6 +460,10 @@ def main() -> None:
             print(f"  {confidence:18} {tally[confidence]:5}", file=sys.stderr)
         print(f"covering {sum(row['songs'] for row in pending)} songs; "
               f"fill the `decision` column, then re-run with --apply", file=sys.stderr)
+        parked = sum(1 for row in rows if row.get("deferred"))
+        if parked and not args.include_deferred:
+            print(f"{parked} deferred row(s) left out — --include-deferred to see them",
+                  file=sys.stderr)
         return
 
     if not args.csv.exists():
@@ -457,8 +497,15 @@ def main() -> None:
               f"nothing written", file=sys.stderr)
         return
     write_rows(args.registry, rows)
-    print(f"applied {applied} of {len(decisions)} {args.reviewer} decision(s) "
-          f"-> {args.registry}", file=sys.stderr)
+    # Deferrals are counted apart from decisions on purpose: they record no
+    # reviewer at all, and calling them "N human decisions" would misreport
+    # who stood behind them.
+    parked = sum(1 for decision in decisions.values() if decision == DECISION_DEFER)
+    summary = f"{applied} of {len(decisions)} {args.reviewer} decision(s)"
+    if parked:
+        summary = (f"{applied - parked} {args.reviewer} decision(s) and {parked} "
+                   f"deferral(s), which record no reviewer, of {len(decisions)}")
+    print(f"applied {summary} -> {args.registry}", file=sys.stderr)
     summarize(rows)
 
 

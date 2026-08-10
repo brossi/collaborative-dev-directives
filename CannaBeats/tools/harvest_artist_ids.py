@@ -325,8 +325,10 @@ def summarize(rows) -> None:
         if tally[confidence]:
             print(f"  {confidence:18} {tally[confidence]:5} credits  "
                   f"{songs[confidence]:5} songs", file=sys.stderr)
-    pending = sum(tally[c] for c in ("single-shortened", "multi", "none"))
-    print(f"Phase 3 has {pending} of {len(rows)} left to audit.", file=sys.stderr)
+    parked = sum(1 for row in rows if row.get("deferred"))
+    pending = sum(tally[c] for c in ("single-shortened", "multi", "none")) - parked
+    print(f"Phase 3 has {pending} of {len(rows)} left to audit"
+          + (f" ({parked} deferred)." if parked else "."), file=sys.stderr)
 
 
 def rederive_rows(rows) -> int:
