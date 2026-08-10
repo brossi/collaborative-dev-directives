@@ -99,9 +99,11 @@ ssh -N -L 5901:127.0.0.1:5900 root@100.112.225.109
 open vnc://127.0.0.1:5901
 ```
 
-VNC intentionally has no independent password because it cannot accept a
-network connection; SSH/Tailscale is the authentication and encryption layer.
-Never publish port 5900 or replace `-localhost` in the VNC unit.
+VNC also uses a local password file at
+`/etc/cannabeats-managed-source/vnc.pass`, even though it cannot accept a
+network connection. SSH/Tailscale remains the primary authentication and
+encryption layer. Never publish port 5900 or replace `-localhost` in the VNC
+unit.
 
 ## Spotify setup
 
