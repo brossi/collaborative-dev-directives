@@ -1,19 +1,25 @@
 # CannaBeats desktop client PoC
 
-This Tauri 2 application proves the player-side desktop flow without embedding the game engine or
-Spotify playback:
+This Tauri 2 application packages the authenticated player-side flow while reusing the same game
+client and engine served to the PWA:
 
 - it opens the existing CannaBeats site in the default browser for passkey approval;
 - the browser approves a particular desktop installation with a short-lived code and a fresh
   passkey assertion;
 - the resulting opaque credential is stored in the operating system credential store and is never
   exposed to the bundled HTML/JavaScript UI;
-- an approved installation can join a lobby by code, resume active lobbies for that account, and
-  observe the authenticated member list;
+- an approved installation exchanges its protected credential for a single-use, one-minute launch
+  ticket, then navigates its webview into the full `/game` client;
+- the game consumes that ticket once and sets a twelve-hour HttpOnly webview session tied to the
+  revocable desktop credential;
+- a player can enter a four-character code and use the existing lobby, timeline, placement, and
+  scoring UI rather than a parallel desktop-only lobby model;
 - disconnecting revokes the server credential and removes the local credential-store entry.
 
-The human-readable pairing and game codes are locators, not credentials. Desktop application
-approvals can also be revoked from the account page.
+The long-lived desktop credential never enters a URL or the webview. The one-time ticket is hashed
+server-side, expires after one minute, and is deleted on first use. Human-readable pairing and game
+codes remain locators, not credentials. Desktop approvals can also be revoked from the account page,
+which invalidates derived webview sessions.
 
 ## Build on macOS
 
@@ -55,5 +61,6 @@ Developer ID signing/notarization, and the Windows installer needs a Windows bui
 
 ## Deliberate limits
 
-This slice stops at authenticated join/resume/lobby behavior. It does not yet contain gameplay,
-relay audio listening, Spotify, host controls, automatic updates, or production installer signing.
+The player app now contains full gameplay by loading the shared remote client. It does not yet play
+the host's relay audio, provide host controls, support automatic updates, or carry production
+installer signing. Spotify remains host-local and is intentionally absent from the player flow.

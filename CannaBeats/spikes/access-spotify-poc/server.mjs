@@ -25,6 +25,7 @@ const PENDING_COOKIE = 'cb_webauthn';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const PAIRING_TTL_MS = 10 * 60 * 1000;
 const AGENT_CHALLENGE_TTL_MS = 2 * 60 * 1000;
+const DESKTOP_WEB_TICKET_TTL_MS = 60 * 1000;
 const HOST_AGENT_PAIRING_LABEL = 'host_agent_pair:';
 const DESKTOP_PAIRING_LABEL = 'desktop_pair:';
 const GAME_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -826,6 +827,28 @@ export function createApp({
       user: userView(req.user),
       application: { displayName: req.user.application_name },
     });
+  });
+
+  app.post('/api/desktop/game-launch', requireDesktopUser, (req, res) => {
+    purgeExpired(db);
+    const rawCode = String(req.body?.code ?? '').trim();
+    const code = rawCode ? normalizeGameCode(rawCode) : '';
+    if (rawCode && code.length !== 4) throw new HttpError(400, 'Game code is invalid');
+    if (code && !db.prepare('SELECT 1 FROM rooms WHERE code = ?').get(code)) {
+      throw new HttpError(404, 'Game room was not found');
+    }
+    const ticket = randomToken();
+    const now = Date.now();
+    const expiresAt = now + DESKTOP_WEB_TICKET_TTL_MS;
+    db.prepare(`
+      INSERT INTO desktop_web_tickets
+        (token_hash, desktop_session_hash, room_code, created_at, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(sha256(ticket), req.user.token_hash, code || null, now, expiresAt);
+    writeAuditEvent(db, req.user.id, 'desktop.game_launched', code);
+    const launchUrl = new URL('/game/desktop', config.origin);
+    launchUrl.searchParams.set('ticket', ticket);
+    res.status(201).json({ launchUrl: launchUrl.toString(), expiresAt: new Date(expiresAt).toISOString() });
   });
 
   app.delete('/api/desktop/session', requireDesktopUser, (req, res) => {

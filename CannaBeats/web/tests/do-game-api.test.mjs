@@ -128,6 +128,31 @@ test("the Host service creates a real room and only its owner receives host auth
   assert.equal(playerView.status, 200);
   assert.equal((await playerView.json()).room.isHost, false);
 
+  const launchTicket = `desktop-launch-${randomUUID()}`;
+  db.prepare(`
+    INSERT INTO desktop_web_tickets
+      (token_hash, desktop_session_hash, room_code, created_at, expires_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(sha256(launchTicket), sha256(playerToken), created.room.code, Date.now(), Date.now() + 60_000);
+  const handoff = await fetch(
+    `${origin}/game/desktop?ticket=${encodeURIComponent(launchTicket)}`,
+    { redirect: "manual" },
+  );
+  assert.equal(handoff.status, 303);
+  assert.equal(new URL(handoff.headers.get("location")).searchParams.get("room"), created.room.code);
+  assert.match(handoff.headers.get("set-cookie"), /^cb_desktop_web=.*HttpOnly; Secure; SameSite=Strict/);
+  const desktopWebCookie = handoff.headers.get("set-cookie").split(";", 1)[0];
+  const webView = await fetch(`${origin}/game/api/game?code=${created.room.code}`, {
+    headers: { Cookie: desktopWebCookie },
+  });
+  assert.equal(webView.status, 200);
+  assert.equal((await webView.json()).room.isHost, false);
+  const replayedHandoff = await fetch(
+    `${origin}/game/desktop?ticket=${encodeURIComponent(launchTicket)}`,
+    { redirect: "manual" },
+  );
+  assert.equal(replayedHandoff.status, 401);
+
   const joined = await gamePost(
     { action: "join", code: created.room.code, name: "Desktop Player" },
     { Authorization: `Bearer ${playerToken}` },

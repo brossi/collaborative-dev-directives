@@ -32,8 +32,10 @@ receives the value.
 The paired Host application creates or reopens an actual unfinished game room through a private
 container-to-container API. It passes only the four-character locator to `/game?room=CODE`; the
 game service derives host authority from the browser's existing passkey session. A code is never a
-credential. The desktop-client shell still demonstrates revocable installation pairing; its next
-slice is to render the same authenticated gameplay client now served under `/game`.
+credential. After revocable installation pairing, the desktop client exchanges its protected
+bearer credential for a one-minute, single-use launch ticket.
+The game consumes that ticket into a twelve-hour HttpOnly webview session tied to the revocable
+desktop credential, then renders the same authenticated gameplay client served under `/game`.
 
 ## Local development
 

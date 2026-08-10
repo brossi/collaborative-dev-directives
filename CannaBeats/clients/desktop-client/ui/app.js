@@ -26,7 +26,7 @@ function errorText(error) {
 
 function formatCode(code) {
   const normalized = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (normalized.length <= 3) return normalized;
+  if (normalized.length <= 4) return normalized;
   const midpoint = normalized.length <= 6 ? 3 : 4;
   return `${normalized.slice(0, midpoint)}-${normalized.slice(midpoint)}`;
 }
@@ -132,7 +132,7 @@ async function pollAuthorization() {
     clearInterval(state.authorizationTimer);
     state.user = result.user;
     state.application = result.application;
-    state.sessions = await invoke('list_sessions');
+    state.sessions = [];
     byId('pairing-status').textContent = 'Authorization confirmed.';
     renderAccount();
     message(`Connected as ${state.user.displayName}.`);
@@ -148,18 +148,20 @@ async function joinGame(event) {
   const button = event.submitter;
   button.disabled = true;
   try {
-    const session = await invoke('join_session', { code: byId('game-code').value });
-    const index = state.sessions.findIndex((candidate) => candidate.code === session.code);
-    if (index >= 0) state.sessions[index] = session;
-    else state.sessions.unshift(session);
-    renderResumeSessions();
-    showLobby(session);
-    byId('join-form').reset();
-    message(`Joined ${formatCode(session.code)}.`);
+    const code = formatCode(byId('game-code').value);
+    await invoke('launch_game', { code });
   } catch (error) {
     message(errorText(error), 'error');
   } finally {
     button.disabled = false;
+  }
+}
+
+async function openGame() {
+  try {
+    await invoke('launch_game', { code: null });
+  } catch (error) {
+    message(errorText(error), 'error');
   }
 }
 
@@ -189,9 +191,10 @@ function wireEvents() {
   byId('open-account').addEventListener('click', () => invoke('open_account_page').catch((error) => message(errorText(error), 'error')));
   byId('disconnect').addEventListener('click', disconnect);
   byId('join-form').addEventListener('submit', joinGame);
+  byId('open-game').addEventListener('click', openGame);
   byId('game-code').addEventListener('input', (event) => {
     const caretAtEnd = event.target.selectionStart === event.target.value.length;
-    event.target.value = formatCode(event.target.value).slice(0, 7);
+    event.target.value = formatCode(event.target.value).slice(0, 4);
     if (caretAtEnd) event.target.setSelectionRange(event.target.value.length, event.target.value.length);
   });
 }

@@ -163,6 +163,24 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS room_player_identities_user_id
       ON room_player_identities(user_id);
 
+    CREATE TABLE IF NOT EXISTS desktop_web_tickets (
+      token_hash TEXT PRIMARY KEY,
+      desktop_session_hash TEXT NOT NULL REFERENCES desktop_sessions(token_hash) ON DELETE CASCADE,
+      room_code TEXT,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS desktop_web_sessions (
+      token_hash TEXT PRIMARY KEY,
+      desktop_session_hash TEXT NOT NULL REFERENCES desktop_sessions(token_hash) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS desktop_web_sessions_desktop_session
+      ON desktop_web_sessions(desktop_session_hash);
+
     CREATE TABLE IF NOT EXISTS audit_events (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -209,6 +227,8 @@ export function purgeExpired(db, now = Date.now()) {
   db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM desktop_authorizations WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM desktop_sessions WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM desktop_web_tickets WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM desktop_web_sessions WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM host_agent_challenges WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM host_agent_pairings WHERE expires_at <= ?').run(now);
 }

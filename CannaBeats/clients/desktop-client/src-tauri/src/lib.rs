@@ -1,7 +1,7 @@
 use reqwest::{Client, Method, Response, StatusCode, Url};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::env;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use tokio::sync::Mutex;
 
 const DEFAULT_ORIGIN: &str = "https://poc.cannabeats.social";
@@ -124,6 +124,12 @@ struct AuthorizationStatusResponse {
     user: Option<User>,
     application: Option<Application>,
     expires_at: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GameLaunchResponse {
+    launch_url: String,
 }
 
 fn configured_origin() -> Result<String, String> {
@@ -283,15 +289,12 @@ async fn bootstrap(state: State<'_, ClientState>) -> Result<BootstrapResponse, S
         }
         Err(error) => return Err(error.to_string()),
     };
-    let sessions = fetch_sessions(&state, &token)
-        .await
-        .map_err(|error| error.to_string())?;
     Ok(BootstrapResponse {
         origin: state.origin.clone(),
         authorized: true,
         user: Some(me.user),
         application: Some(me.application),
-        sessions,
+        sessions: vec![],
     })
 }
 
@@ -419,6 +422,33 @@ async fn refresh_session(
 }
 
 #[tauri::command]
+async fn launch_game(
+    code: Option<String>,
+    app: AppHandle,
+    state: State<'_, ClientState>,
+) -> Result<(), String> {
+    let token = active_token(&state).await?;
+    let response = state
+        .http
+        .post(format!("{}/api/desktop/game-launch", state.origin))
+        .bearer_auth(token)
+        .json(&serde_json::json!({ "code": code }))
+        .send()
+        .await;
+    let launch = api_json::<GameLaunchResponse>(response)
+        .await
+        .map_err(|error| error.to_string())?;
+    let url = Url::parse(&launch.launch_url)
+        .map_err(|_| "CannaBeats returned an invalid game URL".to_owned())?;
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "The CannaBeats window is unavailable".to_owned())?;
+    window
+        .navigate(url)
+        .map_err(|error| format!("Could not open the full game client: {error}"))
+}
+
+#[tauri::command]
 async fn disconnect(state: State<'_, ClientState>) -> Result<(), String> {
     if let Some(token) = state.token.lock().await.clone() {
         let result = api_empty(
@@ -466,6 +496,7 @@ pub fn run() {
             list_sessions,
             join_session,
             refresh_session,
+            launch_game,
             disconnect,
         ])
         .run(tauri::generate_context!())

@@ -350,6 +350,19 @@ test('a desktop installation needs explicit approval before its revocable creden
   assert.equal(me.status, 200);
   assert.equal((await me.json()).application.displayName, 'CannaBeats Client on Test Laptop');
 
+  const launchResponse = await nativePost('/api/desktop/game-launch', {}, {
+    Authorization: `Bearer ${pairing.authorizationToken}`,
+  });
+  assert.equal(launchResponse.status, 201);
+  const launch = await launchResponse.json();
+  const launchUrl = new URL(launch.launchUrl);
+  assert.equal(launchUrl.origin, origin);
+  assert.equal(launchUrl.pathname, '/game/desktop');
+  const launchTicket = launchUrl.searchParams.get('ticket');
+  assert.match(launchTicket, /^[A-Za-z0-9_-]{32,128}$/);
+  assert.ok(db.prepare('SELECT 1 FROM desktop_web_tickets WHERE token_hash = ?')
+    .get(sha256(launchTicket)));
+
   db.prepare('UPDATE desktop_sessions SET revoked_at = ? WHERE token_hash = ?')
     .run(Date.now(), sha256(pairing.authorizationToken));
   const revoked = await fetch(`${baseUrl}/api/desktop/me`, {

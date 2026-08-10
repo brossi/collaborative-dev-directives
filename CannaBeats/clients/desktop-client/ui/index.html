@@ -49,10 +49,12 @@
         <form id="join-form" class="join-form">
           <label for="game-code">Game code</label>
           <div class="join-row">
-            <input id="game-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="7" placeholder="Enter 6-character code" spellcheck="false" required>
-            <button class="primary" type="submit">Join game</button>
+            <input id="game-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="4" placeholder="Four-character code" spellcheck="false" required>
+            <button class="primary" type="submit">Open game</button>
           </div>
         </form>
+
+        <button id="open-game" class="secondary" type="button">Open CannaBeats without a code</button>
 
         <div id="resume-panel" class="resume-panel" hidden>
           <p class="muted">Resume a lobby from this account</p>
@@ -70,7 +72,7 @@
         </div>
         <p id="lobby-host" class="muted"></p>
         <ul id="lobby-members" class="member-list"></ul>
-        <p class="fine-print">This client refreshes the lobby automatically. Gameplay and shared audio are the next integration slice.</p>
+        <p class="fine-print">The installed app now opens the same authenticated gameplay client as the PWA. This legacy lobby panel is no longer used for new rooms.</p>
       </section>
     </main>
 
