@@ -50,6 +50,7 @@ import difflib
 import json
 import os
 import pathlib
+import re
 import sys
 import time
 import urllib.parse
@@ -78,36 +79,68 @@ def artist_matches(track: dict, artist: str) -> bool:
                for candidate in track.get("artists", []))
 
 
+# Spotify's version qualifier: everything after a spaced hyphen. It carries
+# "- Remastered 2011", "- Live", "- Single Version", and — the case that made
+# this necessary — '- From "Men In Black" Soundtrack'. Needs whitespace on both
+# sides, so hyphenated names ("Jay-Z", "Blue-Eyed Soul") are untouched.
+VERSION_SUFFIX = re.compile(r"\s+-\s+.*$")
+
+# A candidate whose full name already clears this is judged on the better of
+# its two readings.
+SIMILARITY_FLOOR = 0.6
+# A candidate that ONLY clears the floor once its qualifier is stripped has to
+# be near-exact. Stripping asserts "the qualifier is noise", and that claim is
+# only safe when what remains is essentially the title: dropping "- Remastered"
+# from "Fight for Your Right" otherwise lifts it to 0.788 against our "Fight
+# for You", which the undiluted comparison rejected only by accident.
+STRIPPED_FLOOR = 0.9
+
+
 def score_items(items, title: str, artist: str):
-    """[(title_similarity, track)] for candidates crediting our act."""
+    """[(title_similarity, is_bare, track)] for candidates crediting our act.
+
+    Similarity is the better of the full name and the name with Spotify's
+    version qualifier removed. Comparing full names alone threw away exact
+    matches: our "Men in Black" against Spotify's 'Men In Black - From "Men In
+    Black" Soundtrack' scores 0.453, under the 0.6 floor, so the correct track
+    sitting at rank 1 with the right artist was rejected. That hit the
+    soundtrack and cast repertoire hardest — the theme packs are made of it.
+
+    `is_bare` records whether the candidate carried a qualifier at all, so a
+    plain track outranks a live/remastered/soundtrack cut of the same song
+    instead of tying with it. Under blind audio a live take is the wrong
+    recording, and stripping the suffix is what made those tie in the first
+    place.
+    """
     want = normalize(title)
     scored = []
     for track in items:
         if not artist_matches(track, artist):
             continue
-        got = normalize(track["name"])
-        similarity = difflib.SequenceMatcher(None, want, got).ratio()
-        if similarity < 0.6:
+        full = normalize(track["name"])
+        base = normalize(VERSION_SUFFIX.sub("", track["name"]))
+        full_similarity = difflib.SequenceMatcher(None, want, full).ratio()
+        base_similarity = difflib.SequenceMatcher(None, want, base).ratio()
+        if full_similarity < SIMILARITY_FLOOR and base_similarity < STRIPPED_FLOOR:
             continue
-        scored.append((similarity, track))
+        scored.append((max(full_similarity, base_similarity), base == full, track))
     return scored
 
 
 def pick_best(scored):
-    """Highest rounded title similarity wins; Spotify's own relevance order
-    breaks ties, because Python's sort is stable (reverse=True included).
+    """Highest rounded similarity wins, then the unsuffixed track; Spotify's
+    own relevance order breaks what is left, since Python's sort is stable
+    (reverse=True included).
 
-    There used to be a `popularity` tie-breaker here. Search results carry
-    `popularity: None` — every item, always (verified 2026-08-10, 10/10) — so
-    the key sorted nothing, and would have raised TypeError comparing None to
-    int the day Spotify populated it for some rows but not others. Real
-    popularity needs /v1/tracks/{id}, one request per track against the daily
-    quota; relevance order is the honest tie-break until that is worth paying
-    for.
+    The second key used to be `popularity`, which is None on every search
+    result — every item, always (verified 2026-08-10, 10/10). It sorted
+    nothing, and would have raised TypeError comparing None to int the day
+    Spotify populated it for some rows but not others. Real popularity needs
+    /v1/tracks/{id}, one request per track against the daily quota.
     """
     if not scored:
         return None
-    return sorted(scored, key=lambda s: round(s[0], 1), reverse=True)[0][1]
+    return sorted(scored, key=lambda s: (round(s[0], 1), s[1]), reverse=True)[0][2]
 
 
 def best_match(token: str, title: str, artist: str, thorough: bool, budget: int):

@@ -46,6 +46,8 @@ SEARCH_ITEM = {
 }
 SONG = {"title": "Respect", "artist": "Aretha Franklin", "year": 1967}
 
+TRACK_LOG = pathlib.Path(__file__).resolve().parent.parent / "mappings" / "spotify-tracks.jsonl"
+
 
 def fake_track(name, artist, track_id, **extra):
     track = {
@@ -155,6 +157,54 @@ class RankingHasNoDeadTieBreaker(unittest.TestCase):
         self.assertEqual(score_items(items, "Respect", "Aretha Franklin"), [])
 
 
+class VersionSuffixesDoNotHideTheRightTrack(unittest.TestCase):
+    """The defect that made 25 pending soundtrack/cast songs unresolvable: the
+    correct track sat at rank 1 with the right artist and scored 0.453."""
+
+    def test_the_soundtrack_suffix_no_longer_sinks_an_exact_match(self):
+        # Verbatim from a live search response, 2026-08-10.
+        items = [fake_track('Men In Black - From "Men In Black" Soundtrack',
+                            "Will Smith", "mib")]
+        self.assertEqual(pick_best(score_items(items, "Men in Black", "Will Smith"))["id"],
+                         "mib")
+
+    def test_a_long_from_the_motion_picture_suffix_too(self):
+        items = [fake_track('Fight For You - From the Original Motion Picture '
+                            '"Judas and the Black Messiah"', "H.E.R.", "her")]
+        self.assertEqual(pick_best(score_items(items, "Fight for You", "H.E.R."))["id"], "her")
+
+    def test_the_bare_track_outranks_a_live_or_remastered_cut(self):
+        # Stripping the suffix makes these tie on similarity. Under blind audio
+        # a live take is the wrong recording, so bare must win from either
+        # input position — not by luck of Spotify's ordering.
+        for order in ([("Respect - Live at Fillmore West", "live"), ("Respect", "bare")],
+                      [("Respect", "bare"), ("Respect - Remastered 2011", "remaster")]):
+            items = [fake_track(name, "Aretha Franklin", tid) for name, tid in order]
+            with self.subTest(order=[t for _, t in order]):
+                self.assertEqual(
+                    pick_best(score_items(items, "Respect", "Aretha Franklin"))["id"], "bare")
+
+    def test_is_bare_is_recorded_per_candidate(self):
+        scored = score_items([fake_track("Respect - Live", "Aretha Franklin", "live"),
+                              fake_track("Respect", "Aretha Franklin", "bare")],
+                             "Respect", "Aretha Franklin")
+        self.assertEqual([(s[1], s[2]["id"]) for s in scored],
+                         [(False, "live"), (True, "bare")])
+
+    def test_hyphens_inside_names_are_not_treated_as_qualifiers(self):
+        # No whitespace around the hyphen, so nothing is stripped.
+        items = [fake_track("99 Problems", "Jay-Z", "jayz")]
+        self.assertEqual(pick_best(score_items(items, "99 Problems", "Jay-Z"))["id"], "jayz")
+
+    def test_stripping_does_not_admit_a_different_song(self):
+        # The floor still applies to the stripped form: "Fight for Your Right"
+        # must not become "Fight for You" just because a suffix came off.
+        items = [fake_track("Fight for Your Right - Remastered", "H.E.R.", "wrong")]
+        best = pick_best(score_items(items, "Fight for You", "H.E.R."))
+        self.assertTrue(best is None or best["id"] != "wrong",
+                        "a different song passed the similarity floor")
+
+
 class TrackLogIsAppendOnlyAndCrashSafe(unittest.TestCase):
     def test_each_append_lands_on_its_own_line_immediately(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -177,6 +227,23 @@ class TrackLogIsAppendOnlyAndCrashSafe(unittest.TestCase):
             with append_track(path) as log:
                 log(track_record(dict(SONG, title="Think"), SEARCH_ITEM))
             self.assertEqual(len(path.read_text().splitlines()), 2)
+
+
+class TheCommittedTrackLogIsUsable(unittest.TestCase):
+    """Binds to the real artifact, not just the shape. A resolver run that
+    silently stopped writing IDs would pass every test above."""
+
+    def test_every_logged_row_carries_an_artist_id_and_a_track(self):
+        self.assertTrue(
+            TRACK_LOG.exists(),
+            f"{TRACK_LOG} is missing — run tools/resolve_uris.py to produce it")
+        rows = [json.loads(line) for line in TRACK_LOG.read_text().splitlines() if line.strip()]
+        self.assertGreater(len(rows), 0, "empty track log proves nothing")
+        for row in rows:
+            with self.subTest(key=row.get("key")):
+                self.assertTrue(row["spotify_artist_ids"])
+                self.assertEqual(row["spotify_id"], row["track"]["id"])
+                self.assertEqual(row["key"], song_key(row))
 
 
 if __name__ == "__main__":
