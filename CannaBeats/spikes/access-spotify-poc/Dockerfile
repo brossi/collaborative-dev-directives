@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-COPY --chown=node:node db.mjs cli.mjs server.mjs ./
+COPY --chown=node:node db.mjs cli.mjs onboarding.mjs server.mjs ./
 COPY --chown=node:node public ./public
 RUN mkdir -p /data && chown node:node /data
 

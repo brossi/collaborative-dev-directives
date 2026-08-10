@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { createInvitation, openDatabase, sha256 } from '../db.mjs';
+import { createHostOnboarding, renderHostOnboardingEmail } from '../onboarding.mjs';
 import { createApp, readConfig } from '../server.mjs';
 
 const origin = 'https://poc.test';
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'cannabeats-poc-test-'));
 const databasePath = join(temporaryDirectory, 'test.sqlite');
+const hostReleasePath = join(temporaryDirectory, 'CannaBeats-Host-universal.dmg');
+writeFileSync(hostReleasePath, 'test-universal-host-release');
 const config = readConfig({
   origin,
   rpID: 'poc.test',
@@ -23,6 +26,8 @@ const config = readConfig({
   trustProxy: false,
   sessionTtlDays: 30,
   port: 0,
+  hostReleasePath,
+  hostReleaseName: 'CannaBeats-Host-universal.dmg',
 });
 const db = openDatabase(databasePath);
 const gameRooms = new Map();
@@ -154,6 +159,53 @@ test('invalid invitations reveal no registration ceremony', async () => {
     invitationCode: 'AAAAA-BBBBB-CCCCC-DDDDD',
   });
   assert.equal(response.status, 403);
+});
+
+test('host onboarding creates paste-ready instructions and a deliberate tokenized download', async () => {
+  const onboarding = createHostOnboarding(db, {
+    recipientName: 'Future Host',
+    origin,
+    releasePath: hostReleasePath,
+    releaseName: 'CannaBeats-Host-universal.dmg',
+    ttlHours: 2,
+    maxDownloads: 2,
+  });
+  assert.match(onboarding.accountSetupUrl, /^https:\/\/poc\.test\/#invite=/);
+  assert.match(onboarding.downloadUrl, /^https:\/\/poc\.test\/host-download#token=/);
+  const email = renderHostOnboardingEmail(onboarding);
+  assert.match(email, /Subject: Your private CannaBeats Host invitation/);
+  assert.match(email, /Connect Spotify/);
+  assert.match(email, /File > Add to Dock/);
+  assert.match(email, /Host a game/);
+
+  const downloadToken = new URL(onboarding.downloadUrl).hash.slice('#token='.length);
+  assert.match(downloadToken, /^[A-Za-z0-9_-]{32,128}$/);
+  assert.equal(db.prepare('SELECT 1 FROM host_release_downloads WHERE token_hash = ?').get(downloadToken), undefined);
+  const stored = db.prepare('SELECT * FROM host_release_downloads WHERE token_hash = ?').get(sha256(downloadToken));
+  assert.equal(stored.recipient_name, 'Future Host');
+  assert.equal(stored.download_count, 0);
+
+  const landing = await fetch(`${baseUrl}/host-download`);
+  assert.equal(landing.status, 200);
+  assert.match(await landing.text(), /id="download-host"/);
+  const scannerStyleGet = await fetch(`${baseUrl}/api/host-release/download`);
+  assert.equal(scannerStyleGet.status, 404);
+  assert.equal(db.prepare('SELECT download_count FROM host_release_downloads WHERE token_hash = ?')
+    .get(sha256(downloadToken)).download_count, 0);
+
+  const wrongOrigin = await post('/api/host-release/download', { token: downloadToken }, { Origin: 'https://evil.test' });
+  assert.equal(wrongOrigin.status, 403);
+  for (let count = 1; count <= 2; count += 1) {
+    const download = await post('/api/host-release/download', { token: downloadToken });
+    assert.equal(download.status, 200);
+    assert.equal(await download.text(), 'test-universal-host-release');
+    assert.match(download.headers.get('content-disposition'), /attachment; filename="CannaBeats-Host-universal\.dmg"/);
+    assert.equal(download.headers.get('cache-control'), 'private, no-store');
+    assert.equal(db.prepare('SELECT download_count FROM host_release_downloads WHERE token_hash = ?')
+      .get(sha256(downloadToken)).download_count, count);
+  }
+  const exhausted = await post('/api/host-release/download', { token: downloadToken });
+  assert.equal(exhausted.status, 410);
 });
 
 test('host role is enforced from the server session', async () => {

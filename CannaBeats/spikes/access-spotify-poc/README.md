@@ -122,6 +122,26 @@ Create an invitation inside the running container:
 docker compose exec app node cli.mjs invite --role host --note "Sibling name"
 ```
 
+After a notarized CannaBeats Host DMG has been published into the read-only
+release mount, generate a complete paste-ready host onboarding email from the
+repository checkout:
+
+```sh
+./spikes/macos-host-agent-poc/scripts/create-host-invitation.sh \
+  "Family member name" 48 5
+```
+
+This creates a one-time host-account invitation and a separate installer
+capability with the same expiration and a five-download ceiling. Both are
+stored only as hashes. Their email links carry capabilities in URL fragments;
+the installer is delivered only after a deliberate same-origin POST, so
+ordinary email link scanners cannot spend a download.
+
+The generator fails before creating either capability when the notarized
+release is absent. Publishing is handled separately by
+`macos-host-agent-poc/scripts/publish-host-release.sh`, which refuses an
+unstapled or Gatekeeper-rejected DMG.
+
 Inspect health without exposing the application port publicly:
 
 ```sh

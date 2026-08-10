@@ -10,6 +10,7 @@
     "start": "node server.mjs",
     "dev": "NODE_ENV=development node --watch server.mjs",
     "invite": "node cli.mjs invite",
+    "host-onboarding": "node cli.mjs host-onboarding",
     "test": "node --test"
   },
   "dependencies": {

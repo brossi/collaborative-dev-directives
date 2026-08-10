@@ -99,6 +99,8 @@ export function readConfig(overrides = {}) {
     audioRelayListenToken,
     gameServiceOrigin,
     gameServiceToken,
+    hostReleasePath: overrides.hostReleasePath ?? process.env.HOST_RELEASE_PATH ?? '',
+    hostReleaseName: overrides.hostReleaseName ?? process.env.HOST_RELEASE_NAME ?? 'CannaBeats-Host-universal.dmg',
     sessionTtlDays: overrides.sessionTtlDays ?? integerEnvironment('SESSION_TTL_DAYS', 30, 1, 365),
     trustProxy: overrides.trustProxy ?? process.env.TRUST_PROXY ?? 'loopback',
   };
@@ -441,6 +443,7 @@ export function createApp({
   app.use('/api/auth', authenticationLimiter);
   const agentPairingLimiter = createRateLimiter({ limit: 30 });
   const desktopPairingLimiter = createRateLimiter({ limit: 20 });
+  const releaseDownloadLimiter = createRateLimiter({ limit: 20, windowMs: 10 * 60 * 1000 });
 
   app.get('/api/health', (_req, res) => {
     const database = db.prepare('SELECT 1 AS ok').get();
@@ -453,6 +456,36 @@ export function createApp({
       rpID: config.rpID,
       spotifyClientId: config.spotifyClientId,
       spotifyRedirectUri: `${config.origin}/spotify/callback`,
+    });
+  });
+
+  app.post('/api/host-release/download', releaseDownloadLimiter, (req, res, next) => {
+    const token = String(req.body?.token ?? '');
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(token)) throw new HttpError(404, 'Download authorization not found');
+    const tokenHash = sha256(token);
+    const download = db.prepare(`
+      SELECT * FROM host_release_downloads WHERE token_hash = ? AND revoked_at IS NULL
+    `).get(tokenHash);
+    if (!download) throw new HttpError(404, 'Download authorization not found');
+    if (download.expires_at <= Date.now() || download.download_count >= download.max_downloads) {
+      throw new HttpError(410, 'This installer link has expired');
+    }
+    if (!config.hostReleasePath || !existsSync(config.hostReleasePath)) {
+      throw new HttpError(503, 'The CannaBeats Host installer is temporarily unavailable');
+    }
+    const updated = db.prepare(`
+      UPDATE host_release_downloads
+      SET download_count = download_count + 1, last_downloaded_at = ?
+      WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?
+        AND download_count < max_downloads
+    `).run(Date.now(), tokenHash, Date.now());
+    if (updated.changes !== 1) throw new HttpError(410, 'This installer link has expired');
+    res.set({
+      'Cache-Control': 'private, no-store',
+      'Content-Type': 'application/x-apple-diskimage',
+    });
+    res.download(config.hostReleasePath, download.release_name, (error) => {
+      if (error && !res.headersSent) next(error);
     });
   });
 
@@ -1216,6 +1249,10 @@ export function createApp({
     res.sendFile(resolve(publicDirectory, 'sw.js'));
   });
   app.use(express.static(publicDirectory, { index: false, maxAge: 0 }));
+  app.get('/host-download', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.sendFile(resolve(publicDirectory, 'host-download.html'));
+  });
   app.get(['/', '/spotify/callback', '/desktop/approve'], (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.sendFile(resolve(publicDirectory, 'index.html'));

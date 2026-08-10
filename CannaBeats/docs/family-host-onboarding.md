@@ -13,15 +13,26 @@ The family host needs:
   development application's user allowlist; and
 - the notarized `CannaBeats-Host-0.4-universal.dmg` release.
 
+After producing a notarized release, publish it to the private download mount:
+
+```sh
+./spikes/macos-host-agent-poc/scripts/publish-host-release.sh
+```
+
+The publisher refuses an unstapled build. The onboarding generator also
+refuses to create an invitation if no published installer is available.
+
 Generate the one-time host-account invitation only when the recipient is ready:
 
 ```sh
-./spikes/macos-host-agent-poc/scripts/create-host-invitation.sh "Family member name" 48
+./spikes/macos-host-agent-poc/scripts/create-host-invitation.sh "Family member name" 48 5
 ```
 
-The command displays the invitation once. Send the recipient the DMG, the
-invitation, and `https://poc.cannabeats.social`. Do not put a reusable
-credential inside the application or installer.
+The command prints a complete email containing a fragment-protected setup URL,
+a fragment-protected installer page, the one-time invitation as a fallback,
+and the setup/game instructions. Paste that content into an email. Neither
+capability is stored in plaintext by CannaBeats, and email link scanners cannot
+consume the installer allowance with an ordinary GET request.
 
 ## Recipient setup
 

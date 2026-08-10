@@ -81,6 +81,21 @@ function migrate(db) {
       used_by TEXT REFERENCES users(id)
     );
 
+    CREATE TABLE IF NOT EXISTS host_release_downloads (
+      token_hash TEXT PRIMARY KEY,
+      invitation_hash TEXT NOT NULL REFERENCES invitations(code_hash) ON DELETE CASCADE,
+      recipient_name TEXT NOT NULL,
+      release_name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      max_downloads INTEGER NOT NULL CHECK (max_downloads BETWEEN 1 AND 20),
+      download_count INTEGER NOT NULL DEFAULT 0,
+      last_downloaded_at INTEGER,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS host_release_downloads_invitation
+      ON host_release_downloads(invitation_hash);
+
     CREATE TABLE IF NOT EXISTS webauthn_challenges (
       token_hash TEXT PRIMARY KEY,
       kind TEXT NOT NULL CHECK (kind IN ('invite_registration', 'add_passkey', 'authentication')),
@@ -274,6 +289,7 @@ export function purgeExpired(db, now = Date.now()) {
   `).run(now);
   db.prepare('DELETE FROM host_agent_challenges WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM host_agent_pairings WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM host_release_downloads WHERE expires_at <= ?').run(now);
 }
 
 export function createInvitation(db, { role = 'host', note = '', ttlHours = 168 } = {}) {

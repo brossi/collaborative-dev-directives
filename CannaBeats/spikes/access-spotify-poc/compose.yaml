@@ -30,11 +30,14 @@ services:
       TRUST_PROXY: loopback
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       INVITATION_TTL_HOURS: ${INVITATION_TTL_HOURS:-168}
+      HOST_RELEASE_PATH: /releases/CannaBeats-Host-universal.dmg
+      HOST_RELEASE_NAME: CannaBeats-Host-universal.dmg
     ports:
       - "127.0.0.1:3002:3002"
     volumes:
       - cannabeats_poc_data:/data
       - ${AUDIO_RELAY_SECRET_DIR:-./secrets}:/run/secrets/cannabeats:ro
+      - ${HOST_RELEASE_DIR:-./releases}:/releases:ro
     mem_limit: 512m
     cpus: 0.75
     pids_limit: 128

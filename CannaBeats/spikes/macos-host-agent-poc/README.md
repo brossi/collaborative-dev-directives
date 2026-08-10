@@ -62,6 +62,17 @@ The release script refuses ad-hoc and development certificates, verifies both
 the certificate and Keychain notary profile before rebuilding, then submits,
 staples, validates, assesses, and checksums the DMG.
 
+Publish the notarized artifact into the access service's read-only release
+mount with:
+
+```sh
+./scripts/publish-host-release.sh
+```
+
+The publisher refuses an unstapled or Gatekeeper-rejected DMG, uploads through
+a temporary name, verifies its SHA-256 digest remotely, and atomically replaces
+the downloadable release. It never creates an account or download capability.
+
 The application defaults to `https://poc.cannabeats.social`. The corresponding
 server endpoints and browser approval interface live in the adjacent
 `access-spotify-poc` spike.

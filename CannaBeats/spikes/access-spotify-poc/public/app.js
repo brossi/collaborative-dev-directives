@@ -345,10 +345,19 @@ async function enroll(event) {
     renderAccount();
     await loadPasskeys();
     byId('enroll-form').reset();
+    history.replaceState({}, '', `${location.pathname}${location.search}`);
     showMessage('Passkey created and account authorized.');
   } catch (error) {
     showMessage(errorMessage(error), 'error');
   }
+}
+
+function prefillInvitationCode() {
+  const parameters = new URLSearchParams(location.hash.slice(1));
+  const invitation = parameters.get('invite');
+  if (!invitation) return;
+  byId('invitation-code').value = invitation;
+  byId('invitation-code').closest('details').open = true;
 }
 
 async function signIn() {
@@ -683,6 +692,7 @@ async function initialize() {
     }
   }
   wireEvents();
+  prefillInvitationCode();
   prefillHostAgentPairingCode();
   setupDesktopApprovalRoute();
   try {
