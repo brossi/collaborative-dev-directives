@@ -55,7 +55,8 @@ Entity resolution is solved by identifiers. That is the fix.
 
 Consequences: **there is no cheap bulk backfill.** Per-song enrichment costs one
 request each (3,616 songs ≈ 6 days at a conservative 600/day). The registry is
-therefore keyed on **artists (1,661)**, not songs.
+therefore keyed on **artist credits (1,969)**, not songs — see §3 for why the
+credit string rather than the 1,662 normalized primaries.
 
 **Search responses already carry `artists[].id`** ✅ — e.g. `Aretha Franklin` →
 `7nwUJBm0HE4ZxD3f5cy5ok`. This was the loss Phase 1 stopped. Multi-artist rows
@@ -87,8 +88,8 @@ each dated to that compilation. `Stand by Me` / Ben E. King returned 361
 entities; earliest in the top 100 by relevance was 1966 (true answer 1961), and
 the top 5 were movie comps dated 2009–2024.
 
-**Counts** ✅: 3,616 catalog songs · 3,523 playable · 1,747 carry `releaseYear` ·
-**1,969 distinct credits → 1,661 distinct primary artists** · 3,415 in the built
+**Counts** ✅: 3,616 catalog songs · 3,532 playable · 1,747 carry `releaseYear` ·
+**1,969 distinct credits → 1,662 distinct primary artists** · 3,424 in the built
 `web/data/catalog.json` (URI-deduplicated).
 
 ## 2. Phase 1 — stop discarding what we already receive ✅ DONE 2026-08-10

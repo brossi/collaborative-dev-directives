@@ -184,7 +184,7 @@ The pipeline is ordered so the free steps do the bulk of the work:
 
    ```sh
    python3 tools/resolve_uris.py catalog/years/*.json catalog/themes/*.json \
-       --out CannaBeats/Resources/Catalog/
+       --out /tmp/resolved
    ```
 
    It stops itself at `--budget` (default 400) requests, saves progress on
@@ -193,9 +193,27 @@ The pipeline is ordered so the free steps do the bulk of the work:
    Failures are marked `"unresolved": true` and skipped on re-runs unless
    `--retry-unresolved`.
 
-5. **Sync + bundle.** `python3 tools/status.py --sync`, back-fill anything
-   it rescued, rebuild the app in Xcode. `python3 tools/status.py` at any
-   time shows coverage and source/bundle drift.
+   Send `--out` to a scratch directory, **not** to `Resources/Catalog/`.
+   Writing the bundle directly leaves the new URIs only in the build
+   product, where the next `--sync` has to "rescue" them back and warns
+   that a source edit may drop them. Instead let the resolver's track log
+   carry them into source, which is where they belong:
+
+   ```sh
+   python3 tools/fill_from_datasets.py --mappings mappings/spotify-tracks.jsonl -- \
+       catalog/years/*.json catalog/themes/*.json
+   ```
+
+   Every resolution also appends the whole chosen track to
+   `mappings/spotify-tracks.jsonl` — artist IDs, ISRC, the lot. Nothing
+   re-searches a song that already has a URI, so anything not captured
+   there costs full quota to recover. That file is also what
+   `tools/harvest_artist_ids.py` merges into the artist registry.
+
+5. **Sync + bundle.** `python3 tools/status.py --sync`, rebuild the app in
+   Xcode. `python3 tools/status.py` at any time shows coverage and
+   source/bundle drift. If sync reports rescued URIs, step 4 was run
+   against the bundle — back-fill them into `catalog/`.
 
 - `year` is the **chart year**, hand-verified. Never trust Spotify album
   dates — remasters and compilations lie.
