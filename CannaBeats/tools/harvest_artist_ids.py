@@ -225,8 +225,8 @@ def apply_resolver_ids(rows, track_log) -> int:
     applied = 0
     for logged in track_log:
         row = by_credit.get(logged["artist"])
-        if row is None:
-            continue
+        if row is None or row.get("source") == "human":
+            continue  # an audited row outranks anything automatic
         artists = logged.get("track", {}).get("artists", [])
         ids = [a["id"] for a in artists if a.get("id")]
         if len(ids) != 1 or row.get("spotify_artist_id") == ids[0]:
@@ -276,11 +276,32 @@ def summarize(rows) -> None:
     for row in rows:
         songs[row["confidence"]] += row["songs"]
     print(f"\n{len(rows)} credits in the registry:", file=sys.stderr)
-    for confidence in ("single-exact", "single-shortened", "multi", "none"):
-        print(f"  {confidence:18} {tally[confidence]:5} credits  "
-              f"{songs[confidence]:5} songs", file=sys.stderr)
-    needs_review = sum(tally[c] for c in ("single-shortened", "multi", "none"))
-    print(f"Phase 3 audits {needs_review} of {len(rows)}.", file=sys.stderr)
+    for confidence in ("human", "single-exact", "single-shortened", "multi", "none"):
+        if tally[confidence]:
+            print(f"  {confidence:18} {tally[confidence]:5} credits  "
+                  f"{songs[confidence]:5} songs", file=sys.stderr)
+    pending = sum(tally[c] for c in ("single-shortened", "multi", "none"))
+    print(f"Phase 3 has {pending} of {len(rows)} left to audit.", file=sys.stderr)
+
+
+def rederive_rows(rows) -> int:
+    """Replay decide() over stored candidates, in place. Returns rows changed.
+
+    Rows carrying `source: "human"` are SKIPPED. That is the whole value of the
+    Phase 3 audit: "Seal" vs "Seals and Crofts" is meant to be one permanent
+    decision, not a heuristic re-guessing it on every pass. A confirmed absence
+    is a decision too — a later harvest turning up a plausible candidate must
+    not overturn someone who looked and concluded there is no entity.
+    """
+    changed = 0
+    for row in rows:
+        if row.get("source") == "human":
+            continue
+        before = (row["wikidata"], row["confidence"])
+        row.update(decide(row.get("candidates", {}), row["labels"]))
+        row["spotify_artist_id_source"] = "wikidata" if row["spotify_artist_id"] else None
+        changed += before != (row["wikidata"], row["confidence"])
+    return changed
 
 
 def rederive(path: pathlib.Path) -> None:
@@ -289,16 +310,13 @@ def rederive(path: pathlib.Path) -> None:
     rows = read_rows(path)
     if not rows:
         sys.exit(f"nothing to rederive: {path} is missing or empty")
-    changed = 0
-    for row in rows:
-        before = (row["wikidata"], row["confidence"])
-        row.update(decide(row.get("candidates", {}), row["labels"]))
-        row["spotify_artist_id_source"] = "wikidata" if row["spotify_artist_id"] else None
-        changed += before != (row["wikidata"], row["confidence"])
+    changed = rederive_rows(rows)
+    kept = sum(1 for row in rows if row.get("source") == "human")
     applied = apply_resolver_ids(rows, read_rows(TRACK_LOG))
     write_rows(path, rows)
-    print(f"rederived {len(rows)} rows with no network: {changed} changed; "
-          f"{applied} Spotify IDs from the resolver", file=sys.stderr)
+    print(f"rederived {len(rows)} rows with no network: {changed} changed, "
+          f"{kept} human decisions preserved; {applied} Spotify IDs from the resolver",
+          file=sys.stderr)
     summarize(rows)
 
 
