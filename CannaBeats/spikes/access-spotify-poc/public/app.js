@@ -1,8 +1,6 @@
 const state = {
   config: null,
   user: null,
-  gameSession: null,
-  gameSessionTimer: null,
   desktopApproval: null,
   spotify: { accessToken: null, expiresAt: 0, player: null, deviceId: null },
 };
@@ -72,13 +70,10 @@ async function loadSession() {
     await loadPasskeys();
     await loadDesktopApplications();
     if (state.user.role === 'host') await loadHostAgents();
-    state.gameSession = null;
   } catch {
     state.user = null;
-    state.gameSession = null;
   }
   renderAccount();
-  renderGameSession();
   if (state.user && state.desktopApproval) await loadPendingDesktopApproval();
 }
 
@@ -229,74 +224,6 @@ async function approvePendingDesktopApplication() {
   }
 }
 
-function renderGameSession() {
-  const details = byId('game-session-details');
-  const session = state.gameSession;
-  details.hidden = !session;
-  if (!session) return;
-  byId('game-session-code').textContent = `${session.code.slice(0, 3)}-${session.code.slice(3)}`;
-  byId('game-session-status').textContent = `${session.status === 'lobby' ? 'Waiting in lobby' : session.status} · ${session.members.length} connected account${session.members.length === 1 ? '' : 's'}`;
-  const list = byId('game-session-members');
-  list.replaceChildren();
-  for (const member of session.members) {
-    const item = document.createElement('li');
-    const description = document.createElement('div');
-    const name = document.createElement('strong');
-    name.textContent = member.displayName;
-    const metadata = document.createElement('span');
-    metadata.textContent = member.id === session.host.id ? 'Session host' : 'Desktop client';
-    description.append(name, metadata);
-    item.append(description);
-    list.append(item);
-  }
-}
-
-function requestedGameCode() {
-  const rawCode = new URLSearchParams(location.search).get('game');
-  if (!rawCode) return null;
-  const code = rawCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
-    throw new Error('The Host app supplied an invalid game code.');
-  }
-  return code;
-}
-
-function startGameSessionPolling() {
-  clearInterval(state.gameSessionTimer);
-  if (!state.gameSession) return;
-  state.gameSessionTimer = setInterval(async () => {
-    try {
-      const result = await api(`/api/game-sessions/${encodeURIComponent(state.gameSession.code)}`);
-      state.gameSession = result.session;
-      renderGameSession();
-    } catch {
-      clearInterval(state.gameSessionTimer);
-    }
-  }, 2_000);
-}
-
-async function loadRequestedOrCurrentGameSession() {
-  const requestedCode = requestedGameCode();
-  if (requestedCode) {
-    const result = await api(`/api/game-sessions/${encodeURIComponent(requestedCode)}`);
-    state.gameSession = result.session;
-  } else {
-    const result = await api('/api/game-sessions/current');
-    state.gameSession = result.sessions[0] ?? null;
-  }
-  renderGameSession();
-  startGameSessionPolling();
-  if (requestedCode) showMessage(`Game session ${requestedCode} selected.`);
-}
-
-async function createGameSession() {
-  const result = await api('/api/game-sessions', { method: 'POST', body: '{}' });
-  state.gameSession = result.session;
-  renderGameSession();
-  startGameSessionPolling();
-  showMessage(`Game session ${result.session.code} is ready.`);
-}
-
 async function loadHostAgents() {
   if (state.user?.role !== 'host') return;
   const { agents } = await api('/api/host-agents');
@@ -438,15 +365,6 @@ async function signIn() {
     await loadPasskeys();
     await loadDesktopApplications();
     if (state.user.role === 'host') await loadHostAgents();
-    if (state.user.role === 'host') {
-      try {
-        await loadRequestedOrCurrentGameSession();
-      } catch (error) {
-        state.gameSession = null;
-        renderGameSession();
-        followUpErrors.push(errorMessage(error));
-      }
-    }
     if (state.desktopApproval) await loadPendingDesktopApproval();
     showMessage(
       followUpErrors[0] ?? 'Signed in with your passkey.',
@@ -708,16 +626,11 @@ function wireEvents() {
   byId('approve-desktop-application-form').addEventListener('submit', approveDesktopApplication);
   byId('desktop-approval-sign-in').addEventListener('click', signIn);
   byId('approve-pending-desktop-application').addEventListener('click', approvePendingDesktopApplication);
-  byId('create-game-session').addEventListener('click', () => createGameSession()
-    .catch((error) => showMessage(errorMessage(error), 'error')));
   byId('sign-out').addEventListener('click', async () => {
     try {
       await api('/api/auth/sign-out', { method: 'POST', body: '{}' });
       state.user = null;
-      state.gameSession = null;
-      clearInterval(state.gameSessionTimer);
       renderAccount();
-      renderGameSession();
       showMessage('Signed out.');
     } catch (error) { showMessage(errorMessage(error), 'error'); }
   });

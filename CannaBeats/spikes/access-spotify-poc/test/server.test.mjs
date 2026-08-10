@@ -371,41 +371,7 @@ test('a desktop installation needs explicit approval before its revocable creden
   assert.equal(revoked.status, 401);
 });
 
-test('an authenticated desktop client can join and resume a host-created lobby', async () => {
-  const now = Date.now();
-  const host = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
-  const hostSessionToken = `game-host-session-${randomUUID()}`;
-  db.prepare(`
-    INSERT INTO sessions (token_hash, user_id, created_at, expires_at, last_seen_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(sha256(hostSessionToken), host.id, now, now + 60_000, now);
-  const created = await post('/api/game-sessions', {}, { Cookie: `cb_session=${hostSessionToken}` });
-  assert.equal(created.status, 201);
-  const game = (await created.json()).session;
-  assert.match(game.code, /^[A-Z2-9]{6}$/);
-  assert.equal(game.members.length, 1);
-
-  const playerId = randomUUID();
-  const playerToken = `desktop-player-${randomUUID()}`;
-  db.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)')
-    .run(playerId, 'Test Desktop Player', 'player', now);
-  db.prepare(`
-    INSERT INTO desktop_sessions
-      (token_hash, user_id, display_name, created_at, expires_at, last_seen_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(sha256(playerToken), playerId, 'Test Windows PC', now, now + 60_000, now);
-
-  const joined = await nativePost('/api/desktop/game-sessions/join', { code: game.code }, {
-    Authorization: `Bearer ${playerToken}`,
-  });
-  assert.equal(joined.status, 200);
-  assert.equal((await joined.json()).session.members.length, 2);
-
-  const resumed = await fetch(`${baseUrl}/api/desktop/game-sessions/current`, {
-    headers: { Authorization: `Bearer ${playerToken}` },
-  });
-  assert.equal(resumed.status, 200);
-  const sessions = (await resumed.json()).sessions;
-  assert.equal(sessions[0].code, game.code);
-  assert.equal(sessions[0].members.some((member) => member.id === playerId), true);
+test('the discarded parallel lobby API is no longer exposed', async () => {
+  assert.equal((await post('/api/game-sessions')).status, 404);
+  assert.equal((await nativePost('/api/desktop/game-sessions/join', { code: 'ABC123' })).status, 404);
 });

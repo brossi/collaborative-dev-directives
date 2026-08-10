@@ -28,7 +28,6 @@ const AGENT_CHALLENGE_TTL_MS = 2 * 60 * 1000;
 const DESKTOP_WEB_TICKET_TTL_MS = 60 * 1000;
 const HOST_AGENT_PAIRING_LABEL = 'host_agent_pair:';
 const DESKTOP_PAIRING_LABEL = 'desktop_pair:';
-const GAME_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -136,11 +135,6 @@ function cleanText(value, { field, minimum = 1, maximum = 80 }) {
 
 function normalizePairingCode(value) {
   return normalizeInvitationCode(value);
-}
-
-function makeGameCode() {
-  const bytes = randomBytes(6);
-  return Array.from(bytes, (byte) => GAME_CODE_ALPHABET[byte % GAME_CODE_ALPHABET.length]).join('');
 }
 
 function normalizeGameCode(value) {
@@ -309,73 +303,6 @@ export function createApp({
     if (!user) return next(new HttpError(401, 'Desktop application authorization required'));
     req.user = user;
     next();
-  }
-
-  function gameSessionView(code) {
-    const session = db.prepare(`
-      SELECT game_sessions.*, users.display_name AS host_display_name
-      FROM game_sessions JOIN users ON users.id = game_sessions.host_user_id
-      WHERE game_sessions.code = ?
-    `).get(code);
-    if (!session) return null;
-    const members = db.prepare(`
-      SELECT users.id, users.display_name, users.role, game_session_members.joined_at,
-             game_session_members.last_seen_at
-      FROM game_session_members JOIN users ON users.id = game_session_members.user_id
-      WHERE game_session_members.session_code = ? ORDER BY game_session_members.joined_at ASC
-    `).all(code);
-    return {
-      code: session.code,
-      status: session.status,
-      host: { id: session.host_user_id, displayName: session.host_display_name },
-      members: members.map((member) => ({
-        id: member.id,
-        displayName: member.display_name,
-        role: member.role,
-        joinedAt: new Date(member.joined_at).toISOString(),
-      })),
-      createdAt: new Date(session.created_at).toISOString(),
-      updatedAt: new Date(session.updated_at).toISOString(),
-    };
-  }
-
-  function createGameSessionForHost(hostUserId) {
-    let code = makeGameCode();
-    while (db.prepare('SELECT 1 FROM game_sessions WHERE code = ?').get(code)) code = makeGameCode();
-    const now = Date.now();
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      db.prepare(`
-        INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
-        VALUES (?, ?, 'lobby', ?, ?)
-      `).run(code, hostUserId, now, now);
-      db.prepare(`
-        INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
-        VALUES (?, ?, ?, ?)
-      `).run(code, hostUserId, now, now);
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-    writeAuditEvent(db, hostUserId, 'game_session.created', code);
-    return gameSessionView(code);
-  }
-
-  function existingGameSessionForHost(hostUserId, rawCode) {
-    const code = normalizeGameCode(rawCode);
-    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
-    const session = db.prepare(`
-      SELECT code, status FROM game_sessions
-      WHERE code = ? AND host_user_id = ?
-    `).get(code, hostUserId);
-    if (!session) throw new HttpError(404, 'Game session was not found for this host account');
-    if (session.status === 'ended') throw new HttpError(409, 'This game session has ended');
-    db.prepare(`
-      UPDATE game_session_members SET last_seen_at = ?
-      WHERE session_code = ? AND user_id = ?
-    `).run(Date.now(), code, hostUserId);
-    return gameSessionView(code);
   }
 
   async function prepareRealGameRoom(agent, rawCode) {
@@ -859,71 +786,6 @@ export function createApp({
     if (result.changes !== 1) throw new HttpError(404, 'Desktop session not found');
     writeAuditEvent(db, req.user.id, 'desktop_application.disconnected', req.user.application_name);
     res.status(204).end();
-  });
-
-  app.post('/api/game-sessions', requireUser, (req, res) => {
-    if (req.user.role !== 'host') throw new HttpError(403, 'Host role required');
-    res.status(201).json({ session: createGameSessionForHost(req.user.id) });
-  });
-
-  app.get('/api/game-sessions/current', requireUser, (req, res) => {
-    const sessions = db.prepare(`
-      SELECT game_sessions.code FROM game_sessions
-      JOIN game_session_members ON game_session_members.session_code = game_sessions.code
-      WHERE game_session_members.user_id = ? AND game_sessions.status != 'ended'
-      ORDER BY game_session_members.last_seen_at DESC
-    `).all(req.user.id);
-    res.json({ sessions: sessions.map((session) => gameSessionView(session.code)) });
-  });
-
-  app.get('/api/game-sessions/:code', requireUser, (req, res) => {
-    const code = normalizeGameCode(req.params.code);
-    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
-    const member = db.prepare(`
-      SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
-    `).get(code, req.user.id);
-    if (!member) throw new HttpError(404, 'Game session not found');
-    res.json({ session: gameSessionView(code) });
-  });
-
-  app.post('/api/desktop/game-sessions/join', requireDesktopUser, (req, res) => {
-    const code = normalizeGameCode(req.body?.code);
-    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
-    const session = db.prepare('SELECT status FROM game_sessions WHERE code = ?').get(code);
-    if (!session) throw new HttpError(404, 'Game session not found');
-    if (session.status !== 'lobby') throw new HttpError(409, 'This game has already started');
-    const now = Date.now();
-    db.prepare(`
-      INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
-    `).run(code, req.user.id, now, now);
-    db.prepare('UPDATE game_sessions SET updated_at = ? WHERE code = ?').run(now, code);
-    writeAuditEvent(db, req.user.id, 'game_session.joined', code);
-    res.json({ session: gameSessionView(code) });
-  });
-
-  app.get('/api/desktop/game-sessions/current', requireDesktopUser, (req, res) => {
-    const sessions = db.prepare(`
-      SELECT game_sessions.code FROM game_sessions
-      JOIN game_session_members ON game_session_members.session_code = game_sessions.code
-      WHERE game_session_members.user_id = ? AND game_sessions.status != 'ended'
-      ORDER BY game_session_members.last_seen_at DESC
-    `).all(req.user.id);
-    res.json({ sessions: sessions.map((session) => gameSessionView(session.code)) });
-  });
-
-  app.get('/api/desktop/game-sessions/:code', requireDesktopUser, (req, res) => {
-    const code = normalizeGameCode(req.params.code);
-    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
-    const member = db.prepare(`
-      SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
-    `).get(code, req.user.id);
-    if (!member) throw new HttpError(404, 'Game session not found');
-    db.prepare(`
-      UPDATE game_session_members SET last_seen_at = ? WHERE session_code = ? AND user_id = ?
-    `).run(Date.now(), code, req.user.id);
-    res.json({ session: gameSessionView(code) });
   });
 
   app.get('/api/passkeys', requireUser, (req, res) => {

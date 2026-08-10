@@ -3,10 +3,7 @@ const invoke = window.__TAURI__.core.invoke;
 const state = {
   user: null,
   application: null,
-  sessions: [],
-  lobby: null,
   authorizationTimer: null,
-  lobbyTimer: null,
 };
 
 const byId = (id) => document.getElementById(id);
@@ -38,63 +35,6 @@ function renderAccount() {
   if (!authorized) return;
   byId('account-name').textContent = state.user.displayName;
   byId('application-name').textContent = `${state.application.displayName} · ${state.user.role === 'host' ? 'Host-capable account' : 'Player account'}`;
-  renderResumeSessions();
-}
-
-function renderResumeSessions() {
-  const panel = byId('resume-panel');
-  const buttons = byId('resume-buttons');
-  buttons.replaceChildren();
-  panel.hidden = state.sessions.length === 0;
-  for (const session of state.sessions) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'secondary';
-    button.textContent = `${formatCode(session.code)} · ${session.members.length} connected`;
-    button.addEventListener('click', () => showLobby(session));
-    buttons.append(button);
-  }
-}
-
-function renderLobby() {
-  const lobby = state.lobby;
-  byId('lobby-card').hidden = !lobby;
-  if (!lobby) return;
-  byId('lobby-code').textContent = formatCode(lobby.code);
-  byId('lobby-title').textContent = lobby.status === 'lobby' ? 'Waiting in the lobby' : `Game ${lobby.status}`;
-  byId('lobby-host').textContent = `Hosted by ${lobby.host.displayName}`;
-  const members = byId('lobby-members');
-  members.replaceChildren();
-  for (const member of lobby.members) {
-    const item = document.createElement('li');
-    const name = document.createElement('strong');
-    name.textContent = member.displayName;
-    const role = document.createElement('span');
-    role.textContent = member.id === lobby.host.id ? 'Host' : 'Connected client';
-    item.append(name, role);
-    members.append(item);
-  }
-}
-
-function showLobby(session) {
-  state.lobby = session;
-  renderLobby();
-  clearInterval(state.lobbyTimer);
-  state.lobbyTimer = setInterval(refreshLobby, 2_000);
-}
-
-async function refreshLobby() {
-  if (!state.lobby) return;
-  try {
-    state.lobby = await invoke('refresh_session', { code: state.lobby.code });
-    const index = state.sessions.findIndex((session) => session.code === state.lobby.code);
-    if (index >= 0) state.sessions[index] = state.lobby;
-    renderLobby();
-    renderResumeSessions();
-  } catch (error) {
-    clearInterval(state.lobbyTimer);
-    message(errorText(error), 'error');
-  }
 }
 
 async function bootstrap() {
@@ -102,9 +42,7 @@ async function bootstrap() {
   byId('service-origin').textContent = new URL(result.origin).hostname;
   state.user = result.user;
   state.application = result.application;
-  state.sessions = result.sessions;
   renderAccount();
-  if (state.sessions.length) showLobby(state.sessions[0]);
 }
 
 async function beginAuthorization() {
@@ -132,7 +70,6 @@ async function pollAuthorization() {
     clearInterval(state.authorizationTimer);
     state.user = result.user;
     state.application = result.application;
-    state.sessions = [];
     byId('pairing-status').textContent = 'Authorization confirmed.';
     renderAccount();
     message(`Connected as ${state.user.displayName}.`);
@@ -169,12 +106,8 @@ async function disconnect() {
   if (!window.confirm('Disconnect and revoke this desktop installation?')) return;
   try {
     await invoke('disconnect');
-    clearInterval(state.lobbyTimer);
     state.user = null;
     state.application = null;
-    state.sessions = [];
-    state.lobby = null;
-    renderLobby();
     renderAccount();
     byId('connect-start').hidden = false;
     byId('connect-pending').hidden = true;

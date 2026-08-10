@@ -46,48 +46,11 @@ struct Application {
     display_name: String,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GameMember {
-    id: String,
-    display_name: String,
-    role: String,
-    joined_at: String,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GameHost {
-    id: String,
-    display_name: String,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GameSession {
-    code: String,
-    status: String,
-    host: GameHost,
-    members: Vec<GameMember>,
-    created_at: String,
-    updated_at: String,
-}
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct MeResponse {
     user: User,
     application: Application,
-}
-
-#[derive(Deserialize)]
-struct SessionsResponse {
-    sessions: Vec<GameSession>,
-}
-
-#[derive(Deserialize)]
-struct SessionResponse {
-    session: GameSession,
 }
 
 #[derive(Serialize)]
@@ -97,7 +60,6 @@ struct BootstrapResponse {
     authorized: bool,
     user: Option<User>,
     application: Option<Application>,
-    sessions: Vec<GameSession>,
 }
 
 #[derive(Deserialize)]
@@ -236,19 +198,6 @@ async fn active_token(state: &ClientState) -> Result<String, String> {
         .ok_or_else(|| "Connect this application first".to_owned())
 }
 
-async fn fetch_sessions(state: &ClientState, token: &str) -> Result<Vec<GameSession>, ApiFailure> {
-    let response = state
-        .http
-        .get(format!(
-            "{}/api/desktop/game-sessions/current",
-            state.origin
-        ))
-        .bearer_auth(token)
-        .send()
-        .await;
-    Ok(api_json::<SessionsResponse>(response).await?.sessions)
-}
-
 #[tauri::command]
 async fn bootstrap(state: State<'_, ClientState>) -> Result<BootstrapResponse, String> {
     let mut token = state.token.lock().await.clone();
@@ -262,7 +211,6 @@ async fn bootstrap(state: State<'_, ClientState>) -> Result<BootstrapResponse, S
             authorized: false,
             user: None,
             application: None,
-            sessions: vec![],
         });
     };
     let me = api_json::<MeResponse>(
@@ -284,7 +232,6 @@ async fn bootstrap(state: State<'_, ClientState>) -> Result<BootstrapResponse, S
                 authorized: false,
                 user: None,
                 application: None,
-                sessions: vec![],
             });
         }
         Err(error) => return Err(error.to_string()),
@@ -294,7 +241,6 @@ async fn bootstrap(state: State<'_, ClientState>) -> Result<BootstrapResponse, S
         authorized: true,
         user: Some(me.user),
         application: Some(me.application),
-        sessions: vec![],
     })
 }
 
@@ -373,55 +319,6 @@ async fn poll_authorization(
 }
 
 #[tauri::command]
-async fn list_sessions(state: State<'_, ClientState>) -> Result<Vec<GameSession>, String> {
-    let token = active_token(&state).await?;
-    fetch_sessions(&state, &token)
-        .await
-        .map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-async fn join_session(code: String, state: State<'_, ClientState>) -> Result<GameSession, String> {
-    let token = active_token(&state).await?;
-    let response = state
-        .http
-        .post(format!("{}/api/desktop/game-sessions/join", state.origin))
-        .bearer_auth(token)
-        .json(&serde_json::json!({ "code": code }))
-        .send()
-        .await;
-    Ok(api_json::<SessionResponse>(response)
-        .await
-        .map_err(|error| error.to_string())?
-        .session)
-}
-
-#[tauri::command]
-async fn refresh_session(
-    code: String,
-    state: State<'_, ClientState>,
-) -> Result<GameSession, String> {
-    let token = active_token(&state).await?;
-    let normalized = code
-        .chars()
-        .filter(|character| character.is_ascii_alphanumeric())
-        .collect::<String>();
-    let response = state
-        .http
-        .get(format!(
-            "{}/api/desktop/game-sessions/{}",
-            state.origin, normalized
-        ))
-        .bearer_auth(token)
-        .send()
-        .await;
-    Ok(api_json::<SessionResponse>(response)
-        .await
-        .map_err(|error| error.to_string())?
-        .session)
-}
-
-#[tauri::command]
 async fn launch_game(
     code: Option<String>,
     app: AppHandle,
@@ -493,9 +390,6 @@ pub fn run() {
             open_authorization_page,
             open_account_page,
             poll_authorization,
-            list_sessions,
-            join_session,
-            refresh_session,
             launch_game,
             disconnect,
         ])
