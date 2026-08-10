@@ -3,7 +3,8 @@
 Written 2026-08-10. Everything marked ✅ was measured in-session; anything
 inferred is marked «unverified» with the check that would settle it.
 
-Resume point: **Phase 1**. Nothing in this plan has been started.
+Resume point: **Phase 2**. Phase 1 landed 2026-08-10 (`8d3864c`, plus the
+ranking fix it exposed, `d1ad4f0`) — see §2.
 
 ---
 
@@ -56,13 +57,20 @@ request each (3,616 songs ≈ 6 days at a conservative 600/day). The registry is
 therefore keyed on **artists (1,661)**, not songs.
 
 **Search responses already carry `artists[].id`** ✅ — e.g. `Aretha Franklin` →
-`7nwUJBm0HE4ZxD3f5cy5ok`. `resolve_uris.py` reads that object, uses the *name*,
-and discards the ID. This is the loss Phase 1 stops.
+`7nwUJBm0HE4ZxD3f5cy5ok`. This was the loss Phase 1 stopped. Multi-artist rows
+also yield composer IDs: the *Man of La Mancha* row carried Joseph Darion and
+Mitch Leigh alongside Richard Kiley.
 
-**`popularity` is `None` on every search result** ✅ (5/5). `resolve_uris.py`
-sorts candidates on `(round(similarity,1), popularity)`, so the tie-breaker is
-inert — ties resolve to whatever Spotify returned first. It does **not** crash
-(verified). Real popularity needs `/v1/tracks/{id}`, one request per track.
+**Search responses also carry `external_ids.isrc`** ✅ — the recording
+identifier. Captured as of Phase 1.
+
+**A whole search item is ~1.8 KB** ✅ — `market=US` suppresses
+`available_markets`, so storing responses verbatim is cheap.
+
+**`popularity` is `None` on every search result** ✅ (10/10, re-verified
+2026-08-10). The `(round(similarity,1), popularity)` tie-breaker was inert; it
+did not crash only because every value was None. Removed. Real popularity needs
+`/v1/tracks/{id}`, one request per track.
 
 **Wikidata join properties** ✅: `P1902` Spotify artist ID · `P434` MusicBrainz
 artist ID · `P4404` MusicBrainz recording ID · `P577` publication date ·
@@ -82,29 +90,61 @@ the top 5 were movie comps dated 2009–2024.
 **1,969 distinct credits → 1,661 distinct primary artists** · 3,415 in the built
 `web/data/catalog.json` (URI-deduplicated).
 
-## 2. Phase 1 — stop discarding what we already receive
+## 2. Phase 1 — stop discarding what we already receive ✅ DONE 2026-08-10
 
-**Free. No extra requests. Do this first.**
+Every resolution now appends the whole chosen track object to
+`mappings/spotify-tracks.jsonl`, keyed by `title|artist|year`. Guards live in
+`tools/test_resolve_uris.py` (not `test_common.py` — that file is about the
+shared text plumbing), including one that binds to the committed log and fails
+if any row lacks an artist ID.
 
-`tools/resolve_uris.py` `best_match()` returns the chosen track; the caller
-writes `uri` and drops everything else. Change it to also persist, per song:
+**Deviation from the plan as written, deliberate:** the catalog schema was NOT
+changed. Neither client has any use for the fields, and Phase 4 does not need
+them there — a catalog song reaches its artist ID through the registry, keyed
+on its exact credit string, which is a lookup in a human-audited table rather
+than the fuzzy match being retired. A sidecar keyed by song identity is the
+normalized form and avoids touching 111 files two clients decode. Reverse this
+if Phase 4 turns out to want the denormalization.
 
-- `spotifyArtistIds: [str]` — from `track["artists"][*]["id"]`
-- `spotifyArtistNames: [str]` — what Spotify called them, for audit
-- `spotifyAlbumReleaseDate` — already present in the response
+The sidecar carries `{title, artist, year, spotify_id}`, so it is also a valid
+`fill_from_datasets.py` mappings file. That gave a better route than the README
+flow: resolver `--out` to a scratch dir, fill `catalog/` from the log, then
+`status.py --sync`. The build product is never written directly and there is
+nothing for sync to "rescue".
 
-Write these into the resolver's **output modules** and into a mappings row, then
-carry them through `tools/apply_release_dates.py`-style application into
-`catalog/`. Per the standing directive, store the whole track object in a
-sidecar JSONL — the fields not used today cost nothing to keep and a full
-re-crawl to recover.
+**Two findings that change what the plan said:**
 
-Also fix the inert popularity sort while in this function: either drop the
-tie-breaker (honest) or fetch real popularity separately. Do **not** leave a
-sort key that silently does nothing.
+- **ISRC is on every search result** (`external_ids.isrc`) ✅ and identifies the
+  *recording*, stable across pressings — three of four "Bohemian Rhapsody" hits
+  share `GBUM71029604` while the 2010 edition is a different master. Now
+  captured. It is the join key to MusicBrainz and a better dedup key than the
+  URI; §5 should use it.
+- **`spotifyAlbumReleaseDate` is not a release year** ✅ — the same
+  recording-entity fragmentation that killed MusicBrainz. That song's hits are
+  dated 1975, 2010, 2021 and 2018 depending on which pressing matched. Captured
+  with its `release_date_precision`, never fed to `releaseYear`.
 
-Definition of done: a resolver run writes artist IDs; `tools/test_common.py`
-gains a guard that a resolved row carries at least one artist ID.
+The inert `popularity` sort is gone (verified None on 10/10 items). Its slot is
+now a real key — see below.
+
+### 2a. The defect Phase 1 exposed — version suffixes ✅ FIXED (`d1ad4f0`)
+
+The first real run resolved **0 of 25**. Not absent tracks: `norm()` strips
+`(…)` and `[…]` but not Spotify's `" - "` qualifier, so our "Men in Black"
+scored 0.453 against `Men In Black - From "Men In Black" Soundtrack` and fell
+under the 0.6 floor with the right track at rank 1. This is why the theme packs
+carried a null residue — soundtrack and cast titles almost always carry one.
+
+Similarity is now the better of the full and stripped readings; a candidate
+rescued *only* by stripping must clear 0.9, since stripping otherwise lifts
+"Fight for Your Right" to 0.788 against "Fight for You". Stripping also makes a
+live cut tie with the studio original, so the vacated tie-breaker is now
+"prefer the unsuffixed track".
+
+Result: 8 of 25 resolved, each audited against what it actually points at.
+Playable 3,415 → 3,423. Pending is now **85** (13 themes, 72 years), of which 68
+are the deprioritized pre-1950 set — left alone rather than spending quota to
+mark them unresolved.
 
 ## 3. Phase 2 — bootstrap the artist registry
 
@@ -125,7 +165,10 @@ better matcher can be replayed offline (`--rederive`, as
 re-crawl twice this session).
 
 Merge in any IDs Phase 1 has captured; resolver-sourced IDs outrank Wikidata's,
-since they came from the actual track we play.
+since they came from the actual track we play. As of 2026-08-10 that is 8 songs
+in `mappings/spotify-tracks.jsonl` — Phase 1 stops the bleeding going forward,
+it does not backfill. The 3,523 songs resolved before it will never be searched
+again, so Wikidata is doing nearly all the bootstrap work.
 
 ## 4. Phase 3 — audit once, by hand
 
@@ -145,6 +188,8 @@ Switch the hot paths from string comparison to `spotify_artist_id` equality:
   Q-number, which makes `likely_cover` **exact** instead of the current
   "several performers on the item" heuristic (638 rows currently skipped)
 - `cannabeats-themes/aggregate_gaps.py` — same
+- `web/scripts/build-catalog.mjs` — dedup on ISRC rather than URI. URI dedup
+  cannot see that two different URIs are the same master; ISRC can.
 
 Then demote `artists_match` to **registry bootstrap only**: a fuzzy suggestion a
 human confirms, never a silent decision made thousands of times. When that
@@ -180,7 +225,9 @@ Tests green at handoff ✅: 17 Python (`python3 -m unittest discover -s tools -p
   plays the wrong audio. Needs hand-picked track IDs.
 - **`Fame` / Irene Cara** in `themes/oscar-songs.json` points at a
   *re-recording*, not the 1980 original.
-- **19 theme URIs and 74 year URIs unresolved** (68 pre-1950, deprioritized).
+- **13 theme URIs and 72 year URIs unresolved** (68 pre-1950, deprioritized).
+  The 17 post-1950 leftovers are genuine absences, re-checked 2026-08-10 after
+  the suffix fix — not match failures.
 - **~30 cast-credit resolutions in `tony-musicals` are artist-unverified** —
   oEmbed returns titles only. Phase 1's artist IDs would settle these.
 - **`one-hit-wonders` pack (265 songs) unreviewed**, asserts factual claims.
