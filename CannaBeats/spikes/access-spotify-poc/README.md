@@ -138,7 +138,7 @@ Create an invitation inside the running container:
 docker compose exec app node cli.mjs invite --role host --note "Sibling name"
 ```
 
-After a notarized CannaBeats Host DMG has been published into the read-only
+After a CannaBeats Host DMG has been published into the configured read-only
 release mount, generate a complete paste-ready host onboarding email from the
 repository checkout:
 
@@ -153,10 +153,12 @@ stored only as hashes. Their email links carry capabilities in URL fragments;
 the installer is delivered only after a deliberate same-origin POST, so
 ordinary email link scanners cannot spend a download.
 
-The generator fails before creating either capability when the notarized
-release is absent. Publishing is handled separately by
-`macos-host-agent-poc/scripts/publish-host-release.sh`, which refuses an
-unstapled or Gatekeeper-rejected DMG.
+The generator fails before creating either capability when the configured
+release is absent. `HOST_RELEASE_CHANNEL` must be `interim` or `notarized` and
+controls the labels and installation instructions shown to recipients. The
+interim publisher accepts only the verified ad-hoc universal 0.5 build and uses
+a separate server filename. The normal `publish-host-release.sh` remains the
+only notarized publisher and refuses an unstapled or Gatekeeper-rejected DMG.
 
 Inspect health without exposing the application port publicly:
 

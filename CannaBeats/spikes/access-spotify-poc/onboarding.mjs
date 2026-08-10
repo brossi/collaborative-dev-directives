@@ -13,13 +13,17 @@ export function createHostOnboarding(db, {
   origin,
   releasePath,
   releaseName = 'CannaBeats-Host-universal.dmg',
+  releaseChannel = 'notarized',
   ttlHours = 48,
   maxDownloads = 5,
 } = {}) {
   const name = cleanRecipientName(recipientName);
   const appOrigin = new URL(origin).origin;
   if (!releasePath || !existsSync(releasePath)) {
-    throw new Error('The notarized CannaBeats Host release is not installed on this server');
+    throw new Error('The configured CannaBeats Host release is not installed on this server');
+  }
+  if (!['notarized', 'interim'].includes(releaseChannel)) {
+    throw new Error('Release channel must be notarized or interim');
   }
   if (!Number.isInteger(ttlHours) || ttlHours < 1 || ttlHours > 168) {
     throw new Error('Onboarding lifetime must be between 1 and 168 hours');
@@ -59,6 +63,7 @@ export function createHostOnboarding(db, {
     expiresAt: invitation.expiresAt,
     maxDownloads,
     releaseName: safeReleaseName,
+    releaseChannel,
     accountSetupUrl: `${appOrigin}/#invite=${encodeURIComponent(invitation.code)}`,
     downloadUrl: `${appOrigin}/host-download#token=${encodeURIComponent(downloadToken)}`,
   };
@@ -70,6 +75,9 @@ export function renderHostOnboardingEmail(onboarding, { senderName = 'CannaBeats
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short',
   });
+  const installationApproval = onboarding.releaseChannel === 'interim'
+    ? `This is our private interim build while Apple processes the Developer ID. The first launch will be blocked because it is not notarized. After trying to open CannaBeats Host once, open System Settings > Privacy & Security, scroll to Security, choose Open Anyway for CannaBeats Host, authenticate to your Mac, and confirm Open. Do not disable Gatekeeper globally.`
+    : `This release is signed and notarized for normal installation outside the Mac App Store.`;
   return `Subject: Your private CannaBeats Host invitation
 
 Hi ${firstName},
@@ -80,6 +88,8 @@ I'd like to authorize you to host our private CannaBeats games. This invitation 
 ${onboarding.downloadUrl}
 
 Open the downloaded DMG, then drag CannaBeats Host into Applications.
+
+${installationApproval}
 
 2. Create your private host account
 ${onboarding.accountSetupUrl}

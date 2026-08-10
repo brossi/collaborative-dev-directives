@@ -30,8 +30,9 @@ services:
       TRUST_PROXY: loopback
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       INVITATION_TTL_HOURS: ${INVITATION_TTL_HOURS:-168}
-      HOST_RELEASE_PATH: /releases/CannaBeats-Host-universal.dmg
-      HOST_RELEASE_NAME: CannaBeats-Host-universal.dmg
+      HOST_RELEASE_PATH: /releases/CannaBeats-Host-interim-universal.dmg
+      HOST_RELEASE_NAME: CannaBeats-Host-0.5-interim-universal.dmg
+      HOST_RELEASE_CHANNEL: interim
     ports:
       - "127.0.0.1:3002:3002"
     volumes:

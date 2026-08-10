@@ -35,6 +35,7 @@ const config = readConfig({
   port: 0,
   hostReleasePath,
   hostReleaseName: 'CannaBeats-Host-universal.dmg',
+  hostReleaseChannel: 'interim',
 });
 const db = openDatabase(databasePath);
 const gameRooms = new Map();
@@ -117,6 +118,7 @@ test('health, public config, and defensive headers are present', async () => {
     rpID: 'poc.test',
     spotifyClientId: 'public-test-client-id',
     spotifyRedirectUri: `${origin}/spotify/callback`,
+    hostInstallerChannel: 'interim',
   });
 
   const workerResponse = await fetch(`${baseUrl}/sw.js`);
@@ -174,6 +176,7 @@ test('host onboarding creates paste-ready instructions and a deliberate tokenize
     origin,
     releasePath: hostReleasePath,
     releaseName: 'CannaBeats-Host-universal.dmg',
+    releaseChannel: 'interim',
     ttlHours: 2,
     maxDownloads: 2,
   });
@@ -183,6 +186,8 @@ test('host onboarding creates paste-ready instructions and a deliberate tokenize
   assert.match(email, /Subject: Your private CannaBeats Host invitation/);
   assert.match(email, /Confirm managed Spotify/);
   assert.match(email, /Linux Spotify source/);
+  assert.match(email, /private interim build/);
+  assert.match(email, /Privacy & Security/);
   assert.match(email, /File > Add to Dock/);
   assert.match(email, /Host a game/);
 

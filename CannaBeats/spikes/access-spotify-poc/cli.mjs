@@ -45,6 +45,7 @@ try {
       origin: process.env.APP_ORIGIN || 'http://localhost:3002',
       releasePath: process.env.HOST_RELEASE_PATH || '',
       releaseName: process.env.HOST_RELEASE_NAME || 'CannaBeats-Host-universal.dmg',
+      releaseChannel: process.env.HOST_RELEASE_CHANNEL || 'notarized',
       ttlHours: Number(argument('hours', 48)),
       maxDownloads: Number(argument('downloads', 5)),
     });

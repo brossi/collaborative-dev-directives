@@ -11,9 +11,18 @@ The family host needs:
 - a Touch ID, iCloud Keychain, security-key, or other passkey-capable setup;
 - access to the private managed Spotify source (selected automatically in the
   game lobby); and
-- the notarized `CannaBeats-Host-0.5-universal.dmg` release.
+- the current universal Host release. During the Developer ID wait this is the
+  explicitly labeled ad-hoc 0.5 interim build; replace it with the signed and
+  notarized release when Apple activates the certificate.
 
-After producing a notarized release, publish it to the private download mount:
+Publish the ad-hoc interim build to its separate private download path with:
+
+```sh
+./spikes/macos-host-agent-poc/scripts/publish-interim-host-release.sh
+```
+
+After producing a notarized release, switch the configured release channel and
+publish it with:
 
 ```sh
 ./spikes/macos-host-agent-poc/scripts/publish-host-release.sh
@@ -59,6 +68,9 @@ consume the installer allowance with an ordinary GET request.
 2. Enter a display name and the one-time invitation, then choose **Create
    passkey** and approve the normal macOS security prompt.
 3. Open the CannaBeats Host DMG and drag **CannaBeats Host** to Applications.
+   For the interim build, try opening it once, then use **System Settings →
+   Privacy & Security → Open Anyway** and authenticate to the Mac. Never disable
+   Gatekeeper globally.
 4. Open CannaBeats Host and choose **Pair this Mac**. Its ten-minute pairing
    request opens in the default browser.
 5. Sign in with the new passkey, confirm the named Mac, and authorize it.

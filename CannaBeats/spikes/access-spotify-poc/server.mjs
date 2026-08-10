@@ -91,6 +91,12 @@ export function readConfig(overrides = {}) {
   if (Boolean(gameServiceOrigin) !== Boolean(gameServiceToken)) {
     throw new Error('Game service origin and token must be configured together');
   }
+  const hostReleaseChannel = overrides.hostReleaseChannel
+    ?? process.env.HOST_RELEASE_CHANNEL
+    ?? 'notarized';
+  if (!['notarized', 'interim'].includes(hostReleaseChannel)) {
+    throw new Error('HOST_RELEASE_CHANNEL must be notarized or interim');
+  }
   return {
     origin: origin.origin,
     rpID,
@@ -105,6 +111,7 @@ export function readConfig(overrides = {}) {
     gameServiceToken,
     hostReleasePath: overrides.hostReleasePath ?? process.env.HOST_RELEASE_PATH ?? '',
     hostReleaseName: overrides.hostReleaseName ?? process.env.HOST_RELEASE_NAME ?? 'CannaBeats-Host-universal.dmg',
+    hostReleaseChannel,
     sessionTtlDays: overrides.sessionTtlDays ?? integerEnvironment('SESSION_TTL_DAYS', 30, 1, 365),
     trustProxy: overrides.trustProxy ?? process.env.TRUST_PROXY ?? 'loopback',
   };
@@ -476,6 +483,7 @@ export function createApp({
       rpID: config.rpID,
       spotifyClientId: config.spotifyClientId,
       spotifyRedirectUri: `${config.origin}/spotify/callback`,
+      hostInstallerChannel: config.hostReleaseChannel,
     });
   });
 
@@ -522,6 +530,7 @@ export function createApp({
     (_req, res) => {
       res.json({
         installerAvailable: Boolean(config.hostReleasePath && existsSync(config.hostReleasePath)),
+        installerChannel: config.hostReleaseChannel,
         defaults: { ttlHours: 48, maxDownloads: 5 },
       });
     },
@@ -545,13 +554,14 @@ export function createApp({
         throw new HttpError(400, 'Maximum downloads must be between 1 and 20');
       }
       if (!config.hostReleasePath || !existsSync(config.hostReleasePath)) {
-        throw new HttpError(503, 'The notarized CannaBeats Host installer is not available yet');
+        throw new HttpError(503, 'The configured CannaBeats Host installer is not available yet');
       }
       const onboarding = createHostOnboarding(db, {
         recipientName,
         origin: config.origin,
         releasePath: config.hostReleasePath,
         releaseName: config.hostReleaseName,
+        releaseChannel: config.hostReleaseChannel,
         ttlHours,
         maxDownloads,
       });

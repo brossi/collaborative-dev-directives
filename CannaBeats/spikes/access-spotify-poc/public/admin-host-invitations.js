@@ -23,9 +23,12 @@ async function initialize() {
     byId('admin-name').textContent = user.displayName;
     byId('ttl-hours').value = String(configuration.defaults.ttlHours);
     byId('max-downloads').value = String(configuration.defaults.maxDownloads);
+    const releaseDescription = configuration.installerChannel === 'interim'
+      ? 'interim ad-hoc universal Mac installer'
+      : 'notarized universal Mac installer';
     byId('release-status').textContent = configuration.installerAvailable
-      ? 'The notarized universal Mac installer is ready. Each generated link will be limited and expiring.'
-      : 'The notarized universal Mac installer has not been published yet. Invitation generation is disabled.';
+      ? `The ${releaseDescription} is ready. Each generated link will be limited and expiring.`
+      : `The ${releaseDescription} has not been published yet. Invitation generation is disabled.`;
     byId('generate-invitation').disabled = !configuration.installerAvailable;
   } catch (error) {
     byId('release-status').textContent = error.message;

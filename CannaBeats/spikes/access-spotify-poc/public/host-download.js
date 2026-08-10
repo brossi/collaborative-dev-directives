@@ -1,6 +1,18 @@
 const button = document.getElementById('download-host');
 const status = document.getElementById('download-status');
+const installerNote = document.getElementById('installer-note');
 const token = new URLSearchParams(location.hash.slice(1)).get('token') ?? '';
+let installerChannel = 'notarized';
+
+fetch('/api/config')
+  .then((response) => response.ok ? response.json() : Promise.reject(new Error('Configuration unavailable')))
+  .then((configuration) => {
+    installerChannel = configuration.hostInstallerChannel;
+    installerNote.textContent = installerChannel === 'interim'
+      ? 'Interim build: after the first blocked launch, approve CannaBeats Host in System Settings > Privacy & Security > Open Anyway.'
+      : 'This installer is signed and notarized for distribution outside the Mac App Store.';
+  })
+  .catch(() => { installerNote.textContent = 'Installer details could not be loaded.'; });
 
 if (/^[A-Za-z0-9_-]{32,128}$/.test(token)) {
   button.disabled = false;
@@ -35,7 +47,9 @@ button.addEventListener('click', async () => {
     URL.revokeObjectURL(objectUrl);
     button.textContent = 'Download again';
     button.disabled = false;
-    status.textContent = 'Download started. Open the DMG and drag CannaBeats Host to Applications.';
+    status.textContent = installerChannel === 'interim'
+      ? 'Download started. Install the app, try opening it once, then approve it in System Settings > Privacy & Security > Open Anyway.'
+      : 'Download started. Open the DMG and drag CannaBeats Host to Applications.';
   } catch (error) {
     button.textContent = 'Try download again';
     button.disabled = false;
