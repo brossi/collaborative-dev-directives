@@ -13,7 +13,7 @@ Environment=DISPLAY=:20
 Environment=PULSE_SERVER=unix:/run/cannabeats-audio/pulse.sock
 ExecStartPre=/usr/bin/bash -c 'for attempt in {1..20}; do /usr/bin/test -S /tmp/.X11-unix/X20 && /usr/bin/test -S /run/cannabeats-audio/pulse.sock && exit 0; sleep 1; done; exit 1'
 ExecStartPre=/usr/bin/bash -c 'for attempt in {1..20}; do /usr/bin/curl --fail --silent http://127.0.0.1:4781/health && exit 0; sleep 1; done; exit 1'
-ExecStart=/usr/bin/dbus-run-session -- /usr/bin/google-chrome-stable --user-data-dir=/var/lib/cannabeats-source/chrome-profile --no-first-run --no-default-browser-check --disable-dev-shm-usage --window-size=1280,800 --start-maximized http://127.0.0.1:4781/
+ExecStart=/usr/bin/dbus-run-session -- /usr/bin/google-chrome-stable --user-data-dir=/var/lib/cannabeats-source/chrome-profile --no-first-run --no-default-browser-check --disable-dev-shm-usage --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --window-size=1280,800 --start-maximized http://127.0.0.1:4781/
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true

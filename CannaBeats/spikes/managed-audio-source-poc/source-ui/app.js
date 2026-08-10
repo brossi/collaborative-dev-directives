@@ -122,6 +122,7 @@ function loadSdk() {
 }
 
 async function startPlayer() {
+  log('Starting Spotify browser player…');
   await loadSdk();
   state.player?.disconnect();
   const player = new Spotify.Player({

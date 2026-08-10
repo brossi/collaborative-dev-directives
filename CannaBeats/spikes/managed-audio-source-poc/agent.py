@@ -29,6 +29,7 @@ class Handler(BaseHTTPRequestHandler):
                 "default-src 'self'",
                 "base-uri 'none'",
                 "frame-ancestors 'none'",
+                "frame-src https://sdk.scdn.co",
                 "script-src 'self' https://sdk.scdn.co",
                 "style-src 'self'",
                 "connect-src 'self' https://accounts.spotify.com https://api.spotify.com wss://dealer.spotify.com",
