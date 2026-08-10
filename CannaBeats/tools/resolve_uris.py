@@ -56,8 +56,8 @@ import time
 import urllib.parse
 
 from _common import (QuotaExceeded, TokenExpired, api_get, artists_match,
-                     counter, get_token, norm as normalize, primary_artist,
-                     significant_tokens)
+                     counter, get_token, lead_credit, norm as normalize,
+                     primary_artist, significant_tokens)
 from env import load_dotenv
 
 API = "https://api.spotify.com/v1"
@@ -143,20 +143,48 @@ def pick_best(scored):
     return sorted(scored, key=lambda s: (round(s[0], 1), s[1]), reverse=True)[0][2]
 
 
-def best_match(token: str, title: str, artist: str, thorough: bool, budget: int):
+def _clean(text: str) -> str:
     # ':' and '"' are Spotify query syntax; stripped so a title like
     # "Don't Stop: Part 2" can't break out of the field filter.
-    clean_title = title.replace(":", " ").replace('"', " ")
-    clean_artist = artist.replace(":", " ").replace('"', " ")
-    query = urllib.parse.quote(f"track:{clean_title} artist:{clean_artist}")
-    result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10",
-                     budget=budget)
-    scored = score_items(result.get("tracks", {}).get("items", []), title, artist)
-    if not scored and thorough:  # fallback plain query costs a 2nd request
-        query = urllib.parse.quote(f"{clean_title} {clean_artist}")
-        result = api_get(token, f"{API}/search?q={query}&type=track&market=US&limit=10",
-                         budget=budget)
-        scored = score_items(result.get("tracks", {}).get("items", []), title, artist)
+    return text.replace(":", " ").replace('"', " ")
+
+
+def search_query(title: str, artist: str) -> str:
+    return f"track:{_clean(title)} artist:{_clean(artist)}"
+
+
+def fallback_query(title: str, artist: str) -> str:
+    """The second query, used only under --thorough when the first found
+    nothing.
+
+    For a multi-name credit, narrow the artist: filter to the lead act instead
+    of dropping the filters. Spotify matches that filter against a single
+    artist name, so a whole credit line is often too restrictive: measured
+    2026-08-10, `artist:Daniel Jenkins, Ron Richardson` returned 0 results for
+    "Muddy Water" while `artist:Daniel Jenkins` returned 3, including the
+    correct 1985 Original Broadway Cast recording.
+
+    For a single-name credit the lead IS the credit, so there is nothing to
+    narrow and the old unfiltered query is still the useful second try — it is
+    what catches odd punctuation the field syntax mishandles.
+    """
+    lead = lead_credit(artist)
+    if lead and lead != artist:
+        return search_query(title, lead)
+    return f"{_clean(title)} {_clean(artist)}"
+
+
+def best_match(token: str, title: str, artist: str, thorough: bool, budget: int):
+    def search(query):
+        result = api_get(
+            token,
+            f"{API}/search?q={urllib.parse.quote(query)}&type=track&market=US&limit=10",
+            budget=budget)
+        return score_items(result.get("tracks", {}).get("items", []), title, artist)
+
+    scored = search(search_query(title, artist))
+    if not scored and thorough:  # a second request, budgeted for in main()
+        scored = search(fallback_query(title, artist))
     return pick_best(scored)
 
 

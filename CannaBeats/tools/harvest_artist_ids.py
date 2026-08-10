@@ -73,12 +73,13 @@ import argparse
 import collections
 import json
 import pathlib
-import re
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+from _common import CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 REGISTRY = HERE / "mappings" / "artist-registry.jsonl"
@@ -92,11 +93,10 @@ UA = {
 }
 PACE = 2.0
 
-# Case-preserving twins of _common's cutters: Wikidata label matching is exact,
-# so the normalized lowercase form that primary_artist() returns matches nothing.
-FEAT = re.compile(r"\s+(?:featuring|feat\.?|ft\.?|with)\s+.*$", re.I)
-FEAT_X = re.compile(r"\s+x\s+.*$")
-JOINED = re.compile(r"\s*(?:,| and | & )\s*", re.I)
+# Wikidata label matching is exact, so the normalized lowercase form that
+# primary_artist() returns matches nothing — these keep the original spelling.
+# Re-exported under the old names because this module's callers import them.
+FEAT, FEAT_X, JOINED = CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED
 
 # A one-character fallback ("? and the Mysterians" -> "?") matches junk. The
 # full credit is always kept regardless of length.

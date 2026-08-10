@@ -124,6 +124,30 @@ def artists_match(candidate: str, ours: str) -> bool:
     return theirs <= mine or mine <= theirs
 
 
+# Case-preserving twins of FEAT/FEAT_X and the primary_artist() split. They
+# exist because two callers need the lead act with its ORIGINAL spelling, where
+# primary_artist()'s normalized output is useless: Wikidata label matching is
+# exact, and Spotify's artist: filter reads better with real casing. Kept here
+# rather than copied into each caller — a second copy of a matching rule is how
+# artists_match came to disagree with itself in the first place.
+CREDIT_FEAT = re.compile(r"\s+(?:featuring|feat\.?|ft\.?|with)\s+.*$", re.I)
+CREDIT_FEAT_X = re.compile(r"\s+x\s+.*$")
+CREDIT_JOINED = re.compile(r"\s*(?:,| and | & )\s*", re.I)
+
+
+def lead_credit(credit: str) -> str:
+    """The lead act as originally spelled: feat./ft./with/" x " cut, then the
+    first name before any ","/" and "/" & ".
+
+    May differ from the credit only in case-sensitive ways primary_artist()
+    destroys — compare `lead_credit("Booker T. & the M.G.'s")` == "Booker T."
+    against `primary_artist(...)` == "booker t". May be "" for a credit that is
+    entirely a separator; callers must not use an empty result as a key.
+    """
+    trimmed = CREDIT_FEAT_X.sub("", CREDIT_FEAT.sub("", credit)).strip()
+    return CREDIT_JOINED.split(trimmed)[0].strip()
+
+
 def playlist_id(arg: str) -> str:
     """Extract the playlist ID from a Spotify URL/URI, or pass a bare ID through."""
     match = PLAYLIST_ID.search(arg)

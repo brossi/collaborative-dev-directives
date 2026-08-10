@@ -16,7 +16,42 @@ import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from _common import artists_match, norm, primary_artist, significant_tokens
+from _common import (artists_match, lead_credit, norm, primary_artist,
+                     significant_tokens)
+
+
+class LeadCreditKeepsTheOriginalSpelling(unittest.TestCase):
+    """Two callers need the lead act as WRITTEN, where primary_artist()'s
+    normalized output is useless: Wikidata label matching is exact, and
+    Spotify's artist: filter reads the real string."""
+
+    def test_case_and_punctuation_survive(self):
+        self.assertEqual(lead_credit("Booker T. & the M.G.'s"), "Booker T.")
+        self.assertEqual(primary_artist("Booker T. & the M.G.'s"), "booker t")
+
+    def test_featured_credits_are_cut(self):
+        self.assertEqual(lead_credit("Ariana Grande feat. Iggy Azalea"), "Ariana Grande")
+        self.assertEqual(lead_credit("2Pac featuring K-Ci and JoJo"), "2Pac")
+
+    def test_joined_credits_are_cut_at_the_first_act(self):
+        self.assertEqual(lead_credit("Daniel Jenkins, Ron Richardson"), "Daniel Jenkins")
+        self.assertEqual(lead_credit("A Great Big World & Christina Aguilera"),
+                         "A Great Big World")
+
+    def test_a_plain_credit_is_returned_unchanged(self):
+        self.assertEqual(lead_credit("Aretha Franklin"), "Aretha Franklin")
+
+    def test_a_band_name_containing_x_is_not_cut(self):
+        # FEAT_X needs whitespace both sides, so the trailing X survives.
+        self.assertEqual(lead_credit("Lil Nas X"), "Lil Nas X")
+
+    def test_a_credit_that_is_only_a_separator_can_come_back_empty(self):
+        # Documented so callers guard it: an empty artist: filter or an empty
+        # lookup key matches everything. A bare comma splits to nothing; " & "
+        # keeps its ampersand, because the pattern needs whitespace on both
+        # sides and stripping has already removed it.
+        self.assertEqual(lead_credit(","), "")
+        self.assertEqual(lead_credit(" & "), "&")
 
 
 class NormKeepsItsContract(unittest.TestCase):

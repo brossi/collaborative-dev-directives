@@ -25,8 +25,8 @@ import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from resolve_uris import (append_track, pick_best, score_items, song_key,
-                          track_record)
+from resolve_uris import (append_track, fallback_query, pick_best, score_items,
+                          search_query, song_key, track_record)
 
 # Field-for-field the shape of a live /v1/search?type=track&market=US item,
 # captured 2026-08-10. market=US pins the catalog, so `available_markets` is
@@ -203,6 +203,43 @@ class VersionSuffixesDoNotHideTheRightTrack(unittest.TestCase):
         best = pick_best(score_items(items, "Fight for You", "H.E.R."))
         self.assertTrue(best is None or best["id"] != "wrong",
                         "a different song passed the similarity floor")
+
+
+class TheSecondQueryNarrowsInsteadOfGivingUp(unittest.TestCase):
+    """Spotify matches artist: against ONE artist name, so a whole credit line
+    is often too restrictive. Measured 2026-08-10: `artist:Daniel Jenkins, Ron
+    Richardson` returned 0 results for "Muddy Water"; `artist:Daniel Jenkins`
+    returned 3, including the correct 1985 Original Broadway Cast recording."""
+
+    def test_the_first_query_always_uses_the_whole_credit(self):
+        self.assertEqual(search_query("Muddy Water", "Daniel Jenkins, Ron Richardson"),
+                         "track:Muddy Water artist:Daniel Jenkins, Ron Richardson")
+
+    def test_a_multi_name_credit_retries_on_the_lead_act(self):
+        for credit, lead in (("Daniel Jenkins, Ron Richardson", "Daniel Jenkins"),
+                             ("A Great Big World & Christina Aguilera", "A Great Big World"),
+                             ("Ariana Grande feat. Iggy Azalea", "Ariana Grande")):
+            with self.subTest(credit=credit):
+                self.assertEqual(fallback_query("Song", credit),
+                                 f"track:Song artist:{lead}")
+
+    def test_a_single_name_credit_still_falls_back_to_the_unfiltered_query(self):
+        # Nothing to narrow, so the old second try stands — it is what catches
+        # punctuation the field syntax mishandles.
+        self.assertEqual(fallback_query("Respect", "Aretha Franklin"),
+                         "Respect Aretha Franklin")
+
+    def test_an_empty_lead_never_becomes_an_empty_artist_filter(self):
+        # `artist:` on nothing would match the whole catalogue, so a credit
+        # whose lead comes back empty must fall through to the unfiltered query.
+        self.assertEqual(fallback_query("Song", ","), "Song ,")
+
+    def test_query_syntax_is_stripped_from_both_queries(self):
+        for query in (search_query('Don\'t Stop: Part 2', 'The "Band", X'),
+                      fallback_query('Don\'t Stop: Part 2', 'The "Band", X')):
+            with self.subTest(query=query):
+                self.assertNotIn(":", query.replace("track:", "").replace("artist:", ""))
+                self.assertNotIn('"', query)
 
 
 class TrackLogIsAppendOnlyAndCrashSafe(unittest.TestCase):
