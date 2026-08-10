@@ -421,7 +421,7 @@ export async function POST(request: Request) {
         return fail("Choose a valid timeline position.");
       }
       state.placement = index;
-      revealPlacement(state);
+      state.phase = "placed";
       saveRoom(state);
       return Response.json({ room: roomView(state, callerIsHost) });
     }

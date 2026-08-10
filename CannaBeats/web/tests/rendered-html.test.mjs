@@ -121,19 +121,28 @@ test("either side of a matching year is accepted", async () => {
 
   assert.match(route, /previous\.year <= state\.currentSong\.year/);
   assert.match(route, /state\.currentSong\.year <= next\.year/);
-  assert.match(route, /if \(action === "place"\)[\s\S]*revealPlacement\(state\)/);
+  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(state\)/);
 });
 
-test("a submitted placement immediately returns the answer to the host", async () => {
-  const [page, route] = await Promise.all([
+test("the host displays the answer after the retraction window closes", async () => {
+  const [page, route, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(route, /if \(action === "place"\)[\s\S]*revealPlacement\(state\)/);
+  assert.match(route, /if \(action === "place"\)[\s\S]*state\.phase = "placed"/);
+  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(state\)/);
+  assert.match(route, /function revealPlacement[\s\S]*state\.phase = "revealed"/);
+  assert.match(page, /room\.phase === "placed"[\s\S]*Reveal answer/);
   assert.match(page, /room\.phase === "revealed" && room\.currentSong/);
-  assert.match(page, /Correct placement/);
-  assert.doesNotMatch(page, /Retract placement|Change placement/);
+  assert.match(page, /host-answer-card/);
+  assert.match(page, /room\.currentSong\.year/);
+  assert.match(page, /room\.currentSong\.title/);
+  assert.match(page, /room\.currentSong\.artist/);
+  assert.match(styles, /\.host-answer-card/);
+  assert.match(page, /Retract placement/);
+  assert.match(page, /Change placement/);
 });
 
 test("host game setup retains persisted presets and uses weighted era selection", async () => {
@@ -228,7 +237,7 @@ test("every game supports phone and host-controlled players", async () => {
   assert.match(page, /hostControlsActivePlayer/);
   assert.match(page, /className=\{`host-placement-gap/);
   assert.match(page, /action: "place", hostToken: session\.hostToken/);
-  assert.doesNotMatch(page, /Change placement/);
+  assert.match(page, /Change placement/);
   assert.match(styles, /\.host-placement-gap/);
   assert.match(page, /className="host-row-lock"/);
   assert.match(styles, /\.host-row-lock/);

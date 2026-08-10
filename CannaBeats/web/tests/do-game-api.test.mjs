@@ -209,7 +209,29 @@ test("an authenticated lobby owns an internal game run and preserves host author
     placementHeaders,
   );
   assert.equal(submitted.status, 200);
-  const answeredRoom = (await submitted.json()).room;
+  const lockedRoom = (await submitted.json()).room;
+  assert.equal(lockedRoom.phase, "placed");
+
+  const retracted = await gamePost(
+    { action: "retract", code: sessionCode, playerId: activePlayer.id },
+    placementHeaders,
+  );
+  assert.equal(retracted.status, 200);
+  assert.equal((await retracted.json()).room.phase, "playing");
+
+  const finalPlacement = await gamePost(
+    { action: "place", code: sessionCode, playerId: activePlayer.id, index: 0 },
+    placementHeaders,
+  );
+  assert.equal(finalPlacement.status, 200);
+  assert.equal((await finalPlacement.json()).room.phase, "placed");
+
+  const revealed = await gamePost(
+    { action: "reveal", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(revealed.status, 200);
+  const answeredRoom = (await revealed.json()).room;
   assert.equal(answeredRoom.phase, "revealed");
   assert.ok(answeredRoom.currentSong);
   assert.equal(typeof answeredRoom.result.correct, "boolean");

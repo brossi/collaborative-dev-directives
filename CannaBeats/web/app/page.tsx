@@ -120,6 +120,7 @@ function GameSetup({ rules, busy, onApply }: {
               </label>
             ))}
           </fieldset>
+          <label className="toggle-rule"><input type="checkbox" checked={draft.allowRetraction} onChange={(event) => setDraft((current) => ({ ...current, allowRetraction: event.target.checked }))} /> Allow one retraction per round</label>
           <button className="secondary-button" disabled={busy}>Apply custom rules</button>
         </form>
       </details>
@@ -384,6 +385,13 @@ export default function Home() {
     }
   }
 
+  async function retractPlacement() {
+    const credentials = hostControlsActivePlayer
+      ? { hostToken: session?.hostToken }
+      : { playerId: session?.playerId };
+    if (await act({ action: "retract", ...credentials })) setSelection(null);
+  }
+
   async function addHostPlayer(event: FormEvent) {
     event.preventDefault();
     const chosenName = hostPlayerName.trim();
@@ -594,6 +602,7 @@ export default function Home() {
                 <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken }, true)}>Skip unavailable song</button>
               )}
               {room.phase === "placed" && (
+                <>
                 <button
                   className="text-button"
                   type="button"
@@ -603,6 +612,8 @@ export default function Home() {
                 >
                   {spotify.status === "playing" ? "Pause" : "Resume"}
                 </button>
+                {hostControlsActivePlayer && room.rules.allowRetraction && !room.retractionUsed && <button className="text-button" disabled={busy} onClick={() => void retractPlacement()}>Change placement</button>}
+                </>
               )}
             </div>
           </div>
@@ -618,6 +629,19 @@ export default function Home() {
         <section className="winner-card"><p className="step-label">That’s the timeline</p><h2>{winner.name} wins!</h2><p>First to {room.rules.targetScore} songs, and officially in tune with history.</p></section>
       ) : (
         <>
+          {room.isHost && room.phase === "revealed" && room.currentSong && (
+            <section className={`host-answer-card ${room.result?.correct ? "correct" : "incorrect"}`} aria-live="polite">
+              <div>
+                <p className="step-label">Answer</p>
+                <strong className="host-answer-year">{room.currentSong.year}</strong>
+              </div>
+              <div>
+                <h2>{room.currentSong.title}</h2>
+                <p>{room.currentSong.artist}</p>
+              </div>
+              <strong>{room.result?.correct ? "Correct placement" : "Incorrect placement"}</strong>
+            </section>
+          )}
           {!room.isHost && room.phase !== "revealed" && (
             <p className={`player-status ${isMyTurn && room.phase === "playing" ? "active" : ""}`}>
               {room.phase === "ready"
@@ -647,6 +671,9 @@ export default function Home() {
               />
               {isMyTurn && room.phase === "playing" && (
                 <button className="primary-button sticky-action" disabled={selected === null || busy} onClick={() => act({ action: "place", playerId: session.playerId, index: selected })}>Lock placement</button>
+              )}
+              {isMyTurn && room.phase === "placed" && room.rules.allowRetraction && !room.retractionUsed && (
+                <button className="secondary-button retract-button" disabled={busy} onClick={() => void retractPlacement()}>Retract placement</button>
               )}
             </section>
           )}
