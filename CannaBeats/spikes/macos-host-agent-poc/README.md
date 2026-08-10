@@ -49,6 +49,19 @@ The distributable artifact is
 installed identity, set `CANNABEATS_CODESIGN_IDENTITY` to its full name. A
 Developer ID build must also be notarized and stapled before family delivery.
 
+After Developer Program membership is active, store notarization credentials
+in Keychain with `xcrun notarytool store-credentials`, then run:
+
+```sh
+CANNABEATS_CODESIGN_IDENTITY="Developer ID Application: Name (TEAMID)" \
+CANNABEATS_NOTARY_PROFILE="cannabeats-notary" \
+./scripts/notarize-release.sh
+```
+
+The release script refuses ad-hoc and development certificates, verifies both
+the certificate and Keychain notary profile before rebuilding, then submits,
+staples, validates, assesses, and checksums the DMG.
+
 The application defaults to `https://poc.cannabeats.social`. The corresponding
 server endpoints and browser approval interface live in the adjacent
 `access-spotify-poc` spike.

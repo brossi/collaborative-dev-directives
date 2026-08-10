@@ -21,7 +21,6 @@ enum DeviceSigningKey {
     case keychain(P256.Signing.PrivateKey)
 
     private static let service = "social.cannabeats.host"
-    private static let legacyService = "social.cannabeats.host.poc"
     private static let account = "host-agent-signing-key"
     private static let secureEnclaveMarker: UInt8 = 1
     private static let softwareMarker: UInt8 = 2
@@ -86,24 +85,14 @@ enum DeviceSigningKey {
     }
 
     static func delete() throws {
-        for keychainService in [service, legacyService] {
-            let status = SecItemDelete(baseQuery(service: keychainService) as CFDictionary)
-            guard status == errSecSuccess || status == errSecItemNotFound else {
-                throw DeviceKeyError.keychain(status)
-            }
+        let status = SecItemDelete(baseQuery() as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw DeviceKeyError.keychain(status)
         }
     }
 
     private static func loadData() throws -> Data? {
-        if let current = try loadData(service: service) { return current }
-        guard let legacy = try loadData(service: legacyService) else { return nil }
-        try saveData(legacy)
-        SecItemDelete(baseQuery(service: legacyService) as CFDictionary)
-        return legacy
-    }
-
-    private static func loadData(service keychainService: String) throws -> Data? {
-        var query = baseQuery(service: keychainService)
+        var query = baseQuery()
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
@@ -123,10 +112,10 @@ enum DeviceSigningKey {
         guard status == errSecSuccess else { throw DeviceKeyError.keychain(status) }
     }
 
-    private static func baseQuery(service keychainService: String = service) -> [String: Any] {
+    private static func baseQuery() -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
     }

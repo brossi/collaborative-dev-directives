@@ -194,7 +194,6 @@ final class HostAgentModel: ObservableObject {
     private var preparedRelayGrant: RelayGrant?
 
     init() {
-        Self.migrateLegacyDefaults()
         let defaults = UserDefaults.standard
         serverOrigin = defaults.string(forKey: DefaultsKey.serverOrigin)
             ?? "https://poc.cannabeats.social"
@@ -214,17 +213,6 @@ final class HostAgentModel: ObservableObject {
             }
         }
         refreshAudioProcesses()
-    }
-
-    private static func migrateLegacyDefaults() {
-        guard let legacy = UserDefaults(suiteName: "social.cannabeats.host.poc") else { return }
-        let current = UserDefaults.standard
-        for key in [DefaultsKey.serverOrigin, DefaultsKey.agentID, DefaultsKey.pairedUser]
-            where current.object(forKey: key) == nil {
-            if let value = legacy.object(forKey: key) {
-                current.set(value, forKey: key)
-            }
-        }
     }
 
     var isPaired: Bool { agentID != nil }

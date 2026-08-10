@@ -11,6 +11,14 @@ executable_path="$contents_path/MacOS/CannaBeatsHost"
 dmg_path="$distribution_dir/CannaBeats-Host-0.4-universal.dmg"
 artwork_path="${CANNABEATS_ICON_SOURCE:-$repo_dir/web/public/cannabeats-logo.jpg}"
 codesign_identity="${CANNABEATS_CODESIGN_IDENTITY:--}"
+temporary_paths=()
+
+cleanup() {
+  for temporary_path in "${temporary_paths[@]}"; do
+    rm -rf "$temporary_path"
+  done
+}
+trap cleanup EXIT
 
 swift build --package-path "$spike_dir" -c release --triple arm64-apple-macosx14.2
 swift build --package-path "$spike_dir" -c release --triple x86_64-apple-macosx14.2
@@ -25,7 +33,9 @@ test "$(lipo -archs "$executable_path")" = "x86_64 arm64" \
   || test "$(lipo -archs "$executable_path")" = "arm64 x86_64"
 cp "$spike_dir/Resources/Info.plist" "$contents_path/Info.plist"
 
-iconset_dir="$(mktemp -d)/CannaBeatsHost.iconset"
+icon_workspace="$(mktemp -d)"
+temporary_paths+=("$icon_workspace")
+iconset_dir="$icon_workspace/CannaBeatsHost.iconset"
 mkdir -p "$iconset_dir"
 while read -r filename pixels; do
   sips -s format png -z "$pixels" "$pixels" "$artwork_path" --out "$iconset_dir/$filename" >/dev/null
@@ -42,7 +52,6 @@ icon_512x512.png 512
 icon_512x512@2x.png 1024
 SIZES
 iconutil -c icns "$iconset_dir" -o "$contents_path/Resources/CannaBeatsHost.icns"
-rm -rf "$(dirname "$iconset_dir")"
 
 codesign --force --sign "$codesign_identity" \
   --entitlements "$spike_dir/Resources/HostPoC.entitlements" \
@@ -52,11 +61,15 @@ codesign --verify --deep --strict "$app_path"
 lipo -archs "$executable_path"
 
 dmg_stage="$(mktemp -d)"
+temporary_paths+=("$dmg_stage")
 ditto "$app_path" "$dmg_stage/CannaBeats Host.app"
 ln -s /Applications "$dmg_stage/Applications"
 rm -f "$dmg_path"
 hdiutil create -quiet -volname "CannaBeats Host" -srcfolder "$dmg_stage" -ov -format UDZO "$dmg_path"
-rm -rf "$dmg_stage"
+if [[ "$codesign_identity" != "-" ]]; then
+  codesign --force --sign "$codesign_identity" "$dmg_path"
+  codesign --verify --verbose=2 "$dmg_path"
+fi
 
 echo "$app_path"
 echo "$dmg_path"
