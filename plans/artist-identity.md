@@ -9,10 +9,8 @@ Phases 1–3 landed 2026-08-10: `8d3864c` (capture) + `d1ad4f0` (the ranking fix
 it exposed) · `5194271` (registry) · `0fe0caa` (review tooling) + `80969d5`
 (assistant pass). All tests green: 123 Python, 23 web, lint clean.
 
-**Immediate next task — the 150 `trimmed:co-credited` rows.** Ben asked for
-these after the assistant pass. They are the genuinely lossy shape: `X & Y` → X,
-which drops a real co-artist (`John Travolta & Olivia Newton-John` → John
-Travolta). Judge individually, apply with `--reviewer assistant`, never `human`.
+**Immediate next task — Phase 4 (§5), or the remaining 120 audit rows.**
+The co-credited pass landed 2026-08-10 (`39d003e`).
 
 ```sh
 cd CannaBeats
@@ -23,10 +21,24 @@ python3 tools/review_artist_registry.py --csv <file> --apply --reviewer assistan
 python3 -m unittest discover -s tools -p 'test_*.py'
 ```
 
-**State right now:** 1,969 credits · 1,279 `single-exact` · 421 `assistant` ·
-153 `single-shortened` · 31 `multi` · 85 `none`. **3,476 / 3,616 song rows sit on
-an identified artist.** 269 undecided: 150 co-credited, 85 none, 31 multi,
-3 named-group.
+**State right now:** 1,969 credits · 1,279 `single-exact` · 570 `assistant` ·
+31 `multi` · 85 `none` · 4 `single-shortened`. **3,476 / 3,616 song rows sit on
+an identified artist.** 120 undecided: 85 `none`, 31 `multi`, 3 named-group,
+1 co-credited.
+
+The 120 left are the ones an assistant genuinely cannot settle from the stored
+candidates: `none` rows have no candidate at all (diacritic misses like
+`Beyonce`→Beyoncé, and cast credits that legitimately have no entity), and the
+`multi` remainder is 1920s vaudeville where several same-named people carry no
+distinguishing evidence. Both need a hand-entered Q-number, which only
+`--reviewer human` may supply.
+
+**Known-wrong IDs still sitting in the registry, unreviewed** ⚠ — these are
+`single-shortened`/`named-group` rows whose harvested answer is WRONG, so
+anything joining on the registry today picks up a bad ID:
+`Frankie Lymon & The Teenagers` → Q683420 "Nicolás Sestito" ·
+`Zoe Saldana, Karla Sofia Gascon` → Q190162 "Zoe Sandalia".
+They are visible in the queue but not yet corrected.
 
 **Then Phase 4** (§5) — switch the hot paths to ID joins and delete
 `ARTIST_ALIASES`.
@@ -37,8 +49,6 @@ an identified artist.** 269 undecided: 150 co-credited, 85 none, 31 multi,
 - `--reviewer assistant` keeps the row in Ben's queue; only `human` retires it.
 - Never write `--reviewer human` on Ben's behalf.
 - Reviewed rows survive `rederive_rows()` and `apply_resolver_ids()`.
-
----
 
 ---
 
