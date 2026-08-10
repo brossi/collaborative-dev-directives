@@ -34,21 +34,25 @@ WHY THIS EXISTS AT ALL
 WHAT IS DELIBERATELY NOT AUTOMATED
     No rule fills the decision column. Every mechanical shortcut available here
     is another similarity heuristic, which is the thing this whole plan is
-    retiring. The tool's job is to make deciding cheap — candidates spelled
-    out, real song titles alongside them, highest-song-count rows first so a
-    partial audit still pays — not to decide.
+    retiring. The tool's job is to make deciding cheap, not to decide:
+    candidates spelled out with their types and identifiers, real song titles
+    alongside them, and rows grouped by `shape` — WHICH cut was applied, never
+    whether it was right — so 219 "X feat. Y" rows are one judgement repeated
+    rather than 219 separate ones. Within a group, most songs first.
 """
 import argparse
 import collections
 import csv
 import json
 import pathlib
+import re
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
+from _common import CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED
 from harvest_artist_ids import (ENDPOINT, HERE, REGISTRY, UA, read_rows,
                                 summarize, write_rows)
 
@@ -59,21 +63,73 @@ DECISION_NONE = "none"
 # Everything except a settled machine answer and an already-audited row.
 REVIEWABLE = ("single-shortened", "multi", "none")
 
-FIELDS = ["credit", "songs", "confidence", "decision", "harvested", "candidates",
-          "examples", "labels", "matched_label"]
+FIELDS = ["shape", "credit", "songs", "removed", "decision", "harvested",
+          "candidates", "examples", "confidence", "labels", "matched_label"]
+
+# A backing band rather than a second act: "and His Orchestra", "& the Drells".
+BACKING_BAND = re.compile(r"^(?:and|&|with)\s+(?:his|her|their|the)\b", re.I)
+
+# Cheapest-to-decide first, so the queue drains; genuinely hard ones last.
+SHAPE_ORDER = ["trimmed:featured", "trimmed:backing-band", "trimmed:co-credited",
+               "trimmed:other", "multi", "none"]
+
+
+def review_shape(row) -> str:
+    """Which cut produced the matched label — purely syntactic.
+
+    This groups the queue so like rows can be judged together; it is NOT a
+    verdict on whether the cut was right. Measured over the 423
+    `single-shortened` rows: 219 featured, 150 co-credited, 54 backing-band.
+    They want different treatment, and mixing them makes every row a fresh
+    decision:
+
+      trimmed:featured      "X feat. Y" -> X. The lead is the act.
+      trimmed:backing-band  "X and His Orchestra" -> X. The leader is the entity.
+      trimmed:co-credited   "X & Y" -> X. Drops a real co-artist — the risky
+                            group, e.g. "John Travolta & Olivia Newton-John".
+    """
+    if row["confidence"] != "single-shortened":
+        return row["confidence"]
+    credit, matched = row["credit"], row["matched_label"] or ""
+    trimmed = CREDIT_FEAT_X.sub("", CREDIT_FEAT.sub("", credit)).strip()
+    if matched == trimmed and trimmed != credit:
+        return "trimmed:featured"
+    dropped = removed_text(row)
+    if BACKING_BAND.match(dropped):
+        return "trimmed:backing-band"
+    if CREDIT_JOINED.split(trimmed)[0].strip() == matched:
+        return "trimmed:co-credited"
+    return "trimmed:other"
+
+
+def removed_text(row) -> str:
+    """What the trim dropped, verbatim — the thing to eyeball when deciding
+    whether the shortened label still names the same act."""
+    credit, matched = row["credit"], row["matched_label"] or ""
+    return credit[len(matched):].strip() if matched and credit.startswith(matched) else ""
+
 
 # Enough examples to recognise an act, few enough to read in a spreadsheet cell.
 MAX_EXAMPLES = 4
 
 
 def needs_review(rows) -> list:
-    """Uncertain rows, most songs first — a partial audit then covers the most
-    gameplay. `single-shortened` is included because it is an inference, not a
-    match: "John Travolta & Olivia Newton-John" resolving to John Travolta
-    silently drops half a duet."""
+    """Uncertain rows, grouped by shape and then most songs first.
+
+    Grouping beats a flat song-count ordering here because the file is meant to
+    be finished: 219 `X feat. Y` rows in a block are one judgement repeated,
+    while the same rows scattered among ambiguous names are 219 separate ones.
+    Within a group the highest song counts still lead, so stopping part-way
+    inside a block still takes the most gameplay.
+
+    `single-shortened` is included, which the plan did not ask for: those are
+    inferences, not matches — "John Travolta & Olivia Newton-John" resolving to
+    John Travolta silently drops half a duet.
+    """
     pending = [row for row in rows
                if row.get("source") != "human" and row["confidence"] in REVIEWABLE]
-    return sorted(pending, key=lambda row: (-row["songs"], row["credit"]))
+    return sorted(pending, key=lambda row: (SHAPE_ORDER.index(review_shape(row)),
+                                            -row["songs"], row["credit"]))
 
 
 def format_candidates(row) -> str:
@@ -124,8 +180,10 @@ def emit_csv(rows, examples, handle) -> None:
     writer.writeheader()
     for row in rows:
         writer.writerow({
+            "shape": review_shape(row),
             "credit": row["credit"],
             "songs": row["songs"],
+            "removed": removed_text(row),
             "confidence": row["confidence"],
             "decision": "",
             "harvested": format_harvested(row),

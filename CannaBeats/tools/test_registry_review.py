@@ -21,8 +21,9 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from harvest_artist_ids import rederive_rows
-from review_artist_registry import (DECISION_NONE, DECISION_OK, apply_decisions,
-                                    emit_csv, needs_review, parse_decisions,
+from review_artist_registry import (DECISION_NONE, DECISION_OK, SHAPE_ORDER,
+                                    apply_decisions, emit_csv, needs_review,
+                                    parse_decisions, removed_text, review_shape,
                                     unresolved_qids)
 
 
@@ -68,13 +69,76 @@ class NeedsReviewPicksTheUncertainRows(unittest.TestCase):
         self.assertEqual({r["credit"] for r in needs_review(self.rows)},
                          {"Jim Jones", "Beyonce", "Kool & the Gang"})
 
-    def test_highest_impact_first_so_a_partial_audit_still_pays(self):
-        self.assertEqual([r["credit"] for r in needs_review(self.rows)],
-                         ["Kool & the Gang", "Jim Jones", "Beyonce"])
+    def test_like_rows_are_grouped_so_one_judgement_covers_many(self):
+        # Shape order first, song count within it. 219 "X feat. Y" rows in a
+        # block are one judgement repeated; scattered among ambiguous names
+        # they are 219 separate ones.
+        rows = [
+            row("Jim Jones", "multi", 50),
+            row("Beyonce", "none", 40),
+            row("Small Feat", "single-shortened", 1, "Q2", matched_label="Small"),
+            row("Big Feat", "single-shortened", 9, "Q1", matched_label="Big"),
+        ]
+        rows[2]["credit"] = "Small feat. Other"
+        rows[2]["matched_label"] = "Small"
+        rows[3]["credit"] = "Big feat. Other"
+        rows[3]["matched_label"] = "Big"
+        self.assertEqual([r["credit"] for r in needs_review(rows)],
+                         ["Big feat. Other", "Small feat. Other", "Jim Jones", "Beyonce"])
+
+    def test_most_songs_first_within_a_group(self):
+        rows = [row("A", "multi", 2), row("B", "multi", 9)]
+        self.assertEqual([r["credit"] for r in needs_review(rows)], ["B", "A"])
 
     def test_an_already_decided_row_is_not_re_asked(self):
         decided = row("Jim Jones", "human", 3, "Q707008", source="human")
         self.assertEqual(needs_review([decided]), [])
+
+
+class ShapeSaysWhichCutFiredNotWhetherItWasRight(unittest.TestCase):
+    def shape_of(self, credit, matched):
+        return review_shape(row(credit, "single-shortened", 1, "Q1",
+                                matched_label=matched))
+
+    def test_a_featured_credit(self):
+        self.assertEqual(self.shape_of("Ariana Grande feat. Iggy Azalea", "Ariana Grande"),
+                         "trimmed:featured")
+        self.assertEqual(self.shape_of("Tommy Dorsey featuring Frank Sinatra", "Tommy Dorsey"),
+                         "trimmed:featured")
+
+    def test_a_backing_band(self):
+        for credit, matched in (("Abe Lyman and His Orchestra", "Abe Lyman"),
+                                ("Ted Lewis and His Band", "Ted Lewis"),
+                                ("Archie Bell & the Drells", "Archie Bell")):
+            with self.subTest(credit=credit):
+                self.assertEqual(self.shape_of(credit, matched), "trimmed:backing-band")
+
+    def test_a_co_credited_act_is_kept_separate_from_a_backing_band(self):
+        # The risky group: this one drops half a duet, the ones above drop a
+        # backing band. Same syntax, opposite consequence.
+        self.assertEqual(self.shape_of("John Travolta & Olivia Newton-John", "John Travolta"),
+                         "trimmed:co-credited")
+        self.assertEqual(self.shape_of("Daniel Jenkins, Ron Richardson", "Daniel Jenkins"),
+                         "trimmed:co-credited")
+
+    def test_other_verdicts_pass_straight_through(self):
+        self.assertEqual(review_shape(row("Jim Jones", "multi", 1)), "multi")
+        self.assertEqual(review_shape(row("Beyonce", "none", 1)), "none")
+
+    def test_every_shape_is_orderable(self):
+        # A shape missing from SHAPE_ORDER would make needs_review raise.
+        for credit, matched in (("X feat. Y", "X"), ("X and His Orchestra", "X"),
+                                ("X & Y", "X"), ("X ~ Y", "X"), ("Totally Other", "Z")):
+            with self.subTest(credit=credit):
+                shape = review_shape(row(credit, "single-shortened", 1, "Q1",
+                                         matched_label=matched))
+                self.assertIn(shape, SHAPE_ORDER)
+
+    def test_removed_shows_exactly_what_was_dropped(self):
+        self.assertEqual(removed_text(row("Abe Lyman and His Orchestra", "single-shortened",
+                                          1, "Q1", matched_label="Abe Lyman")),
+                         "and His Orchestra")
+        self.assertEqual(removed_text(row("Jim Jones", "multi", 1)), "")
 
 
 class TheCsvIsReviewableWithoutLeavingIt(unittest.TestCase):
