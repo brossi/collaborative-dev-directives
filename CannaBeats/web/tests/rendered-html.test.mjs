@@ -162,6 +162,8 @@ test("host game setup retains persisted presets and uses weighted era selection"
   assert.match(page, /Advanced settings/);
   assert.match(page, /Relative era weighting/);
   assert.match(page, /Apply custom rules/);
+  assert.match(page, /function normalizeNumberDisplay/);
+  assert.equal(page.match(/onBlur=\{\(event\) => normalizeNumberDisplay/g)?.length, 3);
   assert.match(session, /HOST_RULES_KEY = "cannabeats-host-rules"/);
   assert.match(page, /localStorage\.setItem\(HOST_RULES_KEY, hostRules\)/);
   assert.match(page, /gameRequest\(\{ action: "create", rules: rememberedHostRules\(\) \}\)/);
@@ -267,6 +269,19 @@ test("the host scoreboard shows chronological Spotify timeline rows", async () =
   assert.match(styles, /\.host-song-art img \{[^}]*object-fit: contain/);
   assert.match(spotify, /https:\/\/api\.spotify\.com\/v1\/tracks\/\$\{encodeURIComponent\(trackId\)\}/);
   assert.doesNotMatch(spotify, /\/v1\/tracks\?ids=/);
+});
+
+test("the host round header keeps stable detail and action slots", async () => {
+  const [page, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /className={`host-round-detail/);
+  assert.match(page, /className="host-round-secondary-actions"/);
+  assert.match(styles, /\.host-round-detail \{[^}]*min-height:/);
+  assert.match(styles, /\.host-round-secondary-actions \{[^}]*min-height:/);
+  assert.match(styles, /\.host-round-secondary-actions \.text-button \{[^}]*margin-top: 0/);
 });
 
 test("the host uses blind in-browser Spotify playback", async () => {

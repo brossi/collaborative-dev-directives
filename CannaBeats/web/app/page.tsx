@@ -29,6 +29,10 @@ function rememberedHostRules() {
   }
 }
 
+function normalizeNumberDisplay(input: HTMLInputElement, value: number) {
+  input.value = String(value);
+}
+
 function Timeline({ player, interactive, selected, locked, onSelect }: {
   player: Player;
   interactive: boolean;
@@ -113,9 +117,9 @@ function GameSetup({ rules, busy, onApply }: {
         <summary>Advanced settings</summary>
         <form onSubmit={(event) => { event.preventDefault(); onApply({ ...draft, preset: "custom" }); }}>
           <div className="year-fields">
-            <label>Earliest year<input type="number" min={CATALOG_YEAR_MIN} max={draft.maxYear} value={draft.minYear} onChange={(event) => setDraft((current) => ({ ...current, minYear: Number(event.target.value) }))} /></label>
-            <label>Latest year<input type="number" min={draft.minYear} max={CATALOG_YEAR_MAX} value={draft.maxYear} onChange={(event) => setDraft((current) => ({ ...current, maxYear: Number(event.target.value) }))} /></label>
-            <label>Winning score<input type="number" min="3" max="20" value={draft.targetScore} onChange={(event) => setDraft((current) => ({ ...current, targetScore: Number(event.target.value) }))} /></label>
+            <label>Earliest year<input type="number" min={CATALOG_YEAR_MIN} max={draft.maxYear} value={draft.minYear} onBlur={(event) => normalizeNumberDisplay(event.currentTarget, draft.minYear)} onChange={(event) => setDraft((current) => ({ ...current, minYear: Number(event.target.value) }))} /></label>
+            <label>Latest year<input type="number" min={draft.minYear} max={CATALOG_YEAR_MAX} value={draft.maxYear} onBlur={(event) => normalizeNumberDisplay(event.currentTarget, draft.maxYear)} onChange={(event) => setDraft((current) => ({ ...current, maxYear: Number(event.target.value) }))} /></label>
+            <label>Winning score<input type="number" min="3" max="20" value={draft.targetScore} onBlur={(event) => normalizeNumberDisplay(event.currentTarget, draft.targetScore)} onChange={(event) => setDraft((current) => ({ ...current, targetScore: Number(event.target.value) }))} /></label>
           </div>
           <fieldset className="era-fields">
             <legend>Relative era weighting</legend>
@@ -579,35 +583,43 @@ export default function Home() {
                   : activePlayer?.control === "phone" ? "Choosing on phone" : "Choosing on this screen"}
             </p>
             <h1>{room.phase === "ready" ? `${activePlayer?.name ?? "Player"} goes first` : `${activePlayer?.name ?? "Player"}’s turn`}</h1>
-            {room.phase === "revealed" && room.currentSong ? (
-              <p className="host-answer"><strong>{room.currentSong.year}</strong> · {room.currentSong.title} · <span>{room.currentSong.artist}</span></p>
-            ) : room.phase === "ready" ? <p className="host-ready-copy">Let the first player know, then start when everyone is ready.</p> : null}
+            <p className={`host-round-detail ${room.phase === "revealed" ? "host-answer" : ""}`}>
+              {room.phase === "revealed" && room.currentSong ? (
+                <><strong>{room.currentSong.year}</strong> · {room.currentSong.title} · <span>{room.currentSong.artist}</span></>
+              ) : room.phase === "ready" ? "Let the first player know, then start when everyone is ready." : <span aria-hidden="true">&nbsp;</span>}
+            </p>
           </div>
           <div className="host-round-controls">
             {room.phase === "ready" && (
               <button className="primary-button" disabled={busy || !room.currentSong?.uri} onClick={() => act({ action: "begin", hostToken: session.hostToken }, true)}>Start first song</button>
             )}
             {room.phase === "playing" && (
-              <>
-                <button
-                  className="spotify-button"
-                  type="button"
-                  aria-label={`${playbackLabel} mystery song`}
-                  disabled={busy || !room.currentSong?.uri}
-                  onClick={() => void controlPlayback(() => spotify.status === "playing"
-                    ? spotify.pause()
-                    : spotify.status === "paused"
-                      ? spotify.resume()
-                      : spotify.play(room.currentSong!.uri!))}
-                >
-                  {playbackLabel}
-                </button>
-                <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken }, true)}>Skip unavailable song</button>
-              </>
+              <button
+                className="spotify-button"
+                type="button"
+                aria-label={`${playbackLabel} mystery song`}
+                disabled={busy || !room.currentSong?.uri}
+                onClick={() => void controlPlayback(() => spotify.status === "playing"
+                  ? spotify.pause()
+                  : spotify.status === "paused"
+                    ? spotify.resume()
+                    : spotify.play(room.currentSong!.uri!))}
+              >
+                {playbackLabel}
+              </button>
             )}
             {room.phase === "placed" && (
-              <>
-                <button className="primary-button" disabled={busy} onClick={() => act({ action: "reveal", hostToken: session.hostToken })}>Reveal answer</button>
+              <button className="primary-button" disabled={busy} onClick={() => act({ action: "reveal", hostToken: session.hostToken })}>Reveal answer</button>
+            )}
+            {room.phase === "revealed" && (
+              <button className="primary-button" disabled={busy} onClick={() => act({ action: "advance", hostToken: session.hostToken }, !room.winnerId)}>{room.winnerId ? "Finish game" : "Next player"}</button>
+            )}
+            <div className="host-round-secondary-actions">
+              {room.phase === "playing" && (
+                <button className="text-button" disabled={busy} onClick={() => act({ action: "skip", hostToken: session.hostToken }, true)}>Skip unavailable song</button>
+              )}
+              {room.phase === "placed" && (
+                <>
                 <button
                   className="text-button"
                   type="button"
@@ -618,11 +630,9 @@ export default function Home() {
                   {spotify.status === "playing" ? "Pause" : "Resume"}
                 </button>
                 {hostControlsActivePlayer && room.rules.allowRetraction && !room.retractionUsed && <button className="text-button" disabled={busy} onClick={() => void retractPlacement()}>Change placement</button>}
-              </>
-            )}
-            {room.phase === "revealed" && (
-              <button className="primary-button" disabled={busy} onClick={() => act({ action: "advance", hostToken: session.hostToken }, !room.winnerId)}>{room.winnerId ? "Finish game" : "Next player"}</button>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </section>
       ) : currentPlayer && (
