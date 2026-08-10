@@ -3,7 +3,8 @@
 Written 2026-08-10. Everything marked ✅ was measured in-session; anything
 inferred is marked «unverified» with the check that would settle it.
 
-Resume point: **Phase 3**. Phase 1 landed 2026-08-10 (`8d3864c`, plus the
+Resume point: **Phase 4** — or the Phase 3 audit, which is Ben's to run whenever.
+Phase 1 landed 2026-08-10 (`8d3864c`, plus the
 ranking fix it exposed, `d1ad4f0`); Phase 2 landed the same day (`5194271`).
 
 ---
@@ -226,7 +227,47 @@ in `mappings/spotify-tracks.jsonl` — Phase 1 stops the bleeding going forward,
 it does not backfill. The 3,523 songs resolved before it will never be searched
 again, so Wikidata is doing nearly all the bootstrap work.
 
-## 4. Phase 3 — audit once, by hand
+## 4. Phase 3 — audit once, by hand ✅ TOOLING DONE 2026-08-10 (`0fe0caa`)
+
+**The audit itself is Ben's to do.** `tools/review_artist_registry.py` is the
+round trip:
+
+```
+python3 tools/review_artist_registry.py                    # emit the CSV
+# fill the `decision` column in a spreadsheet, save as CSV
+python3 tools/review_artist_registry.py --apply            # read it back
+python3 tools/review_artist_registry.py --apply --dry-run  # preview only
+```
+
+`mappings/artist-registry-review.csv` holds **690 rows / 941 songs**: 423
+`single-shortened`, 182 `multi`, 85 `none`. Ordered by song count, so stopping
+part-way still buys the most gameplay.
+
+`decision` accepts a Q-number, `ok` (confirm what was harvested), `none`
+(confirmed absence), or blank (unreviewed — row untouched).
+
+**The guarantee:** applied rows carry `source: "human"`, and `rederive_rows()`
+and `apply_resolver_ids()` both skip them ✅ (tested). Without that the audit
+buys nothing, because the next pass re-guesses over it.
+
+**Nothing auto-fills `decision`.** Every shortcut available is another
+similarity heuristic — the thing this plan retires. The tool makes deciding
+cheap instead: candidates carry their P31 types and which IDs they hold, real
+catalog songs sit alongside, e.g. `TLC` = *musical group/girl group [spotify,
+mb]* vs *The Learning Company [video game developer]*.
+
+Scope note: `single-shortened` is reviewed too, which §3's sketch did not ask
+for. Those are inferences, not matches.
+
+**Verified end-to-end on scratch copies** ✅, registry untouched: candidate
+pick, `ok`, `none`, and a hand-entered Q outside the candidate set (fetched in
+one batched query — a row with a Q and no identifiers is exactly what nothing
+downstream can join on). All four survived `--rederive`.
+
+`Beyonce` → Q36153 resolves to **Beyoncé** ✅, confirming diacritics as a cause
+of some `none` rows — previously «unverified» in §3a.
+
+### Original sketch
 
 Emit `mappings/artist-registry-review.csv` for every row that is **0-candidate**
 or **multi-candidate**. 1,661 rows total is a spreadsheet, not a project.
