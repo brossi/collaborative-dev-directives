@@ -239,7 +239,7 @@ test('a desktop installation needs explicit approval before its revocable creden
   const pairing = await start.json();
   assert.match(pairing.code, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
   assert.match(pairing.authorizationToken, /^[A-Za-z0-9_-]{32,128}$/);
-  assert.equal(pairing.verificationUrl, `${origin}/?client_pair=${pairing.code}`);
+  assert.equal(pairing.verificationUrl, `${origin}/desktop/approve?code=${pairing.code}`);
   const stored = db.prepare(`
     SELECT * FROM desktop_authorizations WHERE token_hash = ?
   `).get(sha256(pairing.authorizationToken));
@@ -252,6 +252,26 @@ test('a desktop installation needs explicit approval before its revocable creden
   assert.deepEqual(await pending.json(), { status: 'pending' });
 
   const user = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  const browserToken = `desktop-approval-browser-${randomUUID()}`;
+  db.prepare(`
+    INSERT INTO sessions (token_hash, user_id, created_at, expires_at, last_seen_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(sha256(browserToken), user.id, Date.now(), Date.now() + 60_000, Date.now());
+  const pendingSelection = await fetch(
+    `${baseUrl}/api/desktop/authorizations/pending?code=${encodeURIComponent(pairing.code)}`,
+    { headers: { Cookie: `cb_session=${browserToken}` } },
+  );
+  assert.equal(pendingSelection.status, 200);
+  assert.deepEqual(await pendingSelection.json(), {
+    application: { displayName: 'CannaBeats Client on Test Laptop' },
+    code: pairing.code,
+    expiresAt: pairing.expiresAt,
+    approved: false,
+  });
+  const approvalPage = await fetch(`${baseUrl}/desktop/approve?code=${encodeURIComponent(pairing.code)}`);
+  assert.equal(approvalPage.status, 200);
+  assert.match(await approvalPage.text(), /id="desktop-approval-card"/);
+
   db.prepare(`
     UPDATE desktop_authorizations SET approved_at = ?, approved_by = ? WHERE token_hash = ?
   `).run(Date.now(), user.id, sha256(pairing.authorizationToken));

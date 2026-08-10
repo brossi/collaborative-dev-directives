@@ -3,6 +3,7 @@ const state = {
   user: null,
   gameSession: null,
   gameSessionTimer: null,
+  desktopApproval: null,
   spotify: { accessToken: null, expiresAt: 0, player: null, deviceId: null },
 };
 
@@ -54,10 +55,12 @@ function renderAccount() {
   byId('spotify-card').hidden = !signedIn || !isHost;
   byId('host-agent-panel').hidden = !signedIn || !isHost;
   byId('game-session-card').hidden = !signedIn || !isHost;
-  if (!signedIn) return;
-  byId('account-name').textContent = state.user.displayName;
-  byId('account-role').textContent = `${state.user.role === 'host' ? 'Host' : 'Player'} account`;
-  byId('host-proof').hidden = !isHost;
+  if (signedIn) {
+    byId('account-name').textContent = state.user.displayName;
+    byId('account-role').textContent = `${state.user.role === 'host' ? 'Host' : 'Player'} account`;
+    byId('host-proof').hidden = !isHost;
+  }
+  renderDesktopApproval();
 }
 
 async function loadSession() {
@@ -74,6 +77,7 @@ async function loadSession() {
   }
   renderAccount();
   renderGameSession();
+  if (state.user && state.desktopApproval) await loadPendingDesktopApproval();
 }
 
 async function loadDesktopApplications() {
@@ -113,23 +117,92 @@ async function loadDesktopApplications() {
   }
 }
 
+function normalizeDesktopPairingCode(value) {
+  return String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+}
+
+function formatDesktopPairingCode(value) {
+  const code = normalizeDesktopPairingCode(value);
+  return code.length > 4 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+}
+
+function setupDesktopApprovalRoute() {
+  const url = new URL(location.href);
+  const legacyCode = url.searchParams.get('client_pair');
+  if (url.pathname === '/' && legacyCode) {
+    location.replace(`/desktop/approve?code=${encodeURIComponent(legacyCode)}`);
+    return;
+  }
+  if (url.pathname !== '/desktop/approve') return;
+  const code = normalizeDesktopPairingCode(url.searchParams.get('code'));
+  state.desktopApproval = {
+    code,
+    application: null,
+    approved: false,
+    error: code.length === 8 ? null : 'This desktop approval link does not contain a valid code.',
+  };
+  document.body.classList.add('desktop-approval-mode');
+  byId('hero-lede').textContent = 'Select and authorize the desktop installation that opened this page.';
+  renderDesktopApproval();
+}
+
+function renderDesktopApproval() {
+  const approval = state.desktopApproval;
+  byId('desktop-approval-card').hidden = !approval;
+  if (!approval) return;
+  const signedIn = Boolean(state.user);
+  byId('desktop-approval-code').textContent = formatDesktopPairingCode(approval.code) || 'Invalid code';
+  byId('desktop-approval-guest').hidden = signedIn;
+  byId('desktop-approval-account').hidden = !signedIn;
+  byId('desktop-approval-result').textContent = approval.error ?? '';
+  if (!signedIn) return;
+  byId('desktop-approval-account-name').textContent = state.user.displayName;
+  byId('desktop-approval-app-name').textContent = approval.application?.displayName ?? 'Loading pending application…';
+  byId('desktop-approval-description').textContent = approval.approved
+    ? 'This desktop installation is now authorized. You can return to CannaBeats Client.'
+    : approval.error
+      ? approval.error
+      : approval.application
+        ? 'Confirm this named installation with your passkey. No Spotify credential is shared.'
+        : 'Checking this authorization request.';
+  const button = byId('approve-pending-desktop-application');
+  button.disabled = !approval.application || Boolean(approval.error) || approval.approved;
+  button.hidden = approval.approved;
+}
+
+async function loadPendingDesktopApproval() {
+  if (!state.user || !state.desktopApproval || state.desktopApproval.error) return;
+  try {
+    const result = await api(`/api/desktop/authorizations/pending?code=${encodeURIComponent(state.desktopApproval.code)}`);
+    state.desktopApproval.application = result.application;
+    state.desktopApproval.approved = result.approved;
+  } catch (error) {
+    state.desktopApproval.error = errorMessage(error);
+  }
+  renderDesktopApproval();
+}
+
+async function completeDesktopApproval(code, { confirmApplication = false } = {}) {
+  const result = await api('/api/desktop/authorizations/approve/options', {
+    method: 'POST', body: JSON.stringify({ code }),
+  });
+  if (confirmApplication
+    && !window.confirm(`Authorize “${result.application.displayName}” for your CannaBeats account?`)) return null;
+  const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
+  return api('/api/desktop/authorizations/approve/verify', {
+    method: 'POST', body: JSON.stringify({ response }),
+  });
+}
+
 async function approveDesktopApplication(event) {
   event.preventDefault();
   try {
-    const code = byId('desktop-application-code').value;
-    const result = await api('/api/desktop/authorizations/approve/options', {
-      method: 'POST', body: JSON.stringify({ code }),
+    const verified = await completeDesktopApproval(byId('desktop-application-code').value, {
+      confirmApplication: true,
     });
-    if (!window.confirm(`Authorize “${result.application.displayName}” for your CannaBeats account?`)) return;
-    const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
-    const verified = await api('/api/desktop/authorizations/approve/verify', {
-      method: 'POST', body: JSON.stringify({ response }),
-    });
+    if (!verified) return;
     byId('desktop-application-result').textContent = verified.message;
     byId('approve-desktop-application-form').reset();
-    const url = new URL(location.href);
-    url.searchParams.delete('client_pair');
-    history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     await loadDesktopApplications();
     showMessage('Desktop application approved.');
   } catch (error) {
@@ -137,10 +210,21 @@ async function approveDesktopApplication(event) {
   }
 }
 
-function prefillDesktopApplicationCode() {
-  const code = new URLSearchParams(location.search).get('client_pair');
-  if (!code) return;
-  byId('desktop-application-code').value = code.toUpperCase();
+async function approvePendingDesktopApplication() {
+  const button = byId('approve-pending-desktop-application');
+  button.disabled = true;
+  try {
+    const verified = await completeDesktopApproval(state.desktopApproval.code);
+    state.desktopApproval.approved = true;
+    byId('desktop-approval-result').textContent = verified.message;
+    await loadDesktopApplications();
+    renderDesktopApproval();
+  } catch (error) {
+    state.desktopApproval.error = errorMessage(error);
+    renderDesktopApproval();
+  } finally {
+    if (!state.desktopApproval.approved) button.disabled = false;
+  }
 }
 
 function renderGameSession() {
@@ -332,6 +416,9 @@ async function signIn() {
     state.user = verified.user;
     renderAccount();
     await loadPasskeys();
+    await loadDesktopApplications();
+    if (state.user.role === 'host') await loadHostAgents();
+    if (state.desktopApproval) await loadPendingDesktopApproval();
     showMessage('Signed in with your passkey.');
   } catch (error) {
     showMessage(errorMessage(error), 'error');
@@ -554,6 +641,7 @@ async function startSpotifyPlayer() {
 }
 
 async function handleSpotifyCallback() {
+  if (location.pathname !== '/spotify/callback') return;
   const parameters = new URLSearchParams(location.search);
   if (!parameters.has('code') && !parameters.has('error')) return;
   try {
@@ -586,6 +674,8 @@ function wireEvents() {
   byId('add-passkey-form').addEventListener('submit', addPasskey);
   byId('approve-host-agent-form').addEventListener('submit', approveHostAgent);
   byId('approve-desktop-application-form').addEventListener('submit', approveDesktopApplication);
+  byId('desktop-approval-sign-in').addEventListener('click', signIn);
+  byId('approve-pending-desktop-application').addEventListener('click', approvePendingDesktopApplication);
   byId('create-game-session').addEventListener('click', () => createGameSession()
     .catch((error) => showMessage(errorMessage(error), 'error')));
   byId('sign-out').addEventListener('click', async () => {
@@ -639,7 +729,7 @@ function wireEvents() {
 async function initialize() {
   wireEvents();
   prefillHostAgentPairingCode();
-  prefillDesktopApplicationCode();
+  setupDesktopApprovalRoute();
   try {
     state.config = await api('/api/config');
     byId('connection-status').textContent = state.config.rpID;

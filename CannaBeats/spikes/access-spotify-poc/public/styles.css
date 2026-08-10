@@ -72,6 +72,9 @@ p { color: var(--muted); line-height: 1.55; }
 
 main { display: grid; gap: 1.25rem; width: min(68rem, calc(100% - 2rem)); margin: 0 auto; padding-bottom: 5rem; }
 .card { border: 1px solid var(--line); border-radius: 1.25rem; padding: clamp(1.25rem, 4vw, 2rem); background: rgb(19 37 27 / 88%); box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 24%); backdrop-filter: blur(12px); }
+.desktop-approval-mode main > section:not(#desktop-approval-card) { display: none; }
+.approval-action { border-top: 1px solid var(--line); margin-top: 1.4rem; padding-top: 1.4rem; }
+.approval-action p { margin-bottom: 0.8rem; }
 .card.compact { padding-block: 1.5rem; }
 .section-heading, .account-line, .action-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .section-heading { align-items: flex-start; border-bottom: 1px solid var(--line); margin-bottom: 1.4rem; padding-bottom: 1.2rem; }

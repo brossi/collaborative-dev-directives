@@ -562,7 +562,7 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
       code,
       authorizationToken,
       expiresAt: new Date(expiresAt).toISOString(),
-      verificationUrl: `${config.origin}/?client_pair=${encodeURIComponent(code)}`,
+      verificationUrl: `${config.origin}/desktop/approve?code=${encodeURIComponent(code)}`,
     });
   });
 
@@ -602,6 +602,26 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
       },
       application: { displayName: authorization.display_name },
       expiresAt: new Date(expiresAt).toISOString(),
+    });
+  });
+
+  app.get('/api/desktop/authorizations/pending', requireUser, (req, res) => {
+    purgeExpired(db);
+    const normalizedCode = normalizePairingCode(req.query?.code);
+    if (normalizedCode.length !== 8) throw new HttpError(400, 'Desktop pairing code is invalid');
+    const authorization = db.prepare(`
+      SELECT display_name, expires_at, approved_by
+      FROM desktop_authorizations WHERE code_hash = ? AND expires_at > ?
+    `).get(sha256(normalizedCode), Date.now());
+    if (!authorization) throw new HttpError(404, 'Desktop pairing code expired or was not found');
+    if (authorization.approved_by && authorization.approved_by !== req.user.id) {
+      throw new HttpError(409, 'Desktop pairing request was already approved');
+    }
+    res.json({
+      application: { displayName: authorization.display_name },
+      code: `${normalizedCode.slice(0, 4)}-${normalizedCode.slice(4)}`,
+      expiresAt: new Date(authorization.expires_at).toISOString(),
+      approved: authorization.approved_by === req.user.id,
     });
   });
 
@@ -1127,7 +1147,7 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
     res.sendFile(resolve(publicDirectory, 'sw.js'));
   });
   app.use(express.static(publicDirectory, { index: false, maxAge: 0 }));
-  app.get(['/', '/spotify/callback'], (_req, res) => {
+  app.get(['/', '/spotify/callback', '/desktop/approve'], (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.sendFile(resolve(publicDirectory, 'index.html'));
   });

@@ -18,12 +18,37 @@
       <div>
         <p class="eyebrow">Private proof of concept</p>
         <h1>CannaBeats Access Lab</h1>
-        <p class="lede">Test invitation-only passkeys and device-local Spotify authorization without loading the game engine.</p>
+        <p id="hero-lede" class="lede">Test invitation-only passkeys and device-local Spotify authorization without loading the game engine.</p>
       </div>
       <span id="connection-status" class="status">Loading…</span>
     </header>
 
     <main>
+      <section id="desktop-approval-card" class="card approval-card" aria-labelledby="desktop-approval-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="step">Desktop authorization</p>
+            <h2 id="desktop-approval-title">Authorize CannaBeats Client</h2>
+          </div>
+          <span class="privacy">Fresh passkey check</span>
+        </div>
+        <p>The desktop application requested approval with this code:</p>
+        <output id="desktop-approval-code" class="game-code"></output>
+
+        <div id="desktop-approval-guest" class="approval-action">
+          <p>Sign in to select the pending application and authorize it for your account.</p>
+          <button id="desktop-approval-sign-in" class="primary" type="button">Sign in with passkey</button>
+        </div>
+
+        <div id="desktop-approval-account" class="approval-action" hidden>
+          <p>Signed in as <strong id="desktop-approval-account-name"></strong></p>
+          <h3 id="desktop-approval-app-name">Loading pending application…</h3>
+          <p id="desktop-approval-description">Checking this authorization request.</p>
+          <button id="approve-pending-desktop-application" class="primary" type="button" disabled>Authorize this desktop app</button>
+        </div>
+        <output id="desktop-approval-result" class="result" aria-live="polite"></output>
+      </section>
+
       <section class="card" aria-labelledby="access-title">
         <div class="section-heading">
           <div>
