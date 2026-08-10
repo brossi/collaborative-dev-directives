@@ -31,7 +31,7 @@ type LeaseRow = {
 };
 
 export const MANAGED_SOURCE_ONLINE_MS = 15_000;
-export const MANAGED_LEASE_TTL_MS = 20_000;
+export const MANAGED_LEASE_TTL_MS = 90_000;
 
 function cleanupExpiredLeases(now = Date.now()) {
   database().prepare("DELETE FROM managed_audio_leases WHERE expires_at <= ?").run(now);

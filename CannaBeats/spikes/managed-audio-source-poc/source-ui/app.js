@@ -163,6 +163,18 @@ async function ensurePlayerReady() {
   if (!state.deviceId || !state.player) throw new Error('Spotify browser player did not become ready');
 }
 
+async function waitForPlaybackState(paused) {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const playback = await state.player.getCurrentState();
+    if (playback && playback.paused === paused) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(paused
+    ? 'Spotify did not confirm that playback paused'
+    : 'Spotify did not confirm active playback; browser activation may be required');
+}
+
 async function executeManagedCommand(command) {
   await ensurePlayerReady();
   if (command.kind === 'play') {
@@ -173,14 +185,17 @@ async function executeManagedCommand(command) {
       method: 'PUT', body: JSON.stringify({ uris: [command.trackUri] }),
     });
     await state.player.resume();
+    await waitForPlaybackState(false);
     return 'playing';
   }
   if (command.kind === 'pause') {
     await state.player.pause();
+    await waitForPlaybackState(true);
     return 'paused';
   }
   if (command.kind === 'resume') {
     await state.player.resume();
+    await waitForPlaybackState(false);
     return 'playing';
   }
   throw new Error('Managed playback command is not supported');

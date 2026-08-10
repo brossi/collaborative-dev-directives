@@ -495,8 +495,12 @@ export async function POST(request: Request) {
 
     if (action === "audioAcquire") {
       if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "lobby") return fail("Choose the audio source before the game starts.", 409);
-      return Response.json({ room: roomView(state, true), audio: acquireManagedAudioLease(code, principal.id) });
+      if (state.phase === "finished") return fail("This game has finished.", 409);
+      const acquired = acquireManagedAudioLease(code, principal.id);
+      const audio = (state.phase === "playing" || state.phase === "placed") && state.currentSong?.uri
+        ? enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri)
+        : acquired;
+      return Response.json({ room: roomView(state, true), audio });
     }
 
     if (action === "audioRelease") {
@@ -510,6 +514,9 @@ export async function POST(request: Request) {
       }
       const command = String(payload.command ?? "");
       if (command !== "pause" && command !== "resume") return fail("Playback command is invalid.");
+      if (managedAudioView(code).mode !== "managed") {
+        return fail("This game does not own the managed audio source.", 409);
+      }
       return Response.json({
         room: roomView(state, callerIsHost),
         audio: enqueueManagedAudioCommand(code, principal.id, command),
