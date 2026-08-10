@@ -1,0 +1,22 @@
+[Unit]
+Description=CannaBeats managed audio-source loopback VNC
+Requires=cannabeats-display.service
+After=cannabeats-display.service
+
+[Service]
+Type=simple
+User=cannabeats-source
+Group=cannabeats-source
+Environment=HOME=/var/lib/cannabeats-source
+ExecStartPre=/usr/bin/bash -c 'for attempt in {1..20}; do /usr/bin/test -S /tmp/.X11-unix/X20 && exit 0; sleep 1; done; exit 1'
+ExecStart=/usr/bin/x11vnc -display :20 -localhost -rfbport 5900 -forever -shared -nopw -noxdamage
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=false
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target

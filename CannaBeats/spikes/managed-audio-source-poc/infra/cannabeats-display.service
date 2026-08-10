@@ -1,0 +1,21 @@
+[Unit]
+Description=CannaBeats managed audio-source virtual display
+After=network.target
+
+[Service]
+Type=simple
+User=cannabeats-source
+Group=cannabeats-source
+Environment=HOME=/var/lib/cannabeats-source
+ExecStartPre=+/usr/bin/install -d -o root -g root -m 1777 /tmp/.X11-unix
+ExecStart=/usr/bin/Xvfb :20 -screen 0 1280x800x24 -nolisten tcp -noreset
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=false
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cannabeats-source /tmp
+
+[Install]
+WantedBy=multi-user.target

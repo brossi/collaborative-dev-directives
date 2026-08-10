@@ -1,0 +1,23 @@
+[Unit]
+Description=CannaBeats managed audio-source virtual audio sink
+After=network.target
+
+[Service]
+Type=simple
+User=cannabeats-source
+Group=cannabeats-audio
+RuntimeDirectory=cannabeats-audio
+RuntimeDirectoryMode=0750
+Environment=HOME=/var/lib/cannabeats-source
+ExecStart=/usr/bin/pulseaudio --daemonize=no --exit-idle-time=-1 --log-target=journal --load="module-native-protocol-unix socket=/run/cannabeats-audio/pulse.sock auth-anonymous=1" --load="module-null-sink sink_name=cannabeats_source rate=48000 channels=2 sink_properties=device.description=CannaBeats_Source"
+ExecStartPost=/usr/bin/bash -c 'for attempt in {1..30}; do if /usr/bin/pactl --server=unix:/run/cannabeats-audio/pulse.sock info >/dev/null 2>&1; then /usr/bin/pactl --server=unix:/run/cannabeats-audio/pulse.sock set-default-sink cannabeats_source && /usr/bin/pactl --server=unix:/run/cannabeats-audio/pulse.sock set-default-source cannabeats_source.monitor && exit 0; fi; sleep 0.1; done; exit 1'
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cannabeats-source /run/cannabeats-audio
+
+[Install]
+WantedBy=multi-user.target

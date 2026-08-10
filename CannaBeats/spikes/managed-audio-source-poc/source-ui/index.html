@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <link rel="stylesheet" href="/styles.css">
+    <title>CannaBeats managed Spotify source</title>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Loopback-only control</p>
+      <h1>Managed Spotify source</h1>
+      <p id="credential-state">Checking local authorization…</p>
+
+      <div class="buttons">
+        <button id="connect" class="primary" type="button">Connect Spotify</button>
+        <button id="verify" type="button">Verify account</button>
+        <button id="start-player" type="button">Start browser player</button>
+        <button id="disconnect" class="danger" type="button">Disconnect locally</button>
+      </div>
+
+      <section>
+        <label for="track-uri">Spotify track URI</label>
+        <input id="track-uri" value="spotify:track:1VhceLmNuBLqQyRteZVw4q" spellcheck="false">
+        <div class="buttons">
+          <button id="play" class="primary" type="button">Play test track</button>
+          <button id="pause" type="button">Pause</button>
+          <button id="resume" type="button">Resume</button>
+        </div>
+      </section>
+
+      <pre id="status" aria-live="polite">Waiting for setup.</pre>
+      <p class="fine-print">The refresh credential remains in this isolated Chrome profile. CannaBeats hosts and clients do not receive it.</p>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+:root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #0b1510; color: #f4f2e8; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 10% 0%, #274f35, transparent 35rem), #0b1510; }
+main { width: min(54rem, calc(100% - 3rem)); margin: 0 auto; padding: 4rem 0; }
+.eyebrow { color: #81d79c; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+h1 { margin: 0 0 1rem; font-size: clamp(2.4rem, 7vw, 4.5rem); line-height: .95; }
+p { color: #b5c1b8; line-height: 1.55; }
+section { border-top: 1px solid #315441; margin-top: 2rem; padding-top: 2rem; }
+label { display: block; margin-bottom: .5rem; color: #b5c1b8; font-weight: 700; }
+input { width: 100%; min-height: 2.8rem; box-sizing: border-box; border: 1px solid #315441; border-radius: .65rem; padding: .65rem .75rem; color: #f4f2e8; background: #0d1b13; font: inherit; }
+.buttons { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1.25rem 0; }
+button { min-height: 2.7rem; border: 1px solid #315441; border-radius: .7rem; padding: .65rem 1rem; color: #f4f2e8; background: #193024; font: inherit; font-weight: 750; cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.primary { border-color: transparent; color: #07120b; background: #81d79c; }
+.danger { color: #ff9d91; background: transparent; }
+pre { min-height: 8rem; overflow: auto; border: 1px solid #315441; border-radius: .75rem; padding: 1rem; color: #d6efde; background: #08110c; white-space: pre-wrap; }
+.fine-print { font-size: .84rem; }

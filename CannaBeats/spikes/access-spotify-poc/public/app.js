@@ -683,6 +683,13 @@ function wireEvents() {
 }
 
 async function initialize() {
+  if (location.pathname === '/spotify/callback') {
+    const callbackState = new URLSearchParams(location.search).get('state') ?? '';
+    if (callbackState.startsWith('managed-source.')) {
+      location.replace(`http://127.0.0.1:4781/callback${location.search}`);
+      return;
+    }
+  }
   if (location.pathname === '/spotify/callback'
       && localStorage.getItem(GAME_SPOTIFY_AUTH_KEY)) {
     const returnPath = localStorage.getItem(GAME_SPOTIFY_RETURN_KEY) ?? '';

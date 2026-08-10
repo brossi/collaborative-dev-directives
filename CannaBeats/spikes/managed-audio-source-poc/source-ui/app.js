@@ -1,0 +1,183 @@
+const REFRESH_KEY = 'cannabeats.managed.spotify.refreshToken';
+const VERIFIER_KEY = 'cannabeats.managed.spotify.pkceVerifier';
+const STATE_KEY = 'cannabeats.managed.spotify.oauthState';
+const SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
+const state = { config: null, accessToken: null, expiresAt: 0, player: null, deviceId: null };
+const byId = (id) => document.getElementById(id);
+
+function log(value) {
+  byId('status').textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+function base64url(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
+function render() {
+  const connected = Boolean(localStorage.getItem(REFRESH_KEY));
+  byId('credential-state').textContent = connected
+    ? 'Spotify is connected in this isolated browser profile.'
+    : 'Spotify is not connected.';
+  byId('verify').disabled = !connected;
+  byId('start-player').disabled = !connected;
+  byId('disconnect').disabled = !connected;
+  byId('play').disabled = !state.deviceId;
+  byId('pause').disabled = !state.player;
+  byId('resume').disabled = !state.player;
+}
+
+async function connect() {
+  const verifier = base64url(crypto.getRandomValues(new Uint8Array(64)));
+  const randomState = `managed-source.${base64url(crypto.getRandomValues(new Uint8Array(24)))}`;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  sessionStorage.setItem(VERIFIER_KEY, verifier);
+  sessionStorage.setItem(STATE_KEY, randomState);
+  location.assign(`https://accounts.spotify.com/authorize?${new URLSearchParams({
+    client_id: state.config.spotifyClientId,
+    response_type: 'code',
+    redirect_uri: state.config.spotifyRedirectUri,
+    code_challenge_method: 'S256',
+    code_challenge: base64url(new Uint8Array(digest)),
+    state: randomState,
+    scope: SCOPES,
+  })}`);
+}
+
+async function handleCallback() {
+  if (location.pathname !== '/callback') return;
+  const parameters = new URLSearchParams(location.search);
+  if (parameters.has('error')) throw new Error(`Spotify authorization failed: ${parameters.get('error')}`);
+  const expectedState = sessionStorage.getItem(STATE_KEY);
+  const verifier = sessionStorage.getItem(VERIFIER_KEY);
+  if (!expectedState || expectedState !== parameters.get('state') || !verifier) {
+    throw new Error('Spotify authorization state did not match this source');
+  }
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: state.config.spotifyClientId,
+      grant_type: 'authorization_code',
+      code: parameters.get('code'),
+      redirect_uri: state.config.spotifyRedirectUri,
+      code_verifier: verifier,
+    }),
+  });
+  if (!response.ok) throw new Error(`Spotify token exchange failed (${response.status})`);
+  const token = await response.json();
+  localStorage.setItem(REFRESH_KEY, token.refresh_token);
+  state.accessToken = token.access_token;
+  state.expiresAt = Date.now() + token.expires_in * 1000;
+  sessionStorage.removeItem(VERIFIER_KEY);
+  sessionStorage.removeItem(STATE_KEY);
+  history.replaceState({}, '', '/');
+  log('Spotify connected. The refresh credential exists only in this isolated browser profile.');
+}
+
+async function accessToken() {
+  if (state.accessToken && state.expiresAt > Date.now() + 60_000) return state.accessToken;
+  const refreshToken = localStorage.getItem(REFRESH_KEY);
+  if (!refreshToken) throw new Error('Connect Spotify first');
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: state.config.spotifyClientId,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  });
+  const token = await response.json();
+  if (!response.ok) {
+    if (token.error === 'invalid_grant') localStorage.removeItem(REFRESH_KEY);
+    throw new Error(`Spotify refresh failed: ${token.error || response.status}`);
+  }
+  if (token.refresh_token) localStorage.setItem(REFRESH_KEY, token.refresh_token);
+  state.accessToken = token.access_token;
+  state.expiresAt = Date.now() + token.expires_in * 1000;
+  render();
+  return state.accessToken;
+}
+
+async function spotifyApi(path, options = {}) {
+  const response = await fetch(`https://api.spotify.com/v1${path}`, {
+    ...options,
+    headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json', ...options.headers },
+  });
+  if (!response.ok) throw new Error(`Spotify API request failed (${response.status})`);
+  return response.status === 204 ? null : response.json();
+}
+
+function loadSdk() {
+  if (window.Spotify) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    window.onSpotifyWebPlaybackSDKReady = resolve;
+    const script = document.createElement('script');
+    script.src = 'https://sdk.scdn.co/spotify-player.js';
+    script.onerror = () => reject(new Error('Could not load Spotify Web Playback SDK'));
+    document.head.append(script);
+  });
+}
+
+async function startPlayer() {
+  await loadSdk();
+  state.player?.disconnect();
+  const player = new Spotify.Player({
+    name: 'CannaBeats Managed Audio Source',
+    volume: 0.7,
+    getOAuthToken: (callback) => accessToken().then(callback).catch((error) => log(error.message)),
+  });
+  state.player = player;
+  player.addListener('ready', ({ device_id: deviceId }) => {
+    state.deviceId = deviceId;
+    log({ ready: true, deviceId, note: 'Managed browser player is ready.' });
+    render();
+  });
+  player.addListener('initialization_error', ({ message }) => log(`Initialization error: ${message}`));
+  player.addListener('authentication_error', ({ message }) => log(`Authentication error: ${message}`));
+  player.addListener('account_error', ({ message }) => log(`Account error: ${message}`));
+  player.addListener('playback_error', ({ message }) => log(`Playback error: ${message}`));
+  player.addListener('autoplay_failed', () => log('Autoplay was blocked. Press Resume once in this private session.'));
+  await player.activateElement();
+  if (!await player.connect()) throw new Error('Spotify browser player could not connect');
+  render();
+}
+
+byId('connect').addEventListener('click', () => connect().catch((error) => log(error.message)));
+byId('verify').addEventListener('click', () => spotifyApi('/me').then((profile) => log({
+  displayName: profile.display_name, product: profile.product, country: profile.country,
+})).catch((error) => log(error.message)));
+byId('start-player').addEventListener('click', () => startPlayer().catch((error) => log(error.message)));
+byId('play').addEventListener('click', async () => {
+  try {
+    const uri = byId('track-uri').value.trim();
+    if (!/^spotify:track:[A-Za-z0-9]+$/.test(uri)) throw new Error('Enter a Spotify track URI');
+    await spotifyApi(`/me/player/play?device_id=${encodeURIComponent(state.deviceId)}`, {
+      method: 'PUT', body: JSON.stringify({ uris: [uri] }),
+    });
+    await state.player.resume();
+    log({ playing: uri, deviceId: state.deviceId });
+  } catch (error) { log(error.message); }
+});
+byId('pause').addEventListener('click', () => state.player.pause().then(() => log('Paused.')).catch((error) => log(error.message)));
+byId('resume').addEventListener('click', () => state.player.resume().then(() => log('Resumed.')).catch((error) => log(error.message)));
+byId('disconnect').addEventListener('click', () => {
+  state.player?.disconnect();
+  localStorage.removeItem(REFRESH_KEY);
+  state.accessToken = null;
+  state.expiresAt = 0;
+  state.player = null;
+  state.deviceId = null;
+  log('Spotify authorization removed from this browser profile.');
+  render();
+});
+
+async function initialize() {
+  state.config = await fetch('/config').then((response) => response.json());
+  await handleCallback();
+  render();
+}
+
+initialize().catch((error) => log(error.message));
