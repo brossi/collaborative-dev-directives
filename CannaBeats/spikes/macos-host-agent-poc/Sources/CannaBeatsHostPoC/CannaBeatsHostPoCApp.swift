@@ -54,7 +54,7 @@ private struct HostAgentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text("PRIVATE HOST PROOF OF CONCEPT")
+            Text("PRIVATE FAMILY HOST")
                 .font(.caption.bold())
                 .tracking(1.7)
                 .foregroundStyle(Color(red: 0.51, green: 0.86, blue: 0.62))

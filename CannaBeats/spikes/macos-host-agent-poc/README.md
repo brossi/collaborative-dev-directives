@@ -28,9 +28,11 @@ ingest/listen credentials. The server-mediated grant proves the trust boundary,
 but it is not yet a game-scoped or expiring relay capability. That is required
 before this design moves beyond the private PoC.
 
-This is an ad-hoc-signed development bundle. Stable distribution requires a
-Developer ID signature and notarization so macOS privacy consent remains tied
-to a durable code identity.
+The packaging script produces a universal arm64/x86_64 application and DMG.
+It uses an ad-hoc development signature by default. Distribution to another
+Mac still requires a Developer ID signature and notarization so Gatekeeper
+accepts the download and macOS privacy consent remains tied to a durable code
+identity.
 
 ## Build
 
@@ -39,8 +41,13 @@ Full Xcode is not required; the Apple command-line Swift toolchain is enough.
 ```sh
 chmod +x scripts/build-app.sh
 ./scripts/build-app.sh
-open ".build/CannaBeats Host PoC.app"
+open ".build/distribution/CannaBeats Host.app"
 ```
+
+The distributable artifact is
+`.build/distribution/CannaBeats-Host-0.4-universal.dmg`. To sign with an
+installed identity, set `CANNABEATS_CODESIGN_IDENTITY` to its full name. A
+Developer ID build must also be notarized and stapled before family delivery.
 
 The application defaults to `https://poc.cannabeats.social`. The corresponding
 server endpoints and browser approval interface live in the adjacent

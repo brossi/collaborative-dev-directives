@@ -20,7 +20,8 @@ enum DeviceSigningKey {
     case secureEnclave(SecureEnclave.P256.Signing.PrivateKey)
     case keychain(P256.Signing.PrivateKey)
 
-    private static let service = "social.cannabeats.host.poc"
+    private static let service = "social.cannabeats.host"
+    private static let legacyService = "social.cannabeats.host.poc"
     private static let account = "host-agent-signing-key"
     private static let secureEnclaveMarker: UInt8 = 1
     private static let softwareMarker: UInt8 = 2
@@ -85,14 +86,24 @@ enum DeviceSigningKey {
     }
 
     static func delete() throws {
-        let status = SecItemDelete(baseQuery() as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw DeviceKeyError.keychain(status)
+        for keychainService in [service, legacyService] {
+            let status = SecItemDelete(baseQuery(service: keychainService) as CFDictionary)
+            guard status == errSecSuccess || status == errSecItemNotFound else {
+                throw DeviceKeyError.keychain(status)
+            }
         }
     }
 
     private static func loadData() throws -> Data? {
-        var query = baseQuery()
+        if let current = try loadData(service: service) { return current }
+        guard let legacy = try loadData(service: legacyService) else { return nil }
+        try saveData(legacy)
+        SecItemDelete(baseQuery(service: legacyService) as CFDictionary)
+        return legacy
+    }
+
+    private static func loadData(service keychainService: String) throws -> Data? {
+        var query = baseQuery(service: keychainService)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
@@ -112,10 +123,10 @@ enum DeviceSigningKey {
         guard status == errSecSuccess else { throw DeviceKeyError.keychain(status) }
     }
 
-    private static func baseQuery() -> [String: Any] {
+    private static func baseQuery(service keychainService: String = service) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: keychainService,
             kSecAttrAccount as String: account,
         ]
     }

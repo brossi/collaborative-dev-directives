@@ -5,21 +5,25 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>CannaBeatsHostPoC</string>
+  <string>CannaBeatsHost</string>
   <key>CFBundleIdentifier</key>
-  <string>social.cannabeats.host.poc</string>
+  <string>social.cannabeats.host</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>CannaBeats Host PoC</string>
+  <string>CannaBeats Host</string>
   <key>CFBundleDisplayName</key>
-  <string>CannaBeats Host PoC</string>
+  <string>CannaBeats Host</string>
+  <key>CFBundleIconFile</key>
+  <string>CannaBeatsHost</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.3</string>
+  <string>0.4</string>
   <key>CFBundleVersion</key>
-  <string>3</string>
+  <string>4</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.games</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.2</string>
   <key>NSHighResolutionCapable</key>
