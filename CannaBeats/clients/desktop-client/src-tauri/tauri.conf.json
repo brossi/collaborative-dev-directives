@@ -32,7 +32,9 @@
     "category": "Game",
     "shortDescription": "Private CannaBeats game client",
     "macOS": {
-      "minimumSystemVersion": "13.0"
+      "minimumSystemVersion": "13.0",
+      "signingIdentity": "-",
+      "hardenedRuntime": false
     }
   }
 }
