@@ -180,7 +180,7 @@ final class HostAgentModel: ObservableObject {
     @Published private(set) var gameSessionStatus = "Create a new game or enter a code for one you already host."
     @Published private(set) var isRelaying = false
     @Published private(set) var isAwaitingAudioProcess = false
-    @Published private(set) var audioStatus = "Resolve a game above to prepare sharing and open CannaBeats."
+    @Published private(set) var audioStatus = "Local Mac audio fallback is not active."
     @Published private(set) var audioMetrics = "No audio captured yet."
 
     private var signingKey: DeviceSigningKey?
@@ -212,7 +212,6 @@ final class HostAgentModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
-        refreshAudioProcesses()
     }
 
     var isPaired: Bool { agentID != nil }
@@ -375,7 +374,7 @@ final class HostAgentModel: ObservableObject {
         gameSessionStatus = existingCode == nil
             ? "Creating a new game session…"
             : "Validating the existing game session…"
-        audioStatus = "Waiting for a game session before preparing the relay…"
+        audioStatus = "The game will use the managed Linux Spotify source by default."
         defer { isBusy = false }
 
         do {
@@ -385,20 +384,12 @@ final class HostAgentModel: ObservableObject {
             gameSessionStatus = game.created
                 ? "Created game \(formattedActiveGameCode)."
                 : "Using game \(formattedActiveGameCode)."
-            audioStatus = "Game selected. Authenticating this host app and preparing the relay…"
-            let grant = try await fetchRelayGrant(agentID: agentID)
-            preparedRelayGrant = grant
-            let existing = CBAudioTap.audioOutputProcesses()
-            baselineAudioProcessIDs = Set(existing.map(\.objectID))
-            audioProcesses = existing
-            isAwaitingAudioProcess = true
-            audioStatus = "CannaBeats is opening. Connect Spotify and start the browser player; sharing will begin when audio starts."
-            startAudioProcessDiscovery()
+            audioStatus = "CannaBeats is opening with the managed Linux Spotify source selected."
             openCannaBeats(gameCode: game.session.code)
         } catch {
             preparedRelayGrant = nil
             errorMessage = error.localizedDescription
-            audioStatus = "The game could not be prepared for shared audio."
+            audioStatus = "The game could not be opened."
         }
     }
 

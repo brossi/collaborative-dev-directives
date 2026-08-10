@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 spike_dir="$(cd "$script_dir/.." && pwd)"
-dmg_path="${1:-$spike_dir/.build/distribution/CannaBeats-Host-0.4-universal.dmg}"
+dmg_path="${1:-$spike_dir/.build/distribution/CannaBeats-Host-0.5-universal.dmg}"
 deploy_host="${CANNABEATS_DEPLOY_HOST:-vw-services}"
 remote_directory="/opt/cannabeats-poc/releases"
 remote_path="$remote_directory/CannaBeats-Host-universal.dmg"

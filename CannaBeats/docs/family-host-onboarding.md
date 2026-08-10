@@ -9,9 +9,9 @@ The family host needs:
 
 - macOS 14.2 or later;
 - a Touch ID, iCloud Keychain, security-key, or other passkey-capable setup;
-- a Spotify Premium account that has been added to the CannaBeats Spotify
-  development application's user allowlist; and
-- the notarized `CannaBeats-Host-0.4-universal.dmg` release.
+- access to the private managed Spotify source (selected automatically in the
+  game lobby); and
+- the notarized `CannaBeats-Host-0.5-universal.dmg` release.
 
 After producing a notarized release, publish it to the private download mount:
 
@@ -65,10 +65,12 @@ consume the installer allowance with an ordinary GET request.
 6. Return to CannaBeats Host. It should report that this Mac is authorized for
    the host account.
 7. Choose **Create new game & open CannaBeats**.
-8. In the opened PWA or browser, connect the recipient's own Spotify account.
-   Spotify credentials stay in that browser/PWA profile.
-9. Approve **Screen & System Audio Recording** when macOS asks. Restart
-   CannaBeats Host if macOS requests it.
+8. Confirm **CannaBeats Linux Spotify source** is selected in the lobby and
+   reports that it is reserved for the game. The recipient does not receive or
+   store the managed Spotify account's credential.
+9. Do not grant **Screen & System Audio Recording** for the normal managed-source
+   path. That permission is needed only when explicitly testing the advanced
+   local-Mac audio fallback.
 10. Start a test game, confirm audio returns through the shared relay, and use
     the lobby's secure guest QR to admit players.
 

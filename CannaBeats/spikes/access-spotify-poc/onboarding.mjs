@@ -92,19 +92,19 @@ Invitation code if you need to enter it manually: ${onboarding.invitationCode}
 
 Open CannaBeats Host from Applications and choose Pair this Mac. It will open a ten-minute approval request in your browser. Sign in with your new passkey and authorize the named Mac.
 
-4. Test Spotify
+4. Confirm managed Spotify
 
-You need Spotify Premium, and your Spotify account must be on our private app's allowlist. In the CannaBeats page, choose Connect Spotify, sign in to your own Spotify account, verify the profile, and start the browser player. Your Spotify credential stays only in that browser or installed PWA profile.
+The game selects the private CannaBeats Linux Spotify source by default. Confirm that the lobby says the managed source is reserved; you do not need the managed Spotify account's password or credential. "Spotify on this device" remains an advanced fallback and requires your own eligible Spotify account.
 
 5. Optional: install the web client as a PWA
 
-In Safari on macOS, open CannaBeats and choose File > Add to Dock. You can also keep using the normal browser. If you install the PWA, connect Spotify once inside that PWA because it has its own storage.
+In Safari on macOS, open CannaBeats and choose File > Add to Dock. You can also keep using the normal browser. The installed app and browser may keep separate local settings, but the normal managed Spotify source does not store a Spotify credential in either one.
 
 6. Host a game
 
-Start CannaBeats Host first. Choose Create new game & open CannaBeats, approve Screen & System Audio Recording if macOS asks, and restart the Host app if requested. Configure the game in the lobby, ask phone players to scan the private guest QR, then start the game. The guest QR stops admitting new players when the game begins.
+Start CannaBeats Host first and choose Create new lobby & open CannaBeats. Configure the game, confirm the Linux Spotify source is selected, ask phone players to scan the private guest QR, then start the game. The guest QR stops admitting new players when the game begins. Screen & System Audio Recording is not required unless you deliberately use the advanced local-Mac audio fallback.
 
-For each round, start the song, let the active player place it on their timeline, allow any configured retraction window, reveal the answer, and advance to the next player. Use the Host app's status to confirm everyone—including the host—is listening through the shared relay.
+For each round, start the song, let the active player place it on their timeline, allow any configured retraction window, reveal the answer, and advance to the next player. The game lobby and playback controls report the managed source's current status.
 
 If anything fails during setup, send me the exact status shown in CannaBeats Host before resetting or removing the local identity.
 

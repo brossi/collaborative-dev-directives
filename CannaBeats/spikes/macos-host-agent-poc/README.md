@@ -45,7 +45,7 @@ open ".build/distribution/CannaBeats Host.app"
 ```
 
 The distributable artifact is
-`.build/distribution/CannaBeats-Host-0.4-universal.dmg`. To sign with an
+`.build/distribution/CannaBeats-Host-0.5-universal.dmg`. To sign with an
 installed identity, set `CANNABEATS_CODESIGN_IDENTITY` to its full name. A
 Developer ID build must also be notarized and stapled before family delivery.
 
@@ -93,28 +93,27 @@ The CannaBeats account page lists the authorized application and can revoke it.
 Deleting the local identity does not silently revoke the server record; the UI
 reminds the user to revoke it explicitly.
 
-## Shared-audio proof
+## Managed and fallback audio
 
 1. Start the native host app before opening CannaBeats.
-2. Choose **Create new game & open CannaBeats**, or enter a host-owned game code
+2. Choose **Create new lobby & open CannaBeats**, or enter a host-owned game code
    and choose **Use existing game & open**. The app proves its device identity,
    creates or validates the real four-character game room, and displays its
    code before it does anything else.
-3. The app authenticates the relay grant, snapshots existing audio processes,
-   and opens the installed CannaBeats PWA at `/game?session=CODE`. If the PWA is not
-   installed, it opens the same URL in the default browser. The authenticated
-   game loads that room into the existing lobby, rules, and gameplay UI.
-4. In CannaBeats, connect Spotify if needed, start the browser player, and begin
-   playback. The host app watches for the newly active audio process and
-   attaches automatically; no process selection is normally required.
-5. Approve macOS **Screen & System Audio Recording** access if prompted. macOS
-   may require the host app to be restarted after the first permission change.
-6. The detected process's direct output should become silent, then return
-   through `cannaudio.cannabeats.social`. The status should say the host is
-   listening through the same relay stream as players.
-7. Confirm that captured seconds increase, peak is above `silence`, and dropped
-   upload packets remain at zero. Choose **Stop shared audio** to remove the tap
-   and restore direct playback.
+3. The app opens the installed CannaBeats PWA at `/game?session=CODE`. If the PWA
+   is not installed, it opens the same URL in the default browser. The
+   authenticated game loads that room into the existing lobby, rules, and
+   gameplay UI.
+4. Confirm **CannaBeats Linux Spotify source** is selected. The remote source is
+   reserved automatically and the Mac does not receive a Spotify credential.
+5. Configure the lobby and begin playback. No macOS audio-capture permission is
+   required for this managed-source path.
+
+The collapsed **Advanced: use this Mac as the audio source** section preserves
+the process-tap relay as a deliberate fallback. Select **Spotify on this device**
+in the game first, refresh the process list, choose the relevant process, and
+start local shared audio. Only this fallback requires **Screen & System Audio
+Recording** permission and may require restarting the Host app after approval.
 
 If automatic discovery does not identify the correct WebKit process, expand
 **Troubleshooting: choose an audio process manually**, refresh while Spotify is

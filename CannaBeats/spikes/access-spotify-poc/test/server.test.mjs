@@ -181,7 +181,8 @@ test('host onboarding creates paste-ready instructions and a deliberate tokenize
   assert.match(onboarding.downloadUrl, /^https:\/\/poc\.test\/host-download#token=/);
   const email = renderHostOnboardingEmail(onboarding);
   assert.match(email, /Subject: Your private CannaBeats Host invitation/);
-  assert.match(email, /Connect Spotify/);
+  assert.match(email, /Confirm managed Spotify/);
+  assert.match(email, /Linux Spotify source/);
   assert.match(email, /File > Add to Dock/);
   assert.match(email, /Host a game/);
 

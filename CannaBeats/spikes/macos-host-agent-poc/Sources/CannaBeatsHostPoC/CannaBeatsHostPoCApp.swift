@@ -157,48 +157,33 @@ private struct HostAgentView: View {
     }
 
     private var audioSection: some View {
-        GroupBox("Shared audio proof") {
+        GroupBox("Audio source") {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Shared audio relay", systemImage: "waveform")
+                Label("Managed Linux Spotify source", systemImage: "server.rack")
                     .font(.headline)
-                Text("After the game is resolved above, this app prepares the relay before opening CannaBeats. It watches for the PWA’s Spotify audio and attaches automatically. Once attached, the source’s direct output is muted and this Mac listens through the same relay stream as the players.")
+                Text("CannaBeats selects the private Linux Spotify source by default. Creating or opening a lobby does not capture audio from this Mac and does not require Screen & System Audio Recording permission.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                HStack {
-                    if model.isRelaying {
-                        Button("Stop shared audio", role: .destructive) {
-                            model.stopSharedAudio()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    } else if model.isAwaitingAudioProcess {
-                        ProgressView()
-                            .controlSize(.small)
-                        Button("Open CannaBeats again") { model.openCannaBeats() }
-                            .buttonStyle(.borderedProminent)
-                        Button("Cancel") { model.cancelAudioPreparation() }
-                            .buttonStyle(.bordered)
-                    }
-                    if model.isBusy { ProgressView().controlSize(.small) }
-                }
-
-                if !model.isPaired {
-                    Text("Authorize this Mac above before preparing shared audio.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Text(model.audioStatus)
-                    .foregroundStyle(model.errorMessage.isEmpty ? .primary : .secondary)
-                Text(model.audioMetrics)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-
                 DisclosureGroup(
-                    "Troubleshooting: choose an audio process manually",
+                    "Advanced: use this Mac as the audio source",
                     isExpanded: $showManualAudioControls
                 ) {
                     VStack(alignment: .leading, spacing: 10) {
+                        Text("Use this only when you explicitly select “Spotify on this device” in the game. macOS will request Screen & System Audio Recording permission before local capture can start.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        HStack {
+                            if model.isRelaying {
+                                Button("Stop local shared audio", role: .destructive) {
+                                    model.stopSharedAudio()
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                            if model.isBusy { ProgressView().controlSize(.small) }
+                        }
+
                         HStack {
                             Picker("Audio process", selection: $model.selectedAudioProcessID) {
                                 if model.audioProcesses.isEmpty {
@@ -226,6 +211,12 @@ private struct HostAgentView: View {
                             Task { await model.startSharedAudio() }
                         }
                         .disabled(model.isBusy || model.isRelaying || !model.isPaired || model.selectedAudioProcess == nil)
+
+                        Text(model.audioStatus)
+                            .foregroundStyle(model.errorMessage.isEmpty ? .primary : .secondary)
+                        Text(model.audioMetrics)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.top, 8)
                 }
