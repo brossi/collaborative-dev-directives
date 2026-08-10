@@ -6,6 +6,7 @@ import type { AudioControlView, Player, RoomView } from "../lib/game";
 import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
 import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
+import { useManagedAudioStream, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 
 async function gameRequest(body: Record<string, unknown>) {
@@ -128,6 +129,32 @@ function GameSetup({ rules, busy, onApply }: {
   );
 }
 
+function SharedAudioPanel({ code, enabled, ready, status, label, compact = false, onStart, onStop }: {
+  code: string;
+  enabled: boolean;
+  ready: boolean;
+  status: ManagedAudioStatus;
+  label: string;
+  compact?: boolean;
+  onStart: (code: string) => void;
+  onStop: () => void;
+}) {
+  return (
+    <section className={`shared-audio-panel ${compact ? "compact" : ""}`} aria-live="polite">
+      <div>
+        <p className="step-label">Shared game audio</p>
+        <strong><i className={ready ? "ready" : ""} />{label}</strong>
+        {!compact && <small>Enable once on this device. Temporary source interruptions reconnect automatically.</small>}
+      </div>
+      {!enabled || status === "error" ? (
+        <button className="secondary-button" type="button" onClick={() => onStart(code)}>{status === "error" ? "Retry audio" : "Enable shared audio"}</button>
+      ) : (
+        <button className="text-button" type="button" onClick={onStop}>Stop listening</button>
+      )}
+    </section>
+  );
+}
+
 function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri, targetScore, round, interactive, selected, busy, onSelect, onLock }: {
   players: Player[];
   activePlayerId: string | null;
@@ -244,6 +271,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [artworkByUri, setArtworkByUri] = useState<Record<string, SpotifyTrackArtwork>>({});
   const spotify = useSpotifyPlayer();
+  const managedAudio = useManagedAudioStream();
+  const stopManagedAudio = managedAudio.stop;
   const spotifyIsReady = spotify.isReady;
   const trackArtwork = spotify.trackArtwork;
   const hostRules = room?.isHost ? JSON.stringify(room.rules) : "";
@@ -311,6 +340,10 @@ export default function Home() {
   }, [hostRules]);
 
   useEffect(() => {
+    if (!session || audio.selection !== "managed") stopManagedAudio();
+  }, [audio.selection, session, stopManagedAudio]);
+
+  useEffect(() => {
     if (!room?.isHost || room.phase !== "lobby") return;
     let cancelled = false;
     void gameRequest({ action: "guestInvite", code: room.code }).then(async (payload) => {
@@ -374,7 +407,7 @@ export default function Home() {
       ? "Resume"
       : "Play";
   const playbackReady = audio.selection === "managed"
-    ? audio.mode === "managed" && audio.sourceOnline
+    ? audio.mode === "managed" && audio.sourceOnline && managedAudio.ready
     : spotify.isReady;
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
@@ -437,6 +470,7 @@ export default function Home() {
   }
 
   function leaveRoom() {
+    managedAudio.stop();
     if (room?.isHost) {
       if (audio.selection === "managed" && session) {
         void gameRequest({ action: "audioRelease", code: session.code });
@@ -550,6 +584,17 @@ export default function Home() {
               </div>
             ))}
           </div>
+          {audio.selection === "managed" && (
+            <SharedAudioPanel
+              code={room.code}
+              enabled={managedAudio.enabled}
+              ready={managedAudio.ready}
+              status={managedAudio.status}
+              label={managedAudio.label}
+              onStart={(code) => { void managedAudio.start(code); }}
+              onStop={managedAudio.stop}
+            />
+          )}
           {room.isHost ? (
             <>
               <GameSetup
@@ -675,6 +720,19 @@ export default function Home() {
             <button className="text-button" disabled={busy || !audio.sourceOnline} onClick={() => void controlSharedPlayback()} type="button">{playbackLabel}</button>
           )}
         </header>
+      )}
+
+      {audio.selection === "managed" && (
+        <SharedAudioPanel
+          compact
+          code={room.code}
+          enabled={managedAudio.enabled}
+          ready={managedAudio.ready}
+          status={managedAudio.status}
+          label={managedAudio.label}
+          onStart={(code) => { void managedAudio.start(code); }}
+          onStop={managedAudio.stop}
+        />
       )}
 
       {winner && room.phase === "finished" ? (

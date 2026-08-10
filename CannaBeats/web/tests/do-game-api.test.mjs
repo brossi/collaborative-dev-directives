@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,6 +14,8 @@ const databasePath = join(temporaryDirectory, "game.sqlite");
 const internalToken = "game-api-test-internal-token";
 const managedSourceToken = `managed-source-${randomUUID().replaceAll("-", "")}`;
 const managedSourceId = randomUUID();
+const relayListenToken = `relay-listen-${randomUUID().replaceAll("-", "")}`;
+const relayTokenPath = join(temporaryDirectory, "relay-listen-token");
 const hostCookie = `host-browser-${randomUUID()}`;
 const playerToken = `desktop-player-${randomUUID()}`;
 const db = openDatabase(databasePath);
@@ -40,6 +43,8 @@ db.prepare(`
 
 let processHandle;
 let origin;
+let relayOrigin;
+let relayServer;
 let serverOutput = "";
 
 async function availablePort() {
@@ -67,6 +72,25 @@ async function waitForHealth() {
 }
 
 before(async () => {
+  writeFileSync(relayTokenPath, `${relayListenToken}\n`, { mode: 0o600 });
+  relayServer = createHttpServer((request, response) => {
+    if (request.url !== "/stream.pcm" || request.headers.authorization !== `Bearer ${relayListenToken}`) {
+      response.writeHead(401).end();
+      return;
+    }
+    response.writeHead(200, {
+      "Content-Type": "audio/L16;rate=48000;channels=2",
+      "X-Audio-Rate": "48000",
+      "X-Audio-Channels": "2",
+      "X-Audio-Encoding": "s16le",
+    });
+    response.end(Buffer.from([0, 0, 0, 0, 1, 0, 1, 0]));
+  });
+  await new Promise((resolve, reject) => {
+    relayServer.once("error", reject);
+    relayServer.listen(0, "127.0.0.1", resolve);
+  });
+  relayOrigin = `http://127.0.0.1:${relayServer.address().port}`;
   const port = await availablePort();
   origin = `http://127.0.0.1:${port}`;
   processHandle = spawn(
@@ -82,6 +106,8 @@ before(async () => {
         CANNABEATS_DATABASE_PATH: databasePath,
         CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
         CANNABEATS_PUBLIC_GAME_ORIGIN: `${origin}/game`,
+        AUDIO_RELAY_ORIGIN: relayOrigin,
+        AUDIO_RELAY_LISTEN_TOKEN_FILE: relayTokenPath,
       },
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -102,6 +128,7 @@ after(async () => {
   if (processHandle && processHandle.exitCode === null) {
     await new Promise((resolve) => processHandle.once("exit", resolve));
   }
+  if (relayServer) await new Promise((resolve) => relayServer.close(resolve));
   db.close();
   rmSync(temporaryDirectory, { recursive: true, force: true });
 });
@@ -157,6 +184,18 @@ test("an authenticated lobby owns an internal game run and preserves host author
 
   const anonymous = await fetch(`${origin}/game/api/game?code=${sessionCode}`);
   assert.equal(anonymous.status, 401);
+
+  const anonymousAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`);
+  assert.equal(anonymousAudio.status, 401);
+
+  const hostAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`, {
+    headers: { Cookie: `cb_session=${hostCookie}` },
+  });
+  assert.equal(hostAudio.status, 200);
+  assert.equal(hostAudio.headers.get("x-audio-rate"), "48000");
+  assert.equal(hostAudio.headers.get("x-audio-channels"), "2");
+  assert.equal(hostAudio.headers.get("x-audio-encoding"), "s16le");
+  assert.deepEqual(new Uint8Array(await hostAudio.arrayBuffer()), new Uint8Array([0, 0, 0, 0, 1, 0, 1, 0]));
 
   const hostView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Cookie: `cb_session=${hostCookie}` },
@@ -444,6 +483,12 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
   });
   assert.equal(guestView.status, 200);
   assert.equal((await guestView.json()).room.isHost, false);
+
+  const guestAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`, {
+    headers: { Cookie: guestCookie },
+  });
+  assert.equal(guestAudio.status, 200);
+  assert.equal((await guestAudio.arrayBuffer()).byteLength, 8);
 
   const hostAction = await gamePost(
     { action: "addPlayer", code: sessionCode, name: "Not Allowed" },

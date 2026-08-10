@@ -75,6 +75,8 @@ services:
       CANNABEATS_PUBLIC_GAME_ORIGIN: ${APP_ORIGIN:-https://poc.cannabeats.social}/game
       CANNABEATS_DATABASE_PATH: /data/cannabeats-poc.sqlite
       CANNABEATS_GAME_SERVICE_TOKEN_FILE: ${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}
+      AUDIO_RELAY_ORIGIN: ${AUDIO_RELAY_ORIGIN:-https://cannaudio.cannabeats.social}
+      AUDIO_RELAY_LISTEN_TOKEN_FILE: ${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}
       NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
     ports:
       - "127.0.0.1:3003:3000"
