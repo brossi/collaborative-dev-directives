@@ -30,7 +30,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:61sQYdFNS6sEBYCyr1q5gn"
+      "uri": "spotify:track:61sQYdFNS6sEBYCyr1q5gn",
+      "releaseYear": 1994
     },
     {
       "title": "The Power of Love",
@@ -39,7 +40,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5kK1Iru9ogP3Iy1zsANU1n"
+      "uri": "spotify:track:5kK1Iru9ogP3Iy1zsANU1n",
+      "releaseYear": 1993
     },
     {
       "title": "Hero",
@@ -60,7 +62,8 @@
         "alternative",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:00U1MDChdOTxWwtKoOoBXE"
+      "uri": "spotify:track:00U1MDChdOTxWwtKoOoBXE",
+      "releaseYear": 1994
     },
     {
       "title": "Breathe Again",
@@ -69,7 +72,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:1xFliXOpcu7E89AsDAZ7JV"
+      "uri": "spotify:track:1xFliXOpcu7E89AsDAZ7JV",
+      "releaseYear": 1993
     },
     {
       "title": "All for Love",
@@ -90,7 +94,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:6kWJvPfC4DgUpRsXKNa9z9"
+      "uri": "spotify:track:6kWJvPfC4DgUpRsXKNa9z9",
+      "releaseYear": 1992
     },
     {
       "title": "Don't Turn Around",
@@ -100,7 +105,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:4SYMibQ93bfzOk6uzkF0dO"
+      "uri": "spotify:track:4SYMibQ93bfzOk6uzkF0dO",
+      "releaseYear": 1994
     },
     {
       "title": "Bump n' Grind",
@@ -109,7 +115,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:0DBIL8arX0Zo6eAuxNIpik"
+      "uri": "spotify:track:0DBIL8arX0Zo6eAuxNIpik",
+      "releaseYear": 1994
     },
     {
       "title": "Again",
@@ -128,7 +135,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:00U0pedRUMEzREpyRqbVT6"
+      "uri": "spotify:track:00U0pedRUMEzREpyRqbVT6",
+      "releaseYear": 1994
     },
     {
       "title": "Whatta Man",
@@ -166,7 +174,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:1d0GYRpnCb0XNQcQdKhfKL"
+      "uri": "spotify:track:1d0GYRpnCb0XNQcQdKhfKL",
+      "releaseYear": 1994
     },
     {
       "title": "Can You Feel the Love Tonight",
@@ -186,7 +195,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2TAdelKqtPjyHWYMMkcmVX"
+      "uri": "spotify:track:2TAdelKqtPjyHWYMMkcmVX",
+      "releaseYear": 1994
     },
     {
       "title": "Fantastic Voyage",
@@ -195,7 +205,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:3QlTzofanSqDWywxEzGGE2"
+      "uri": "spotify:track:3QlTzofanSqDWywxEzGGE2",
+      "releaseYear": 1994
     },
     {
       "title": "Baby, I Love Your Way",
@@ -224,7 +235,8 @@
         "pop",
         "latin"
       ],
-      "uri": "spotify:track:3b2JWlZ020qGdaDtcO7Gyy"
+      "uri": "spotify:track:3b2JWlZ020qGdaDtcO7Gyy",
+      "releaseYear": 1994
     },
     {
       "title": "Back & Forth",
@@ -233,7 +245,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:45wneA2j0Z0WMnYNDO6Ad0"
+      "uri": "spotify:track:45wneA2j0Z0WMnYNDO6Ad0",
+      "releaseYear": 1994
     },
     {
       "title": "When Can I See You",
@@ -242,7 +255,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:2zItQNJrVrTioXTXWiI2ed"
+      "uri": "spotify:track:2zItQNJrVrTioXTXWiI2ed",
+      "releaseYear": 1994
     },
     {
       "title": "Please Forgive Me",
@@ -252,7 +266,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:1HDaENkQhUMm16pjdxZvHn"
+      "uri": "spotify:track:1HDaENkQhUMm16pjdxZvHn",
+      "releaseYear": 1993
     },
     {
       "title": "So Much in Love",
@@ -271,7 +286,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:0Pu71wxadDlB8fJXfjIjeJ"
+      "uri": "spotify:track:0Pu71wxadDlB8fJXfjIjeJ",
+      "releaseYear": 1993
     },
     {
       "title": "Any Time, Any Place",
@@ -280,7 +296,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:2yOm4lN7aTygtXanJFNFWU"
+      "uri": "spotify:track:2yOm4lN7aTygtXanJFNFWU",
+      "releaseYear": 1994
     },
     {
       "title": "Shine",

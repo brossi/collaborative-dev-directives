@@ -11,7 +11,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:1UuLM6qXgaDLsfkJsB3WIw"
+      "uri": "spotify:track:1UuLM6qXgaDLsfkJsB3WIw",
+      "releaseYear": 1944
     },
     {
       "title": "Rum and Coca-Cola",
@@ -21,7 +22,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:2DHiTjxtVhQnLgQJbXQOFP"
+      "uri": "spotify:track:2DHiTjxtVhQnLgQJbXQOFP",
+      "releaseYear": 1944
     },
     {
       "title": "Till the End of Time",
@@ -31,7 +33,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:20QDrX1RK8rNFtrTcMnZBX"
+      "uri": "spotify:track:20QDrX1RK8rNFtrTcMnZBX",
+      "releaseYear": 1945
     },
     {
       "title": "On the Atchison, Topeka and the Santa Fe",
@@ -81,7 +84,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:3U4MHB3EIxfPDUwIMido58"
+      "uri": "spotify:track:3U4MHB3EIxfPDUwIMido58",
+      "releaseYear": 1945
     },
     {
       "title": "If I Loved You",
@@ -101,7 +105,8 @@
         "pop",
         "standards"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1945
     },
     {
       "title": "Candy",
@@ -110,7 +115,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4PwHrs2lNr3Y2VrTLxE7SA"
+      "uri": "spotify:track:4PwHrs2lNr3Y2VrTLxE7SA",
+      "releaseYear": 1944
     },
     {
       "title": "There! I've Said It Again",
@@ -130,7 +136,8 @@
         "big band",
         "standards"
       ],
-      "uri": "spotify:track:21i47D5udauynQo2ewozpH"
+      "uri": "spotify:track:21i47D5udauynQo2ewozpH",
+      "releaseYear": 1945
     },
     {
       "title": "Caldonia",
@@ -150,7 +157,8 @@
         "pop",
         "swing"
       ],
-      "uri": "spotify:track:7nFIsRhhyB1RcCBaKD4LTT"
+      "uri": "spotify:track:7nFIsRhhyB1RcCBaKD4LTT",
+      "releaseYear": 1944
     },
     {
       "title": "Bell Bottom Trousers",
@@ -180,7 +188,8 @@
         "big band",
         "jazz"
       ],
-      "uri": "spotify:track:6o4klgwPT1yyWaldC4HkfW"
+      "uri": "spotify:track:6o4klgwPT1yyWaldC4HkfW",
+      "releaseYear": 1944
     },
     {
       "title": "Dig You Later (A Hubba-Hubba-Hubba)",
@@ -239,7 +248,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:7s3piPpFjwmWbUQV1s1LdE"
+      "uri": "spotify:track:7s3piPpFjwmWbUQV1s1LdE",
+      "releaseYear": 1945
     },
     {
       "title": "I'll Buy That Dream",
@@ -279,7 +289,8 @@
         "pop",
         "swing"
       ],
-      "uri": "spotify:track:7knFgoCOQgk7jDKwUlmPbD"
+      "uri": "spotify:track:7knFgoCOQgk7jDKwUlmPbD",
+      "releaseYear": 1944
     },
     {
       "title": "The More I See You",

@@ -11,7 +11,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:1lq8a9FqVufEHD0INwAgpR"
+      "uri": "spotify:track:1lq8a9FqVufEHD0INwAgpR",
+      "releaseYear": 1939
     },
     {
       "title": "In the Mood",
@@ -21,7 +22,8 @@
         "swing",
         "big band"
       ],
-      "uri": "spotify:track:1xsY8IFXUrxeet1Fcmk4oC"
+      "uri": "spotify:track:1xsY8IFXUrxeet1Fcmk4oC",
+      "releaseYear": 1939
     },
     {
       "title": "Frenesi",
@@ -41,7 +43,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:3kiKtr8kvlVI3SXBT9kJMs"
+      "uri": "spotify:track:3kiKtr8kvlVI3SXBT9kJMs",
+      "releaseYear": 1940
     },
     {
       "title": "When You Wish Upon a Star",
@@ -61,7 +64,8 @@
         "swing",
         "big band"
       ],
-      "uri": "spotify:track:1GFBBzqU8trjyVgpLB6Acm"
+      "uri": "spotify:track:1GFBBzqU8trjyVgpLB6Acm",
+      "releaseYear": 1938
     },
     {
       "title": "Pennsylvania 6-5000",
@@ -71,7 +75,8 @@
         "swing",
         "big band"
       ],
-      "uri": "spotify:track:0H5dnOYw1mgdk7yhqpoVJh"
+      "uri": "spotify:track:0H5dnOYw1mgdk7yhqpoVJh",
+      "releaseYear": 1940
     },
     {
       "title": "The Woodpecker Song",
@@ -81,7 +86,8 @@
         "big band",
         "novelty"
       ],
-      "uri": "spotify:track:1RHUeOzrvezRbwjimJDWbj"
+      "uri": "spotify:track:1RHUeOzrvezRbwjimJDWbj",
+      "releaseYear": 1940
     },
     {
       "title": "Careless",
@@ -161,7 +167,8 @@
         "big band",
         "jazz"
       ],
-      "uri": "spotify:track:0IbWDJHyBgJ4PWikW7pAif"
+      "uri": "spotify:track:0IbWDJHyBgJ4PWikW7pAif",
+      "releaseYear": 1940
     },
     {
       "title": "When the Swallows Come Back to Capistrano",
@@ -199,7 +206,8 @@
         "big band",
         "latin"
       ],
-      "uri": "spotify:track:38JAmFu3FCDVGBuoLvquBW"
+      "uri": "spotify:track:38JAmFu3FCDVGBuoLvquBW",
+      "releaseYear": 1940
     },
     {
       "title": "Trade Winds",
@@ -217,7 +225,8 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1916
     },
     {
       "title": "Where Was I?",
@@ -236,7 +245,8 @@
         "big band",
         "novelty"
       ],
-      "uri": "spotify:track:0BS88OF1uC7xl3wdOmy34l"
+      "uri": "spotify:track:0BS88OF1uC7xl3wdOmy34l",
+      "releaseYear": 1940
     },
     {
       "title": "Make-Believe Island",
@@ -246,7 +256,8 @@
         "big band",
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1940
     },
     {
       "title": "Scatter-Brain",
@@ -266,7 +277,8 @@
         "swing",
         "big band"
       ],
-      "uri": "spotify:track:27MylauOUBLPX0iRZG7Hmx"
+      "uri": "spotify:track:27MylauOUBLPX0iRZG7Hmx",
+      "releaseYear": 1940
     },
     {
       "title": "Practice Makes Perfect",

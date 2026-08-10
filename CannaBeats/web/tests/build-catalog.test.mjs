@@ -86,6 +86,41 @@ test("catalog/years wins the year when a URI appears in both directories", async
   }
 });
 
+test("releaseYear survives the build wherever the source has one", async () => {
+  const built = await build();
+  const byUri = new Map(built.map((song) => [song.uri, song]));
+
+  // Compare against the row dedup KEEPS (years before themes, first wins), not
+  // every source row. Where two rows share a URI only one can survive, and the
+  // loser's releaseYear goes with it — that is the duplicate-URI defect
+  // surfacing, not the build dropping a field.
+  const kept = new Map();
+  for (const song of [...(await playableIn("years")), ...(await playableIn("themes"))]) {
+    if (!kept.has(song.uri)) kept.set(song.uri, song);
+  }
+  const sourced = [...kept.values()].filter((song) => song.releaseYear);
+
+  assert.ok(sourced.length > 0, "no releaseYear in source — test proves nothing");
+
+  const dropped = sourced.filter((song) => byUri.get(song.uri)?.releaseYear === undefined);
+  assert.deepEqual(dropped.map((s) => s.title), [],
+    "the build discarded releaseYear, as it once discarded genres");
+});
+
+test("the build never invents a releaseYear the source lacks", async () => {
+  const built = await build();
+  const sourced = new Map();
+  for (const song of [...(await playableIn("years")), ...(await playableIn("themes"))]) {
+    if (!sourced.has(song.uri)) sourced.set(song.uri, song);
+  }
+  for (const song of built) {
+    if (song.releaseYear === undefined) continue;
+    assert.equal(Number.isInteger(song.releaseYear), true, `bad releaseYear on ${song.uri}`);
+    assert.ok(sourced.get(song.uri)?.releaseYear !== undefined,
+      `${song.title}: build produced a releaseYear the source does not have`);
+  }
+});
+
 test("every built entry carries the four fields the game reads", async () => {
   const built = await build();
   assert.ok(built.length > 0);

@@ -30,7 +30,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:6IwKcFdiRQZOWeYNhUiWIv"
+      "uri": "spotify:track:6IwKcFdiRQZOWeYNhUiWIv",
+      "releaseYear": 2007
     },
     {
       "title": "Lollipop",
@@ -49,7 +50,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6ucR4KfvsBFWCMVFDvyKKl"
+      "uri": "spotify:track:6ucR4KfvsBFWCMVFDvyKKl",
+      "releaseYear": 2007
     },
     {
       "title": "No Air",
@@ -69,7 +71,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:4E6cwWJWZw2zWf7VFbH7wf"
+      "uri": "spotify:track:4E6cwWJWZw2zWf7VFbH7wf",
+      "releaseYear": 2007
     },
     {
       "title": "Love in This Club",
@@ -89,7 +92,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:5Lgcn7u07bHuqbOtXkN62u"
+      "uri": "spotify:track:5Lgcn7u07bHuqbOtXkN62u",
+      "releaseYear": 2007
     },
     {
       "title": "Forever",
@@ -119,7 +123,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:3goSVuTt3fDYDP6kRnFwuL"
+      "uri": "spotify:track:3goSVuTt3fDYDP6kRnFwuL",
+      "releaseYear": 2008
     },
     {
       "title": "Viva la Vida",
@@ -129,7 +134,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:1mea3bSkSGXuIRvnydlB5b"
+      "uri": "spotify:track:1mea3bSkSGXuIRvnydlB5b",
+      "releaseYear": 2008
     },
     {
       "title": "I Kissed a Girl",
@@ -139,7 +145,8 @@
         "pop",
         "electronic"
       ],
-      "uri": "spotify:track:005lwxGU1tms6HGELIcUv9"
+      "uri": "spotify:track:005lwxGU1tms6HGELIcUv9",
+      "releaseYear": 2008
     },
     {
       "title": "Whatever You Like",
@@ -158,7 +165,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:2VOomzT6VavJOGBeySqaMc"
+      "uri": "spotify:track:2VOomzT6VavJOGBeySqaMc",
+      "releaseYear": 2008
     },
     {
       "title": "Don't Stop the Music",
@@ -168,7 +176,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:0ByMNEPAPpOR5H69DVrTNy"
+      "uri": "spotify:track:0ByMNEPAPpOR5H69DVrTNy",
+      "releaseYear": 2007
     },
     {
       "title": "Pocketful of Sunshine",
@@ -177,7 +186,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1uigwk5hNV84zRd5YQQRTk"
+      "uri": "spotify:track:1uigwk5hNV84zRd5YQQRTk",
+      "releaseYear": 2008
     },
     {
       "title": "Kiss Kiss",
@@ -207,7 +217,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:0rFOs9paloAvEtzwDX1Kmc"
+      "uri": "spotify:track:0rFOs9paloAvEtzwDX1Kmc",
+      "releaseYear": 2007
     },
     {
       "title": "Touch My Body",
@@ -217,7 +228,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:2H1l4JczUDbiWfQtQElB05"
+      "uri": "spotify:track:2H1l4JczUDbiWfQtQElB05",
+      "releaseYear": 2008
     },
     {
       "title": "4 Minutes",
@@ -247,7 +259,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:28IEbk5a7twNTbUEvWslUb"
+      "uri": "spotify:track:28IEbk5a7twNTbUEvWslUb",
+      "releaseYear": 2007
     },
     {
       "title": "Clumsy",
@@ -257,7 +270,8 @@
         "pop",
         "hip-hop"
       ],
-      "uri": "spotify:track:50xeLNGKmskmYUSINhqvfa"
+      "uri": "spotify:track:50xeLNGKmskmYUSINhqvfa",
+      "releaseYear": 2007
     },
     {
       "title": "Leavin'",
@@ -267,7 +281,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:20ORwCJusz4KS2PbTPVNKo"
+      "uri": "spotify:track:20ORwCJusz4KS2PbTPVNKo",
+      "releaseYear": 2008
     },
     {
       "title": "Dangerous",
@@ -287,7 +302,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:3Ui2jdyxbZQrZohfM0NOgG"
+      "uri": "spotify:track:3Ui2jdyxbZQrZohfM0NOgG",
+      "releaseYear": 2007
     },
     {
       "title": "See You Again",
@@ -296,7 +312,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0G71WvIkF2K6HViJeFvOcM"
+      "uri": "spotify:track:0G71WvIkF2K6HViJeFvOcM",
+      "releaseYear": 2007
     }
   ]
 }

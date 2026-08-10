@@ -11,7 +11,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5qWXXF3On2xUfVu1ND1NLN"
+      "uri": "spotify:track:5qWXXF3On2xUfVu1ND1NLN",
+      "releaseYear": 1935
     },
     {
       "title": "Top Hat, White Tie and Tails",
@@ -21,7 +22,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:1Nuc3lcEbzUknLrU7XMnPt"
+      "uri": "spotify:track:1Nuc3lcEbzUknLrU7XMnPt",
+      "releaseYear": 1935
     },
     {
       "title": "Isn't This a Lovely Day (To Be Caught in the Rain)",
@@ -61,7 +63,8 @@
         "big band",
         "standards"
       ],
-      "uri": "spotify:track:1MVaqvMLiGiBcRs9RYJpQE"
+      "uri": "spotify:track:1MVaqvMLiGiBcRs9RYJpQE",
+      "releaseYear": 1934
     },
     {
       "title": "When I Grow Too Old to Dream",
@@ -170,7 +173,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6gSS1goBLRHVqRixXk6b9m"
+      "uri": "spotify:track:6gSS1goBLRHVqRixXk6b9m",
+      "releaseYear": 1934
     },
     {
       "title": "Anything Goes",
@@ -200,7 +204,8 @@
         "soundtrack",
         "novelty"
       ],
-      "uri": "spotify:track:3proHjWgIQmmep2Xt1F1Tg"
+      "uri": "spotify:track:3proHjWgIQmmep2Xt1F1Tg",
+      "releaseYear": 1934
     },
     {
       "title": "Animal Crackers in My Soup",
@@ -210,7 +215,8 @@
         "soundtrack",
         "novelty"
       ],
-      "uri": "spotify:track:3QdHfSSZrsWHH7JD61gAde"
+      "uri": "spotify:track:3QdHfSSZrsWHH7JD61gAde",
+      "releaseYear": 1935
     },
     {
       "title": "In a Little Gypsy Tea Room",
@@ -269,7 +275,8 @@
         "jazz",
         "swing"
       ],
-      "uri": "spotify:track:5YZpAH2jWtOOvbe1jv936Q"
+      "uri": "spotify:track:5YZpAH2jWtOOvbe1jv936Q",
+      "releaseYear": 1935
     },
     {
       "title": "Truckin'",

@@ -11,7 +11,8 @@
         "rock",
         "new wave"
       ],
-      "uri": "spotify:track:1JSTJqkT5qHq8MDJnJbRE1"
+      "uri": "spotify:track:1JSTJqkT5qHq8MDJnJbRE1",
+      "releaseYear": 1983
     },
     {
       "title": "Billie Jean",
@@ -22,7 +23,8 @@
         "r&b",
         "funk"
       ],
-      "uri": "spotify:track:5ChkMS8OtdzJeqyybCc9R5"
+      "uri": "spotify:track:5ChkMS8OtdzJeqyybCc9R5",
+      "releaseYear": 1982
     },
     {
       "title": "Flashdance... What a Feeling",
@@ -43,7 +45,8 @@
         "new wave",
         "rock"
       ],
-      "uri": "spotify:track:46RVKt5Edm1zl0rXhPJZxz"
+      "uri": "spotify:track:46RVKt5Edm1zl0rXhPJZxz",
+      "releaseYear": 1980
     },
     {
       "title": "Beat It",
@@ -53,7 +56,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1OOtq8tRnDM8kG2gqUPjAj"
+      "uri": "spotify:track:1OOtq8tRnDM8kG2gqUPjAj",
+      "releaseYear": 1982
     },
     {
       "title": "Total Eclipse of the Heart",
@@ -73,7 +77,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:7j74lucZ59vqN67Ipe2ZcY"
+      "uri": "spotify:track:7j74lucZ59vqN67Ipe2ZcY",
+      "releaseYear": 1982
     },
     {
       "title": "Baby, Come to Me",
@@ -94,7 +99,8 @@
         "dance",
         "soundtrack"
       ],
-      "uri": "spotify:track:0QKfiqpEU4h9ycPSzIFwYe"
+      "uri": "spotify:track:0QKfiqpEU4h9ycPSzIFwYe",
+      "releaseYear": 1983
     },
     {
       "title": "Sweet Dreams (Are Made of This)",
@@ -104,7 +110,8 @@
         "new wave",
         "electronic"
       ],
-      "uri": "spotify:track:1TfqLAPs4K3s2rJMoCokcS"
+      "uri": "spotify:track:1TfqLAPs4K3s2rJMoCokcS",
+      "releaseYear": 1983
     },
     {
       "title": "Do You Really Want to Hurt Me",
@@ -115,7 +122,8 @@
         "pop",
         "reggae"
       ],
-      "uri": "spotify:track:1I6q6nwNjNgik1Qe8Oi0Y7"
+      "uri": "spotify:track:1I6q6nwNjNgik1Qe8Oi0Y7",
+      "releaseYear": 1982
     },
     {
       "title": "You and I",
@@ -135,7 +143,8 @@
         "new wave",
         "pop"
       ],
-      "uri": "spotify:track:6tmslRyHPI7dyTe8rAHcbQ"
+      "uri": "spotify:track:6tmslRyHPI7dyTe8rAHcbQ",
+      "releaseYear": 1982
     },
     {
       "title": "Shame on the Moon",
@@ -145,7 +154,8 @@
         "rock",
         "country"
       ],
-      "uri": "spotify:track:1Gxaks4MTbjMCAQ20rx4Iy"
+      "uri": "spotify:track:1Gxaks4MTbjMCAQ20rx4Iy",
+      "releaseYear": 1982
     },
     {
       "title": "She Works Hard for the Money",
@@ -155,7 +165,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:3FlOciKDqFlTMPeC7t92Qy"
+      "uri": "spotify:track:3FlOciKDqFlTMPeC7t92Qy",
+      "releaseYear": 1983
     },
     {
       "title": "Never Gonna Let You Go",
@@ -175,7 +186,8 @@
         "new wave",
         "rock"
       ],
-      "uri": "spotify:track:39lSeqnyjZJejRuaREfyLL"
+      "uri": "spotify:track:39lSeqnyjZJejRuaREfyLL",
+      "releaseYear": 1982
     },
     {
       "title": "Let's Dance",
@@ -185,7 +197,8 @@
         "rock",
         "dance"
       ],
-      "uri": "spotify:track:3ix6K4wZY29bCujrSznwFZ"
+      "uri": "spotify:track:3ix6K4wZY29bCujrSznwFZ",
+      "releaseYear": 1983
     },
     {
       "title": "Twilight Zone",
@@ -194,7 +207,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:3ztKHejzVoxJRKSZHFFMdJ"
+      "uri": "spotify:track:3ztKHejzVoxJRKSZHFFMdJ",
+      "releaseYear": 1982
     },
     {
       "title": "I Know There's Something Going On",
@@ -214,7 +228,8 @@
         "rock",
         "new wave"
       ],
-      "uri": "spotify:track:7LmDmvqagpX0PKxveGtZTa"
+      "uri": "spotify:track:7LmDmvqagpX0PKxveGtZTa",
+      "releaseYear": 1983
     },
     {
       "title": "Electric Avenue",
@@ -224,7 +239,8 @@
         "reggae",
         "electronic"
       ],
-      "uri": "spotify:track:55AMcB2JAUr7wmM3Z9Vgqc"
+      "uri": "spotify:track:55AMcB2JAUr7wmM3Z9Vgqc",
+      "releaseYear": 1982
     },
     {
       "title": "She Blinded Me with Science",
@@ -234,7 +250,8 @@
         "new wave",
         "electronic"
       ],
-      "uri": "spotify:track:0BWravaqj9rKdOU8RWXhuf"
+      "uri": "spotify:track:0BWravaqj9rKdOU8RWXhuf",
+      "releaseYear": 1982
     },
     {
       "title": "Africa",
@@ -244,7 +261,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:2374M0fQpWi3dLnB54qaLX"
+      "uri": "spotify:track:2374M0fQpWi3dLnB54qaLX",
+      "releaseYear": 1982
     },
     {
       "title": "Little Red Corvette",
@@ -255,7 +273,8 @@
         "funk",
         "rock"
       ],
-      "uri": "spotify:track:6X4JeTWCuKEzKOEHXDtyBo"
+      "uri": "spotify:track:6X4JeTWCuKEzKOEHXDtyBo",
+      "releaseYear": 1983
     },
     {
       "title": "Back on the Chain Gang",
@@ -265,7 +284,8 @@
         "rock",
         "new wave"
       ],
-      "uri": "spotify:track:4eRbSxuTdh0tcp3XNkBtc2"
+      "uri": "spotify:track:4eRbSxuTdh0tcp3XNkBtc2",
+      "releaseYear": 1982
     },
     {
       "title": "Up Where We Belong",
@@ -275,7 +295,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:1h22h211rde6dDCeW2hXpN"
+      "uri": "spotify:track:1h22h211rde6dDCeW2hXpN",
+      "releaseYear": 1982
     },
     {
       "title": "Mr. Roboto",
@@ -285,7 +306,8 @@
         "rock",
         "new wave"
       ],
-      "uri": "spotify:track:7C0rG4oWO7VeZcffyW1sK9"
+      "uri": "spotify:track:7C0rG4oWO7VeZcffyW1sK9",
+      "releaseYear": 1983
     },
     {
       "title": "You Are",
@@ -295,7 +317,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2SQkCUj5rYrFCRKnaTbYYr"
+      "uri": "spotify:track:2SQkCUj5rYrFCRKnaTbYYr",
+      "releaseYear": 1983
     },
     {
       "title": "Der Kommissar",
@@ -304,7 +327,8 @@
       "genres": [
         "new wave"
       ],
-      "uri": "spotify:track:0ROtxObpdDA25o5DriPSOk"
+      "uri": "spotify:track:0ROtxObpdDA25o5DriPSOk",
+      "releaseYear": 1982
     }
   ]
 }

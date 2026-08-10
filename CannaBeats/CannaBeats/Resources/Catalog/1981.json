@@ -11,7 +11,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:0odIT9B9BvOCnXfS0e4lB5"
+      "uri": "spotify:track:0odIT9B9BvOCnXfS0e4lB5",
+      "releaseYear": 1974
     },
     {
       "title": "Endless Love",
@@ -42,7 +43,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:5y0YreEOnQiKFAnCrcFIXz"
+      "uri": "spotify:track:5y0YreEOnQiKFAnCrcFIXz",
+      "releaseYear": 1980
     },
     {
       "title": "Jessie's Girl",
@@ -52,7 +54,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:5RsUlxLto4NZbhJpqJbHfN"
+      "uri": "spotify:track:5RsUlxLto4NZbhJpqJbHfN",
+      "releaseYear": 1981
     },
     {
       "title": "Celebration",
@@ -73,7 +76,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:7cDzJyC95jtGO9zAeZsWOg"
+      "uri": "spotify:track:7cDzJyC95jtGO9zAeZsWOg",
+      "releaseYear": 1981
     },
     {
       "title": "I Love a Rainy Night",
@@ -102,7 +106,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:4rcHWl68ai6KvpXlc8vbnE"
+      "uri": "spotify:track:4rcHWl68ai6KvpXlc8vbnE",
+      "releaseYear": 1980
     },
     {
       "title": "Theme from \"Greatest American Hero\" (Believe It or Not)",
@@ -131,7 +136,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:5khAYmr8HHFwI3sp0Lw9wp"
+      "uri": "spotify:track:5khAYmr8HHFwI3sp0Lw9wp",
+      "releaseYear": 1981
     },
     {
       "title": "Queen of Hearts",
@@ -151,7 +157,8 @@
         "new wave",
         "pop"
       ],
-      "uri": "spotify:track:6F2vo4sxRNQ58VYe3pdiaL"
+      "uri": "spotify:track:6F2vo4sxRNQ58VYe3pdiaL",
+      "releaseYear": 1981
     },
     {
       "title": "A Woman Needs Love (Just Like You Do)",
@@ -161,7 +168,8 @@
         "r&b",
         "funk"
       ],
-      "uri": "spotify:track:0DEwNI2DgasX1eprqCivJk"
+      "uri": "spotify:track:0DEwNI2DgasX1eprqCivJk",
+      "releaseYear": 1981
     },
     {
       "title": "The Tide Is High",
@@ -183,7 +191,8 @@
         "jazz",
         "soul"
       ],
-      "uri": "spotify:track:1ko2lVN0vKGUl9zrU0qSlT"
+      "uri": "spotify:track:1ko2lVN0vKGUl9zrU0qSlT",
+      "releaseYear": 1981
     },
     {
       "title": "Slow Hand",
@@ -193,7 +202,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:3fvDLsiTHPQNgzuMd3Mpb5"
+      "uri": "spotify:track:3fvDLsiTHPQNgzuMd3Mpb5",
+      "releaseYear": 1981
     },
     {
       "title": "I Love You",
@@ -213,7 +223,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0GGxVTb0UwDwdaKNjBdCn3"
+      "uri": "spotify:track:0GGxVTb0UwDwdaKNjBdCn3",
+      "releaseYear": 1981
     },
     {
       "title": "Sukiyaki",
@@ -262,7 +273,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6XNGIaXv2xljDcxQ99p65f"
+      "uri": "spotify:track:6XNGIaXv2xljDcxQ99p65f",
+      "releaseYear": 1980
     },
     {
       "title": "Every Woman in the World",
@@ -271,7 +283,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6OxnToSgslbtjJuNSKSdDQ"
+      "uri": "spotify:track:6OxnToSgslbtjJuNSKSdDQ",
+      "releaseYear": 1980
     },
     {
       "title": "The One That You Love",
@@ -280,7 +293,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3FDAd5vW4P7xe1GBNOLyfD"
+      "uri": "spotify:track:3FDAd5vW4P7xe1GBNOLyfD",
+      "releaseYear": 1981
     },
     {
       "title": "Guilty",
@@ -289,7 +303,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:60mGckXEG1EzR4VmjYLfEW"
+      "uri": "spotify:track:60mGckXEG1EzR4VmjYLfEW",
+      "releaseYear": 1980
     },
     {
       "title": "The Best of Times",
@@ -298,7 +313,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:7GRUpcvSQM9HrnC2CjYPG4"
+      "uri": "spotify:track:7GRUpcvSQM9HrnC2CjYPG4",
+      "releaseYear": 1981
     }
   ]
 }

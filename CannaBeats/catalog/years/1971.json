@@ -11,7 +11,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:2ymeOsYijJz09LfKw3yM2x"
+      "uri": "spotify:track:2ymeOsYijJz09LfKw3yM2x",
+      "releaseYear": 1970
     },
     {
       "title": "Maggie May",
@@ -20,7 +21,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6rovOdp3HgK1DeAMYDzoA7"
+      "uri": "spotify:track:6rovOdp3HgK1DeAMYDzoA7",
+      "releaseYear": 1971
     },
     {
       "title": "It's Too Late",
@@ -39,7 +41,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:50UoJUrslRVqG0cg6uboyn"
+      "uri": "spotify:track:50UoJUrslRVqG0cg6uboyn",
+      "releaseYear": 1970
     },
     {
       "title": "How Can You Mend a Broken Heart",
@@ -78,7 +81,8 @@
         "country",
         "folk"
       ],
-      "uri": "spotify:track:39q7xibBdRboeMKUbZEB6g"
+      "uri": "spotify:track:39q7xibBdRboeMKUbZEB6g",
+      "releaseYear": 1971
     },
     {
       "title": "Just My Imagination (Running Away with Me)",
@@ -96,7 +100,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6gvfXd7pEUSPuNEMWwOJUH"
+      "uri": "spotify:track:6gvfXd7pEUSPuNEMWwOJUH",
+      "releaseYear": 1970
     },
     {
       "title": "Me and Bobby McGee",
@@ -115,7 +120,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:10vkYRKw6Jjr7try1ir50G"
+      "uri": "spotify:track:10vkYRKw6Jjr7try1ir50G",
+      "releaseYear": 1971
     },
     {
       "title": "Want Ads",
@@ -125,7 +131,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:76lrpneaFuAxiMAbnNc6Hu"
+      "uri": "spotify:track:76lrpneaFuAxiMAbnNc6Hu",
+      "releaseYear": 1969
     },
     {
       "title": "Smiling Faces Sometimes",
@@ -135,7 +142,8 @@
         "soul",
         "funk"
       ],
-      "uri": "spotify:track:5Vdg4tP25ffeGEC5GGmCwm"
+      "uri": "spotify:track:5Vdg4tP25ffeGEC5GGmCwm",
+      "releaseYear": 1971
     },
     {
       "title": "Treat Her Like a Lady",
@@ -145,7 +153,8 @@
         "soul",
         "funk"
       ],
-      "uri": "spotify:track:75t6tcHkZDFKLKJwjXFMtq"
+      "uri": "spotify:track:75t6tcHkZDFKLKJwjXFMtq",
+      "releaseYear": 1971
     },
     {
       "title": "Brown Sugar",
@@ -174,7 +183,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:2Bls0igCm79XQQ95IoUbhq"
+      "uri": "spotify:track:2Bls0igCm79XQQ95IoUbhq",
+      "releaseYear": 1971
     },
     {
       "title": "Do You Know What I Mean",
@@ -183,7 +193,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:0X2ckklp0uln3TRUH7JTpN"
+      "uri": "spotify:track:0X2ckklp0uln3TRUH7JTpN",
+      "releaseYear": 1971
     },
     {
       "title": "The Night They Drove Old Dixie Down",
@@ -221,7 +232,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:1k1Bqnv2R0uJXQN4u6LKYt"
+      "uri": "spotify:track:1k1Bqnv2R0uJXQN4u6LKYt",
+      "releaseYear": 1971
     },
     {
       "title": "Signs",
@@ -230,7 +242,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:5KWXi2eCYsC6ofIILjvG4V"
+      "uri": "spotify:track:5KWXi2eCYsC6ofIILjvG4V",
+      "releaseYear": 1971
     },
     {
       "title": "She's a Lady",
@@ -249,7 +262,8 @@
         "soul",
         "pop"
       ],
-      "uri": "spotify:track:4f01Vg5ijzmTu9CI9jPTAR"
+      "uri": "spotify:track:4f01Vg5ijzmTu9CI9jPTAR",
+      "releaseYear": 1972
     },
     {
       "title": "Superstar",
@@ -268,7 +282,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:7zVZF0OgDJkFJohnlKwEpa"
+      "uri": "spotify:track:7zVZF0OgDJkFJohnlKwEpa",
+      "releaseYear": 1970
     },
     {
       "title": "Temptation Eyes",
@@ -278,7 +293,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:6KYEtZi2zMlIULXzca9mjp"
+      "uri": "spotify:track:6KYEtZi2zMlIULXzca9mjp",
+      "releaseYear": 1971
     },
     {
       "title": "Superstar",

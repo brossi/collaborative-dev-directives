@@ -91,7 +91,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:6000HS6owi81nK3CiqPrYv"
+      "uri": "spotify:track:6000HS6owi81nK3CiqPrYv",
+      "releaseYear": 1926
     },
     {
       "title": "Barcelona",
@@ -189,7 +190,8 @@
       "genres": [
         "jazz"
       ],
-      "uri": "spotify:track:4Yi6VdtZQRYzPXuZg7wH1m"
+      "uri": "spotify:track:4Yi6VdtZQRYzPXuZg7wH1m",
+      "releaseYear": 1926
     },
     {
       "title": "Muskrat Ramble",
@@ -198,7 +200,8 @@
       "genres": [
         "jazz"
       ],
-      "uri": "spotify:track:5Q8Ly2AvwM2JhHuj1jxIkO"
+      "uri": "spotify:track:5Q8Ly2AvwM2JhHuj1jxIkO",
+      "releaseYear": 1926
     },
     {
       "title": "Breezin' Along with the Breeze",
@@ -296,7 +299,8 @@
       "genres": [
         "jazz"
       ],
-      "uri": "spotify:track:3mKyLrlesMkJpHAarbeXCU"
+      "uri": "spotify:track:3mKyLrlesMkJpHAarbeXCU",
+      "releaseYear": 1926
     }
   ]
 }

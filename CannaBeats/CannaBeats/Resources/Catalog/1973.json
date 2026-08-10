@@ -10,7 +10,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5oB6kXycJsphQFzJNlZlBR"
+      "uri": "spotify:track:5oB6kXycJsphQFzJNlZlBR",
+      "releaseYear": 1973
     },
     {
       "title": "Bad, Bad Leroy Brown",
@@ -20,7 +21,8 @@
         "rock",
         "folk"
       ],
-      "uri": "spotify:track:14nBn3kUcfhDnGyKRUrVHr"
+      "uri": "spotify:track:14nBn3kUcfhDnGyKRUrVHr",
+      "releaseYear": 1973
     },
     {
       "title": "Killing Me Softly with His Song",
@@ -39,7 +41,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:0jHkgTtTaqg5LNCiYDQPUB"
+      "uri": "spotify:track:0jHkgTtTaqg5LNCiYDQPUB",
+      "releaseYear": 1973
     },
     {
       "title": "My Love",
@@ -58,7 +61,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:6uMKkOEkPJRumFvAzo5nr9"
+      "uri": "spotify:track:6uMKkOEkPJRumFvAzo5nr9",
+      "releaseYear": 1973
     },
     {
       "title": "Crocodile Rock",
@@ -68,7 +72,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:6WCeFNVAXUtNczb7lqLiZU"
+      "uri": "spotify:track:6WCeFNVAXUtNczb7lqLiZU",
+      "releaseYear": 1972
     },
     {
       "title": "Will It Go Round in Circles",
@@ -78,7 +83,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:5YLVhkyMsAuYKOKihHJo21"
+      "uri": "spotify:track:5YLVhkyMsAuYKOKihHJo21",
+      "releaseYear": 1973
     },
     {
       "title": "You're So Vain",
@@ -88,7 +94,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:2DnJjbjNTV9Nd5NOa1KGba"
+      "uri": "spotify:track:2DnJjbjNTV9Nd5NOa1KGba",
+      "releaseYear": 1972
     },
     {
       "title": "Touch Me in the Morning",
@@ -98,7 +105,8 @@
         "soul",
         "pop"
       ],
-      "uri": "spotify:track:4sIkDCqNjTubfb5UVs8lEA"
+      "uri": "spotify:track:4sIkDCqNjTubfb5UVs8lEA",
+      "releaseYear": 1973
     },
     {
       "title": "The Night the Lights Went Out in Georgia",
@@ -108,7 +116,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:4ZObql2ASJn1bvasBzjlyI"
+      "uri": "spotify:track:4ZObql2ASJn1bvasBzjlyI",
+      "releaseYear": 1972
     },
     {
       "title": "Playground in My Mind",
@@ -117,7 +126,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0ckaiscpV8eaZ9WWJLdFbs"
+      "uri": "spotify:track:0ckaiscpV8eaZ9WWJLdFbs",
+      "releaseYear": 1972
     },
     {
       "title": "Brother Louie",
@@ -145,7 +155,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:6Ro2z4RtAUew9Kz2HZWZUi"
+      "uri": "spotify:track:6Ro2z4RtAUew9Kz2HZWZUi",
+      "releaseYear": 1972
     },
     {
       "title": "Frankenstein",
@@ -154,7 +165,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:2l0Z9fY1E8Bep8opmhmDhq"
+      "uri": "spotify:track:2l0Z9fY1E8Bep8opmhmDhq",
+      "releaseYear": 1972
     },
     {
       "title": "Drift Away",
@@ -164,7 +176,8 @@
         "soul",
         "rock"
       ],
-      "uri": "spotify:track:11YWR8tzDTR2P4KZ3lAySj"
+      "uri": "spotify:track:11YWR8tzDTR2P4KZ3lAySj",
+      "releaseYear": 1973
     },
     {
       "title": "Little Willy",
@@ -173,7 +186,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:5yGYWR0ZTgaQbjQVq1FFbW"
+      "uri": "spotify:track:5yGYWR0ZTgaQbjQVq1FFbW",
+      "releaseYear": 1972
     },
     {
       "title": "You Are the Sunshine of My Life",
@@ -183,7 +197,8 @@
         "soul",
         "pop"
       ],
-      "uri": "spotify:track:0n2pjCIMKwHSXoYfEbYMfX"
+      "uri": "spotify:track:0n2pjCIMKwHSXoYfEbYMfX",
+      "releaseYear": 1973
     },
     {
       "title": "Half-Breed",
@@ -192,7 +207,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:23jaOlnV7vHmly51DPBr35"
+      "uri": "spotify:track:23jaOlnV7vHmly51DPBr35",
+      "releaseYear": 1973
     },
     {
       "title": "That Lady",
@@ -202,7 +218,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:4MexO1G9TadTu0yWDB3T7Q"
+      "uri": "spotify:track:4MexO1G9TadTu0yWDB3T7Q",
+      "releaseYear": 1964
     },
     {
       "title": "Pillow Talk",
@@ -212,7 +229,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:2BEeIp5vfO4rR2Qs5vkTLL"
+      "uri": "spotify:track:2BEeIp5vfO4rR2Qs5vkTLL",
+      "releaseYear": 1973
     },
     {
       "title": "We're an American Band",
@@ -221,7 +239,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:01hVwfgWBkOnWQjB0upmp4"
+      "uri": "spotify:track:01hVwfgWBkOnWQjB0upmp4",
+      "releaseYear": 1973
     },
     {
       "title": "Right Place Wrong Time",
@@ -251,7 +270,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:1h2xVEoJORqrg71HocgqXd"
+      "uri": "spotify:track:1h2xVEoJORqrg71HocgqXd",
+      "releaseYear": 1972
     },
     {
       "title": "Loves Me Like a Rock",
@@ -261,7 +281,8 @@
         "pop",
         "gospel"
       ],
-      "uri": "spotify:track:5F4ksIKmuXEtgBf6SfEQRr"
+      "uri": "spotify:track:5F4ksIKmuXEtgBf6SfEQRr",
+      "releaseYear": 1973
     },
     {
       "title": "The Morning After",
@@ -271,7 +292,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:62QRbVm7DqR3eoqgT7pEfs"
+      "uri": "spotify:track:62QRbVm7DqR3eoqgT7pEfs",
+      "releaseYear": 1973
     },
     {
       "title": "Rocky Mountain High",
@@ -281,7 +303,8 @@
         "folk",
         "country"
       ],
-      "uri": "spotify:track:1ne9wOtDF2jM6Cm8WBkaER"
+      "uri": "spotify:track:1ne9wOtDF2jM6Cm8WBkaER",
+      "releaseYear": 1972
     },
     {
       "title": "Stuck in the Middle with You",
@@ -290,7 +313,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:1b7LMtXCXGc2EwOIplI35z"
+      "uri": "spotify:track:1b7LMtXCXGc2EwOIplI35z",
+      "releaseYear": 1973
     }
   ]
 }

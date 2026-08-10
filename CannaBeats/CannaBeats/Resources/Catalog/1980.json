@@ -11,7 +11,8 @@
         "new wave",
         "rock"
       ],
-      "uri": "spotify:track:7HKxTNVlkHsfMLhigmhC0I"
+      "uri": "spotify:track:7HKxTNVlkHsfMLhigmhC0I",
+      "releaseYear": 1979
     },
     {
       "title": "Another Brick in the Wall, Part II",
@@ -29,7 +30,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1H5A1GNZUv4eUf1t9RFdid"
+      "uri": "spotify:track:1H5A1GNZUv4eUf1t9RFdid",
+      "releaseYear": 1980
     },
     {
       "title": "Rock with You",
@@ -40,7 +42,8 @@
         "pop",
         "disco"
       ],
-      "uri": "spotify:track:7oOOI85fVQvVnK5ynNMdW7"
+      "uri": "spotify:track:7oOOI85fVQvVnK5ynNMdW7",
+      "releaseYear": 1979
     },
     {
       "title": "Do That to Me One More Time",
@@ -49,7 +52,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0m4jVVZrsv0bLkAr1uM6UG"
+      "uri": "spotify:track:0m4jVVZrsv0bLkAr1uM6UG",
+      "releaseYear": 1980
     },
     {
       "title": "Crazy Little Thing Called Love",
@@ -59,7 +63,8 @@
         "rock",
         "rockabilly"
       ],
-      "uri": "spotify:track:35ItUJlMtjOQW3SSiTCrrw"
+      "uri": "spotify:track:35ItUJlMtjOQW3SSiTCrrw",
+      "releaseYear": 1979
     },
     {
       "title": "Coming Up",
@@ -69,7 +74,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:5LmDrxY0GAmERMdsJw5V9Z"
+      "uri": "spotify:track:5LmDrxY0GAmERMdsJw5V9Z",
+      "releaseYear": 1980
     },
     {
       "title": "Funkytown",
@@ -79,7 +85,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:5zeh2xPnrNYu6TZTjCdXAD"
+      "uri": "spotify:track:5zeh2xPnrNYu6TZTjCdXAD",
+      "releaseYear": 1980
     },
     {
       "title": "It's Still Rock and Roll to Me",
@@ -89,7 +96,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:64UioB4Nmwgn2f4cbIpAkl"
+      "uri": "spotify:track:64UioB4Nmwgn2f4cbIpAkl",
+      "releaseYear": 1980
     },
     {
       "title": "The Rose",
@@ -118,7 +126,8 @@
         "new wave",
         "electronic"
       ],
-      "uri": "spotify:track:6HZ67VImxqr8aMBEEhblzf"
+      "uri": "spotify:track:6HZ67VImxqr8aMBEEhblzf",
+      "releaseYear": 1979
     },
     {
       "title": "Cruisin'",
@@ -158,7 +167,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:7pgAdesi3gGZO8lAyzOTvu"
+      "uri": "spotify:track:7pgAdesi3gGZO8lAyzOTvu",
+      "releaseYear": 1980
     },
     {
       "title": "Ride Like the Wind",
@@ -168,7 +178,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:7gUMShP1l20tC0xf17Zplk"
+      "uri": "spotify:track:7gUMShP1l20tC0xf17Zplk",
+      "releaseYear": 1980
     },
     {
       "title": "Upside Down",
@@ -188,7 +199,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:6dw6BquK0Mv72p6HpusqKN"
+      "uri": "spotify:track:6dw6BquK0Mv72p6HpusqKN",
+      "releaseYear": 1979
     },
     {
       "title": "Babe",
@@ -198,7 +210,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:5W7YROOF6bFfBexY81LFjt"
+      "uri": "spotify:track:5W7YROOF6bFfBexY81LFjt",
+      "releaseYear": 1979
     },
     {
       "title": "With You I'm Born Again",
@@ -218,7 +231,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:0np4arBSp4ZBOfXGZhXQ4I"
+      "uri": "spotify:track:0np4arBSp4ZBOfXGZhXQ4I",
+      "releaseYear": 1980
     },
     {
       "title": "Still",
@@ -228,7 +242,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:2LdtluFBgL8cuSo9nkvJ57"
+      "uri": "spotify:track:2LdtluFBgL8cuSo9nkvJ57",
+      "releaseYear": 1979
     },
     {
       "title": "Yes, I'm Ready",
@@ -248,7 +263,8 @@
         "pop",
         "disco"
       ],
-      "uri": "spotify:track:6uxGAruWvj6O2hVBBTNITa"
+      "uri": "spotify:track:6uxGAruWvj6O2hVBBTNITa",
+      "releaseYear": 1980
     },
     {
       "title": "Steal Away",
@@ -258,7 +274,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:7v5rsCN3LhX9XaIlWyTdx3"
+      "uri": "spotify:track:7v5rsCN3LhX9XaIlWyTdx3",
+      "releaseYear": 1980
     },
     {
       "title": "Biggest Part of Me",
@@ -268,7 +285,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6JHXiRD1QjMK1N6AQEnL04"
+      "uri": "spotify:track:6JHXiRD1QjMK1N6AQEnL04",
+      "releaseYear": 1980
     },
     {
       "title": "This Is It",
@@ -278,7 +296,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:0YO8KsprTrEUEvJevpI7Na"
+      "uri": "spotify:track:0YO8KsprTrEUEvJevpI7Na",
+      "releaseYear": 1979
     },
     {
       "title": "Cupid/I've Loved You for a Long Time",
@@ -298,7 +317,8 @@
         "r&b",
         "funk"
       ],
-      "uri": "spotify:track:4tWdcU5SdjkJgHiPGs29jN"
+      "uri": "spotify:track:4tWdcU5SdjkJgHiPGs29jN",
+      "releaseYear": 1980
     }
   ]
 }

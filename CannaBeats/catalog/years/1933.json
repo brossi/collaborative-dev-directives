@@ -32,7 +32,8 @@
         "jazz",
         "big band"
       ],
-      "uri": "spotify:track:7D12rJ2I1OUYg3y2v0kzDp"
+      "uri": "spotify:track:7D12rJ2I1OUYg3y2v0kzDp",
+      "releaseYear": 1932
     },
     {
       "title": "Lazybones",
@@ -91,7 +92,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6KcGhLsH1Tx3PuRkkhNIpv"
+      "uri": "spotify:track:6KcGhLsH1Tx3PuRkkhNIpv",
+      "releaseYear": 1932
     },
     {
       "title": "Learn to Croon",
@@ -160,7 +162,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:5sMZBZIkEwTWwN4dp9vVIK"
+      "uri": "spotify:track:5sMZBZIkEwTWwN4dp9vVIK",
+      "releaseYear": 1932
     },
     {
       "title": "Try a Little Tenderness",
@@ -220,7 +223,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:3Fc83pvJzQ5VcRFSGlvMCO"
+      "uri": "spotify:track:3Fc83pvJzQ5VcRFSGlvMCO",
+      "releaseYear": 1933
     },
     {
       "title": "Don't Blame Me",
@@ -240,7 +244,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:4uz2vnUMbiXfPSLceFyi5C"
+      "uri": "spotify:track:4uz2vnUMbiXfPSLceFyi5C",
+      "releaseYear": 1933
     },
     {
       "title": "It's the Talk of the Town",
@@ -290,7 +295,8 @@
         "jazz",
         "big band"
       ],
-      "uri": "spotify:track:0MwVxmYdkm6yicoL6MWUsI"
+      "uri": "spotify:track:0MwVxmYdkm6yicoL6MWUsI",
+      "releaseYear": 1933
     },
     {
       "title": "It Isn't Fair",

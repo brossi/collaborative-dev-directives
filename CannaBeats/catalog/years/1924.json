@@ -11,7 +11,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4WS0frnuRoFcdN8c6NbZ04"
+      "uri": "spotify:track:4WS0frnuRoFcdN8c6NbZ04",
+      "releaseYear": 1924
     },
     {
       "title": "I Wonder What's Become of Sally",
@@ -158,7 +159,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:1MGcMZJnfI9YkIFufOR2jH"
+      "uri": "spotify:track:1MGcMZJnfI9YkIFufOR2jH",
+      "releaseYear": 1924
     },
     {
       "title": "Charley, My Boy",
@@ -227,7 +229,8 @@
         "pop",
         "novelty"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1924
     },
     {
       "title": "Red Hot Mama",

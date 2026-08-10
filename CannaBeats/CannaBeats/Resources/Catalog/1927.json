@@ -120,7 +120,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:7kqwQbAnSueIHUA1xzMhNP"
+      "uri": "spotify:track:7kqwQbAnSueIHUA1xzMhNP",
+      "releaseYear": 1926
     },
     {
       "title": "The Best Things in Life Are Free",
@@ -190,7 +191,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4dZDcRX4PTAZkTENdmeBnB"
+      "uri": "spotify:track:4dZDcRX4PTAZkTENdmeBnB",
+      "releaseYear": 1926
     },
     {
       "title": "Diane",
@@ -248,7 +250,8 @@
       "genres": [
         "jazz"
       ],
-      "uri": "spotify:track:6v27P8xpwlYSaaV56levKN"
+      "uri": "spotify:track:6v27P8xpwlYSaaV56levKN",
+      "releaseYear": 1927
     },
     {
       "title": "Are You Lonesome To-night?",

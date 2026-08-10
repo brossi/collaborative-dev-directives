@@ -11,7 +11,8 @@
         "swing",
         "jazz"
       ],
-      "uri": "spotify:track:78rkBokCZzFn6KJ04P3zyg"
+      "uri": "spotify:track:78rkBokCZzFn6KJ04P3zyg",
+      "releaseYear": 1938
     },
     {
       "title": "Begin the Beguine",
@@ -90,7 +91,8 @@
         "pop",
         "novelty"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1938
     },
     {
       "title": "There's a Gold Mine in the Sky",
@@ -230,7 +232,8 @@
         "jazz",
         "novelty"
       ],
-      "uri": "spotify:track:6TEKNkNj0KvF2Wwgl1sDsI"
+      "uri": "spotify:track:6TEKNkNj0KvF2Wwgl1sDsI",
+      "releaseYear": 1938
     },
     {
       "title": "The Donkey Serenade",
@@ -260,7 +263,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:2cPZge3nHYJQLkcd5LVF86"
+      "uri": "spotify:track:2cPZge3nHYJQLkcd5LVF86",
+      "releaseYear": 1938
     },
     {
       "title": "I Hadn't Anyone Till You",
@@ -270,7 +274,8 @@
         "big band",
         "standards"
       ],
-      "uri": "spotify:track:2nBNHUul8rnuhzLVsiUxLO"
+      "uri": "spotify:track:2nBNHUul8rnuhzLVsiUxLO",
+      "releaseYear": 1938
     },
     {
       "title": "Big Noise from Winnetka",

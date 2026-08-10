@@ -20,7 +20,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0X3d9gx7UDYgcwwkgTeNLR"
+      "uri": "spotify:track:0X3d9gx7UDYgcwwkgTeNLR",
+      "releaseYear": 1974
     },
     {
       "title": "Love's Theme",
@@ -30,7 +31,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:5csdrJ0JtFn0qvwlvSh2EI"
+      "uri": "spotify:track:5csdrJ0JtFn0qvwlvSh2EI",
+      "releaseYear": 1973
     },
     {
       "title": "Come and Get Your Love",
@@ -40,7 +42,8 @@
         "rock",
         "soul"
       ],
-      "uri": "spotify:track:7GVUmCP00eSsqc4tzj1sDD"
+      "uri": "spotify:track:7GVUmCP00eSsqc4tzj1sDD",
+      "releaseYear": 1973
     },
     {
       "title": "Dancing Machine",
@@ -50,7 +53,8 @@
         "funk",
         "disco"
       ],
-      "uri": "spotify:track:0xqb2Euq1PAxKHBA36NUnx"
+      "uri": "spotify:track:0xqb2Euq1PAxKHBA36NUnx",
+      "releaseYear": 1974
     },
     {
       "title": "The Loco-Motion",
@@ -69,7 +73,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:6B9tR2OEurD4FsZM5btj3X"
+      "uri": "spotify:track:6B9tR2OEurD4FsZM5btj3X",
+      "releaseYear": 1974
     },
     {
       "title": "The Streak",
@@ -79,7 +84,8 @@
         "novelty",
         "country"
       ],
-      "uri": "spotify:track:3HiIBzaoBkOTLmRYkdsusv"
+      "uri": "spotify:track:3HiIBzaoBkOTLmRYkdsusv",
+      "releaseYear": 1974
     },
     {
       "title": "Bennie and the Jets",
@@ -89,7 +95,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0dBatXn1vVUl0jLgXRClwD"
+      "uri": "spotify:track:0dBatXn1vVUl0jLgXRClwD",
+      "releaseYear": 1973
     },
     {
       "title": "One Hell of a Woman",
@@ -117,7 +124,8 @@
       "genres": [
         "funk"
       ],
-      "uri": "spotify:track:3K0SJUQNbOkUprTFcwwAKN"
+      "uri": "spotify:track:3K0SJUQNbOkUprTFcwwAKN",
+      "releaseYear": 1973
     },
     {
       "title": "Midnight at the Oasis",
@@ -127,7 +135,8 @@
         "pop",
         "jazz"
       ],
-      "uri": "spotify:track:5VBcEJ4mtXTmVEJtc7hx2g"
+      "uri": "spotify:track:5VBcEJ4mtXTmVEJtc7hx2g",
+      "releaseYear": 1974
     },
     {
       "title": "You Make Me Feel Brand New",
@@ -136,7 +145,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:00CCi9yHJh7NjXcNT565Ja"
+      "uri": "spotify:track:00CCi9yHJh7NjXcNT565Ja",
+      "releaseYear": 1973
     },
     {
       "title": "Show and Tell",
@@ -145,7 +155,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:2vhW1OmaZDYi63Da9d8R5o"
+      "uri": "spotify:track:2vhW1OmaZDYi63Da9d8R5o",
+      "releaseYear": 1973
     },
     {
       "title": "Spiders & Snakes",
@@ -155,7 +166,8 @@
         "country",
         "novelty"
       ],
-      "uri": "spotify:track:1VREN3iKxfXrN6koXcXWPM"
+      "uri": "spotify:track:1VREN3iKxfXrN6koXcXWPM",
+      "releaseYear": 1973
     },
     {
       "title": "Rock On",
@@ -164,7 +176,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:0uPIwcT6OdJ5BAJdYkxVp9"
+      "uri": "spotify:track:0uPIwcT6OdJ5BAJdYkxVp9",
+      "releaseYear": 1973
     },
     {
       "title": "Sunshine on My Shoulders",
@@ -174,7 +187,8 @@
         "folk",
         "pop"
       ],
-      "uri": "spotify:track:3m8lTUL5GxGUNSaycI77ND"
+      "uri": "spotify:track:3m8lTUL5GxGUNSaycI77ND",
+      "releaseYear": 1971
     },
     {
       "title": "Sideshow",
@@ -183,7 +197,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:0fopVbPW7N5BK0sOybQCq2"
+      "uri": "spotify:track:0fopVbPW7N5BK0sOybQCq2",
+      "releaseYear": 1974
     },
     {
       "title": "Hooked on a Feeling",
@@ -193,7 +208,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6Ac4NVYYl2U73QiTt11ZKd"
+      "uri": "spotify:track:6Ac4NVYYl2U73QiTt11ZKd",
+      "releaseYear": 1974
     },
     {
       "title": "Billy Don't Be a Hero",
@@ -211,7 +227,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6ySVa9OQidAvnEk9O0w2qR"
+      "uri": "spotify:track:6ySVa9OQidAvnEk9O0w2qR",
+      "releaseYear": 1973
     },
     {
       "title": "The Most Beautiful Girl",
@@ -221,7 +238,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:542C7PqR1oEfl63hlhQO4V"
+      "uri": "spotify:track:542C7PqR1oEfl63hlhQO4V",
+      "releaseYear": 1973
     },
     {
       "title": "Time in a Bottle",
@@ -231,7 +249,8 @@
         "folk",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:1pmYAWY7Kwaj84U3xZxLML"
+      "uri": "spotify:track:1pmYAWY7Kwaj84U3xZxLML",
+      "releaseYear": 1973
     },
     {
       "title": "Annie's Song",
@@ -251,7 +270,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:5aI3ary3TADn6mG4n18FrK"
+      "uri": "spotify:track:5aI3ary3TADn6mG4n18FrK",
+      "releaseYear": 1973
     },
     {
       "title": "Sundown",
@@ -261,7 +281,8 @@
         "folk",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:0SjnBEHZVXgCKvOrpvzL2k"
+      "uri": "spotify:track:0SjnBEHZVXgCKvOrpvzL2k",
+      "releaseYear": 1974
     },
     {
       "title": "(You're) Having My Baby",
@@ -270,7 +291,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5PuAFxKmqG72uKyoo11zpQ"
+      "uri": "spotify:track:5PuAFxKmqG72uKyoo11zpQ",
+      "releaseYear": 1974
     },
     {
       "title": "Rock Me Gently",
@@ -279,7 +301,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:2qh2VGAOYFXLsMbdATRf6w"
+      "uri": "spotify:track:2qh2VGAOYFXLsMbdATRf6w",
+      "releaseYear": 1974
     },
     {
       "title": "Boogie Down",
@@ -289,7 +312,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:4rCzjErgNGgyFCMIKWlBcI"
+      "uri": "spotify:track:4rCzjErgNGgyFCMIKWlBcI",
+      "releaseYear": 1973
     }
   ]
 }

@@ -21,7 +21,8 @@
         "r&b",
         "hip-hop"
       ],
-      "uri": "spotify:track:6qspW4YKycviDFjHBOaqUY"
+      "uri": "spotify:track:6qspW4YKycviDFjHBOaqUY",
+      "releaseYear": 1995
     },
     {
       "title": "Creep",
@@ -30,7 +31,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:1aWV3uY3SIEZVbmv45oFWS"
+      "uri": "spotify:track:1aWV3uY3SIEZVbmv45oFWS",
+      "releaseYear": 1994
     },
     {
       "title": "Kiss from a Rose",
@@ -41,7 +43,8 @@
         "soul",
         "soundtrack"
       ],
-      "uri": "spotify:track:3YKptz29AsOlm7WAVnztBh"
+      "uri": "spotify:track:3YKptz29AsOlm7WAVnztBh",
+      "releaseYear": 1994
     },
     {
       "title": "On Bended Knee",
@@ -50,7 +53,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:7MYmo0JJJDmu4MZTSAF9y3"
+      "uri": "spotify:track:7MYmo0JJJDmu4MZTSAF9y3",
+      "releaseYear": 1994
     },
     {
       "title": "Another Night",
@@ -60,7 +64,8 @@
         "dance",
         "electronic"
       ],
-      "uri": "spotify:track:3pEuO9J2MTEmec8kUfYYvl"
+      "uri": "spotify:track:3pEuO9J2MTEmec8kUfYYvl",
+      "releaseYear": 1993
     },
     {
       "title": "Fantasy",
@@ -80,7 +85,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:7izFzcBTx3DVXFeFYDeZKB"
+      "uri": "spotify:track:7izFzcBTx3DVXFeFYDeZKB",
+      "releaseYear": 1994
     },
     {
       "title": "Don't Take It Personal (Just One of Dem Days)",
@@ -89,7 +95,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:0JCAezTC5IlK1a9o0YBEsD"
+      "uri": "spotify:track:0JCAezTC5IlK1a9o0YBEsD",
+      "releaseYear": 1995
     },
     {
       "title": "This Is How We Do It",
@@ -99,7 +106,8 @@
         "r&b",
         "hip-hop"
       ],
-      "uri": "spotify:track:6uQKuonTU8VKBz5SHZuQXD"
+      "uri": "spotify:track:6uQKuonTU8VKBz5SHZuQXD",
+      "releaseYear": 1995
     },
     {
       "title": "I Know",
@@ -109,7 +117,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:698R7h4SU5zyNil1iReHAX"
+      "uri": "spotify:track:698R7h4SU5zyNil1iReHAX",
+      "releaseYear": 1995
     },
     {
       "title": "Water Runs Dry",
@@ -118,7 +127,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:7yhmvQh1JOzbNiNFQo4Tfc"
+      "uri": "spotify:track:7yhmvQh1JOzbNiNFQo4Tfc",
+      "releaseYear": 1995
     },
     {
       "title": "Freak Like Me",
@@ -137,7 +147,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:500Tkm3vJmVtdUwdCVxCTb"
+      "uri": "spotify:track:500Tkm3vJmVtdUwdCVxCTb",
+      "releaseYear": 1995
     },
     {
       "title": "I Can Love You Like That",
@@ -158,7 +169,8 @@
         "rock",
         "latin"
       ],
-      "uri": "spotify:track:32Gf5A7Hr8RdgggXG0Fdks"
+      "uri": "spotify:track:32Gf5A7Hr8RdgggXG0Fdks",
+      "releaseYear": 1995
     },
     {
       "title": "Always",
@@ -167,7 +179,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:2RChe0r2cMoyOvuKobZy44"
+      "uri": "spotify:track:2RChe0r2cMoyOvuKobZy44",
+      "releaseYear": 1994
     },
     {
       "title": "Boombastic",
@@ -176,7 +189,8 @@
       "genres": [
         "reggae"
       ],
-      "uri": "spotify:track:4fxF8ljwryMZX5c9EKrLFE"
+      "uri": "spotify:track:4fxF8ljwryMZX5c9EKrLFE",
+      "releaseYear": 1995
     },
     {
       "title": "Total Eclipse of the Heart",
@@ -197,7 +211,8 @@
         "pop",
         "soul"
       ],
-      "uri": "spotify:track:6CU0zWIWVTEnmWpSjVHM93"
+      "uri": "spotify:track:6CU0zWIWVTEnmWpSjVHM93",
+      "releaseYear": 1995
     },
     {
       "title": "You Are Not Alone",
@@ -207,7 +222,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:3AoeaZs8dFemFJr3JdzOL0"
+      "uri": "spotify:track:3AoeaZs8dFemFJr3JdzOL0",
+      "releaseYear": 1995
     },
     {
       "title": "Hold My Hand",
@@ -216,7 +232,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:4WnYuVFXe6Si4fZqkxbnvS"
+      "uri": "spotify:track:4WnYuVFXe6Si4fZqkxbnvS",
+      "releaseYear": 1994
     },
     {
       "title": "One More Chance",
@@ -225,7 +242,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:5onGESUxi3P9xLt311oS59"
+      "uri": "spotify:track:5onGESUxi3P9xLt311oS59",
+      "releaseYear": 1995
     },
     {
       "title": "Here Comes the Hotstepper",
@@ -235,7 +253,8 @@
         "reggae",
         "hip-hop"
       ],
-      "uri": "spotify:track:1G88BbuMts7HC0nHGoHmhv"
+      "uri": "spotify:track:1G88BbuMts7HC0nHGoHmhv",
+      "releaseYear": 1994
     },
     {
       "title": "Candy Rain",
@@ -253,7 +272,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6NGi23FFKq9tH5NR1NcTw2"
+      "uri": "spotify:track:6NGi23FFKq9tH5NR1NcTw2",
+      "releaseYear": 1994
     },
     {
       "title": "I Believe",
@@ -272,7 +292,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:6dW75XbJ1WAMljOXWjTK46"
+      "uri": "spotify:track:6dW75XbJ1WAMljOXWjTK46",
+      "releaseYear": 1995
     },
     {
       "title": "Runaway",
@@ -293,7 +314,8 @@
         "rock",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:25IRjWUZ60n7KXxcB4DiX9"
+      "uri": "spotify:track:25IRjWUZ60n7KXxcB4DiX9",
+      "releaseYear": 1994
     },
     {
       "title": "Wonderwall",

@@ -11,7 +11,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0wz1LjDb9ZNEYwOmDJ3Q4b"
+      "uri": "spotify:track:0wz1LjDb9ZNEYwOmDJ3Q4b",
+      "releaseYear": 1963
     },
     {
       "title": "Sugar Shack",
@@ -21,7 +22,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:2nLLenueHlqs60IcDn9lan"
+      "uri": "spotify:track:2nLLenueHlqs60IcDn9lan",
+      "releaseYear": 1963
     },
     {
       "title": "The End of the World",
@@ -31,7 +33,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:5DTOOkooKFUvWj1XQTFa09"
+      "uri": "spotify:track:5DTOOkooKFUvWj1XQTFa09",
+      "releaseYear": 1962
     },
     {
       "title": "Rhythm of the Rain",
@@ -40,7 +43,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7GHf8dQ2wA71wYOuRsQCZP"
+      "uri": "spotify:track:7GHf8dQ2wA71wYOuRsQCZP",
+      "releaseYear": 1962
     },
     {
       "title": "He's So Fine",
@@ -50,7 +54,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2Bs1Lw9LX8hBm70t1iGdlh"
+      "uri": "spotify:track:2Bs1Lw9LX8hBm70t1iGdlh",
+      "releaseYear": 1962
     },
     {
       "title": "Blue Velvet",
@@ -69,7 +74,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6MpCxTJNdkHIpvQRuID8zU"
+      "uri": "spotify:track:6MpCxTJNdkHIpvQRuID8zU",
+      "releaseYear": 1962
     },
     {
       "title": "Fingertips (Pt. 2)",
@@ -89,7 +95,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:2JwLfiU13mnYuiqcqriOLl"
+      "uri": "spotify:track:2JwLfiU13mnYuiqcqriOLl",
+      "releaseYear": 1963
     },
     {
       "title": "Limbo Rock",
@@ -99,7 +106,8 @@
         "dance",
         "pop"
       ],
-      "uri": "spotify:track:6FXjVsmKPW93LXRFYhfmmw"
+      "uri": "spotify:track:6FXjVsmKPW93LXRFYhfmmw",
+      "releaseYear": 1962
     },
     {
       "title": "Go Away Little Girl",
@@ -118,7 +126,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:4C76SOnBa9eQDwOwe11hPz"
+      "uri": "spotify:track:4C76SOnBa9eQDwOwe11hPz",
+      "releaseYear": 1963
     },
     {
       "title": "My Boyfriend's Back",
@@ -127,7 +136,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5NiFSI8iIDtVm1NCwdYrHS"
+      "uri": "spotify:track:5NiFSI8iIDtVm1NCwdYrHS",
+      "releaseYear": 1963
     },
     {
       "title": "Walk Right In",
@@ -137,7 +147,8 @@
         "folk",
         "pop"
       ],
-      "uri": "spotify:track:4WhT2YADjcU58IUgroWZQZ"
+      "uri": "spotify:track:4WhT2YADjcU58IUgroWZQZ",
+      "releaseYear": 1962
     },
     {
       "title": "Can't Get Used to Losing You",
@@ -147,7 +158,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:41zpWL98BsYKP5nvtdTM5z"
+      "uri": "spotify:track:41zpWL98BsYKP5nvtdTM5z",
+      "releaseYear": 1963
     },
     {
       "title": "Our Day Will Come",
@@ -157,7 +169,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:3ngYXFSYtF5mHguNCA3JZ0"
+      "uri": "spotify:track:3ngYXFSYtF5mHguNCA3JZ0",
+      "releaseYear": 1962
     },
     {
       "title": "I Will Follow Him",
@@ -166,7 +179,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3GQETOg4ZXyQ1jEFqfMoac"
+      "uri": "spotify:track:3GQETOg4ZXyQ1jEFqfMoac",
+      "releaseYear": 1963
     },
     {
       "title": "Puff (The Magic Dragon)",
@@ -193,7 +207,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:4anUinKv803lyDD1vaSXhU"
+      "uri": "spotify:track:4anUinKv803lyDD1vaSXhU",
+      "releaseYear": 1963
     },
     {
       "title": "It's My Party",
@@ -202,7 +217,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1Pq47iFLC5U7j8xeNiNcuS"
+      "uri": "spotify:track:1Pq47iFLC5U7j8xeNiNcuS",
+      "releaseYear": 1963
     },
     {
       "title": "Easier Said Than Done",
@@ -212,7 +228,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:5MjejbOEAjPjTU8lP9uZAy"
+      "uri": "spotify:track:5MjejbOEAjPjTU8lP9uZAy",
+      "releaseYear": 1963
     },
     {
       "title": "So Much in Love",
@@ -222,7 +239,8 @@
         "doo-wop",
         "r&b"
       ],
-      "uri": "spotify:track:6h0LLmMVZY108wNzD5UM6O"
+      "uri": "spotify:track:6h0LLmMVZY108wNzD5UM6O",
+      "releaseYear": 1963
     },
     {
       "title": "If You Wanna Be Happy",
@@ -232,7 +250,8 @@
         "r&b",
         "novelty"
       ],
-      "uri": "spotify:track:7D97JnBT73FWUh9KmRvP9M"
+      "uri": "spotify:track:7D97JnBT73FWUh9KmRvP9M",
+      "releaseYear": 1963
     },
     {
       "title": "Sukiyaki",
@@ -261,7 +280,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:1Oewmmr12xuhgzvUJ9Q0cf"
+      "uri": "spotify:track:1Oewmmr12xuhgzvUJ9Q0cf",
+      "releaseYear": 1963
     },
     {
       "title": "Deep Purple",
@@ -271,7 +291,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5kJez8nvgq0HqhWy3UTQFx"
+      "uri": "spotify:track:5kJez8nvgq0HqhWy3UTQFx",
+      "releaseYear": 1963
     },
     {
       "title": "Hello Mudduh, Hello Fadduh! (A Letter from Camp)",

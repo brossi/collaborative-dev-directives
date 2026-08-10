@@ -11,7 +11,8 @@
         "jazz",
         "swing"
       ],
-      "uri": "spotify:track:0JANCc1DhGuwOBnfaZNzaK"
+      "uri": "spotify:track:0JANCc1DhGuwOBnfaZNzaK",
+      "releaseYear": 1931
     },
     {
       "title": "Goodnight, Sweetheart",
@@ -41,7 +42,8 @@
         "jazz",
         "big band"
       ],
-      "uri": "spotify:track:77zlKibPvqudmNxMNpAtv6"
+      "uri": "spotify:track:77zlKibPvqudmNxMNpAtv6",
+      "releaseYear": 1930
     },
     {
       "title": "When the Moon Comes Over the Mountain",
@@ -71,7 +73,8 @@
         "pop",
         "standards"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1931
     },
     {
       "title": "Just One More Chance",
@@ -170,7 +173,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:7FULtMSQXSzzy6IwYHe7OO"
+      "uri": "spotify:track:7FULtMSQXSzzy6IwYHe7OO",
+      "releaseYear": 1917
     },
     {
       "title": "Prisoner of Love",
@@ -180,7 +184,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4GF6Pr5dB5bD69JSwkcnNm"
+      "uri": "spotify:track:4GF6Pr5dB5bD69JSwkcnNm",
+      "releaseYear": 1931
     },
     {
       "title": "You Call It Madness (But I Call It Love)",
@@ -240,7 +245,8 @@
         "jazz",
         "swing"
       ],
-      "uri": "spotify:track:0XFf611FYEewIs5bJieCQb"
+      "uri": "spotify:track:0XFf611FYEewIs5bJieCQb",
+      "releaseYear": 1931
     },
     {
       "title": "Love for Sale",

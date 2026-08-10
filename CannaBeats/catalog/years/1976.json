@@ -11,7 +11,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:3bC0IKk62yB6TDaratb1s2"
+      "uri": "spotify:track:3bC0IKk62yB6TDaratb1s2",
+      "releaseYear": 1976
     },
     {
       "title": "Don't Go Breaking My Heart",
@@ -30,7 +31,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:1tMyqN7bNCokdg7jWgKPc8"
+      "uri": "spotify:track:1tMyqN7bNCokdg7jWgKPc8",
+      "releaseYear": 1976
     },
     {
       "title": "December, 1963 (Oh, What a Night)",
@@ -40,7 +42,8 @@
         "pop",
         "disco"
       ],
-      "uri": "spotify:track:1hQFF33xi8ruavZNyovtUN"
+      "uri": "spotify:track:1hQFF33xi8ruavZNyovtUN",
+      "releaseYear": 1975
     },
     {
       "title": "Play That Funky Music",
@@ -50,7 +53,8 @@
         "funk",
         "disco"
       ],
-      "uri": "spotify:track:5uuJruktM9fMdN9Va0DUMl"
+      "uri": "spotify:track:5uuJruktM9fMdN9Va0DUMl",
+      "releaseYear": 1976
     },
     {
       "title": "Kiss and Say Goodbye",
@@ -59,7 +63,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:0rHiGIRASJq8snJGFJMpnI"
+      "uri": "spotify:track:0rHiGIRASJq8snJGFJMpnI",
+      "releaseYear": 1976
     },
     {
       "title": "Love Machine",
@@ -69,7 +74,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:2j4k2Q2SGEijVhTv8pycv2"
+      "uri": "spotify:track:2j4k2Q2SGEijVhTv8pycv2",
+      "releaseYear": 1975
     },
     {
       "title": "50 Ways to Leave Your Lover",
@@ -79,7 +85,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:6Qb7gtV6Q4MnUjSbkFcopl"
+      "uri": "spotify:track:6Qb7gtV6Q4MnUjSbkFcopl",
+      "releaseYear": 1975
     },
     {
       "title": "Love Is Alive",
@@ -97,7 +104,8 @@
       "genres": [
         "disco"
       ],
-      "uri": "spotify:track:1hR3TNe1neCWRQatSVOFfX"
+      "uri": "spotify:track:1hR3TNe1neCWRQatSVOFfX",
+      "releaseYear": 1976
     },
     {
       "title": "Sara Smile",
@@ -107,7 +115,8 @@
         "pop",
         "soul"
       ],
-      "uri": "spotify:track:1qjrYozGqc7upUgfN776lZ"
+      "uri": "spotify:track:1qjrYozGqc7upUgfN776lZ",
+      "releaseYear": 1976
     },
     {
       "title": "Afternoon Delight",
@@ -116,7 +125,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:62hzQs9ygiEgudeWCUHcuJ"
+      "uri": "spotify:track:62hzQs9ygiEgudeWCUHcuJ",
+      "releaseYear": 1976
     },
     {
       "title": "I Write the Songs",
@@ -134,7 +144,8 @@
       "genres": [
         "disco"
       ],
-      "uri": "spotify:track:4Wr14AISsCuBGdkA6rids4"
+      "uri": "spotify:track:4Wr14AISsCuBGdkA6rids4",
+      "releaseYear": 1975
     },
     {
       "title": "Love Hangover",
@@ -144,7 +155,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:4UqPeeSyRt59KZmC0aA2Ni"
+      "uri": "spotify:track:4UqPeeSyRt59KZmC0aA2Ni",
+      "releaseYear": 1976
     },
     {
       "title": "Get Closer",
@@ -154,7 +166,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:5Eq0mobXSnyWu1dpE6lSdY"
+      "uri": "spotify:track:5Eq0mobXSnyWu1dpE6lSdY",
+      "releaseYear": 1976
     },
     {
       "title": "More, More, More",
@@ -163,7 +176,8 @@
       "genres": [
         "disco"
       ],
-      "uri": "spotify:track:05U89SHoWjq8RpWLbcwwaS"
+      "uri": "spotify:track:05U89SHoWjq8RpWLbcwwaS",
+      "releaseYear": 1976
     },
     {
       "title": "Bohemian Rhapsody",
@@ -172,7 +186,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:7tFiyTwD0nx5a1eklYtX2J"
+      "uri": "spotify:track:7tFiyTwD0nx5a1eklYtX2J",
+      "releaseYear": 1975
     },
     {
       "title": "Misty Blue",
@@ -192,7 +207,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:3FZB0xezeoc1ddx72eg7iF"
+      "uri": "spotify:track:3FZB0xezeoc1ddx72eg7iF",
+      "releaseYear": 1976
     },
     {
       "title": "I'd Really Love to See You Tonight",
@@ -201,7 +217,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:2r008pcfVYc0zgQvSRqUJE"
+      "uri": "spotify:track:2r008pcfVYc0zgQvSRqUJE",
+      "releaseYear": 1976
     },
     {
       "title": "You Sexy Thing",
@@ -211,7 +228,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:714hERk9U1W8FMYkoC83CO"
+      "uri": "spotify:track:714hERk9U1W8FMYkoC83CO",
+      "releaseYear": 1975
     },
     {
       "title": "Love Hurts",
@@ -229,7 +247,8 @@
       "genres": [
         "disco"
       ],
-      "uri": "spotify:track:6kkHnD5hJK75kHRRR2zUJG"
+      "uri": "spotify:track:6kkHnD5hJK75kHRRR2zUJG",
+      "releaseYear": 1976
     },
     {
       "title": "Take It to the Limit",
@@ -239,7 +258,8 @@
         "rock",
         "country"
       ],
-      "uri": "spotify:track:2cWHN0WK52RGAWHgaDamUA"
+      "uri": "spotify:track:2cWHN0WK52RGAWHgaDamUA",
+      "releaseYear": 1975
     },
     {
       "title": "(Shake, Shake, Shake) Shake Your Booty",
@@ -249,7 +269,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:3Is0Nnz59rzbNZE491URlY"
+      "uri": "spotify:track:3Is0Nnz59rzbNZE491URlY",
+      "releaseYear": 1976
     },
     {
       "title": "Sweet Love",
@@ -268,7 +289,8 @@
         "disco",
         "pop"
       ],
-      "uri": "spotify:track:00s8dO3RWrFkBqC9JIy6ag"
+      "uri": "spotify:track:00s8dO3RWrFkBqC9JIy6ag",
+      "releaseYear": 1976
     },
     {
       "title": "Theme from S.W.A.T.",
@@ -278,7 +300,8 @@
         "disco",
         "soundtrack"
       ],
-      "uri": "spotify:track:5x9xxVr7nJ9xMfDIW02Nv3"
+      "uri": "spotify:track:5x9xxVr7nJ9xMfDIW02Nv3",
+      "releaseYear": 1976
     },
     {
       "title": "Love Rollercoaster",
@@ -287,7 +310,8 @@
       "genres": [
         "funk"
       ],
-      "uri": "spotify:track:1hRDHWWealh2Pk3fnpIe75"
+      "uri": "spotify:track:1hRDHWWealh2Pk3fnpIe75",
+      "releaseYear": 1975
     }
   ]
 }

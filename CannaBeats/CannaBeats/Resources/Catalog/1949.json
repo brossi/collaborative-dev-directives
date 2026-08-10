@@ -31,7 +31,8 @@
         "pop",
         "country"
       ],
-      "uri": "spotify:track:5JfBJxARIfhyjXOaBwSt2t"
+      "uri": "spotify:track:5JfBJxARIfhyjXOaBwSt2t",
+      "releaseYear": 1949
     },
     {
       "title": "Some Enchanted Evening",
@@ -50,7 +51,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5Hh8DCpwYLGMc9Pe14J8GO"
+      "uri": "spotify:track:5Hh8DCpwYLGMc9Pe14J8GO",
+      "releaseYear": 1948
     },
     {
       "title": "Cruising Down the River",
@@ -69,7 +71,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4kLzeK6snErmNUofhzucrX"
+      "uri": "spotify:track:4kLzeK6snErmNUofhzucrX",
+      "releaseYear": 1947
     },
     {
       "title": "Powder Your Face with Sunshine",
@@ -78,7 +81,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1lsZeigPRtUHbz2G1eeD8H"
+      "uri": "spotify:track:1lsZeigPRtUHbz2G1eeD8H",
+      "releaseYear": 1948
     },
     {
       "title": "Again",
@@ -117,7 +121,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3WWASkrFBFTj6eKj7PH3Ji"
+      "uri": "spotify:track:3WWASkrFBFTj6eKj7PH3Ji",
+      "releaseYear": 1948
     },
     {
       "title": "Red Roses for a Blue Lady",
@@ -165,7 +170,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:28IBsttOK2aG9Cb4QtqhMr"
+      "uri": "spotify:track:28IBsttOK2aG9Cb4QtqhMr",
+      "releaseYear": 1949
     },
     {
       "title": "I've Got a Lovely Bunch of Coconuts",
@@ -243,7 +249,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4V4hfhAK4RKXVWkQz0CQO8"
+      "uri": "spotify:track:4V4hfhAK4RKXVWkQz0CQO8",
+      "releaseYear": 1949
     },
     {
       "title": "Maybe It's Because",
@@ -279,7 +286,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:5uk16q41do9sCLiiMkfJV3"
+      "uri": "spotify:track:5uk16q41do9sCLiiMkfJV3",
+      "releaseYear": 1949
     },
     {
       "title": "Bali Ha'i",

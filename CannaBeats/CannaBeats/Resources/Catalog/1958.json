@@ -21,7 +21,8 @@
         "pop",
         "country"
       ],
-      "uri": "spotify:track:7dblNGnRXEBrVJunazs2U5"
+      "uri": "spotify:track:7dblNGnRXEBrVJunazs2U5",
+      "releaseYear": 1958
     },
     {
       "title": "Don't",
@@ -31,7 +32,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:4HVSaFbEwvptCAzLlOr2UZ"
+      "uri": "spotify:track:4HVSaFbEwvptCAzLlOr2UZ",
+      "releaseYear": 1957
     },
     {
       "title": "Witch Doctor",
@@ -51,7 +53,8 @@
         "latin",
         "pop"
       ],
-      "uri": "spotify:track:2bwhOdCOLgQ8v6xStAqnju"
+      "uri": "spotify:track:2bwhOdCOLgQ8v6xStAqnju",
+      "releaseYear": 1958
     },
     {
       "title": "Sail Along, Silv'ry Moon",
@@ -70,7 +73,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7vuVvDFhHH3h7QyLMagBoB"
+      "uri": "spotify:track:7vuVvDFhHH3h7QyLMagBoB",
+      "releaseYear": 1957
     },
     {
       "title": "Tequila",
@@ -80,7 +84,8 @@
         "rock",
         "latin"
       ],
-      "uri": "spotify:track:5gJKsGij5oGt5H5RSFYXPa"
+      "uri": "spotify:track:5gJKsGij5oGt5H5RSFYXPa",
+      "releaseYear": 1958
     },
     {
       "title": "It's All in the Game",
@@ -90,7 +95,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2lmPUdIdzlFH64PWJrw6Zb"
+      "uri": "spotify:track:2lmPUdIdzlFH64PWJrw6Zb",
+      "releaseYear": 1951
     },
     {
       "title": "Return to Me",
@@ -100,7 +106,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6YAgmqaeo8Fm3pne8OJEBo"
+      "uri": "spotify:track:6YAgmqaeo8Fm3pne8OJEBo",
+      "releaseYear": 1958
     },
     {
       "title": "It's Only Make Believe",
@@ -110,7 +117,8 @@
         "country",
         "rock"
       ],
-      "uri": "spotify:track:1xVOttVNT27FBTD8iHjOfU"
+      "uri": "spotify:track:1xVOttVNT27FBTD8iHjOfU",
+      "releaseYear": 1958
     },
     {
       "title": "The Purple People Eater",
@@ -120,7 +128,8 @@
         "novelty",
         "pop"
       ],
-      "uri": "spotify:track:0WkZQPNC0c7yrsMX1arVAd"
+      "uri": "spotify:track:0WkZQPNC0c7yrsMX1arVAd",
+      "releaseYear": 1958
     },
     {
       "title": "Bird Dog",
@@ -130,7 +139,8 @@
         "rock",
         "country"
       ],
-      "uri": "spotify:track:2ZCkqAo0tzzCVOth7ityh5"
+      "uri": "spotify:track:2ZCkqAo0tzzCVOth7ityh5",
+      "releaseYear": 1958
     },
     {
       "title": "Get a Job",
@@ -140,7 +150,8 @@
         "doo-wop",
         "r&b"
       ],
-      "uri": "spotify:track:21NhrNOfIoakyWISXUMkFN"
+      "uri": "spotify:track:21NhrNOfIoakyWISXUMkFN",
+      "releaseYear": 1958
     },
     {
       "title": "Little Star",
@@ -150,7 +161,8 @@
         "doo-wop",
         "pop"
       ],
-      "uri": "spotify:track:3c7KT5CN8uYRaK3xThhdYt"
+      "uri": "spotify:track:3c7KT5CN8uYRaK3xThhdYt",
+      "releaseYear": 1958
     },
     {
       "title": "Twilight Time",
@@ -170,7 +182,8 @@
         "rock",
         "rockabilly"
       ],
-      "uri": "spotify:track:6hBij1Xr1s4zH9FbTKWK2w"
+      "uri": "spotify:track:6hBij1Xr1s4zH9FbTKWK2w",
+      "releaseYear": 1957
     },
     {
       "title": "He's Got the Whole World in His Hands",
@@ -200,7 +213,8 @@
         "rock",
         "doo-wop"
       ],
-      "uri": "spotify:track:4LcrHUkRmXG3c0YD5VYutn"
+      "uri": "spotify:track:4LcrHUkRmXG3c0YD5VYutn",
+      "releaseYear": 1957
     },
     {
       "title": "Yakety Yak",
@@ -210,7 +224,8 @@
         "r&b",
         "rock"
       ],
-      "uri": "spotify:track:7demHL0GXA6YmTNqw3Btz8"
+      "uri": "spotify:track:7demHL0GXA6YmTNqw3Btz8",
+      "releaseYear": 1958
     },
     {
       "title": "Wear My Ring Around Your Neck",
@@ -219,7 +234,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:5DqtkUm6i8NhXR04oGz9k5"
+      "uri": "spotify:track:5DqtkUm6i8NhXR04oGz9k5",
+      "releaseYear": 1958
     },
     {
       "title": "Rockin' Robin",
@@ -229,7 +245,8 @@
         "r&b",
         "rock"
       ],
-      "uri": "spotify:track:4FlYcJnfkeBpowEHJ72Bmt"
+      "uri": "spotify:track:4FlYcJnfkeBpowEHJ72Bmt",
+      "releaseYear": 1958
     },
     {
       "title": "Poor Little Fool",
@@ -239,7 +256,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:5ayybTSXNwcarDtxQKqvWX"
+      "uri": "spotify:track:5ayybTSXNwcarDtxQKqvWX",
+      "releaseYear": 1958
     },
     {
       "title": "A Wonderful Time Up There",
@@ -249,7 +267,8 @@
         "pop",
         "gospel"
       ],
-      "uri": "spotify:track:5wENlv6oLkYnA64rwsSXkC"
+      "uri": "spotify:track:5wENlv6oLkYnA64rwsSXkC",
+      "releaseYear": 1958
     },
     {
       "title": "Just a Dream",
@@ -259,7 +278,8 @@
         "rock",
         "r&b"
       ],
-      "uri": "spotify:track:5wXrG4NXZV0GgvGtqOJdwl"
+      "uri": "spotify:track:5wXrG4NXZV0GgvGtqOJdwl",
+      "releaseYear": 1958
     },
     {
       "title": "Sugartime",
@@ -268,7 +288,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7ngYkBdMiEjB01ctl4dn9W"
+      "uri": "spotify:track:7ngYkBdMiEjB01ctl4dn9W",
+      "releaseYear": 1958
     },
     {
       "title": "Tom Dooley",
@@ -277,7 +298,8 @@
       "genres": [
         "folk"
       ],
-      "uri": "spotify:track:2qLxtO0iaFGI9x19vU3bDI"
+      "uri": "spotify:track:2qLxtO0iaFGI9x19vU3bDI",
+      "releaseYear": 1958
     },
     {
       "title": "Sweet Little Sixteen",
@@ -286,7 +308,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:4GWHrdyVTC0AWwuRgoWzE7"
+      "uri": "spotify:track:4GWHrdyVTC0AWwuRgoWzE7",
+      "releaseYear": 1958
     },
     {
       "title": "Topsy II",

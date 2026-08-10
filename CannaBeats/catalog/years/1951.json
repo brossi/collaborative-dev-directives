@@ -21,7 +21,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:1hVEHu6SemMvlYAP5MWkDj"
+      "uri": "spotify:track:1hVEHu6SemMvlYAP5MWkDj",
+      "releaseYear": 1951
     },
     {
       "title": "How High the Moon",
@@ -41,7 +42,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:3GVyT9fBXuEkGs1STo2WHZ"
+      "uri": "spotify:track:3GVyT9fBXuEkGs1STo2WHZ",
+      "releaseYear": 1950
     },
     {
       "title": "Be My Love",
@@ -51,7 +53,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:78Ln13w0UXFF5ARRnxxRMF"
+      "uri": "spotify:track:78Ln13w0UXFF5ARRnxxRMF",
+      "releaseYear": 1951
     },
     {
       "title": "On Top of Old Smoky",
@@ -80,7 +83,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:1TB5ijzlCHRv1DtkIbucP2"
+      "uri": "spotify:track:1TB5ijzlCHRv1DtkIbucP2",
+      "releaseYear": 1950
     },
     {
       "title": "The Loveliest Night of the Year",
@@ -100,7 +104,8 @@
         "pop",
         "country"
       ],
-      "uri": "spotify:track:4W0sbtVR0pqOo2d7qAHhGr"
+      "uri": "spotify:track:4W0sbtVR0pqOo2d7qAHhGr",
+      "releaseYear": 1952
     },
     {
       "title": "Jezebel",
@@ -109,7 +114,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1YNs0Fsi0LAduAEswmqd6h"
+      "uri": "spotify:track:1YNs0Fsi0LAduAEswmqd6h",
+      "releaseYear": 1951
     },
     {
       "title": "I Get Ideas",
@@ -148,7 +154,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0URpgtSGmBb5RWXs6UdEwq"
+      "uri": "spotify:track:0URpgtSGmBb5RWXs6UdEwq",
+      "releaseYear": 1950
     },
     {
       "title": "(It's No) Sin",
@@ -158,7 +165,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4cyPBIYP1z47ZIdT7fgDxu"
+      "uri": "spotify:track:4cyPBIYP1z47ZIdT7fgDxu",
+      "releaseYear": 1951
     },
     {
       "title": "Sound Off",
@@ -197,7 +205,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5UKcLXMxnK07HqmnHCi1C7"
+      "uri": "spotify:track:5UKcLXMxnK07HqmnHCi1C7",
+      "releaseYear": 1951
     },
     {
       "title": "(It's No) Sin",
@@ -217,7 +226,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:6stLnIm84oaY2tKgWyxUr8"
+      "uri": "spotify:track:6stLnIm84oaY2tKgWyxUr8",
+      "releaseYear": 1950
     },
     {
       "title": "Rose, Rose, I Love You",
@@ -294,7 +304,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3yuntJ51mc7ue8txWXEfEG"
+      "uri": "spotify:track:3yuntJ51mc7ue8txWXEfEG",
+      "releaseYear": 1951
     }
   ]
 }

@@ -11,7 +11,8 @@
         "country",
         "novelty"
       ],
-      "uri": "spotify:track:0dwpdcQkeZqpuoAPYD49N3"
+      "uri": "spotify:track:0dwpdcQkeZqpuoAPYD49N3",
+      "releaseYear": 1959
     },
     {
       "title": "Mack the Knife",
@@ -32,7 +33,8 @@
         "r&b",
         "rock"
       ],
-      "uri": "spotify:track:7JI1MoBWRQAZFTL5FxrQla"
+      "uri": "spotify:track:7JI1MoBWRQAZFTL5FxrQla",
+      "releaseYear": 1959
     },
     {
       "title": "Venus",
@@ -42,7 +44,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:0DDkW8j34M5hvxj79uGmK7"
+      "uri": "spotify:track:0DDkW8j34M5hvxj79uGmK7",
+      "releaseYear": 1959
     },
     {
       "title": "Lonely Boy",
@@ -52,7 +55,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:4kh2S9hRpPvoF9JkwZcYGN"
+      "uri": "spotify:track:4kh2S9hRpPvoF9JkwZcYGN",
+      "releaseYear": 1959
     },
     {
       "title": "Dream Lover",
@@ -62,7 +66,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1KLpjQFgubHI3GkAICCNH3"
+      "uri": "spotify:track:1KLpjQFgubHI3GkAICCNH3",
+      "releaseYear": 1959
     },
     {
       "title": "The Three Bells",
@@ -72,7 +77,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:24SbmQo3XQkNLpSBYda4DA"
+      "uri": "spotify:track:24SbmQo3XQkNLpSBYda4DA",
+      "releaseYear": 1959
     },
     {
       "title": "Come Softly to Me",
@@ -82,7 +88,8 @@
         "pop",
         "doo-wop"
       ],
-      "uri": "spotify:track:603N4XGJUTbK760GLCvIIs"
+      "uri": "spotify:track:603N4XGJUTbK760GLCvIIs",
+      "releaseYear": 1959
     },
     {
       "title": "Kansas City",
@@ -103,7 +110,8 @@
         "pop",
         "doo-wop"
       ],
-      "uri": "spotify:track:6bnFjTW3EnMG4BwreDnSHK"
+      "uri": "spotify:track:6bnFjTW3EnMG4BwreDnSHK",
+      "releaseYear": 1959
     },
     {
       "title": "Sleep Walk",
@@ -142,7 +150,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0VE4ayVlGs5DBoqOdgJ0Zv"
+      "uri": "spotify:track:0VE4ayVlGs5DBoqOdgJ0Zv",
+      "releaseYear": 1958
     },
     {
       "title": "Pink Shoe Laces",
@@ -152,7 +161,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:2DifRe6kiKZjeB1IqFl2jJ"
+      "uri": "spotify:track:2DifRe6kiKZjeB1IqFl2jJ",
+      "releaseYear": 1959
     },
     {
       "title": "Smoke Gets in Your Eyes",
@@ -173,7 +183,8 @@
         "rock",
         "novelty"
       ],
-      "uri": "spotify:track:6Q0aBakbTsjQO6iGdxmXlx"
+      "uri": "spotify:track:6Q0aBakbTsjQO6iGdxmXlx",
+      "releaseYear": 1958
     },
     {
       "title": "Quiet Village",
@@ -183,7 +194,8 @@
         "pop",
         "jazz"
       ],
-      "uri": "spotify:track:1hGabzEVfIqz9yOBtaAqAN"
+      "uri": "spotify:track:1hGabzEVfIqz9yOBtaAqAN",
+      "releaseYear": 1958
     },
     {
       "title": "My Heart Is an Open Book",
@@ -193,7 +205,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1xa6QJA0OiUJs2ybiyMPA0"
+      "uri": "spotify:track:1xa6QJA0OiUJs2ybiyMPA0",
+      "releaseYear": 1958
     },
     {
       "title": "('Til) I Kissed You",
@@ -213,7 +226,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:74mXvUVAyMndH3e04zE141"
+      "uri": "spotify:track:74mXvUVAyMndH3e04zE141",
+      "releaseYear": 1959
     },
     {
       "title": "The Happy Organ",
@@ -223,7 +237,8 @@
         "rock",
         "r&b"
       ],
-      "uri": "spotify:track:4HCfvYhhYPmfu0JMHamXeL"
+      "uri": "spotify:track:4HCfvYhhYPmfu0JMHamXeL",
+      "releaseYear": 1959
     },
     {
       "title": "I'm Gonna Get Married",
@@ -233,7 +248,8 @@
         "r&b",
         "rock"
       ],
-      "uri": "spotify:track:1jKcwPfDloLOMxC1wMV0ux"
+      "uri": "spotify:track:1jKcwPfDloLOMxC1wMV0ux",
+      "releaseYear": 1959
     },
     {
       "title": "Sorry (I Ran All the Way Home)",
@@ -243,7 +259,8 @@
         "doo-wop",
         "rock"
       ],
-      "uri": "spotify:track:6LHCwuY2YSQSS4qb3gooVg"
+      "uri": "spotify:track:6LHCwuY2YSQSS4qb3gooVg",
+      "releaseYear": 1959
     },
     {
       "title": "A Teenager in Love",
@@ -253,7 +270,8 @@
         "doo-wop",
         "rock"
       ],
-      "uri": "spotify:track:0QGwOFQChzflLAmPq5NwKo"
+      "uri": "spotify:track:0QGwOFQChzflLAmPq5NwKo",
+      "releaseYear": 1959
     },
     {
       "title": "16 Candles",
@@ -263,7 +281,8 @@
         "doo-wop",
         "pop"
       ],
-      "uri": "spotify:track:4FgGZFdLekTIjocfAu9Mxd"
+      "uri": "spotify:track:4FgGZFdLekTIjocfAu9Mxd",
+      "releaseYear": 1958
     },
     {
       "title": "It's Just a Matter of Time",
@@ -283,7 +302,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:5Y1GkapUCSqXvoAujohJL2"
+      "uri": "spotify:track:5Y1GkapUCSqXvoAujohJL2",
+      "releaseYear": 1959
     },
     {
       "title": "There Goes My Baby",
@@ -294,7 +314,8 @@
         "soul",
         "doo-wop"
       ],
-      "uri": "spotify:track:5y2m5EePLwcTAUa3iXxztB"
+      "uri": "spotify:track:5y2m5EePLwcTAUa3iXxztB",
+      "releaseYear": 1959
     },
     {
       "title": "A Big Hunk o' Love",
@@ -303,7 +324,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6PUsG2iMvCjnPFLjydO1RR"
+      "uri": "spotify:track:6PUsG2iMvCjnPFLjydO1RR",
+      "releaseYear": 1959
     }
   ]
 }

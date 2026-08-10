@@ -31,7 +31,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:18wOScp6kmJR7JEi0tO29j"
+      "uri": "spotify:track:18wOScp6kmJR7JEi0tO29j",
+      "releaseYear": 1953
     },
     {
       "title": "I'm Walking Behind You",
@@ -51,7 +52,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:7fvf369TehoRNdWWUfPSqQ"
+      "uri": "spotify:track:7fvf369TehoRNdWWUfPSqQ",
+      "releaseYear": 1953
     },
     {
       "title": "Till I Waltz Again with You",
@@ -60,7 +62,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:27kRi82gk6ONGusRKrCjlv"
+      "uri": "spotify:track:27kRi82gk6ONGusRKrCjlv",
+      "releaseYear": 1952
     },
     {
       "title": "April in Portugal",
@@ -130,7 +133,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:2Gd007dAbihobxsTG9m7cZ"
+      "uri": "spotify:track:2Gd007dAbihobxsTG9m7cZ",
+      "releaseYear": 1952
     },
     {
       "title": "Ruby",
@@ -188,7 +192,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4BH8EuPAxeFAh1rSWtnGdD"
+      "uri": "spotify:track:4BH8EuPAxeFAh1rSWtnGdD",
+      "releaseYear": 1953
     },
     {
       "title": "Anna (El Negro Zumbon)",
@@ -209,7 +214,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:2JIfFyJO0AQzmm83lzdrNg"
+      "uri": "spotify:track:2JIfFyJO0AQzmm83lzdrNg",
+      "releaseYear": 1953
     },
     {
       "title": "Dragnet",
@@ -229,7 +235,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:1THl7yjezM9SW8x2taVS5w"
+      "uri": "spotify:track:1THl7yjezM9SW8x2taVS5w",
+      "releaseYear": 1953
     },
     {
       "title": "Crying in the Chapel",
@@ -249,7 +256,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4sj5oB47NIHRsAhzQHU3ox"
+      "uri": "spotify:track:4sj5oB47NIHRsAhzQHU3ox",
+      "releaseYear": 1952
     },
     {
       "title": "Your Cheatin' Heart",

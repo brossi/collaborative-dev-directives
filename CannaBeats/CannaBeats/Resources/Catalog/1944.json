@@ -11,7 +11,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:45xoS1fezdSNJxxF29nKkl"
+      "uri": "spotify:track:45xoS1fezdSNJxxF29nKkl",
+      "releaseYear": 1944
     },
     {
       "title": "I'll Be Seeing You",
@@ -80,7 +81,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4c3KRQYsfTERL0o9nbvmKG"
+      "uri": "spotify:track:4c3KRQYsfTERL0o9nbvmKG",
+      "releaseYear": 1944
     },
     {
       "title": "You Always Hurt the One You Love",
@@ -90,7 +92,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:42og107RMzQPsQUIJBSUbD"
+      "uri": "spotify:track:42og107RMzQPsQUIJBSUbD",
+      "releaseYear": 1944
     },
     {
       "title": "Don't Fence Me In",
@@ -100,7 +103,8 @@
         "pop",
         "country"
       ],
-      "uri": "spotify:track:1Bis647TLxkQ6T2hhIFyC5"
+      "uri": "spotify:track:1Bis647TLxkQ6T2hhIFyC5",
+      "releaseYear": 1934
     },
     {
       "title": "I'm Making Believe",
@@ -118,7 +122,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:58IBN56vQec6cHcAhFvz1d"
+      "uri": "spotify:track:58IBN56vQec6cHcAhFvz1d",
+      "releaseYear": 1944
     },
     {
       "title": "Shoo-Shoo Baby",
@@ -177,7 +182,8 @@
         "pop",
         "latin"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1944
     },
     {
       "title": "Time Waits for No One",
@@ -216,7 +222,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:0NeSfkU8LFzgd3ICfSektq"
+      "uri": "spotify:track:0NeSfkU8LFzgd3ICfSektq",
+      "releaseYear": 1943
     },
     {
       "title": "Together",
@@ -245,7 +252,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:35STQd1LwEyPXi2ZksuHlk"
+      "uri": "spotify:track:35STQd1LwEyPXi2ZksuHlk",
+      "releaseYear": 1944
     },
     {
       "title": "I Couldn't Sleep a Wink Last Night",
@@ -265,7 +273,8 @@
         "soundtrack",
         "pop"
       ],
-      "uri": "spotify:track:4NTO7U8kC9M9LWHCyQYF5U"
+      "uri": "spotify:track:4NTO7U8kC9M9LWHCyQYF5U",
+      "releaseYear": 1944
     },
     {
       "title": "Milkman, Keep Those Bottles Quiet",

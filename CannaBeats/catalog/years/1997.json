@@ -10,7 +10,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3DUcaEvPO72PijivCjtZcU"
+      "uri": "spotify:track:3DUcaEvPO72PijivCjtZcU",
+      "releaseYear": 1997
     },
     {
       "title": "You Were Meant for Me",
@@ -21,7 +22,8 @@
         "folk",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:14sVnTYvfzo9sQM4RkQTaq"
+      "uri": "spotify:track:14sVnTYvfzo9sQM4RkQTaq",
+      "releaseYear": 1996
     },
     {
       "title": "I'll Be Missing You",
@@ -41,7 +43,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:2o77J0lHibFJgnTGhiwTke"
+      "uri": "spotify:track:2o77J0lHibFJgnTGhiwTke",
+      "releaseYear": 1996
     },
     {
       "title": "Can't Nobody Hold Me Down",
@@ -61,7 +64,8 @@
         "gospel",
         "soundtrack"
       ],
-      "uri": "spotify:track:2RzJwBCXsS1VnjDm2jKKAa"
+      "uri": "spotify:track:2RzJwBCXsS1VnjDm2jKKAa",
+      "releaseYear": 1996
     },
     {
       "title": "Don't Let Go (Love)",
@@ -80,7 +84,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:3jDdpx9PMlfMBS5tOBHFm9"
+      "uri": "spotify:track:3jDdpx9PMlfMBS5tOBHFm9",
+      "releaseYear": 1996
     },
     {
       "title": "Wannabe",
@@ -90,7 +95,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:1Je1IMUlBXcx1Fz0WE7oPT"
+      "uri": "spotify:track:1Je1IMUlBXcx1Fz0WE7oPT",
+      "releaseYear": 1996
     },
     {
       "title": "Quit Playing Games (With My Heart)",
@@ -99,7 +105,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1nRwyxNsqCLeA17qR8Nfxx"
+      "uri": "spotify:track:1nRwyxNsqCLeA17qR8Nfxx",
+      "releaseYear": 1996
     },
     {
       "title": "MMMBop",
@@ -108,7 +115,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0lnxrQAd9ZxbhBBe7d8FO8"
+      "uri": "spotify:track:0lnxrQAd9ZxbhBBe7d8FO8",
+      "releaseYear": 1996
     },
     {
       "title": "For You I Will",
@@ -118,7 +126,8 @@
         "r&b",
         "soundtrack"
       ],
-      "uri": "spotify:track:2b29qJRy4asbQNFjPO96XC"
+      "uri": "spotify:track:2b29qJRy4asbQNFjPO96XC",
+      "releaseYear": 1997
     },
     {
       "title": "You Make Me Wanna...",
@@ -127,7 +136,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:47TqCCnEliDp8NRDyIQoQq"
+      "uri": "spotify:track:47TqCCnEliDp8NRDyIQoQq",
+      "releaseYear": 1997
     },
     {
       "title": "Bitch",
@@ -156,7 +166,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:42et6fnHCw1HIPSrdPprMl"
+      "uri": "spotify:track:42et6fnHCw1HIPSrdPprMl",
+      "releaseYear": 1997
     },
     {
       "title": "Barely Breathing",
@@ -167,7 +178,8 @@
         "rock",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:75HZ6Wxnw8xbgz6HU9kKCS"
+      "uri": "spotify:track:75HZ6Wxnw8xbgz6HU9kKCS",
+      "releaseYear": 1996
     },
     {
       "title": "Hard to Say I'm Sorry",
@@ -186,7 +198,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:4INDiWSKvqSKDEu7mh8HFz"
+      "uri": "spotify:track:4INDiWSKvqSKDEu7mh8HFz",
+      "releaseYear": 1997
     },
     {
       "title": "The Freshmen",
@@ -196,7 +209,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:21jEuMn2lf37715rwjow2M"
+      "uri": "spotify:track:21jEuMn2lf37715rwjow2M",
+      "releaseYear": 1997
     },
     {
       "title": "I Want You",
@@ -251,7 +265,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:0IBgCsG8dRnUtveiIaoFHF"
+      "uri": "spotify:track:0IBgCsG8dRnUtveiIaoFHF",
+      "releaseYear": 1996
     },
     {
       "title": "Say You'll Be There",
@@ -260,7 +275,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1yTQ39my3MoNROlFw3RDNy"
+      "uri": "spotify:track:1yTQ39my3MoNROlFw3RDNy",
+      "releaseYear": 1996
     },
     {
       "title": "Do You Know (What It Takes)",
@@ -270,7 +286,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:0idCpkJ2pspfAILbanmERu"
+      "uri": "spotify:track:0idCpkJ2pspfAILbanmERu",
+      "releaseYear": 1996
     },
     {
       "title": "4 Seasons of Loneliness",
@@ -279,7 +296,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:027tq4cWr0kRxLTfdxvM1L"
+      "uri": "spotify:track:027tq4cWr0kRxLTfdxvM1L",
+      "releaseYear": 1997
     },
     {
       "title": "G.H.E.T.T.O.U.T.",
@@ -288,7 +306,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:13XNjh0UY5LBsICcoHUdxl"
+      "uri": "spotify:track:13XNjh0UY5LBsICcoHUdxl",
+      "releaseYear": 1997
     }
   ]
 }

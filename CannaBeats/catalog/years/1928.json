@@ -71,7 +71,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5KGWu783PBF93nFPjWcxxp"
+      "uri": "spotify:track:5KGWu783PBF93nFPjWcxxp",
+      "releaseYear": 1927
     },
     {
       "title": "Ol' Man River",
@@ -171,7 +172,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5MdmMeRvXo4GTTupc9Ke9D"
+      "uri": "spotify:track:5MdmMeRvXo4GTTupc9Ke9D",
+      "releaseYear": 1928
     },
     {
       "title": "Sweethearts on Parade",
@@ -201,7 +203,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:2Tqd4sd35HuZZbOKFZC6j5"
+      "uri": "spotify:track:2Tqd4sd35HuZZbOKFZC6j5",
+      "releaseYear": 1928
     },
     {
       "title": "Blue Yodel (T for Texas)",

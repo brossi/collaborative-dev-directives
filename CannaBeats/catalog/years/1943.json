@@ -11,7 +11,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6Ifu8ZCwvWoncgcdBD7WoI"
+      "uri": "spotify:track:6Ifu8ZCwvWoncgcdBD7WoI",
+      "releaseYear": 1930
     },
     {
       "title": "You'll Never Know",
@@ -79,7 +80,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:0Cosey579p65NbyuIkNySa"
+      "uri": "spotify:track:0Cosey579p65NbyuIkNySa",
+      "releaseYear": 1943
     },
     {
       "title": "That Old Black Magic",
@@ -119,7 +121,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:2GeGdgSPnGtL2XcfOvK5uk"
+      "uri": "spotify:track:2GeGdgSPnGtL2XcfOvK5uk",
+      "releaseYear": 1942
     },
     {
       "title": "Brazil",

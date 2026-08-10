@@ -11,7 +11,11 @@ export function normalizePlayerControl(value: unknown, legacyInputMode?: unknown
 export type Song = {
   title: string;
   artist: string;
+  /** Chart year — when the song was a hit. The default answer a card asks for. */
   year: number;
+  /** Publication year — when the recording first entered circulation. Absent
+   *  where no source has it. Differs from `year` by decades for revivals. */
+  releaseYear?: number;
   uri?: string;
 };
 

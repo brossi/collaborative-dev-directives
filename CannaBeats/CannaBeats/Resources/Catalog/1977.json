@@ -21,7 +21,8 @@
         "pop",
         "disco"
       ],
-      "uri": "spotify:track:5EdlwzcgIAYs2HGvOnczPN"
+      "uri": "spotify:track:5EdlwzcgIAYs2HGvOnczPN",
+      "releaseYear": 1977
     },
     {
       "title": "Best of My Love",
@@ -31,7 +32,8 @@
         "disco",
         "soul"
       ],
-      "uri": "spotify:track:2M2WJ7gBlcKNxdhyfPp9zY"
+      "uri": "spotify:track:2M2WJ7gBlcKNxdhyfPp9zY",
+      "releaseYear": 1977
     },
     {
       "title": "Evergreen (Love Theme from A Star Is Born)",
@@ -51,7 +53,8 @@
         "pop",
         "soul"
       ],
-      "uri": "spotify:track:1qOwgAjki5VN0G2kXEUCLG"
+      "uri": "spotify:track:1qOwgAjki5VN0G2kXEUCLG",
+      "releaseYear": 1977
     },
     {
       "title": "I Like Dreamin'",
@@ -60,7 +63,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4wlRO5dyyO7jYrzs2PltV8"
+      "uri": "spotify:track:4wlRO5dyyO7jYrzs2PltV8",
+      "releaseYear": 1976
     },
     {
       "title": "Don't Leave Me This Way",
@@ -89,7 +93,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:21jOt25HxvWACZoPQkOzJ7"
+      "uri": "spotify:track:21jOt25HxvWACZoPQkOzJ7",
+      "releaseYear": 1977
     },
     {
       "title": "Torn Between Two Lovers",
@@ -99,7 +104,8 @@
         "pop",
         "folk"
       ],
-      "uri": "spotify:track:64PqvBqVyWABznKG6DXU6p"
+      "uri": "spotify:track:64PqvBqVyWABznKG6DXU6p",
+      "releaseYear": 1976
     },
     {
       "title": "I'm Your Boogie Man",
@@ -109,7 +115,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:6mjlbRIgMTf2nqY0kq1rOJ"
+      "uri": "spotify:track:6mjlbRIgMTf2nqY0kq1rOJ",
+      "releaseYear": 1976
     },
     {
       "title": "Dancing Queen",
@@ -129,7 +136,8 @@
         "disco",
         "pop"
       ],
-      "uri": "spotify:track:6gTrbqZnyljwXdYQTyBkSx"
+      "uri": "spotify:track:6gTrbqZnyljwXdYQTyBkSx",
+      "releaseYear": 1976
     },
     {
       "title": "Margaritaville",
@@ -139,7 +147,8 @@
         "rock",
         "country"
       ],
-      "uri": "spotify:track:4EEjMyQub6tgFVshlM9j1M"
+      "uri": "spotify:track:4EEjMyQub6tgFVshlM9j1M",
+      "releaseYear": 1977
     },
     {
       "title": "Telephone Line",
@@ -148,7 +157,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:3SPcBPzvbmWLl8NU5efx4W"
+      "uri": "spotify:track:3SPcBPzvbmWLl8NU5efx4W",
+      "releaseYear": 1977
     },
     {
       "title": "Whatcha Gonna Do?",
@@ -158,7 +168,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:6SMR0XI8a1D6gEpMTIju2y"
+      "uri": "spotify:track:6SMR0XI8a1D6gEpMTIju2y",
+      "releaseYear": 1977
     },
     {
       "title": "Do You Wanna Make Love",
@@ -167,7 +178,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5Ccx6DcIvnlQicMujqtqBf"
+      "uri": "spotify:track:5Ccx6DcIvnlQicMujqtqBf",
+      "releaseYear": 1977
     },
     {
       "title": "Sir Duke",
@@ -177,7 +189,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:4pNiE4LCVV74vfIBaUHm1b"
+      "uri": "spotify:track:4pNiE4LCVV74vfIBaUHm1b",
+      "releaseYear": 1977
     },
     {
       "title": "Hotel California",
@@ -186,7 +199,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:40riOy7x9W7GXjyGp4pjAv"
+      "uri": "spotify:track:40riOy7x9W7GXjyGp4pjAv",
+      "releaseYear": 1976
     },
     {
       "title": "Got to Give It Up",
@@ -196,7 +210,8 @@
         "funk",
         "disco"
       ],
-      "uri": "spotify:track:4JmZyfkzXWN7pHJsJpN6XP"
+      "uri": "spotify:track:4JmZyfkzXWN7pHJsJpN6XP",
+      "releaseYear": 1977
     },
     {
       "title": "Gonna Fly Now (Theme from Rocky)",
@@ -226,7 +241,8 @@
         "pop",
         "soul"
       ],
-      "uri": "spotify:track:0qRR9d89hIS0MHRkQ0ejxX"
+      "uri": "spotify:track:0qRR9d89hIS0MHRkQ0ejxX",
+      "releaseYear": 1977
     },
     {
       "title": "When I Need You",
@@ -235,7 +251,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:2TcwEYyydQuEMJwdmSgVLD"
+      "uri": "spotify:track:2TcwEYyydQuEMJwdmSgVLD",
+      "releaseYear": 1977
     },
     {
       "title": "Hot Line",
@@ -245,7 +262,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:6SrvyfmAxkLt9CULhf9a49"
+      "uri": "spotify:track:6SrvyfmAxkLt9CULhf9a49",
+      "releaseYear": 1976
     },
     {
       "title": "Car Wash",
@@ -255,7 +273,8 @@
         "disco",
         "funk"
       ],
-      "uri": "spotify:track:07RgAeKIlahtqeCw25SkTu"
+      "uri": "spotify:track:07RgAeKIlahtqeCw25SkTu",
+      "releaseYear": 1976
     },
     {
       "title": "You Don't Have to Be a Star (To Be in My Show)",
@@ -274,7 +293,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:0BTYL86ryKRHvAndNeoiuP"
+      "uri": "spotify:track:0BTYL86ryKRHvAndNeoiuP",
+      "releaseYear": 1976
     },
     {
       "title": "Don't Give Up on Us",
@@ -283,7 +303,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:23IWhAK0cYRwnBT5EE8i3u"
+      "uri": "spotify:track:23IWhAK0cYRwnBT5EE8i3u",
+      "releaseYear": 1977
     },
     {
       "title": "On and On",
@@ -293,7 +314,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:0Vth3l4XAo8hNYmxjzhr2y"
+      "uri": "spotify:track:0Vth3l4XAo8hNYmxjzhr2y",
+      "releaseYear": 1977
     }
   ]
 }

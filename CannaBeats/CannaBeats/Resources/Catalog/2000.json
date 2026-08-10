@@ -40,7 +40,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:1m2xMsxbtxv21Brome189p"
+      "uri": "spotify:track:1m2xMsxbtxv21Brome189p",
+      "releaseYear": 2000
     },
     {
       "title": "Everything You Want",
@@ -50,7 +51,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:4cKGldbhGJniI8BrB3K6tb"
+      "uri": "spotify:track:4cKGldbhGJniI8BrB3K6tb",
+      "releaseYear": 1999
     },
     {
       "title": "Say My Name",
@@ -60,7 +62,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:7H6ev70Weq6DdpZyyTmUXk"
+      "uri": "spotify:track:7H6ev70Weq6DdpZyyTmUXk",
+      "releaseYear": 1999
     },
     {
       "title": "I Knew I Loved You",
@@ -69,7 +72,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6nozDLxeL0TE4MS9GqYU1v"
+      "uri": "spotify:track:6nozDLxeL0TE4MS9GqYU1v",
+      "releaseYear": 1999
     },
     {
       "title": "Amazed",
@@ -78,7 +82,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:6iNcyWk5iUEY7P9zeTc5hm"
+      "uri": "spotify:track:6iNcyWk5iUEY7P9zeTc5hm",
+      "releaseYear": 1999
     },
     {
       "title": "Bent",
@@ -88,7 +93,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:6fA7akEuTUL3dW1V0GELaZ"
+      "uri": "spotify:track:6fA7akEuTUL3dW1V0GELaZ",
+      "releaseYear": 2000
     },
     {
       "title": "He Wasn't Man Enough",
@@ -97,7 +103,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:7f1Dmr246cJ9uQYdbplTbh"
+      "uri": "spotify:track:7f1Dmr246cJ9uQYdbplTbh",
+      "releaseYear": 2000
     },
     {
       "title": "Higher",
@@ -106,7 +113,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:1ZozJfi8u9cO2Ob8KwiwNT"
+      "uri": "spotify:track:1ZozJfi8u9cO2Ob8KwiwNT",
+      "releaseYear": 1999
     },
     {
       "title": "Try Again",
@@ -125,7 +133,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:4pmc2AxSEq6g7hPVlJCPyP"
+      "uri": "spotify:track:4pmc2AxSEq6g7hPVlJCPyP",
+      "releaseYear": 2000
     },
     {
       "title": "Thong Song",
@@ -135,7 +144,8 @@
         "r&b",
         "hip-hop"
       ],
-      "uri": "spotify:track:5Mmk2ii6laakqfeCT7OnVD"
+      "uri": "spotify:track:5Mmk2ii6laakqfeCT7OnVD",
+      "releaseYear": 2000
     },
     {
       "title": "Kryptonite",
@@ -144,7 +154,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6ZOBP3NvffbU4SZcrnt1k6"
+      "uri": "spotify:track:6ZOBP3NvffbU4SZcrnt1k6",
+      "releaseYear": 2000
     },
     {
       "title": "There You Go",
@@ -154,7 +165,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:6dJ2mSRaKE9ctYw9qWNGWQ"
+      "uri": "spotify:track:6dJ2mSRaKE9ctYw9qWNGWQ",
+      "releaseYear": 1999
     },
     {
       "title": "Music",
@@ -164,7 +176,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:2BcOZ4vOeu2qZowIHrvTYy"
+      "uri": "spotify:track:2BcOZ4vOeu2qZowIHrvTYy",
+      "releaseYear": 2000
     },
     {
       "title": "Doesn't Really Matter",
@@ -174,7 +187,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:0ekdT3jOhn3LinWtqHhmsw"
+      "uri": "spotify:track:0ekdT3jOhn3LinWtqHhmsw",
+      "releaseYear": 2000
     },
     {
       "title": "What a Girl Wants",
@@ -193,7 +207,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:6mwA6YiKDjAUG8kWvRRUPh"
+      "uri": "spotify:track:6mwA6YiKDjAUG8kWvRRUPh",
+      "releaseYear": 1999
     },
     {
       "title": "Bye Bye Bye",
@@ -202,7 +217,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:62bOmKYxYg7dhrC6gH9vFn"
+      "uri": "spotify:track:62bOmKYxYg7dhrC6gH9vFn",
+      "releaseYear": 2000
     },
     {
       "title": "You Sang to Me",
@@ -212,7 +228,8 @@
         "pop",
         "latin"
       ],
-      "uri": "spotify:track:2dwhMQsFeHr2S787WxqAqW"
+      "uri": "spotify:track:2dwhMQsFeHr2S787WxqAqW",
+      "releaseYear": 2000
     },
     {
       "title": "I Need to Know",
@@ -231,7 +248,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:0AcLrSfAEBQcUnHOTm5pXg"
+      "uri": "spotify:track:0AcLrSfAEBQcUnHOTm5pXg",
+      "releaseYear": 1999
     },
     {
       "title": "Incomplete",
@@ -240,7 +258,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:3w8Mw9GHYepoTWOSdiyosj"
+      "uri": "spotify:track:3w8Mw9GHYepoTWOSdiyosj",
+      "releaseYear": 2000
     },
     {
       "title": "I Try",
@@ -250,7 +269,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:5TAf4lnZCZTLlZHNZMLFLi"
+      "uri": "spotify:track:5TAf4lnZCZTLlZHNZMLFLi",
+      "releaseYear": 1999
     },
     {
       "title": "It's Gonna Be Me",
@@ -259,7 +279,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:2AW37v0bDyuOzGP3XnmFuA"
+      "uri": "spotify:track:2AW37v0bDyuOzGP3XnmFuA",
+      "releaseYear": 2000
     },
     {
       "title": "That's the Way It Is",
@@ -268,7 +289,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5s4catxeZsaWFnOrvrXZHf"
+      "uri": "spotify:track:5s4catxeZsaWFnOrvrXZHf",
+      "releaseYear": 1999
     },
     {
       "title": "Country Grammar",
@@ -277,7 +299,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:2Lg4kvhOrPhpGEZmSe7VAN"
+      "uri": "spotify:track:2Lg4kvhOrPhpGEZmSe7VAN",
+      "releaseYear": 2000
     },
     {
       "title": "Bring It All to Me",

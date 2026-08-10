@@ -30,7 +30,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:4G8gkOterJn0Ywt6uhqbhp"
+      "uri": "spotify:track:4G8gkOterJn0Ywt6uhqbhp",
+      "releaseYear": 2012
     },
     {
       "title": "Harlem Shake",
@@ -40,7 +41,8 @@
         "electronic",
         "dance"
       ],
-      "uri": "spotify:track:01XFgRZfZI7oBagNf1Loml"
+      "uri": "spotify:track:01XFgRZfZI7oBagNf1Loml",
+      "releaseYear": 2012
     },
     {
       "title": "Can't Hold Us",
@@ -59,7 +61,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:4rHZZAmHpZrA3iH5zx8frV"
+      "uri": "spotify:track:4rHZZAmHpZrA3iH5zx8frV",
+      "releaseYear": 2013
     },
     {
       "title": "Locked Out of Heaven",
@@ -119,7 +122,8 @@
         "folk",
         "indie"
       ],
-      "uri": "spotify:track:0W4Kpfp1w2xkY3PrV714B7"
+      "uri": "spotify:track:0W4Kpfp1w2xkY3PrV714B7",
+      "releaseYear": 2012
     },
     {
       "title": "Stay",
@@ -157,7 +161,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:5DI9jxTHrEiFAhStG7VA8E"
+      "uri": "spotify:track:5DI9jxTHrEiFAhStG7VA8E",
+      "releaseYear": 2013
     },
     {
       "title": "Roar",
@@ -166,7 +171,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6F5c58TMEs1byxUstkzVeM"
+      "uri": "spotify:track:6F5c58TMEs1byxUstkzVeM",
+      "releaseYear": 2013
     },
     {
       "title": "Diamonds",
@@ -176,7 +182,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:1z9kQ14XBSN0r2v6fx4IdG"
+      "uri": "spotify:track:1z9kQ14XBSN0r2v6fx4IdG",
+      "releaseYear": 2012
     },
     {
       "title": "Scream & Shout",
@@ -205,7 +212,8 @@
         "alternative",
         "rock"
       ],
-      "uri": "spotify:track:5xhQChGGhKLWqBqX4XhtYE"
+      "uri": "spotify:track:5xhQChGGhKLWqBqX4XhtYE",
+      "releaseYear": 2011
     },
     {
       "title": "My Songs Know What You Did in the Dark (Light Em Up)",
@@ -224,7 +232,8 @@
         "electronic",
         "dance"
       ],
-      "uri": "spotify:track:4h8VwCb1MTGoLKueQ1WgbD"
+      "uri": "spotify:track:4h8VwCb1MTGoLKueQ1WgbD",
+      "releaseYear": 2013
     },
     {
       "title": "Feel This Moment",
@@ -244,7 +253,8 @@
         "pop",
         "indie"
       ],
-      "uri": "spotify:track:2dLLR6qlu5UJ5gk0dKz0h3"
+      "uri": "spotify:track:2dLLR6qlu5UJ5gk0dKz0h3",
+      "releaseYear": 2013
     },
     {
       "title": "Come & Get It",
@@ -253,7 +263,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6LoQHIo74tOzQ8EsLEkhgF"
+      "uri": "spotify:track:6LoQHIo74tOzQ8EsLEkhgF",
+      "releaseYear": 2013
     },
     {
       "title": "We Can't Stop",
@@ -262,7 +273,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:2y4lAQpi5VTNLu2ldeTdUH"
+      "uri": "spotify:track:2y4lAQpi5VTNLu2ldeTdUH",
+      "releaseYear": 2013
     },
     {
       "title": "Holy Grail",

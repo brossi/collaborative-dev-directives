@@ -30,7 +30,8 @@
         "folk",
         "rock"
       ],
-      "uri": "spotify:track:1fDsrQ23eTAVFElUMaf38X"
+      "uri": "spotify:track:1fDsrQ23eTAVFElUMaf38X",
+      "releaseYear": 1971
     },
     {
       "title": "Without You",
@@ -50,7 +51,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5X3XrHlCFVGqNKpGp85xVC"
+      "uri": "spotify:track:5X3XrHlCFVGqNKpGp85xVC",
+      "releaseYear": 1972
     },
     {
       "title": "I Gotcha",
@@ -60,7 +62,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:3t5caUWBhKDgy1ypsxRcg4"
+      "uri": "spotify:track:3t5caUWBhKDgy1ypsxRcg4",
+      "releaseYear": 1972
     },
     {
       "title": "Lean on Me",
@@ -79,7 +82,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:4z51Gf7Ppt9Lmu5zmnUIz9"
+      "uri": "spotify:track:4z51Gf7Ppt9Lmu5zmnUIz9",
+      "releaseYear": 1972
     },
     {
       "title": "Brand New Key",
@@ -89,7 +93,8 @@
         "folk",
         "pop"
       ],
-      "uri": "spotify:track:3tm6LVXZJg0lG4hQm5ytrT"
+      "uri": "spotify:track:3tm6LVXZJg0lG4hQm5ytrT",
+      "releaseYear": 1971
     },
     {
       "title": "Daddy Don't You Walk So Fast",
@@ -98,7 +103,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7buqgbdJkbLhAQIKqyYbbz"
+      "uri": "spotify:track:7buqgbdJkbLhAQIKqyYbbz",
+      "releaseYear": 1972
     },
     {
       "title": "Let's Stay Together",
@@ -107,7 +113,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:63xdwScd1Ai1GigAwQxE8y"
+      "uri": "spotify:track:63xdwScd1Ai1GigAwQxE8y",
+      "releaseYear": 1971
     },
     {
       "title": "Brandy (You're a Fine Girl)",
@@ -117,7 +124,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:2BY7ALEWdloFHgQZG6VMLA"
+      "uri": "spotify:track:2BY7ALEWdloFHgQZG6VMLA",
+      "releaseYear": 1972
     },
     {
       "title": "Oh Girl",
@@ -126,7 +134,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:0cFlXjTxFdMGGPfLVpt3Wv"
+      "uri": "spotify:track:0cFlXjTxFdMGGPfLVpt3Wv",
+      "releaseYear": 1972
     },
     {
       "title": "Nice to Be with You",
@@ -145,7 +154,8 @@
         "rock",
         "novelty"
       ],
-      "uri": "spotify:track:2L8mIvM1OwkJyGb3WwDFT3"
+      "uri": "spotify:track:2L8mIvM1OwkJyGb3WwDFT3",
+      "releaseYear": 1972
     },
     {
       "title": "(If Loving You Is Wrong) I Don't Want to Be Right",
@@ -154,7 +164,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:54K7o2yNOMZYCtEDnfD6wI"
+      "uri": "spotify:track:54K7o2yNOMZYCtEDnfD6wI",
+      "releaseYear": 1972
     },
     {
       "title": "Heart of Gold",
@@ -164,7 +175,8 @@
         "folk",
         "rock"
       ],
-      "uri": "spotify:track:1Q1b8eVkUPGlpSArl8JAVw"
+      "uri": "spotify:track:1Q1b8eVkUPGlpSArl8JAVw",
+      "releaseYear": 1971
     },
     {
       "title": "Betcha by Golly, Wow",
@@ -173,7 +185,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:6TrZdWmmsJTLjkka3tBZwB"
+      "uri": "spotify:track:6TrZdWmmsJTLjkka3tBZwB",
+      "releaseYear": 1972
     },
     {
       "title": "I'll Take You There",
@@ -183,7 +196,8 @@
         "soul",
         "gospel"
       ],
-      "uri": "spotify:track:5YLnfy7R2kueN0BRPkjiEG"
+      "uri": "spotify:track:5YLnfy7R2kueN0BRPkjiEG",
+      "releaseYear": 1972
     },
     {
       "title": "Ben",
@@ -211,7 +225,8 @@
       "genres": [
         "funk"
       ],
-      "uri": "spotify:track:17KFO56mkVEKR0v8qOPlkU"
+      "uri": "spotify:track:17KFO56mkVEKR0v8qOPlkU",
+      "releaseYear": 1971
     },
     {
       "title": "Slippin' into Darkness",
@@ -221,7 +236,8 @@
         "funk",
         "rock"
       ],
-      "uri": "spotify:track:79bFISfLM4YH2sWJba0vIX"
+      "uri": "spotify:track:79bFISfLM4YH2sWJba0vIX",
+      "releaseYear": 1971
     },
     {
       "title": "Long Cool Woman in a Black Dress",
@@ -230,7 +246,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:2zzZqHjLPJAwJadhLtVtII"
+      "uri": "spotify:track:2zzZqHjLPJAwJadhLtVtII",
+      "releaseYear": 1972
     },
     {
       "title": "How Do You Do",
@@ -258,7 +275,8 @@
         "folk",
         "rock"
       ],
-      "uri": "spotify:track:54eZmuggBFJbV7k248bTTt"
+      "uri": "spotify:track:54eZmuggBFJbV7k248bTTt",
+      "releaseYear": 1971
     },
     {
       "title": "Popcorn",
@@ -277,7 +295,8 @@
       "genres": [
         "soul"
       ],
-      "uri": "spotify:track:3DkqEHCCqlkknDfksHWWu0"
+      "uri": "spotify:track:3DkqEHCCqlkknDfksHWWu0",
+      "releaseYear": 1972
     },
     {
       "title": "Precious and Few",
@@ -286,7 +305,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7uuM0HwvCG20e5ttu6ugmP"
+      "uri": "spotify:track:7uuM0HwvCG20e5ttu6ugmP",
+      "releaseYear": 1971
     }
   ]
 }

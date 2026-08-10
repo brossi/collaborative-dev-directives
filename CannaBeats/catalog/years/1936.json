@@ -30,7 +30,8 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1936
     },
     {
       "title": "The Way You Look Tonight",
@@ -50,7 +51,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:191Pkd7ZYqI2zgQ3QbCbfM"
+      "uri": "spotify:track:191Pkd7ZYqI2zgQ3QbCbfM",
+      "releaseYear": 1936
     },
     {
       "title": "Let's Face the Music and Dance",
@@ -70,7 +72,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6zLPutKRGXMkpgLp4Jxr7G"
+      "uri": "spotify:track:6zLPutKRGXMkpgLp4Jxr7G",
+      "releaseYear": 1936
     },
     {
       "title": "Goody Goody",
@@ -240,7 +243,8 @@
         "jazz",
         "swing"
       ],
-      "uri": "spotify:track:5FZVOoEb7LUmeN3qGyLuvD"
+      "uri": "spotify:track:5FZVOoEb7LUmeN3qGyLuvD",
+      "releaseYear": 1936
     },
     {
       "title": "Christopher Columbus",

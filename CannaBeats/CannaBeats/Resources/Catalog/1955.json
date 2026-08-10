@@ -20,7 +20,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:1uRKT2LRANv4baowBWHfDS"
+      "uri": "spotify:track:1uRKT2LRANv4baowBWHfDS",
+      "releaseYear": 1954
     },
     {
       "title": "The Yellow Rose of Texas",
@@ -199,7 +200,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:35eRfaVytfTFAr8QKX5urU"
+      "uri": "spotify:track:35eRfaVytfTFAr8QKX5urU",
+      "releaseYear": 1954
     },
     {
       "title": "Unchained Melody",
@@ -229,7 +231,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:6bXLi3X2PhFCpPonAXDa4f"
+      "uri": "spotify:track:6bXLi3X2PhFCpPonAXDa4f",
+      "releaseYear": 1954
     },
     {
       "title": "The Ballad of Davy Crockett",
@@ -268,7 +271,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:4ISb8wzTvphSAreVYNIs47"
+      "uri": "spotify:track:4ISb8wzTvphSAreVYNIs47",
+      "releaseYear": 1954
     },
     {
       "title": "That's All I Want from You",
@@ -277,7 +281,8 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1955
     },
     {
       "title": "Only You (And You Alone)",

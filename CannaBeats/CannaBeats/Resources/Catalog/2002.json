@@ -10,7 +10,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:0gmbgwZ8iqyMPmXefof8Yf"
+      "uri": "spotify:track:0gmbgwZ8iqyMPmXefof8Yf",
+      "releaseYear": 2001
     },
     {
       "title": "Foolish",
@@ -19,7 +20,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:6zMUIb4uce1CzpbjR3vMdN"
+      "uri": "spotify:track:6zMUIb4uce1CzpbjR3vMdN",
+      "releaseYear": 2002
     },
     {
       "title": "Hot in Herre",
@@ -28,7 +30,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:04KTF78FFg8sOHC1BADqbY"
+      "uri": "spotify:track:04KTF78FFg8sOHC1BADqbY",
+      "releaseYear": 2002
     },
     {
       "title": "Dilemma",
@@ -48,7 +51,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:5QpaGzWp0hwB5faV8dkbAz"
+      "uri": "spotify:track:5QpaGzWp0hwB5faV8dkbAz",
+      "releaseYear": 2001
     },
     {
       "title": "A Thousand Miles",
@@ -57,7 +61,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4w1lzcaoZ1IC2K5TwjalRP"
+      "uri": "spotify:track:4w1lzcaoZ1IC2K5TwjalRP",
+      "releaseYear": 2002
     },
     {
       "title": "In the End",
@@ -67,7 +72,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:60a0Rd6pjrkxjPbaKzXjfq"
+      "uri": "spotify:track:60a0Rd6pjrkxjPbaKzXjfq",
+      "releaseYear": 2001
     },
     {
       "title": "What's Luv?",
@@ -86,7 +92,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:7J41dYQolQJEtj3UmKLu5r"
+      "uri": "spotify:track:7J41dYQolQJEtj3UmKLu5r",
+      "releaseYear": 2001
     },
     {
       "title": "Blurry",
@@ -96,7 +103,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:6lSr3iZTC144PKhvbPFzMp"
+      "uri": "spotify:track:6lSr3iZTC144PKhvbPFzMp",
+      "releaseYear": 2001
     },
     {
       "title": "Complicated",
@@ -106,7 +114,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:5xEM5hIgJ1jjgcEBfpkt2F"
+      "uri": "spotify:track:5xEM5hIgJ1jjgcEBfpkt2F",
+      "releaseYear": 2002
     },
     {
       "title": "Always on Time",
@@ -137,7 +146,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:6GG73Jik4jUlQCkKg9JuGO"
+      "uri": "spotify:track:6GG73Jik4jUlQCkKg9JuGO",
+      "releaseYear": 2001
     },
     {
       "title": "I Need a Girl (Part One)",
@@ -166,7 +176,8 @@
         "r&b",
         "hip-hop"
       ],
-      "uri": "spotify:track:3aw9iWUQ3VrPQltgwvN9Xu"
+      "uri": "spotify:track:3aw9iWUQ3VrPQltgwvN9Xu",
+      "releaseYear": 2001
     },
     {
       "title": "I Need a Girl (Part Two)",
@@ -195,7 +206,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:2VSbEXqs6NbNiZSTcHlIDR"
+      "uri": "spotify:track:2VSbEXqs6NbNiZSTcHlIDR",
+      "releaseYear": 2001
     },
     {
       "title": "Without Me",
@@ -204,7 +216,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:7lQ8MOhq6IN2w8EYcFNSUk"
+      "uri": "spotify:track:7lQ8MOhq6IN2w8EYcFNSUk",
+      "releaseYear": 2002
     },
     {
       "title": "Hero",
@@ -214,7 +227,8 @@
         "pop",
         "latin"
       ],
-      "uri": "spotify:track:24Gxm7Eh7tO83E26LG0CsY"
+      "uri": "spotify:track:24Gxm7Eh7tO83E26LG0CsY",
+      "releaseYear": 2001
     },
     {
       "title": "All You Wanted",
@@ -224,7 +238,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:0kr6d8wHDQPlzuET33NVn6"
+      "uri": "spotify:track:0kr6d8wHDQPlzuET33NVn6",
+      "releaseYear": 2002
     },
     {
       "title": "Get the Party Started",
@@ -234,7 +249,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:02jcEwywffn3Tsb48fXmlW"
+      "uri": "spotify:track:02jcEwywffn3Tsb48fXmlW",
+      "releaseYear": 2001
     },
     {
       "title": "Hero",
@@ -253,7 +269,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:5dpAN1mjFPL38kh9kWsCiw"
+      "uri": "spotify:track:5dpAN1mjFPL38kh9kWsCiw",
+      "releaseYear": 2001
     },
     {
       "title": "One Last Breath",
@@ -262,7 +279,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:42T2QQv3xgBlpQxaSP7lnK"
+      "uri": "spotify:track:42T2QQv3xgBlpQxaSP7lnK",
+      "releaseYear": 2002
     },
     {
       "title": "Whenever, Wherever",
@@ -272,7 +290,8 @@
         "pop",
         "latin"
       ],
-      "uri": "spotify:track:2lnzGkdtDj5mtlcOW2yRtG"
+      "uri": "spotify:track:2lnzGkdtDj5mtlcOW2yRtG",
+      "releaseYear": 2001
     },
     {
       "title": "I'm Gonna Be Alright",
@@ -282,7 +301,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2UbFyKS0gTj9NcGLO4NpyZ"
+      "uri": "spotify:track:2UbFyKS0gTj9NcGLO4NpyZ",
+      "releaseYear": 2002
     },
     {
       "title": "Oh Boy",

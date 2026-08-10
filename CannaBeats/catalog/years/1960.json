@@ -31,7 +31,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1MA9StLzlFftLbuqOmoWij"
+      "uri": "spotify:track:1MA9StLzlFftLbuqOmoWij",
+      "releaseYear": 1960
     },
     {
       "title": "Running Bear",
@@ -41,7 +42,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1RYznli2VNO7FCbW1Hq4KM"
+      "uri": "spotify:track:1RYznli2VNO7FCbW1Hq4KM",
+      "releaseYear": 1959
     },
     {
       "title": "Teen Angel",
@@ -50,7 +52,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:36NPEs4S7ik50NrlzaqoIJ"
+      "uri": "spotify:track:36NPEs4S7ik50NrlzaqoIJ",
+      "releaseYear": 1959
     },
     {
       "title": "I'm Sorry",
@@ -60,7 +63,8 @@
         "pop",
         "country"
       ],
-      "uri": "spotify:track:4LJcNiq2pBb8OeqrGdBJQw"
+      "uri": "spotify:track:4LJcNiq2pBb8OeqrGdBJQw",
+      "releaseYear": 1960
     },
     {
       "title": "It's Now or Never",
@@ -70,7 +74,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1XunTmhOcj3xwh4b8P3isX"
+      "uri": "spotify:track:1XunTmhOcj3xwh4b8P3isX",
+      "releaseYear": 1960
     },
     {
       "title": "Handy Man",
@@ -80,7 +85,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:1CUN9HpU25ymyCh5dBCygu"
+      "uri": "spotify:track:1CUN9HpU25ymyCh5dBCygu",
+      "releaseYear": 1959
     },
     {
       "title": "Stuck on You",
@@ -90,7 +96,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:7bA1DHtoJAvqyL42gHwOLa"
+      "uri": "spotify:track:7bA1DHtoJAvqyL42gHwOLa",
+      "releaseYear": 1960
     },
     {
       "title": "The Twist",
@@ -120,7 +127,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6OJZM84zgpRxRYtBk979xG"
+      "uri": "spotify:track:6OJZM84zgpRxRYtBk979xG",
+      "releaseYear": 1960
     },
     {
       "title": "Greenfields",
@@ -130,7 +138,8 @@
         "folk",
         "pop"
       ],
-      "uri": "spotify:track:7LAsDdinXejDwodvelVVTa"
+      "uri": "spotify:track:7LAsDdinXejDwodvelVVTa",
+      "releaseYear": 1960
     },
     {
       "title": "What in the World's Come Over You",
@@ -140,7 +149,8 @@
         "pop",
         "country"
       ],
-      "uri": "spotify:track:3XToK0X499i9odkrDCG4FL"
+      "uri": "spotify:track:3XToK0X499i9odkrDCG4FL",
+      "releaseYear": 1959
     },
     {
       "title": "El Paso",
@@ -149,7 +159,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:4f8hBeMXMvssn6HtFAtblo"
+      "uri": "spotify:track:4f8hBeMXMvssn6HtFAtblo",
+      "releaseYear": 1959
     },
     {
       "title": "Alley Oop",
@@ -159,7 +170,8 @@
         "novelty",
         "rock"
       ],
-      "uri": "spotify:track:18tVPMHqlp4SyZ9Sxy2Zua"
+      "uri": "spotify:track:18tVPMHqlp4SyZ9Sxy2Zua",
+      "releaseYear": 1960
     },
     {
       "title": "My Heart Has a Mind of Its Own",
@@ -168,7 +180,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7qinPLZ41lgIGuT40EAFs0"
+      "uri": "spotify:track:7qinPLZ41lgIGuT40EAFs0",
+      "releaseYear": 1960
     },
     {
       "title": "Sweet Nothin's",
@@ -178,7 +191,8 @@
         "rockabilly",
         "pop"
       ],
-      "uri": "spotify:track:4ZiDhG5Ift5I6reAEOBBec"
+      "uri": "spotify:track:4ZiDhG5Ift5I6reAEOBBec",
+      "releaseYear": 1959
     },
     {
       "title": "Itsy Bitsy Teenie Weenie Yellow Polka Dot Bikini",
@@ -198,7 +212,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:7HZv4KAYOv867dAiZwrFoR"
+      "uri": "spotify:track:7HZv4KAYOv867dAiZwrFoR",
+      "releaseYear": 1960
     },
     {
       "title": "Where or When",
@@ -217,7 +232,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0CRxGsJrwOMQUuTr4yT5mX"
+      "uri": "spotify:track:0CRxGsJrwOMQUuTr4yT5mX",
+      "releaseYear": 1959
     },
     {
       "title": "Sixteen Reasons",
@@ -226,7 +242,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0oI0ekrSQ3aHiHcMi1B2gK"
+      "uri": "spotify:track:0oI0ekrSQ3aHiHcMi1B2gK",
+      "releaseYear": 1959
     },
     {
       "title": "Baby (You've Got What It Takes)",
@@ -245,7 +262,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:7B2pUwzvlbNG9D855r9ugf"
+      "uri": "spotify:track:7B2pUwzvlbNG9D855r9ugf",
+      "releaseYear": 1960
     },
     {
       "title": "Puppy Love",
@@ -254,7 +272,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1Gv8dvKmkHVaB1edYvW0Fr"
+      "uri": "spotify:track:1Gv8dvKmkHVaB1edYvW0Fr",
+      "releaseYear": 1960
     },
     {
       "title": "Chain Gang",
@@ -264,7 +283,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:7v1858htfU0srTDwhxeka8"
+      "uri": "spotify:track:7v1858htfU0srTDwhxeka8",
+      "releaseYear": 1960
     },
     {
       "title": "Mr. Custer",
@@ -273,7 +293,8 @@
       "genres": [
         "novelty"
       ],
-      "uri": "spotify:track:54UFvpOyoqlUu7N09UymMz"
+      "uri": "spotify:track:54UFvpOyoqlUu7N09UymMz",
+      "releaseYear": 1960
     },
     {
       "title": "A Rockin' Good Way (To Mess Around and Fall in Love)",
@@ -294,7 +315,8 @@
         "pop",
         "doo-wop"
       ],
-      "uri": "spotify:track:391TUcoPonqYykPkSZ5Z9U"
+      "uri": "spotify:track:391TUcoPonqYykPkSZ5Z9U",
+      "releaseYear": 1960
     }
   ]
 }

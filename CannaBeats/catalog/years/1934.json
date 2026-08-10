@@ -71,7 +71,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4ZgUP5Tw86Q9yfkK7qipDb"
+      "uri": "spotify:track:4ZgUP5Tw86Q9yfkK7qipDb",
+      "releaseYear": 1933
     },
     {
       "title": "Love in Bloom",
@@ -80,7 +81,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0rACOuUSd1yAO3hIoFawsc"
+      "uri": "spotify:track:0rACOuUSd1yAO3hIoFawsc",
+      "releaseYear": 1934
     },
     {
       "title": "Little Dutch Mill",
@@ -138,7 +140,8 @@
         "big band",
         "standards"
       ],
-      "uri": "spotify:track:7d8IjYvge36mbajsFFDZ8e"
+      "uri": "spotify:track:7d8IjYvge36mbajsFFDZ8e",
+      "releaseYear": 1934
     },
     {
       "title": "Solitude",
@@ -148,7 +151,8 @@
         "jazz",
         "big band"
       ],
-      "uri": "spotify:track:1Jrdpneg6p0j2crsbuxW0R"
+      "uri": "spotify:track:1Jrdpneg6p0j2crsbuxW0R",
+      "releaseYear": 1934
     },
     {
       "title": "I Only Have Eyes for You",
@@ -238,7 +242,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:3Bjpbkr44yDZbqPLsG2UI5"
+      "uri": "spotify:track:3Bjpbkr44yDZbqPLsG2UI5",
+      "releaseYear": 1934
     },
     {
       "title": "Tumbling Tumbleweeds",
@@ -248,7 +253,8 @@
         "country",
         "folk"
       ],
-      "uri": "spotify:track:3CBVxWIJosUAawosdAQCoR"
+      "uri": "spotify:track:3CBVxWIJosUAawosdAQCoR",
+      "releaseYear": 1934
     },
     {
       "title": "I'll String Along with You",
@@ -288,7 +294,8 @@
         "novelty",
         "pop"
       ],
-      "uri": "spotify:track:1JvSPiSen8ooKch1L4JJaR"
+      "uri": "spotify:track:1JvSPiSen8ooKch1L4JJaR",
+      "releaseYear": 1933
     },
     {
       "title": "One Night of Love",

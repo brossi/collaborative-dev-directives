@@ -10,7 +10,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:4RY96Asd9IefaL3X4LOLZ8"
+      "uri": "spotify:track:4RY96Asd9IefaL3X4LOLZ8",
+      "releaseYear": 2003
     },
     {
       "title": "Ignition (Remix)",
@@ -19,7 +20,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:5dNfHmqgr128gMY2tc5CeJ"
+      "uri": "spotify:track:5dNfHmqgr128gMY2tc5CeJ",
+      "releaseYear": 2003
     },
     {
       "title": "Get Busy",
@@ -29,7 +31,8 @@
         "reggae",
         "dance"
       ],
-      "uri": "spotify:track:5qTvkDrSfvwDv6RBjjcfQr"
+      "uri": "spotify:track:5qTvkDrSfvwDv6RBjjcfQr",
+      "releaseYear": 2003
     },
     {
       "title": "Crazy in Love",
@@ -48,7 +51,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:3WbphvawbMZ8FyqDxYGdSQ"
+      "uri": "spotify:track:3WbphvawbMZ8FyqDxYGdSQ",
+      "releaseYear": 2002
     },
     {
       "title": "Unwell",
@@ -58,7 +62,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0PXWpNBYg52gABrn1qL1bD"
+      "uri": "spotify:track:0PXWpNBYg52gABrn1qL1bD",
+      "releaseYear": 2003
     },
     {
       "title": "Right Thurr",
@@ -67,7 +72,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:0l3GEbH3CviUytD6iX4wzg"
+      "uri": "spotify:track:0l3GEbH3CviUytD6iX4wzg",
+      "releaseYear": 2003
     },
     {
       "title": "Miss You",
@@ -76,7 +82,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:2RMnvrnOpvcrznNG2I3DYc"
+      "uri": "spotify:track:2RMnvrnOpvcrznNG2I3DYc",
+      "releaseYear": 2002
     },
     {
       "title": "Picture",
@@ -174,7 +181,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1jlG3KJ3gdYmhfuySFfpO1"
+      "uri": "spotify:track:1jlG3KJ3gdYmhfuySFfpO1",
+      "releaseYear": 2002
     },
     {
       "title": "Drift Away",
@@ -184,7 +192,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0RFgvrhkf9FiDRLA0BhzpZ"
+      "uri": "spotify:track:0RFgvrhkf9FiDRLA0BhzpZ",
+      "releaseYear": 1973
     },
     {
       "title": "Magic Stick",
@@ -271,7 +280,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:5Z01UMMf7V1o0MzF86s6WJ"
+      "uri": "spotify:track:5Z01UMMf7V1o0MzF86s6WJ",
+      "releaseYear": 2002
     },
     {
       "title": "Rock Wit U (Awww Baby)",
@@ -290,7 +300,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:7Lf7oSEVdzZqTA0kEDSlS5"
+      "uri": "spotify:track:7Lf7oSEVdzZqTA0kEDSlS5",
+      "releaseYear": 2002
     }
   ]
 }

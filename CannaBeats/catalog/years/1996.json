@@ -31,7 +31,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:28UMiBhn383n9S7GL4tsxD"
+      "uri": "spotify:track:28UMiBhn383n9S7GL4tsxD",
+      "releaseYear": 1995
     },
     {
       "title": "Nobody Knows",
@@ -40,7 +41,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:2PsHIonOTmX6bSrzIJSjyS"
+      "uri": "spotify:track:2PsHIonOTmX6bSrzIJSjyS",
+      "releaseYear": 1996
     },
     {
       "title": "Always Be My Baby",
@@ -50,7 +52,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2aBxt229cbLDOvtL7Xbb9x"
+      "uri": "spotify:track:2aBxt229cbLDOvtL7Xbb9x",
+      "releaseYear": 1996
     },
     {
       "title": "Give Me One Reason",
@@ -61,7 +64,8 @@
         "rock",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:4vDBJeeQCbhP9FaPPMsYkY"
+      "uri": "spotify:track:4vDBJeeQCbhP9FaPPMsYkY",
+      "releaseYear": 1996
     },
     {
       "title": "Tha Crossroads",
@@ -70,7 +74,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:5KSJ9k1FYjFLnIRlJT2wF8"
+      "uri": "spotify:track:5KSJ9k1FYjFLnIRlJT2wF8",
+      "releaseYear": 1996
     },
     {
       "title": "I Love You Always Forever",
@@ -80,7 +85,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:1PEqh7awkpuepLBSq8ZwqD"
+      "uri": "spotify:track:1PEqh7awkpuepLBSq8ZwqD",
+      "releaseYear": 1996
     },
     {
       "title": "You're Makin' Me High",
@@ -89,7 +95,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:09I1TnKW1WPtD8tnQxRtkD"
+      "uri": "spotify:track:09I1TnKW1WPtD8tnQxRtkD",
+      "releaseYear": 1996
     },
     {
       "title": "Twisted",
@@ -108,7 +115,8 @@
         "dance",
         "hip-hop"
       ],
-      "uri": "spotify:track:2QLEN3RVunMas7j0PHjeAT"
+      "uri": "spotify:track:2QLEN3RVunMas7j0PHjeAT",
+      "releaseYear": 1996
     },
     {
       "title": "Missing",
@@ -119,7 +127,8 @@
         "dance",
         "alternative"
       ],
-      "uri": "spotify:track:79WrmdVsLbwRTUCiH7cPsa"
+      "uri": "spotify:track:79WrmdVsLbwRTUCiH7cPsa",
+      "releaseYear": 1995
     },
     {
       "title": "Ironic",
@@ -129,7 +138,8 @@
         "alternative",
         "rock"
       ],
-      "uri": "spotify:track:4oGTdOClZUxcM2H3UmXlwL"
+      "uri": "spotify:track:4oGTdOClZUxcM2H3UmXlwL",
+      "releaseYear": 1996
     },
     {
       "title": "Exhale (Shoop Shoop)",
@@ -149,7 +159,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:6rqkwoZu5oX5hugeyiJCM8"
+      "uri": "spotify:track:6rqkwoZu5oX5hugeyiJCM8",
+      "releaseYear": 1996
     },
     {
       "title": "Sittin' Up in My Room",
@@ -159,7 +170,8 @@
         "r&b",
         "soundtrack"
       ],
-      "uri": "spotify:track:4330XmgVWlx98Y3Naswycg"
+      "uri": "spotify:track:4330XmgVWlx98Y3Naswycg",
+      "releaseYear": 1995
     },
     {
       "title": "How Do U Want It",
@@ -188,7 +200,8 @@
         "rock",
         "soundtrack"
       ],
-      "uri": "spotify:track:6BQNJ0JFKh8sWjQLI6Zudi"
+      "uri": "spotify:track:6BQNJ0JFKh8sWjQLI6Zudi",
+      "releaseYear": 1997
     },
     {
       "title": "Hey Lover",
@@ -217,7 +230,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:0yx00RNuvZY5Vn8nlpUnMk"
+      "uri": "spotify:track:0yx00RNuvZY5Vn8nlpUnMk",
+      "releaseYear": 1994
     },
     {
       "title": "Be My Lover",
@@ -227,7 +241,8 @@
         "dance",
         "electronic"
       ],
-      "uri": "spotify:track:7FoUzKTSQp25oe32pY9z5p"
+      "uri": "spotify:track:7FoUzKTSQp25oe32pY9z5p",
+      "releaseYear": 1994
     },
     {
       "title": "Name",
@@ -237,7 +252,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:1G8jae4jD8mwkXdodqHsBM"
+      "uri": "spotify:track:1G8jae4jD8mwkXdodqHsBM",
+      "releaseYear": 1995
     },
     {
       "title": "Who Will Save Your Soul",
@@ -248,7 +264,8 @@
         "folk",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:2U40DawrPNZwD0lcqqx3bq"
+      "uri": "spotify:track:2U40DawrPNZwD0lcqqx3bq",
+      "releaseYear": 1996
     },
     {
       "title": "Where Do You Go",
@@ -258,7 +275,8 @@
         "dance",
         "pop"
       ],
-      "uri": "spotify:track:37tzoWY1ubBQKGXiWdO5Qv"
+      "uri": "spotify:track:37tzoWY1ubBQKGXiWdO5Qv",
+      "releaseYear": 1996
     },
     {
       "title": "I Can't Sleep Baby (If I)",
@@ -267,7 +285,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:6JR2utS6oY0U6OVDmIHiqV"
+      "uri": "spotify:track:6JR2utS6oY0U6OVDmIHiqV",
+      "releaseYear": 1996
     },
     {
       "title": "Counting Blue Cars",
@@ -277,7 +296,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:6B618H5CuCdEzcVs0NKTlt"
+      "uri": "spotify:track:6B618H5CuCdEzcVs0NKTlt",
+      "releaseYear": 1996
     },
     {
       "title": "You Learn",
@@ -287,7 +307,8 @@
         "alternative",
         "rock"
       ],
-      "uri": "spotify:track:1HsbGJnOXPWfocSS6FoR60"
+      "uri": "spotify:track:1HsbGJnOXPWfocSS6FoR60",
+      "releaseYear": 1996
     },
     {
       "title": "One of Us",

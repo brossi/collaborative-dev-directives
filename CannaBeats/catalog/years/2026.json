@@ -19,7 +19,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:514joG57v4yKTsfQmz7stz"
+      "uri": "spotify:track:514joG57v4yKTsfQmz7stz",
+      "releaseYear": 2026
     },
     {
       "title": "The Fate of Ophelia",
@@ -66,7 +67,8 @@
         "pop",
         "soul"
       ],
-      "uri": "spotify:track:1qbmS6ep2hbBRaEZFpn7BX"
+      "uri": "spotify:track:1qbmS6ep2hbBRaEZFpn7BX",
+      "releaseYear": 2025
     },
     {
       "title": "Aperture",
@@ -95,7 +97,8 @@
         "k-pop",
         "pop"
       ],
-      "uri": "spotify:track:68lbSrXDORS51pmyjZv712"
+      "uri": "spotify:track:68lbSrXDORS51pmyjZv712",
+      "releaseYear": 2026
     },
     {
       "title": "Drop Dead",
@@ -105,7 +108,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6gkbtMtioHgtyGjrMel6ei"
+      "uri": "spotify:track:6gkbtMtioHgtyGjrMel6ei",
+      "releaseYear": 2026
     },
     {
       "title": "Hate That I Made You Love Me",
@@ -115,7 +119,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:20jbSiX29FDX4oQxBXyUEi"
+      "uri": "spotify:track:20jbSiX29FDX4oQxBXyUEi",
+      "releaseYear": 2026
     },
     {
       "title": "Be Her",
@@ -143,7 +148,8 @@
         "pop",
         "electronic"
       ],
-      "uri": "spotify:track:709ZIqPHyFOpx2QdjmeWAM"
+      "uri": "spotify:track:709ZIqPHyFOpx2QdjmeWAM",
+      "releaseYear": 2025
     },
     {
       "title": "So Easy (To Fall in Love)",
@@ -173,7 +179,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:407LgLkk1uM3wMO6jVRe0a"
+      "uri": "spotify:track:407LgLkk1uM3wMO6jVRe0a",
+      "releaseYear": 2026
     },
     {
       "title": "Stupid Song",
@@ -182,7 +189,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4LfCY65LvojKjWEnU7fNN4"
+      "uri": "spotify:track:4LfCY65LvojKjWEnU7fNN4",
+      "releaseYear": 2026
     },
     {
       "title": "Ran to Atlanta",
@@ -227,7 +235,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:55wlsNYqcfiQsHuX8l0jmF"
+      "uri": "spotify:track:55wlsNYqcfiQsHuX8l0jmF",
+      "releaseYear": 2026
     },
     {
       "title": "Boston",
@@ -236,7 +245,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:36idurZmYRjJ56KQ8JD9bN"
+      "uri": "spotify:track:36idurZmYRjJ56KQ8JD9bN",
+      "releaseYear": 2026
     },
     {
       "title": "Risk It All",
@@ -256,7 +266,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:37UCSVSqiPGdR1DijOFyYY"
+      "uri": "spotify:track:37UCSVSqiPGdR1DijOFyYY",
+      "releaseYear": 2025
     },
     {
       "title": "Folded",
@@ -265,7 +276,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:0bxPRWprUVpQK0UFcddkrA"
+      "uri": "spotify:track:0bxPRWprUVpQK0UFcddkrA",
+      "releaseYear": 2025
     },
     {
       "title": "Back to Friends",
@@ -275,7 +287,8 @@
         "indie",
         "pop"
       ],
-      "uri": "spotify:track:0FTmksd2dxiE5e3rWyJXs6"
+      "uri": "spotify:track:0FTmksd2dxiE5e3rWyJXs6",
+      "releaseYear": 2024
     },
     {
       "title": "Dust",

@@ -10,7 +10,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:50kpGaPAhYJ3sGmk6vplg0"
+      "uri": "spotify:track:50kpGaPAhYJ3sGmk6vplg0",
+      "releaseYear": 2015
     },
     {
       "title": "Sorry",
@@ -50,7 +51,8 @@
         "alternative",
         "hip-hop"
       ],
-      "uri": "spotify:track:3CRDbSIZ4r5MsZ0YwxuEkn"
+      "uri": "spotify:track:3CRDbSIZ4r5MsZ0YwxuEkn",
+      "releaseYear": 2015
     },
     {
       "title": "Panda",
@@ -59,7 +61,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:275a9yzwGB6ncAW4SxY7q3"
+      "uri": "spotify:track:275a9yzwGB6ncAW4SxY7q3",
+      "releaseYear": 2015
     },
     {
       "title": "Hello",
@@ -89,7 +92,8 @@
         "pop",
         "funk"
       ],
-      "uri": "spotify:track:1WkMMavIMc4JZ8cfMmxHkI"
+      "uri": "spotify:track:1WkMMavIMc4JZ8cfMmxHkI",
+      "releaseYear": 2016
     },
     {
       "title": "Closer",
@@ -118,7 +122,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5kqIPrATaCc2LqxVWzQGbk"
+      "uri": "spotify:track:5kqIPrATaCc2LqxVWzQGbk",
+      "releaseYear": 2015
     },
     {
       "title": "Needed Me",
@@ -127,7 +132,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:4pAl7FkDMNBsjykPXo91B3"
+      "uri": "spotify:track:4pAl7FkDMNBsjykPXo91B3",
+      "releaseYear": 2016
     },
     {
       "title": "My House",
@@ -157,7 +163,8 @@
         "alternative",
         "rock"
       ],
-      "uri": "spotify:track:6i0V12jOa3mr6uu4WYhUBr"
+      "uri": "spotify:track:6i0V12jOa3mr6uu4WYhUBr",
+      "releaseYear": 2016
     },
     {
       "title": "I Took a Pill in Ibiza",
@@ -167,7 +174,8 @@
         "pop",
         "electronic"
       ],
-      "uri": "spotify:track:1MtUq6Wp1eQ8PC6BbPCj8P"
+      "uri": "spotify:track:1MtUq6Wp1eQ8PC6BbPCj8P",
+      "releaseYear": 2015
     },
     {
       "title": "Stitches",
@@ -176,7 +184,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5jsw9uXEGuKyJzs0boZ1bT"
+      "uri": "spotify:track:5jsw9uXEGuKyJzs0boZ1bT",
+      "releaseYear": 2015
     },
     {
       "title": "Me, Myself & I",
@@ -196,7 +205,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:0PDUDa38GO8lMxLCRc4lL1"
+      "uri": "spotify:track:0PDUDa38GO8lMxLCRc4lL1",
+      "releaseYear": 2016
     },
     {
       "title": "Cake by the Ocean",
@@ -206,7 +216,8 @@
         "pop",
         "funk"
       ],
-      "uri": "spotify:track:76hfruVvmfQbw0eYn1nmeC"
+      "uri": "spotify:track:76hfruVvmfQbw0eYn1nmeC",
+      "releaseYear": 2015
     },
     {
       "title": "Treat You Better",
@@ -215,7 +226,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3QGsuHI8jO1Rx4JWLUh9jd"
+      "uri": "spotify:track:3QGsuHI8jO1Rx4JWLUh9jd",
+      "releaseYear": 2016
     },
     {
       "title": "This Is What You Came For",
@@ -225,7 +237,8 @@
         "dance",
         "electronic"
       ],
-      "uri": "spotify:track:0azC730Exh71aQlOt9Zj3y"
+      "uri": "spotify:track:0azC730Exh71aQlOt9Zj3y",
+      "releaseYear": 2016
     },
     {
       "title": "Roses",
@@ -244,7 +257,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1LoriJC05IrHIDwj3q0KC1"
+      "uri": "spotify:track:1LoriJC05IrHIDwj3q0KC1",
+      "releaseYear": 2016
     },
     {
       "title": "Send My Love (To Your New Lover)",
@@ -253,7 +267,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4BHzQ9C00ceJxfG16AlNWb"
+      "uri": "spotify:track:4BHzQ9C00ceJxfG16AlNWb",
+      "releaseYear": 2016
     },
     {
       "title": "Like I'm Gonna Lose You",
@@ -292,7 +307,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7K5dzhGda2vRTaAWYI3hrb"
+      "uri": "spotify:track:7K5dzhGda2vRTaAWYI3hrb",
+      "releaseYear": 2016
     }
   ]
 }

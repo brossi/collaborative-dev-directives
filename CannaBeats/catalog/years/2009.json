@@ -11,7 +11,8 @@
         "hip-hop",
         "electronic"
       ],
-      "uri": "spotify:track:7xRNsqOQOgWbHV1nbXnfXN"
+      "uri": "spotify:track:7xRNsqOQOgWbHV1nbXnfXN",
+      "releaseYear": 2009
     },
     {
       "title": "Poker Face",
@@ -21,7 +22,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:0WfKDYeUAoLA3vdvLKKWMW"
+      "uri": "spotify:track:0WfKDYeUAoLA3vdvLKKWMW",
+      "releaseYear": 2008
     },
     {
       "title": "Just Dance",
@@ -41,7 +43,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:4vp2J1l5RD4gMZwGFLfRAu"
+      "uri": "spotify:track:4vp2J1l5RD4gMZwGFLfRAu",
+      "releaseYear": 2009
     },
     {
       "title": "Love Story",
@@ -71,7 +74,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:1EzrEOXmMH3G43AXT1y7pA"
+      "uri": "spotify:track:1EzrEOXmMH3G43AXT1y7pA",
+      "releaseYear": 2008
     },
     {
       "title": "Single Ladies (Put a Ring on It)",
@@ -81,7 +85,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:5R9a4t5t5O0IsznsrKPVro"
+      "uri": "spotify:track:5R9a4t5t5O0IsznsrKPVro",
+      "releaseYear": 2008
     },
     {
       "title": "Heartless",
@@ -91,7 +96,8 @@
         "hip-hop",
         "r&b"
       ],
-      "uri": "spotify:track:4EWCNWgDS8707fNSZ1oaA5"
+      "uri": "spotify:track:4EWCNWgDS8707fNSZ1oaA5",
+      "releaseYear": 2008
     },
     {
       "title": "Gives You Hell",
@@ -101,7 +107,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:6ihL9TjfRjadfEePzXXyVF"
+      "uri": "spotify:track:6ihL9TjfRjadfEePzXXyVF",
+      "releaseYear": 2008
     },
     {
       "title": "You Belong with Me",
@@ -130,7 +137,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:4IoYz8XqqdowINzfRrFnhi"
+      "uri": "spotify:track:4IoYz8XqqdowINzfRrFnhi",
+      "releaseYear": 2008
     },
     {
       "title": "Use Somebody",
@@ -140,7 +148,8 @@
         "rock",
         "indie"
       ],
-      "uri": "spotify:track:5VGlqQANWDKJFl0MBG3sg2"
+      "uri": "spotify:track:5VGlqQANWDKJFl0MBG3sg2",
+      "releaseYear": 2008
     },
     {
       "title": "Knock You Down",
@@ -220,7 +229,8 @@
         "hip-hop",
         "r&b"
       ],
-      "uri": "spotify:track:1GxHeBvQ9935Dd3cSfsfBa"
+      "uri": "spotify:track:1GxHeBvQ9935Dd3cSfsfBa",
+      "releaseYear": 2009
     },
     {
       "title": "My Life Would Suck Without You",
@@ -230,7 +240,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:4Dm32oO01YpIubCHaAtKkN"
+      "uri": "spotify:track:4Dm32oO01YpIubCHaAtKkN",
+      "releaseYear": 2008
     },
     {
       "title": "Halo",
@@ -240,7 +251,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:2MfOcbtgz2yTsiznFmVZUN"
+      "uri": "spotify:track:2MfOcbtgz2yTsiznFmVZUN",
+      "releaseYear": 2009
     },
     {
       "title": "Hot n Cold",
@@ -250,7 +262,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:1y4eb6hmAvsqlDOl3fx9kk"
+      "uri": "spotify:track:1y4eb6hmAvsqlDOl3fx9kk",
+      "releaseYear": 2008
     },
     {
       "title": "Second Chance",
@@ -270,7 +283,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:7jk7gqyEonmVVYahZN5zhW"
+      "uri": "spotify:track:7jk7gqyEonmVVYahZN5zhW",
+      "releaseYear": 2008
     },
     {
       "title": "Day 'n' Nite",
@@ -289,7 +303,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5Q0Nhxo0l2bP3pNjpGJwV1"
+      "uri": "spotify:track:5Q0Nhxo0l2bP3pNjpGJwV1",
+      "releaseYear": 2009
     },
     {
       "title": "Don't Trust Me",
@@ -299,7 +314,8 @@
         "electronic",
         "pop"
       ],
-      "uri": "spotify:track:3bsDo5vjjJI7O8VuytGIrc"
+      "uri": "spotify:track:3bsDo5vjjJI7O8VuytGIrc",
+      "releaseYear": 2010
     }
   ]
 }

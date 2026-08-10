@@ -12,7 +12,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:4eHbdreAnSOrDDsFfc4Fpm"
+      "uri": "spotify:track:4eHbdreAnSOrDDsFfc4Fpm",
+      "releaseYear": 1992
     },
     {
       "title": "Whoomp! (There It Is)",
@@ -22,7 +23,8 @@
         "hip-hop",
         "dance"
       ],
-      "uri": "spotify:track:70jtZsS59vhmyZSsln0std"
+      "uri": "spotify:track:70jtZsS59vhmyZSsln0std",
+      "releaseYear": 1993
     },
     {
       "title": "Can't Help Falling in Love",
@@ -42,7 +44,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:29rQJydAlO0uMyWvRIZxQg"
+      "uri": "spotify:track:29rQJydAlO0uMyWvRIZxQg",
+      "releaseYear": 1993
     },
     {
       "title": "Freak Me",
@@ -51,7 +54,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:5CdJveJgiGXoGwDFqF6afp"
+      "uri": "spotify:track:5CdJveJgiGXoGwDFqF6afp",
+      "releaseYear": 1993
     },
     {
       "title": "Weak",
@@ -60,7 +64,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:71EHOyEOhNx1SzTebRRyng"
+      "uri": "spotify:track:71EHOyEOhNx1SzTebRRyng",
+      "releaseYear": 1992
     },
     {
       "title": "If I Ever Fall in Love",
@@ -69,7 +74,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:1jCsCYgzQQHk3bDJDuFbNi"
+      "uri": "spotify:track:1jCsCYgzQQHk3bDJDuFbNi",
+      "releaseYear": 1992
     },
     {
       "title": "Dreamlover",
@@ -107,7 +113,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:5Tbpp3OLLClPJF8t1DmrFD"
+      "uri": "spotify:track:5Tbpp3OLLClPJF8t1DmrFD",
+      "releaseYear": 1993
     },
     {
       "title": "In the Still of the Nite (I'll Remember)",
@@ -126,7 +133,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:7tsRp7QKUBp6hc9bth0h7x"
+      "uri": "spotify:track:7tsRp7QKUBp6hc9bth0h7x",
+      "releaseYear": 1992
     },
     {
       "title": "Knockin' da Boots",
@@ -153,7 +161,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:26yQYGCXD9ypPW8eeXa1gx"
+      "uri": "spotify:track:26yQYGCXD9ypPW8eeXa1gx",
+      "releaseYear": 1993
     },
     {
       "title": "Show Me Love",
@@ -163,7 +172,8 @@
         "dance",
         "electronic"
       ],
-      "uri": "spotify:track:4t0UsYzmmmZRMTWn77jiGF"
+      "uri": "spotify:track:4t0UsYzmmmZRMTWn77jiGF",
+      "releaseYear": 1992
     },
     {
       "title": "A Whole New World",
@@ -173,7 +183,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:4tS8xQfyPGc7f4lJ1JP6BX"
+      "uri": "spotify:track:4tS8xQfyPGc7f4lJ1JP6BX",
+      "releaseYear": 1992
     },
     {
       "title": "If",
@@ -183,7 +194,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:0t414ewhjcIiuPVF3QECz2"
+      "uri": "spotify:track:0t414ewhjcIiuPVF3QECz2",
+      "releaseYear": 1993
     },
     {
       "title": "I'm So Into You",
@@ -212,7 +224,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:3TW48DvQ7ChwY1Yy1tkMaP"
+      "uri": "spotify:track:3TW48DvQ7ChwY1Yy1tkMaP",
+      "releaseYear": 1993
     },
     {
       "title": "I'll Never Get Over You (Getting Over Me)",
@@ -230,7 +243,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:2JaHnS7CcIPoc7Il4BkqdR"
+      "uri": "spotify:track:2JaHnS7CcIPoc7Il4BkqdR",
+      "releaseYear": 1992
     },
     {
       "title": "Rhythm Is a Dancer",
@@ -240,7 +254,8 @@
         "dance",
         "electronic"
       ],
-      "uri": "spotify:track:4RADreHMvMkZwsPgPr9z5c"
+      "uri": "spotify:track:4RADreHMvMkZwsPgPr9z5c",
+      "releaseYear": 1992
     },
     {
       "title": "The River of Dreams",
@@ -250,7 +265,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:30qVCFYKBtAENjTIBA8FPZ"
+      "uri": "spotify:track:30qVCFYKBtAENjTIBA8FPZ",
+      "releaseYear": 1993
     },
     {
       "title": "I'm Gonna Be (500 Miles)",
@@ -261,7 +277,8 @@
         "folk",
         "alternative"
       ],
-      "uri": "spotify:track:66S14BkJDxgkYxLl5DCqOz"
+      "uri": "spotify:track:66S14BkJDxgkYxLl5DCqOz",
+      "releaseYear": 1988
     },
     {
       "title": "Two Princes",
@@ -271,7 +288,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:4ePP9So5xRzspjLFVVbj90"
+      "uri": "spotify:track:4ePP9So5xRzspjLFVVbj90",
+      "releaseYear": 1993
     },
     {
       "title": "Right Here (Human Nature)",
@@ -290,7 +308,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:31er9IGsfFbwqy1pH4aiTP"
+      "uri": "spotify:track:31er9IGsfFbwqy1pH4aiTP",
+      "releaseYear": 1993
     }
   ]
 }

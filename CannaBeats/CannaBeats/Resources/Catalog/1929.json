@@ -50,7 +50,8 @@
         "blues",
         "jazz"
       ],
-      "uri": "spotify:track:6OkhGU6IOBRsPfve7Icd89"
+      "uri": "spotify:track:6OkhGU6IOBRsPfve7Icd89",
+      "releaseYear": 1929
     },
     {
       "title": "Makin' Whoopee",
@@ -60,7 +61,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:2BzIjEpWMoMVEnhgd2VgK1"
+      "uri": "spotify:track:2BzIjEpWMoMVEnhgd2VgK1",
+      "releaseYear": 1928
     },
     {
       "title": "Button Up Your Overcoat",
@@ -89,7 +91,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:65DjgpX2av2QgbmSoozj3v"
+      "uri": "spotify:track:65DjgpX2av2QgbmSoozj3v",
+      "releaseYear": 1929
     },
     {
       "title": "Love Me or Leave Me",
@@ -99,7 +102,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6QqFLI0XDPdtyL1RdfedZD"
+      "uri": "spotify:track:6QqFLI0XDPdtyL1RdfedZD",
+      "releaseYear": 1928
     },
     {
       "title": "More Than You Know",
@@ -119,7 +123,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:1jCghMUMK56Snk1aJUyo3D"
+      "uri": "spotify:track:1jCghMUMK56Snk1aJUyo3D",
+      "releaseYear": 1929
     },
     {
       "title": "Broadway Melody",
@@ -148,7 +153,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:1fWfa8G0Vb9AtQeetXgUGQ"
+      "uri": "spotify:track:1fWfa8G0Vb9AtQeetXgUGQ",
+      "releaseYear": 1929
     },
     {
       "title": "Deep Night",
@@ -206,7 +212,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:7sSL7iKA7RFvxkPO56gKs8"
+      "uri": "spotify:track:7sSL7iKA7RFvxkPO56gKs8",
+      "releaseYear": 1928
     },
     {
       "title": "She's Funny That Way",
@@ -244,7 +251,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:4nM9eydfHKk7JXHU80JuWN"
+      "uri": "spotify:track:4nM9eydfHKk7JXHU80JuWN",
+      "releaseYear": 1929
     },
     {
       "title": "Glad Rag Doll",
@@ -274,7 +282,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:3nOoAA2JDBcHqCwcUwKV2c"
+      "uri": "spotify:track:3nOoAA2JDBcHqCwcUwKV2c",
+      "releaseYear": 1929
     },
     {
       "title": "(What Did I Do to Be So) Black and Blue",

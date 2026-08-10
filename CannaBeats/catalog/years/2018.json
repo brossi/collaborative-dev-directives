@@ -10,7 +10,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:6DCZcSspjsKoFjzjrWoCdn"
+      "uri": "spotify:track:6DCZcSspjsKoFjzjrWoCdn",
+      "releaseYear": 2018
     },
     {
       "title": "Perfect",
@@ -87,7 +88,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:2G7V7zsVDxg1yRsu7Ew9RJ"
+      "uri": "spotify:track:2G7V7zsVDxg1yRsu7Ew9RJ",
+      "releaseYear": 2018
     },
     {
       "title": "Girls Like You",
@@ -105,7 +107,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:3CA9pLiwRIGtUBiMjbZmRw"
+      "uri": "spotify:track:3CA9pLiwRIGtUBiMjbZmRw",
+      "releaseYear": 2018
     },
     {
       "title": "Thunder",
@@ -115,7 +118,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:1zB4vmk8tFRmM9UULNzbLB"
+      "uri": "spotify:track:1zB4vmk8tFRmM9UULNzbLB",
+      "releaseYear": 2017
     },
     {
       "title": "Lucid Dreams",
@@ -124,7 +128,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:285pBltuF7vW8TeWk8hdRR"
+      "uri": "spotify:track:285pBltuF7vW8TeWk8hdRR",
+      "releaseYear": 2018
     },
     {
       "title": "Better Now",
@@ -134,7 +139,8 @@
         "hip-hop",
         "pop"
       ],
-      "uri": "spotify:track:7dt6x5M1jzdTEt8oCbisTK"
+      "uri": "spotify:track:7dt6x5M1jzdTEt8oCbisTK",
+      "releaseYear": 2018
     },
     {
       "title": "No Tears Left to Cry",
@@ -143,7 +149,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:2qT1uLXPVPzGgFOx4jtEuo"
+      "uri": "spotify:track:2qT1uLXPVPzGgFOx4jtEuo",
+      "releaseYear": 2018
     },
     {
       "title": "Finesse",
@@ -202,7 +209,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:6Qn5zhYkTa37e91HC1D7lb"
+      "uri": "spotify:track:6Qn5zhYkTa37e91HC1D7lb",
+      "releaseYear": 2017
     },
     {
       "title": "Mine",
@@ -212,7 +220,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:7uzmGiiJyRfuViKKK3lVmR"
+      "uri": "spotify:track:7uzmGiiJyRfuViKKK3lVmR",
+      "releaseYear": 2017
     },
     {
       "title": "Delicate",
@@ -259,7 +268,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:2iUXsYOEPhVqEBwsqP70rE"
+      "uri": "spotify:track:2iUXsYOEPhVqEBwsqP70rE",
+      "releaseYear": 2018
     },
     {
       "title": "Never Be the Same",
@@ -268,7 +278,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4eWQlBRaTjPPUlzacqEeoQ"
+      "uri": "spotify:track:4eWQlBRaTjPPUlzacqEeoQ",
+      "releaseYear": 2017
     },
     {
       "title": "Tequila",
@@ -287,7 +298,8 @@
         "alternative",
         "rock"
       ],
-      "uri": "spotify:track:6QgjcU0zLnzq5OrUoSZ3OK"
+      "uri": "spotify:track:6QgjcU0zLnzq5OrUoSZ3OK",
+      "releaseYear": 2017
     }
   ]
 }

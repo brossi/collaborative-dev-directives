@@ -69,7 +69,8 @@
         "pop",
         "hip-hop"
       ],
-      "uri": "spotify:track:6ocbgoVGwYJhOv1GgI9NsF"
+      "uri": "spotify:track:6ocbgoVGwYJhOv1GgI9NsF",
+      "releaseYear": 2019
     },
     {
       "title": "Talk",
@@ -97,7 +98,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:22vgEDb5hykfaTwLuskFGD"
+      "uri": "spotify:track:22vgEDb5hykfaTwLuskFGD",
+      "releaseYear": 2019
     },
     {
       "title": "High Hopes",
@@ -107,7 +109,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1rqqCSm0Qe4I9rUvWncaom"
+      "uri": "spotify:track:1rqqCSm0Qe4I9rUvWncaom",
+      "releaseYear": 2018
     },
     {
       "title": "Thank U, Next",
@@ -116,7 +119,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3e9HZxeyfWwjeyPAMmWSSQ"
+      "uri": "spotify:track:3e9HZxeyfWwjeyPAMmWSSQ",
+      "releaseYear": 2018
     },
     {
       "title": "Truth Hurts",
@@ -126,7 +130,8 @@
         "pop",
         "hip-hop"
       ],
-      "uri": "spotify:track:5qmq61DAAOUaW8AUo8xKhh"
+      "uri": "spotify:track:5qmq61DAAOUaW8AUo8xKhh",
+      "releaseYear": 2017
     },
     {
       "title": "Dancing with a Stranger",
@@ -173,7 +178,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:2JvzF1RMd7lE3KmFlsyZD8"
+      "uri": "spotify:track:2JvzF1RMd7lE3KmFlsyZD8",
+      "releaseYear": 2019
     },
     {
       "title": "Sweet but Psycho",
@@ -183,7 +189,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:25sgk305KZfyuqVBQIahim"
+      "uri": "spotify:track:25sgk305KZfyuqVBQIahim",
+      "releaseYear": 2018
     },
     {
       "title": "Shallow",
@@ -250,7 +257,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:2gwkD6igEhQbDQegRCcdoB"
+      "uri": "spotify:track:2gwkD6igEhQbDQegRCcdoB",
+      "releaseYear": 2019
     },
     {
       "title": "Someone You Loved",
@@ -260,7 +268,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:7qEHsqek33rTcFNT9PFqLf"
+      "uri": "spotify:track:7qEHsqek33rTcFNT9PFqLf",
+      "releaseYear": 2018
     },
     {
       "title": "Break Up with Your Girlfriend, I'm Bored",
@@ -269,7 +278,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4kV4N9D1iKVxx1KLvtTpjS"
+      "uri": "spotify:track:4kV4N9D1iKVxx1KLvtTpjS",
+      "releaseYear": 2019
     },
     {
       "title": "If I Can't Have You",
@@ -278,7 +288,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6LsAAHotRLMOHfCsSfYCsz"
+      "uri": "spotify:track:6LsAAHotRLMOHfCsSfYCsz",
+      "releaseYear": 2019
     },
     {
       "title": "Goodbyes",

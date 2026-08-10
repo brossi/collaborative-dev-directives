@@ -11,7 +11,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:0aym2LBJBk9DAYuHHutrIl"
+      "uri": "spotify:track:0aym2LBJBk9DAYuHHutrIl",
+      "releaseYear": 1968
     },
     {
       "title": "Love Is Blue",
@@ -41,7 +42,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:3zBhihYUHBmGd2bcQIobrF"
+      "uri": "spotify:track:3zBhihYUHBmGd2bcQIobrF",
+      "releaseYear": 1968
     },
     {
       "title": "People Got to Be Free",
@@ -51,7 +53,8 @@
         "rock",
         "soul"
       ],
-      "uri": "spotify:track:5tUEIByLWg1sYWajZ2x5zx"
+      "uri": "spotify:track:5tUEIByLWg1sYWajZ2x5zx",
+      "releaseYear": 1968
     },
     {
       "title": "Sunshine of Your Love",
@@ -60,7 +63,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6FRwDxXsvSasw0y2eDArsz"
+      "uri": "spotify:track:6FRwDxXsvSasw0y2eDArsz",
+      "releaseYear": 1968
     },
     {
       "title": "This Guy's in Love with You",
@@ -90,7 +94,8 @@
         "folk",
         "rock"
       ],
-      "uri": "spotify:track:0iOZM63lendWRTTeKhZBSC"
+      "uri": "spotify:track:0iOZM63lendWRTTeKhZBSC",
+      "releaseYear": 1968
     },
     {
       "title": "Tighten Up",
@@ -100,7 +105,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:6IIcvtmuGpWIasqOpyGlyY"
+      "uri": "spotify:track:6IIcvtmuGpWIasqOpyGlyY",
+      "releaseYear": 1968
     },
     {
       "title": "Harper Valley P.T.A.",
@@ -128,7 +134,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:23xk9Rf7oIHVUU1JvmXYFn"
+      "uri": "spotify:track:23xk9Rf7oIHVUU1JvmXYFn",
+      "releaseYear": 1968
     },
     {
       "title": "Hello, I Love You",
@@ -137,7 +144,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:3bWGaqVeYKMlLss40mPgNn"
+      "uri": "spotify:track:3bWGaqVeYKMlLss40mPgNn",
+      "releaseYear": 1968
     },
     {
       "title": "Young Girl",
@@ -147,7 +155,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:3F64pIPqvcujnwvcVLVZ64"
+      "uri": "spotify:track:3F64pIPqvcujnwvcVLVZ64",
+      "releaseYear": 1968
     },
     {
       "title": "Cry Like a Baby",
@@ -157,7 +166,8 @@
         "rock",
         "soul"
       ],
-      "uri": "spotify:track:6e5dOtgCiKkITJxtWSuLBE"
+      "uri": "spotify:track:6e5dOtgCiKkITJxtWSuLBE",
+      "releaseYear": 1968
     },
     {
       "title": "Stoned Soul Picnic",
@@ -177,7 +187,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:2P6Buc8kWRgShx7aHIadqu"
+      "uri": "spotify:track:2P6Buc8kWRgShx7aHIadqu",
+      "releaseYear": 1968
     },
     {
       "title": "Midnight Confessions",
@@ -187,7 +198,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:7zAwAehFCw22pavwKME3V8"
+      "uri": "spotify:track:7zAwAehFCw22pavwKME3V8",
+      "releaseYear": 1968
     },
     {
       "title": "Dance to the Music",
@@ -197,7 +209,8 @@
         "funk",
         "soul"
       ],
-      "uri": "spotify:track:1MQWtVcs0PKsY4PA6ZvLiy"
+      "uri": "spotify:track:1MQWtVcs0PKsY4PA6ZvLiy",
+      "releaseYear": 1968
     },
     {
       "title": "The Horse",
@@ -217,7 +230,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:1tjpccwiGZTMDfHr5VGCmT"
+      "uri": "spotify:track:1tjpccwiGZTMDfHr5VGCmT",
+      "releaseYear": 1967
     },
     {
       "title": "La-La (Means I Love You)",
@@ -227,7 +241,8 @@
         "soul",
         "r&b"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1968
     },
     {
       "title": "Turn Around, Look at Me",
@@ -246,7 +261,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:2p7mA5rSVwIaoNslO9zylp"
+      "uri": "spotify:track:2p7mA5rSVwIaoNslO9zylp",
+      "releaseYear": 1967
     },
     {
       "title": "Spooky",
@@ -256,7 +272,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:5z4iT44mMHyZozsTFy4A51"
+      "uri": "spotify:track:5z4iT44mMHyZozsTFy4A51",
+      "releaseYear": 1967
     },
     {
       "title": "Love Child",
@@ -266,7 +283,8 @@
         "soul",
         "pop"
       ],
-      "uri": "spotify:track:69EILuL34ggLWQsa626bes"
+      "uri": "spotify:track:69EILuL34ggLWQsa626bes",
+      "releaseYear": 1968
     },
     {
       "title": "Angel of the Morning",
@@ -285,7 +303,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:70jnaGaj1rtpyABfUURpvr"
+      "uri": "spotify:track:70jnaGaj1rtpyABfUURpvr",
+      "releaseYear": 1967
     },
     {
       "title": "A Beautiful Morning",
@@ -295,7 +314,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:3QwbKe0s8TcNclzXAXHeHy"
+      "uri": "spotify:track:3QwbKe0s8TcNclzXAXHeHy",
+      "releaseYear": 1968
     }
   ]
 }

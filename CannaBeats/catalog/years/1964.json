@@ -11,7 +11,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:4pbG9SUmWIvsROVLF0zF9s"
+      "uri": "spotify:track:4pbG9SUmWIvsROVLF0zF9s",
+      "releaseYear": 1963
     },
     {
       "title": "She Loves You",
@@ -21,7 +22,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:6nEkxYIEnrbYH7h1hJ8Xn6"
+      "uri": "spotify:track:6nEkxYIEnrbYH7h1hJ8Xn6",
+      "releaseYear": 1963
     },
     {
       "title": "Hello, Dolly!",
@@ -51,7 +53,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:3v9xlH6BpmRbqL7hgNJhfT"
+      "uri": "spotify:track:3v9xlH6BpmRbqL7hgNJhfT",
+      "releaseYear": 1964
     },
     {
       "title": "Everybody Loves Somebody",
@@ -61,7 +64,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:78VG6M1i7JQXBdygmWFwye"
+      "uri": "spotify:track:78VG6M1i7JQXBdygmWFwye",
+      "releaseYear": 1964
     },
     {
       "title": "My Guy",
@@ -71,7 +75,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:4591VqUIXysNlmI5NcAIUd"
+      "uri": "spotify:track:4591VqUIXysNlmI5NcAIUd",
+      "releaseYear": 1964
     },
     {
       "title": "We'll Sing in the Sunshine",
@@ -101,7 +106,8 @@
         "soul",
         "pop"
       ],
-      "uri": "spotify:track:69RH84na5iUNwrwxpgjC5j"
+      "uri": "spotify:track:69RH84na5iUNwrwxpgjC5j",
+      "releaseYear": 1964
     },
     {
       "title": "People",
@@ -111,7 +117,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:0s7UEtczBGK68zYCi1y6W8"
+      "uri": "spotify:track:0s7UEtczBGK68zYCi1y6W8",
+      "releaseYear": 1964
     },
     {
       "title": "Java",
@@ -121,7 +128,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:1Aya25QA35mfejbY8n0ORG"
+      "uri": "spotify:track:1Aya25QA35mfejbY8n0ORG",
+      "releaseYear": 1964
     },
     {
       "title": "A Hard Day's Night",
@@ -130,7 +138,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:5J2CHimS7dWYMImCHkEFaJ"
+      "uri": "spotify:track:5J2CHimS7dWYMImCHkEFaJ",
+      "releaseYear": 1964
     },
     {
       "title": "Love Me Do",
@@ -140,7 +149,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:3VbGCXWRiouAq8VyMYN2MI"
+      "uri": "spotify:track:3VbGCXWRiouAq8VyMYN2MI",
+      "releaseYear": 1962
     },
     {
       "title": "Do Wah Diddy Diddy",
@@ -159,7 +169,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:6EHuOufBeL6vk3TvVJB5qo"
+      "uri": "spotify:track:6EHuOufBeL6vk3TvVJB5qo",
+      "releaseYear": 1963
     },
     {
       "title": "Dancing in the Street",
@@ -169,7 +180,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:5KFbnNaKD4KvwMzAHLA27P"
+      "uri": "spotify:track:5KFbnNaKD4KvwMzAHLA27P",
+      "releaseYear": 1964
     },
     {
       "title": "Little Children",
@@ -179,7 +191,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:4Ut93W00xLJxJKHzm3MP5L"
+      "uri": "spotify:track:4Ut93W00xLJxJKHzm3MP5L",
+      "releaseYear": 1964
     },
     {
       "title": "Love Me with All Your Heart",
@@ -199,7 +212,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:65jrjEhWfAvysKfnojk1i0"
+      "uri": "spotify:track:65jrjEhWfAvysKfnojk1i0",
+      "releaseYear": 1964
     },
     {
       "title": "Chapel of Love",
@@ -209,7 +223,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:4JchWgAG3RZmCLHcEGf9DZ"
+      "uri": "spotify:track:4JchWgAG3RZmCLHcEGf9DZ",
+      "releaseYear": 1963
     },
     {
       "title": "Suspicion",
@@ -227,7 +242,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:2w8oMeJjXn1KTnU2fr9eFB"
+      "uri": "spotify:track:2w8oMeJjXn1KTnU2fr9eFB",
+      "releaseYear": 1963
     },
     {
       "title": "Rag Doll",
@@ -237,7 +253,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6kAROIu6CLVjulTqSPYmAP"
+      "uri": "spotify:track:6kAROIu6CLVjulTqSPYmAP",
+      "releaseYear": 1964
     },
     {
       "title": "Dawn (Go Away)",
@@ -247,7 +264,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:3gDVdpRQ6wsXScSVmYIWsM"
+      "uri": "spotify:track:3gDVdpRQ6wsXScSVmYIWsM",
+      "releaseYear": 1964
     },
     {
       "title": "Baby Love",
@@ -257,7 +275,8 @@
         "soul",
         "pop"
       ],
-      "uri": "spotify:track:5uES1C2NgkdrNHiCwf9jRr"
+      "uri": "spotify:track:5uES1C2NgkdrNHiCwf9jRr",
+      "releaseYear": 1964
     },
     {
       "title": "The House of the Rising Sun",
@@ -277,7 +296,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1A0j6qANKHgk7VZ6uvYO06"
+      "uri": "spotify:track:1A0j6qANKHgk7VZ6uvYO06",
+      "releaseYear": 1964
     },
     {
       "title": "Can't Buy Me Love",
@@ -287,7 +307,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:3SdingSsFcZDZAyvcJbgAw"
+      "uri": "spotify:track:3SdingSsFcZDZAyvcJbgAw",
+      "releaseYear": 1964
     },
     {
       "title": "Twist and Shout",

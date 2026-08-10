@@ -10,7 +10,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7qiZfU4dY1lWllzX7mPBI3"
+      "uri": "spotify:track:7qiZfU4dY1lWllzX7mPBI3",
+      "releaseYear": 2017
     },
     {
       "title": "Despacito",
@@ -39,7 +40,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:7KXjTSCq5nL1LoYtL7XAwS"
+      "uri": "spotify:track:7KXjTSCq5nL1LoYtL7XAwS",
+      "releaseYear": 2017
     },
     {
       "title": "Something Just Like This",
@@ -67,7 +69,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:7mldq42yDuxiUNn08nvzHO"
+      "uri": "spotify:track:7mldq42yDuxiUNn08nvzHO",
+      "releaseYear": 2017
     },
     {
       "title": "Believer",
@@ -77,7 +80,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:0pqnGHJpmpxLKifKRmU6WP"
+      "uri": "spotify:track:0pqnGHJpmpxLKifKRmU6WP",
+      "releaseYear": 2017
     },
     {
       "title": "Congratulations",
@@ -96,7 +100,8 @@
         "pop",
         "singer-songwriter"
       ],
-      "uri": "spotify:track:5uCax9HTNlzGybIStD3vDh"
+      "uri": "spotify:track:5uCax9HTNlzGybIStD3vDh",
+      "releaseYear": 2016
     },
     {
       "title": "I'm the One",
@@ -115,7 +120,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:7GX5flRQZVHRAGd6B4TmDO"
+      "uri": "spotify:track:7GX5flRQZVHRAGd6B4TmDO",
+      "releaseYear": 2017
     },
     {
       "title": "Paris",
@@ -125,7 +131,8 @@
         "electronic",
         "pop"
       ],
-      "uri": "spotify:track:15vzANxN8G9wWfwAJLLMCg"
+      "uri": "spotify:track:15vzANxN8G9wWfwAJLLMCg",
+      "releaseYear": 2017
     },
     {
       "title": "Stay",
@@ -163,7 +170,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:0VgkVdmE4gld66l8iyGjgx"
+      "uri": "spotify:track:0VgkVdmE4gld66l8iyGjgx",
+      "releaseYear": 2017
     },
     {
       "title": "Wild Thoughts",
@@ -183,7 +191,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7vu0JkJh0ldukEYbTVcqd0"
+      "uri": "spotify:track:7vu0JkJh0ldukEYbTVcqd0",
+      "releaseYear": 2017
     },
     {
       "title": "iSpy",
@@ -201,7 +210,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5cF0dROlMOK5uNZtivgu50"
+      "uri": "spotify:track:5cF0dROlMOK5uNZtivgu50",
+      "releaseYear": 2017
     },
     {
       "title": "Look What You Made Me Do",
@@ -219,7 +229,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:6KBYefIoo7KydImq1uUQlL"
+      "uri": "spotify:track:6KBYefIoo7KydImq1uUQlL",
+      "releaseYear": 2017
     },
     {
       "title": "Location",
@@ -228,7 +239,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:152lZdxL1OR0ZMW6KquMif"
+      "uri": "spotify:track:152lZdxL1OR0ZMW6KquMif",
+      "releaseYear": 2016
     },
     {
       "title": "24K Magic",
@@ -277,7 +289,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7JJmb5XwzOO8jgpou264Ml"
+      "uri": "spotify:track:7JJmb5XwzOO8jgpou264Ml",
+      "releaseYear": 2017
     },
     {
       "title": "Sorry Not Sorry",
@@ -287,7 +300,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:7gvd8xj4QgPqbQSsn5pV7d"
+      "uri": "spotify:track:7gvd8xj4QgPqbQSsn5pV7d",
+      "releaseYear": 2017
     }
   ]
 }

@@ -41,7 +41,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:6PERP62TejQjgHu81OHxgM"
+      "uri": "spotify:track:6PERP62TejQjgHu81OHxgM",
+      "releaseYear": 2021
     },
     {
       "title": "Kiss Me More",
@@ -61,7 +62,8 @@
         "r&b",
         "soul"
       ],
-      "uri": "spotify:track:4pryE6cN2gFL1FVF5fYINl"
+      "uri": "spotify:track:4pryE6cN2gFL1FVF5fYINl",
+      "releaseYear": 2021
     },
     {
       "title": "Drivers License",
@@ -70,7 +72,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:7lPN2DXiMsVn7XUKtOW1CS"
+      "uri": "spotify:track:7lPN2DXiMsVn7XUKtOW1CS",
+      "releaseYear": 2021
     },
     {
       "title": "Montero (Call Me by Your Name)",
@@ -80,7 +83,8 @@
         "pop",
         "hip-hop"
       ],
-      "uri": "spotify:track:67BtfxlNbhBmCDR2L2l8qd"
+      "uri": "spotify:track:67BtfxlNbhBmCDR2L2l8qd",
+      "releaseYear": 2021
     },
     {
       "title": "Peaches",
@@ -100,7 +104,8 @@
         "k-pop",
         "pop"
       ],
-      "uri": "spotify:track:1mWdTewIgB3gtBM3TOSFhB"
+      "uri": "spotify:track:1mWdTewIgB3gtBM3TOSFhB",
+      "releaseYear": 2021
     },
     {
       "title": "Deja Vu",
@@ -109,7 +114,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:61KpQadow081I2AsbeLcsb"
+      "uri": "spotify:track:61KpQadow081I2AsbeLcsb",
+      "releaseYear": 2021
     },
     {
       "title": "Positions",
@@ -119,7 +125,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:35mvY5S1H3J2QZyna3TFe0"
+      "uri": "spotify:track:35mvY5S1H3J2QZyna3TFe0",
+      "releaseYear": 2020
     },
     {
       "title": "Without You",
@@ -137,7 +144,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:6IBcOGPsniK3Pso1wHIhew"
+      "uri": "spotify:track:6IBcOGPsniK3Pso1wHIhew",
+      "releaseYear": 2020
     },
     {
       "title": "Go Crazy",
@@ -156,7 +164,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:3Ofmpyhv5UAQ70mENzB277"
+      "uri": "spotify:track:3Ofmpyhv5UAQ70mENzB277",
+      "releaseYear": 2019
     },
     {
       "title": "34+35",
@@ -175,7 +184,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:1tkg4EHVoqnhR6iFEXb60y"
+      "uri": "spotify:track:1tkg4EHVoqnhR6iFEXb60y",
+      "releaseYear": 2020
     },
     {
       "title": "My Ex's Best Friend",
@@ -195,7 +205,8 @@
         "pop",
         "alternative"
       ],
-      "uri": "spotify:track:54bFM56PmE4YLRnqpW6Tha"
+      "uri": "spotify:track:54bFM56PmE4YLRnqpW6Tha",
+      "releaseYear": 2020
     },
     {
       "title": "Up",
@@ -213,7 +224,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:58UKC45GPNTflCN6nwCUeF"
+      "uri": "spotify:track:58UKC45GPNTflCN6nwCUeF",
+      "releaseYear": 2021
     },
     {
       "title": "Dakiti",
@@ -240,7 +252,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:43PGPuHIlVOc04jrZVh9L6"
+      "uri": "spotify:track:43PGPuHIlVOc04jrZVh9L6",
+      "releaseYear": 2021
     },
     {
       "title": "Heartbreak Anniversary",
@@ -249,7 +262,8 @@
       "genres": [
         "r&b"
       ],
-      "uri": "spotify:track:3FAJ6O0NOHQV8Mc5Ri6ENp"
+      "uri": "spotify:track:3FAJ6O0NOHQV8Mc5Ri6ENp",
+      "releaseYear": 2020
     },
     {
       "title": "For the Night",
@@ -268,7 +282,8 @@
         "hip-hop",
         "r&b"
       ],
-      "uri": "spotify:track:3J8EOeKLTLXORtWPpOU5bE"
+      "uri": "spotify:track:3J8EOeKLTLXORtWPpOU5bE",
+      "releaseYear": 2021
     },
     {
       "title": "Beautiful Mistakes",

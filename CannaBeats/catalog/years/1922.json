@@ -21,7 +21,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:4f4NZcHl3f1pkgUXrJCBJn"
+      "uri": "spotify:track:4f4NZcHl3f1pkgUXrJCBJn",
+      "releaseYear": 1922
     },
     {
       "title": "Stumbling",
@@ -111,7 +112,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5L2EzfQTFTdOiLAEqvhFk8"
+      "uri": "spotify:track:5L2EzfQTFTdOiLAEqvhFk8",
+      "releaseYear": 1922
     },
     {
       "title": "Angel Child",
@@ -139,7 +141,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:0YCDa43PqJDa9NOPB3KlbL"
+      "uri": "spotify:track:0YCDa43PqJDa9NOPB3KlbL",
+      "releaseYear": 1922
     },
     {
       "title": "Carolina in the Morning",
@@ -198,7 +201,8 @@
         "jazz",
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1922
     },
     {
       "title": "My Honey's Lovin' Arms",

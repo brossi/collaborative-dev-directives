@@ -59,7 +59,8 @@
         "country",
         "novelty"
       ],
-      "uri": "spotify:track:05HBDnASISMJN46VxzDafK"
+      "uri": "spotify:track:05HBDnASISMJN46VxzDafK",
+      "releaseYear": 1947
     },
     {
       "title": "Linda",
@@ -242,7 +243,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:5PHWmaGBa6cNnBPPPvSeJw"
+      "uri": "spotify:track:5PHWmaGBa6cNnBPPPvSeJw",
+      "releaseYear": 1947
     },
     {
       "title": "Golden Earrings",
@@ -282,7 +284,8 @@
         "pop",
         "jazz"
       ],
-      "uri": "spotify:track:6ODd05NGlfmfHQWKv25O0b"
+      "uri": "spotify:track:6ODd05NGlfmfHQWKv25O0b",
+      "releaseYear": 1946
     },
     {
       "title": "Ain't Nobody Here but Us Chickens",

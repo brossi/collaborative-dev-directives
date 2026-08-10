@@ -11,7 +11,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:5fnRVoG3VypqQYm8506zU5"
+      "uri": "spotify:track:5fnRVoG3VypqQYm8506zU5",
+      "releaseYear": 1948
     },
     {
       "title": "Twelfth Street Rag",
@@ -42,7 +43,8 @@
         "jazz",
         "standards"
       ],
-      "uri": "spotify:track:2WMyu5IYgxEuCd6xgFgJrl"
+      "uri": "spotify:track:2WMyu5IYgxEuCd6xgFgJrl",
+      "releaseYear": 1947
     },
     {
       "title": "Manana (Is Soon Enough for Me)",
@@ -155,7 +157,8 @@
       "genres": [
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1947
     },
     {
       "title": "Love Somebody",
@@ -164,7 +167,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:5xLc3a3UDVKt3FxyxHMZoY"
+      "uri": "spotify:track:5xLc3a3UDVKt3FxyxHMZoY",
+      "releaseYear": 1948
     },
     {
       "title": "It's Too Soon to Know",
@@ -174,7 +178,8 @@
         "r&b",
         "doo-wop"
       ],
-      "uri": "spotify:track:3YdP82XA3ARj8uY1vwmxEk"
+      "uri": "spotify:track:3YdP82XA3ARj8uY1vwmxEk",
+      "releaseYear": 1947
     },
     {
       "title": "Tomorrow Night",
@@ -203,7 +208,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:65V86dD697OW0vLs2R4IoR"
+      "uri": "spotify:track:65V86dD697OW0vLs2R4IoR",
+      "releaseYear": 1948
     },
     {
       "title": "Cool Water",
@@ -223,7 +229,8 @@
         "latin",
         "pop"
       ],
-      "uri": null
+      "uri": null,
+      "releaseYear": 1947
     },
     {
       "title": "Underneath the Arches",
@@ -232,7 +239,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6VKlKkPHNO1aBSojWNFsKV"
+      "uri": "spotify:track:6VKlKkPHNO1aBSojWNFsKV",
+      "releaseYear": 1932
     },
     {
       "title": "The Dickey-Bird Song",
@@ -260,7 +268,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:2iM66C4ttfO2kMc2eLYzHq"
+      "uri": "spotify:track:2iM66C4ttfO2kMc2eLYzHq",
+      "releaseYear": 1948
     },
     {
       "title": "Anytime",

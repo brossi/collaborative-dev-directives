@@ -11,7 +11,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:3hVrI7snZMTmHCnbwME47u"
+      "uri": "spotify:track:3hVrI7snZMTmHCnbwME47u",
+      "releaseYear": 1981
     },
     {
       "title": "Eye of the Tiger",
@@ -21,7 +22,8 @@
         "rock",
         "soundtrack"
       ],
-      "uri": "spotify:track:2KH16WveTQWT6KOG9Rg6e2"
+      "uri": "spotify:track:2KH16WveTQWT6KOG9Rg6e2",
+      "releaseYear": 1982
     },
     {
       "title": "I Love Rock 'n' Roll",
@@ -48,7 +50,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:1ynmMEK1fkyiZ6Z6F3ThEt"
+      "uri": "spotify:track:1ynmMEK1fkyiZ6Z6F3ThEt",
+      "releaseYear": 1981
     },
     {
       "title": "Don't You Want Me",
@@ -59,7 +62,8 @@
         "electronic",
         "pop"
       ],
-      "uri": "spotify:track:3L7RtEcu1Hw3OXrpnthngx"
+      "uri": "spotify:track:3L7RtEcu1Hw3OXrpnthngx",
+      "releaseYear": 1981
     },
     {
       "title": "Jack & Diane",
@@ -87,7 +91,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:2UoiDuPSArZ1dz81koCc4l"
+      "uri": "spotify:track:2UoiDuPSArZ1dz81koCc4l",
+      "releaseYear": 1982
     },
     {
       "title": "Hard to Say I'm Sorry",
@@ -97,7 +102,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:07TnWCHrFkvF61GzJuLVt0"
+      "uri": "spotify:track:07TnWCHrFkvF61GzJuLVt0",
+      "releaseYear": 1982
     },
     {
       "title": "Tainted Love",
@@ -107,7 +113,8 @@
         "new wave",
         "electronic"
       ],
-      "uri": "spotify:track:58E1XVmZTODC67YNjneuXM"
+      "uri": "spotify:track:58E1XVmZTODC67YNjneuXM",
+      "releaseYear": 1981
     },
     {
       "title": "Chariots of Fire",
@@ -117,7 +124,8 @@
         "electronic",
         "soundtrack"
       ],
-      "uri": "spotify:track:6GxhckZeqoWNF9n9XS91HS"
+      "uri": "spotify:track:6GxhckZeqoWNF9n9XS91HS",
+      "releaseYear": 1981
     },
     {
       "title": "Harden My Heart",
@@ -127,7 +135,8 @@
         "rock",
         "new wave"
       ],
-      "uri": "spotify:track:3CSLUIrI2KPMulHR5bh17O"
+      "uri": "spotify:track:3CSLUIrI2KPMulHR5bh17O",
+      "releaseYear": 1980
     },
     {
       "title": "Rosanna",
@@ -137,7 +146,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:37BTh5g05cxBIRYMbw8g2T"
+      "uri": "spotify:track:37BTh5g05cxBIRYMbw8g2T",
+      "releaseYear": 1982
     },
     {
       "title": "I Can't Go for That (No Can Do)",
@@ -147,7 +157,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:41dDygR3r7e926oGUXfrLt"
+      "uri": "spotify:track:41dDygR3r7e926oGUXfrLt",
+      "releaseYear": 1981
     },
     {
       "title": "867-5309/Jenny",
@@ -157,7 +168,8 @@
         "rock",
         "new wave"
       ],
-      "uri": "spotify:track:6iX1f3r7oUJnMbGgQ2gx1j"
+      "uri": "spotify:track:6iX1f3r7oUJnMbGgQ2gx1j",
+      "releaseYear": 1981
     },
     {
       "title": "Key Largo",
@@ -166,7 +178,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:41v56RunWqxgqTD4H2cwOD"
+      "uri": "spotify:track:41v56RunWqxgqTD4H2cwOD",
+      "releaseYear": 1981
     },
     {
       "title": "You Should Hear How She Talks About You",
@@ -175,7 +188,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3mYh6egfMyl0Dek8r9ciK6"
+      "uri": "spotify:track:3mYh6egfMyl0Dek8r9ciK6",
+      "releaseYear": 1982
     },
     {
       "title": "Waiting for a Girl Like You",
@@ -184,7 +198,8 @@
       "genres": [
         "rock"
       ],
-      "uri": "spotify:track:2OgVsp77En2nju8pnCieVU"
+      "uri": "spotify:track:2OgVsp77En2nju8pnCieVU",
+      "releaseYear": 1981
     },
     {
       "title": "Don't Talk to Strangers",
@@ -194,7 +209,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:1syhTK7LlvpeWdZNsZARP0"
+      "uri": "spotify:track:1syhTK7LlvpeWdZNsZARP0",
+      "releaseYear": 1982
     },
     {
       "title": "The Sweetest Thing (I've Ever Known)",
@@ -204,7 +220,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:3EFgVWb1TAYP3CF17BB4fU"
+      "uri": "spotify:track:3EFgVWb1TAYP3CF17BB4fU",
+      "releaseYear": 1981
     },
     {
       "title": "Always on My Mind",
@@ -213,7 +230,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:2xYQTU2bbg6WVAmpY1eae4"
+      "uri": "spotify:track:2xYQTU2bbg6WVAmpY1eae4",
+      "releaseYear": 1982
     },
     {
       "title": "Shake It Up",
@@ -223,7 +241,8 @@
         "new wave",
         "rock"
       ],
-      "uri": "spotify:track:5OWokvF4QOqMDQ8ByQsm6V"
+      "uri": "spotify:track:5OWokvF4QOqMDQ8ByQsm6V",
+      "releaseYear": 1981
     },
     {
       "title": "Let It Whip",
@@ -233,7 +252,8 @@
         "funk",
         "r&b"
       ],
-      "uri": "spotify:track:3h5IJ0EzVpkiaoL174GC3M"
+      "uri": "spotify:track:3h5IJ0EzVpkiaoL174GC3M",
+      "releaseYear": 1982
     },
     {
       "title": "We Got the Beat",
@@ -244,7 +264,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:5kz9GDBTX846OXwqWoyKzF"
+      "uri": "spotify:track:5kz9GDBTX846OXwqWoyKzF",
+      "releaseYear": 1982
     },
     {
       "title": "The Other Woman",
@@ -254,7 +275,8 @@
         "r&b",
         "rock"
       ],
-      "uri": "spotify:track:7ubq5fqmcPhfg1Q8s3HbbA"
+      "uri": "spotify:track:7ubq5fqmcPhfg1Q8s3HbbA",
+      "releaseYear": 1982
     },
     {
       "title": "Turn Your Love Around",
@@ -265,7 +287,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:6a899bXlCuViXW2Qs8Rdqo"
+      "uri": "spotify:track:6a899bXlCuViXW2Qs8Rdqo",
+      "releaseYear": 1981
     },
     {
       "title": "Sweet Dreams",
@@ -284,7 +307,8 @@
         "new wave",
         "rock"
       ],
-      "uri": "spotify:track:1BZMMt9H0TheQGWQy44KmO"
+      "uri": "spotify:track:1BZMMt9H0TheQGWQy44KmO",
+      "releaseYear": 1982
     },
     {
       "title": "Who Can It Be Now?",
@@ -294,7 +318,8 @@
         "new wave",
         "rock"
       ],
-      "uri": "spotify:track:5rfJ2Bq2PEL8yBjZLzouEu"
+      "uri": "spotify:track:5rfJ2Bq2PEL8yBjZLzouEu",
+      "releaseYear": 1981
     }
   ]
 }

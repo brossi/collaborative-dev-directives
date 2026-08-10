@@ -50,6 +50,10 @@ for (const directoryName of sourceDirectories) {
           title: song.title,
           artist: song.artist,
           year: song.year,
+          // Only present where a source could establish it, so it is omitted
+          // rather than nulled — `year` is the answer a card asks for, and
+          // this is the second question the same audio can be asked.
+          ...(Number.isInteger(song.releaseYear) ? { releaseYear: song.releaseYear } : {}),
           uri: song.uri,
         },
       });

@@ -59,7 +59,8 @@
       "genres": [
         "latin"
       ],
-      "uri": "spotify:track:1FlktbdmmKyX5pJS7FnHZ5"
+      "uri": "spotify:track:1FlktbdmmKyX5pJS7FnHZ5",
+      "releaseYear": 1930
     },
     {
       "title": "Ten Cents a Dance",
@@ -137,7 +138,8 @@
         "jazz",
         "standards"
       ],
-      "uri": "spotify:track:0yoQrdGXBlL5syZ2xzgzMU"
+      "uri": "spotify:track:0yoQrdGXBlL5syZ2xzgzMU",
+      "releaseYear": 1931
     },
     {
       "title": "I Got Rhythm",
@@ -166,7 +168,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:0DYc7yieIdHRtLSLLmNFcM"
+      "uri": "spotify:track:0DYc7yieIdHRtLSLLmNFcM",
+      "releaseYear": 1930
     },
     {
       "title": "What Is This Thing Called Love?",
@@ -186,7 +189,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:3DptdH2xVhYaRPipyPmFij"
+      "uri": "spotify:track:3DptdH2xVhYaRPipyPmFij",
+      "releaseYear": 1930
     },
     {
       "title": "You Brought a New Kind of Love to Me",
@@ -196,7 +200,8 @@
         "pop",
         "soundtrack"
       ],
-      "uri": "spotify:track:14c8dEydWXUiTEEz8mtfVf"
+      "uri": "spotify:track:14c8dEydWXUiTEEz8mtfVf",
+      "releaseYear": 1930
     },
     {
       "title": "Exactly Like You",
@@ -246,7 +251,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:6MrLimrPVq6KAbcHOtOQ4A"
+      "uri": "spotify:track:6MrLimrPVq6KAbcHOtOQ4A",
+      "releaseYear": 1930
     },
     {
       "title": "Should I",

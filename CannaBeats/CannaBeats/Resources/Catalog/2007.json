@@ -11,7 +11,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:6RX5iL93VZ5fKmyvNXvF1r"
+      "uri": "spotify:track:6RX5iL93VZ5fKmyvNXvF1r",
+      "releaseYear": 2006
     },
     {
       "title": "Umbrella",
@@ -39,7 +40,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:3Q4WeJmzxuDpzMu9QjQqbM"
+      "uri": "spotify:track:3Q4WeJmzxuDpzMu9QjQqbM",
+      "releaseYear": 2007
     },
     {
       "title": "Buy U a Drank (Shawty Snappin')",
@@ -58,7 +60,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:0ZUo4YjG4saFnEJhdWp9Bt"
+      "uri": "spotify:track:0ZUo4YjG4saFnEJhdWp9Bt",
+      "releaseYear": 2006
     },
     {
       "title": "Hey There Delilah",
@@ -68,7 +71,8 @@
         "pop",
         "indie"
       ],
-      "uri": "spotify:track:4RCWB3V8V0dignt99LZ8vH"
+      "uri": "spotify:track:4RCWB3V8V0dignt99LZ8vH",
+      "releaseYear": 2006
     },
     {
       "title": "I Wanna Love You",
@@ -88,7 +92,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:5AtFypwxB2ShXSxNj12dEd"
+      "uri": "spotify:track:5AtFypwxB2ShXSxNj12dEd",
+      "releaseYear": 2006
     },
     {
       "title": "Glamorous",
@@ -108,7 +113,8 @@
         "r&b",
         "pop"
       ],
-      "uri": "spotify:track:7I6DceMT3utDOHjcYCbrr4"
+      "uri": "spotify:track:7I6DceMT3utDOHjcYCbrr4",
+      "releaseYear": 2007
     },
     {
       "title": "Girlfriend",
@@ -128,7 +134,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1lHXlGlve5Zx8tXLhyjDwM"
+      "uri": "spotify:track:1lHXlGlve5Zx8tXLhyjDwM",
+      "releaseYear": 2007
     },
     {
       "title": "Party Like a Rockstar",
@@ -137,7 +144,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:1IYaMVfidzSfvCUZYXhsU1"
+      "uri": "spotify:track:1IYaMVfidzSfvCUZYXhsU1",
+      "releaseYear": 2007
     },
     {
       "title": "Smack That",
@@ -156,7 +164,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:0AA6zq5ArZ1sSH7VIMi4NK"
+      "uri": "spotify:track:0AA6zq5ArZ1sSH7VIMi4NK",
+      "releaseYear": 2007
     },
     {
       "title": "It's Not Over",
@@ -186,7 +195,8 @@
         "pop",
         "hip-hop"
       ],
-      "uri": "spotify:track:1D066zixBwqFYqBhKgdPzp"
+      "uri": "spotify:track:1D066zixBwqFYqBhKgdPzp",
+      "releaseYear": 2006
     },
     {
       "title": "Crank That (Soulja Boy)",
@@ -215,7 +225,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:3pD0f7hSJg2XdQ6udw5Tey"
+      "uri": "spotify:track:3pD0f7hSJg2XdQ6udw5Tey",
+      "releaseYear": 2007
     },
     {
       "title": "Cupid's Chokehold",
@@ -235,7 +246,8 @@
         "rock",
         "alternative"
       ],
-      "uri": "spotify:track:5fVZC9GiM4e8vu99W0Xf6J"
+      "uri": "spotify:track:5fVZC9GiM4e8vu99W0Xf6J",
+      "releaseYear": 2005
     },
     {
       "title": "Home",
@@ -273,7 +285,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:5rXkgeY6rpcHcsolCpXZHR"
+      "uri": "spotify:track:5rXkgeY6rpcHcsolCpXZHR",
+      "releaseYear": 2006
     },
     {
       "title": "U + Ur Hand",
@@ -283,7 +296,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:1iOJQhxKSJ7dg3Dk03yPnl"
+      "uri": "spotify:track:1iOJQhxKSJ7dg3Dk03yPnl",
+      "releaseYear": 2006
     },
     {
       "title": "Walk It Out",
@@ -292,7 +306,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:6lSylu4qTmLBGQB1zp5oCi"
+      "uri": "spotify:track:6lSylu4qTmLBGQB1zp5oCi",
+      "releaseYear": 2006
     }
   ]
 }

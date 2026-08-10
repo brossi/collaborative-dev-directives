@@ -11,7 +11,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:0HPD5WQqrq7wPWR7P7Dw1i"
+      "uri": "spotify:track:0HPD5WQqrq7wPWR7P7Dw1i",
+      "releaseYear": 2009
     },
     {
       "title": "Need You Now",
@@ -21,7 +22,8 @@
         "country",
         "pop"
       ],
-      "uri": "spotify:track:11EX5yhxr9Ihl3IN1asrfK"
+      "uri": "spotify:track:11EX5yhxr9Ihl3IN1asrfK",
+      "releaseYear": 2009
     },
     {
       "title": "Hey, Soul Sister",
@@ -31,7 +33,8 @@
         "pop",
         "rock"
       ],
-      "uri": "spotify:track:4HlFJV71xXKIGcU3kRyttv"
+      "uri": "spotify:track:4HlFJV71xXKIGcU3kRyttv",
+      "releaseYear": 2009
     },
     {
       "title": "California Gurls",
@@ -80,7 +83,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:0SiywuOBRcynK0uKGWdCnn"
+      "uri": "spotify:track:0SiywuOBRcynK0uKGWdCnn",
+      "releaseYear": 2009
     },
     {
       "title": "Dynamite",
@@ -90,7 +94,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:1DqdF42leyFIzqNDv9CjId"
+      "uri": "spotify:track:1DqdF42leyFIzqNDv9CjId",
+      "releaseYear": 2010
     },
     {
       "title": "Break Your Heart",
@@ -100,7 +105,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:1CdqVF1ywD0ZO1zXtB9yWa"
+      "uri": "spotify:track:1CdqVF1ywD0ZO1zXtB9yWa",
+      "releaseYear": 2009
     },
     {
       "title": "Nothin' on You",
@@ -141,7 +147,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:5BoIP8Eha5hwmRVURkC2Us"
+      "uri": "spotify:track:5BoIP8Eha5hwmRVURkC2Us",
+      "releaseYear": 2009
     },
     {
       "title": "Rude Boy",
@@ -151,7 +158,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:60jzFy6Nn4M0iD1d94oteF"
+      "uri": "spotify:track:60jzFy6Nn4M0iD1d94oteF",
+      "releaseYear": 2010
     },
     {
       "title": "Baby",
@@ -201,7 +209,8 @@
         "hip-hop",
         "pop"
       ],
-      "uri": "spotify:track:5OiLJ8tjUPFiPX2gVM8fxJ"
+      "uri": "spotify:track:5OiLJ8tjUPFiPX2gVM8fxJ",
+      "releaseYear": 2009
     },
     {
       "title": "Empire State of Mind",
@@ -231,7 +240,8 @@
         "pop",
         "electronic"
       ],
-      "uri": "spotify:track:3DamFFqW32WihKkTVlwTYQ"
+      "uri": "spotify:track:3DamFFqW32WihKkTVlwTYQ",
+      "releaseYear": 2009
     },
     {
       "title": "Just the Way You Are",
@@ -250,7 +260,8 @@
       "genres": [
         "hip-hop"
       ],
-      "uri": "spotify:track:7Ie9W94M7OjPoZVV216Xus"
+      "uri": "spotify:track:7Ie9W94M7OjPoZVV216Xus",
+      "releaseYear": 2010
     },
     {
       "title": "Your Love Is My Drug",
@@ -260,7 +271,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:3MFQiTzOI5txaTQlybipNx"
+      "uri": "spotify:track:3MFQiTzOI5txaTQlybipNx",
+      "releaseYear": 2010
     },
     {
       "title": "Replay",
@@ -299,7 +311,8 @@
         "hip-hop",
         "r&b"
       ],
-      "uri": "spotify:track:4BycRneKmOs6MhYG9THsuX"
+      "uri": "spotify:track:4BycRneKmOs6MhYG9THsuX",
+      "releaseYear": 2010
     }
   ]
 }

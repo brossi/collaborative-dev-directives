@@ -30,7 +30,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:4xRdYnoXKNDPPrEicGPGCe"
+      "uri": "spotify:track:4xRdYnoXKNDPPrEicGPGCe",
+      "releaseYear": 1946
     },
     {
       "title": "Oh! What It Seemed to Be",
@@ -40,7 +41,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:3gJ4Leu78l2F1C0yFAh8Pl"
+      "uri": "spotify:track:3gJ4Leu78l2F1C0yFAh8Pl",
+      "releaseYear": 1945
     },
     {
       "title": "Rumors Are Flying",
@@ -147,7 +149,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:54ASUXVZNSUruVQ42N1QDJ"
+      "uri": "spotify:track:54ASUXVZNSUruVQ42N1QDJ",
+      "releaseYear": 1946
     },
     {
       "title": "The Christmas Song (Merry Christmas to You)",
@@ -178,7 +181,8 @@
         "r&b",
         "swing"
       ],
-      "uri": "spotify:track:0F18rDmCyWFBuwbbHxQdZs"
+      "uri": "spotify:track:0F18rDmCyWFBuwbbHxQdZs",
+      "releaseYear": 1946
     },
     {
       "title": "Stone Cold Dead in the Market",
@@ -188,7 +192,8 @@
         "r&b",
         "novelty"
       ],
-      "uri": "spotify:track:7rTDkAb0bPcvA0z0zJaLwj"
+      "uri": "spotify:track:7rTDkAb0bPcvA0z0zJaLwj",
+      "releaseYear": 1946
     },
     {
       "title": "Laughing on the Outside (Crying on the Inside)",
@@ -246,7 +251,8 @@
         "r&b",
         "swing"
       ],
-      "uri": "spotify:track:4gzD6NyvxDpxLTZgHxXASb"
+      "uri": "spotify:track:4gzD6NyvxDpxLTZgHxXASb",
+      "releaseYear": 1946
     },
     {
       "title": "The House of Blue Lights",
@@ -256,7 +262,8 @@
         "swing",
         "blues"
       ],
-      "uri": "spotify:track:1ZMoEiIgMdAm8Hj6aS8SyA"
+      "uri": "spotify:track:1ZMoEiIgMdAm8Hj6aS8SyA",
+      "releaseYear": 1946
     },
     {
       "title": "Cement Mixer (Put-ti Put-ti)",
@@ -285,7 +292,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5KR2VWBiBvDuG94h1lM7ok"
+      "uri": "spotify:track:5KR2VWBiBvDuG94h1lM7ok",
+      "releaseYear": 1946
     },
     {
       "title": "Divorce Me C.O.D.",
@@ -294,7 +302,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:1G2h2cFriv1KMHZ1rmfWnt"
+      "uri": "spotify:track:1G2h2cFriv1KMHZ1rmfWnt",
+      "releaseYear": 1946
     }
   ]
 }

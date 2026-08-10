@@ -41,7 +41,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5BS0IA2Sqmym7d79rKDGaa"
+      "uri": "spotify:track:5BS0IA2Sqmym7d79rKDGaa",
+      "releaseYear": 1918
     },
     {
       "title": "Ain't We Got Fun",
@@ -100,7 +101,8 @@
         "jazz",
         "pop"
       ],
-      "uri": "spotify:track:1iA8r6ZJpADdo4zDLZfPxt"
+      "uri": "spotify:track:1iA8r6ZJpADdo4zDLZfPxt",
+      "releaseYear": 1921
     },
     {
       "title": "Say It with Music",

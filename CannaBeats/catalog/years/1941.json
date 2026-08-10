@@ -11,7 +11,8 @@
         "big band",
         "swing"
       ],
-      "uri": "spotify:track:5T7J8jEYOrLKjHURC6IrkA"
+      "uri": "spotify:track:5T7J8jEYOrLKjHURC6IrkA",
+      "releaseYear": 1941
     },
     {
       "title": "Amapola",
@@ -70,7 +71,8 @@
         "big band",
         "swing"
       ],
-      "uri": "spotify:track:71gG4EWbJz2kgvxlMizPLj"
+      "uri": "spotify:track:71gG4EWbJz2kgvxlMizPLj",
+      "releaseYear": 1941
     },
     {
       "title": "There I Go",
@@ -100,7 +102,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:76RezCbAb1p38wnObCxZMc"
+      "uri": "spotify:track:76RezCbAb1p38wnObCxZMc",
+      "releaseYear": 1941
     },
     {
       "title": "Blue Champagne",
@@ -110,7 +113,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:5J9fDRqtHcgTKUJ67SbrgY"
+      "uri": "spotify:track:5J9fDRqtHcgTKUJ67SbrgY",
+      "releaseYear": 1941
     },
     {
       "title": "Boogie Woogie Bugle Boy",
@@ -120,7 +124,8 @@
         "swing",
         "pop"
       ],
-      "uri": "spotify:track:3axPhcbhVDOA9MnhkUrFcE"
+      "uri": "spotify:track:3axPhcbhVDOA9MnhkUrFcE",
+      "releaseYear": 1941
     },
     {
       "title": "I Hear a Rhapsody",
@@ -140,7 +145,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:3Xg7xWr1me7QgfcVUtbMnN"
+      "uri": "spotify:track:3Xg7xWr1me7QgfcVUtbMnN",
+      "releaseYear": 1941
     },
     {
       "title": "Oh! Look at Me Now",
@@ -150,7 +156,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:0iDwZ5rqQvefGEDuiZnuSr"
+      "uri": "spotify:track:0iDwZ5rqQvefGEDuiZnuSr",
+      "releaseYear": 1941
     },
     {
       "title": "This Love of Mine",
@@ -160,7 +167,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:1HAq4CdBI3NMP4yp2aR01Z"
+      "uri": "spotify:track:1HAq4CdBI3NMP4yp2aR01Z",
+      "releaseYear": 1941
     },
     {
       "title": "I Don't Want to Set the World on Fire",
@@ -170,7 +178,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:777zXDJpBufzttU4AJ2dGO"
+      "uri": "spotify:track:777zXDJpBufzttU4AJ2dGO",
+      "releaseYear": 1941
     },
     {
       "title": "Racing with the Moon",
@@ -230,7 +239,8 @@
         "jazz",
         "swing"
       ],
-      "uri": "spotify:track:2BuIAKijtji4xpab2QCTBv"
+      "uri": "spotify:track:2BuIAKijtji4xpab2QCTBv",
+      "releaseYear": 1941
     },
     {
       "title": "Flamingo",
@@ -279,7 +289,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:7tFGxzKmfTIIx9fltX5dBO"
+      "uri": "spotify:track:7tFGxzKmfTIIx9fltX5dBO",
+      "releaseYear": 1941
     },
     {
       "title": "You Made Me Love You",
@@ -299,7 +310,8 @@
         "big band",
         "pop"
       ],
-      "uri": "spotify:track:1UI3aXVEu0lLHpBJc4U7vk"
+      "uri": "spotify:track:1UI3aXVEu0lLHpBJc4U7vk",
+      "releaseYear": 1941
     }
   ]
 }

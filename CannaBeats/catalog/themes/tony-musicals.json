@@ -159,7 +159,8 @@
       "genres": [
         "soundtrack"
       ],
-      "uri": "spotify:track:59MLknIOM4NKmQyreZvPxx"
+      "uri": "spotify:track:59MLknIOM4NKmQyreZvPxx",
+      "releaseYear": 1970
     },
     {
       "title": "Being Alive",
@@ -595,7 +596,8 @@
         "pop",
         "doo-wop"
       ],
-      "uri": "spotify:track:5HDLfQNN2AwAZWqzjDLxb5"
+      "uri": "spotify:track:5HDLfQNN2AwAZWqzjDLxb5",
+      "releaseYear": 2002
     },
     {
       "title": "You Can't Stop the Beat",
@@ -926,7 +928,8 @@
         "soundtrack",
         "pop"
       ],
-      "uri": "spotify:track:0nV8ffGvur4zBHlbOlsZWM"
+      "uri": "spotify:track:0nV8ffGvur4zBHlbOlsZWM",
+      "releaseYear": 2003
     },
     {
       "title": "For Good",
@@ -990,7 +993,8 @@
         "soul",
         "r&b"
       ],
-      "uri": "spotify:track:6SetWNnANlNaeH22lF2VyB"
+      "uri": "spotify:track:6SetWNnANlNaeH22lF2VyB",
+      "releaseYear": 1982
     },
     {
       "title": "People",
@@ -1001,7 +1005,8 @@
         "standards",
         "pop"
       ],
-      "uri": "spotify:track:0s7UEtczBGK68zYCi1y6W8"
+      "uri": "spotify:track:0s7UEtczBGK68zYCi1y6W8",
+      "releaseYear": 1964
     },
     {
       "title": "Don't Rain on My Parade",
@@ -1012,7 +1017,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:1zf8Xmj66XRiI6Etw2Ddu7"
+      "uri": "spotify:track:1zf8Xmj66XRiI6Etw2Ddu7",
+      "releaseYear": 1963
     }
   ]
 }

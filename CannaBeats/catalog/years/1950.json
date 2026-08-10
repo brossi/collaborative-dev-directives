@@ -21,7 +21,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:5dae01pKNjRQtgOeAkFzPY"
+      "uri": "spotify:track:5dae01pKNjRQtgOeAkFzPY",
+      "releaseYear": 1950
     },
     {
       "title": "The Third Man Theme",
@@ -31,7 +32,8 @@
         "soundtrack",
         "pop"
       ],
-      "uri": "spotify:track:7rRGujA12UJcRUz7DxUDwQ"
+      "uri": "spotify:track:7rRGujA12UJcRUz7DxUDwQ",
+      "releaseYear": 1949
     },
     {
       "title": "Sam's Song",
@@ -61,7 +63,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:68ZOKozM9xmlp1iwaQSwY7"
+      "uri": "spotify:track:68ZOKozM9xmlp1iwaQSwY7",
+      "releaseYear": 1949
     },
     {
       "title": "The Third Man Theme",
@@ -80,7 +83,8 @@
       "genres": [
         "country"
       ],
-      "uri": "spotify:track:5ruf6WFa4yswZNdEEjE3D2"
+      "uri": "spotify:track:5ruf6WFa4yswZNdEEjE3D2",
+      "releaseYear": 1950
     },
     {
       "title": "Harbor Lights",
@@ -110,7 +114,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:3R2OD33agLA7FMqLguRoqV"
+      "uri": "spotify:track:3R2OD33agLA7FMqLguRoqV",
+      "releaseYear": 1950
     },
     {
       "title": "Bonaparte's Retreat",
@@ -160,7 +165,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:6inLTyRUJsb8X3D3dlXRa6"
+      "uri": "spotify:track:6inLTyRUJsb8X3D3dlXRa6",
+      "releaseYear": 1949
     },
     {
       "title": "I Wanna Be Loved",
@@ -190,7 +196,8 @@
         "pop",
         "standards"
       ],
-      "uri": "spotify:track:2GK7qFPFzXuDnfHssGbihw"
+      "uri": "spotify:track:2GK7qFPFzXuDnfHssGbihw",
+      "releaseYear": 1950
     },
     {
       "title": "I'll Never Be Free",
@@ -229,7 +236,8 @@
         "pop",
         "novelty"
       ],
-      "uri": "spotify:track:7z03paoXvhCzN22twdfPHR"
+      "uri": "spotify:track:7z03paoXvhCzN22twdfPHR",
+      "releaseYear": 1949
     },
     {
       "title": "Bewitched",
@@ -299,7 +307,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:0b0bKit4qoLBliu2KRxl3O"
+      "uri": "spotify:track:0b0bKit4qoLBliu2KRxl3O",
+      "releaseYear": 1950
     }
   ]
 }

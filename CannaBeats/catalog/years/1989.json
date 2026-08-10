@@ -11,7 +11,8 @@
         "rock",
         "pop"
       ],
-      "uri": "spotify:track:2dEVFDQ9Z9Gyl73yhoKl65"
+      "uri": "spotify:track:2dEVFDQ9Z9Gyl73yhoKl65",
+      "releaseYear": 1988
     },
     {
       "title": "My Prerogative",
@@ -31,7 +32,8 @@
         "rock",
         "metal"
       ],
-      "uri": "spotify:track:43GS3mtezoIFiuIZCLLiDY"
+      "uri": "spotify:track:43GS3mtezoIFiuIZCLLiDY",
+      "releaseYear": 1988
     },
     {
       "title": "Straight Up",
@@ -42,7 +44,8 @@
         "dance",
         "r&b"
       ],
-      "uri": "spotify:track:5xl5582IihbEZAnfj0xyso"
+      "uri": "spotify:track:5xl5582IihbEZAnfj0xyso",
+      "releaseYear": 1988
     },
     {
       "title": "Miss You Much",
@@ -53,7 +56,8 @@
         "r&b",
         "dance"
       ],
-      "uri": "spotify:track:4r5VaK6H1bq0cTGPMTN97Z"
+      "uri": "spotify:track:4r5VaK6H1bq0cTGPMTN97Z",
+      "releaseYear": 1989
     },
     {
       "title": "Cold Hearted",
@@ -63,7 +67,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:6jrp8qBMJO6vhAeYVAsdk9"
+      "uri": "spotify:track:6jrp8qBMJO6vhAeYVAsdk9",
+      "releaseYear": 1989
     },
     {
       "title": "Wind Beneath My Wings",
@@ -94,7 +99,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:7oTHmN972nHbhijwBYy9su"
+      "uri": "spotify:track:7oTHmN972nHbhijwBYy9su",
+      "releaseYear": 1988
     },
     {
       "title": "Giving You the Best That I Got",
@@ -105,7 +111,8 @@
         "soul",
         "jazz"
       ],
-      "uri": "spotify:track:4FKHWhLF2dyjcoSnGlktw4"
+      "uri": "spotify:track:4FKHWhLF2dyjcoSnGlktw4",
+      "releaseYear": 1988
     },
     {
       "title": "Right Here Waiting",
@@ -132,7 +139,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:6PMDILZiYo4YzMBbE0dGK9"
+      "uri": "spotify:track:6PMDILZiYo4YzMBbE0dGK9",
+      "releaseYear": 1989
     },
     {
       "title": "Don't Wanna Lose You",
@@ -142,7 +150,8 @@
         "pop",
         "latin"
       ],
-      "uri": "spotify:track:4tEpvocDTdNVR9DYxnJTFy"
+      "uri": "spotify:track:4tEpvocDTdNVR9DYxnJTFy",
+      "releaseYear": 1989
     },
     {
       "title": "Heaven",
@@ -152,7 +161,8 @@
         "rock",
         "metal"
       ],
-      "uri": "spotify:track:2dEgwtRjYl6TJkIwjRwn6z"
+      "uri": "spotify:track:2dEgwtRjYl6TJkIwjRwn6z",
+      "releaseYear": 1989
     },
     {
       "title": "Girl I'm Gonna Miss You",
@@ -162,7 +172,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:122vb6LtwACmfBIWpwmN1w"
+      "uri": "spotify:track:122vb6LtwACmfBIWpwmN1w",
+      "releaseYear": 1989
     },
     {
       "title": "The Look",
@@ -194,7 +205,8 @@
         "dance",
         "soundtrack"
       ],
-      "uri": "spotify:track:57raEIQFW4OGTIxYvp2nDy"
+      "uri": "spotify:track:57raEIQFW4OGTIxYvp2nDy",
+      "releaseYear": 1989
     },
     {
       "title": "Two Hearts",
@@ -214,7 +226,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:0UUpyDCYzkziXJ1TM4awHM"
+      "uri": "spotify:track:0UUpyDCYzkziXJ1TM4awHM",
+      "releaseYear": 1989
     },
     {
       "title": "Listen to Your Heart",
@@ -234,7 +247,8 @@
         "rock",
         "metal"
       ],
-      "uri": "spotify:track:07HqIg8BnB1lJElnw2ZiSR"
+      "uri": "spotify:track:07HqIg8BnB1lJElnw2ZiSR",
+      "releaseYear": 1989
     },
     {
       "title": "If You Don't Know Me by Now",
@@ -264,7 +278,8 @@
         "pop",
         "r&b"
       ],
-      "uri": "spotify:track:1cy5US2dffz6QGBAIzOGkq"
+      "uri": "spotify:track:1cy5US2dffz6QGBAIzOGkq",
+      "releaseYear": 1989
     },
     {
       "title": "How Can I Fall?",
@@ -273,7 +288,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:62oGUBJQGPa3emMGMejBhm"
+      "uri": "spotify:track:62oGUBJQGPa3emMGMejBhm",
+      "releaseYear": 1988
     },
     {
       "title": "Baby Don't Forget My Number",
@@ -283,7 +299,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:3t4EJY6cTsb6FyP1EQzajK"
+      "uri": "spotify:track:3t4EJY6cTsb6FyP1EQzajK",
+      "releaseYear": 1988
     },
     {
       "title": "Toy Soldiers",
@@ -292,7 +309,8 @@
       "genres": [
         "pop"
       ],
-      "uri": "spotify:track:4jh9olf0OKCokpzxSyLeJx"
+      "uri": "spotify:track:4jh9olf0OKCokpzxSyLeJx",
+      "releaseYear": 1989
     },
     {
       "title": "Forever Your Girl",
@@ -302,7 +320,8 @@
         "pop",
         "dance"
       ],
-      "uri": "spotify:track:0lmS0Wofcv7B7uFYssSKta"
+      "uri": "spotify:track:0lmS0Wofcv7B7uFYssSKta",
+      "releaseYear": 1988
     }
   ]
 }
