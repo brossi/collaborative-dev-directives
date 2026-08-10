@@ -54,6 +54,7 @@ export type RoomView = Omit<RoomState, "usedUris"> & {
 };
 
 export type AudioControlView = {
+  selection: "local" | "managed";
   mode: "local" | "managed";
   leaseId?: string;
   sourceName?: string;

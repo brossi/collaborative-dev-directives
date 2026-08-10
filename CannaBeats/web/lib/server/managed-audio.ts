@@ -5,6 +5,7 @@ export type ManagedAudioCommandKind = "play" | "pause" | "resume";
 export type ManagedPlaybackStatus = "ready" | "starting" | "playing" | "pausing" | "paused" | "resuming" | "error";
 
 export type ManagedAudioView = {
+  selection: "local" | "managed";
   mode: "local" | "managed";
   leaseId?: string;
   sourceName?: string;
@@ -49,9 +50,10 @@ function leaseRow(sessionCode: string) {
 
 function viewFor(row: LeaseRow | undefined, now = Date.now()): ManagedAudioView {
   if (!row || row.expires_at <= now) {
-    return { mode: "local", sourceOnline: false, status: "disconnected" };
+    return { selection: "local", mode: "local", sourceOnline: false, status: "disconnected" };
   }
   return {
+    selection: "managed",
     mode: "managed",
     leaseId: row.id,
     sourceName: row.display_name,
@@ -108,6 +110,7 @@ export function acquireManagedAudioLease(sessionCode: string, userId: string) {
     `).run(leaseId, source.id, sessionCode, userId, now, now, now + MANAGED_LEASE_TTL_MS);
     database().exec("COMMIT");
     return {
+      selection: "managed" as const,
       mode: "managed" as const,
       leaseId,
       sourceName: source.display_name,
@@ -118,6 +121,44 @@ export function acquireManagedAudioLease(sessionCode: string, userId: string) {
     database().exec("ROLLBACK");
     throw error;
   }
+}
+
+function audioSelection(sessionCode: string) {
+  const row = database().prepare("SELECT audio_mode FROM game_sessions WHERE code = ?")
+    .get(sessionCode) as { audio_mode: "local" | "managed" } | undefined;
+  return row?.audio_mode ?? "managed";
+}
+
+/** Returns the saved source choice and, for a host, opportunistically reserves the default source. */
+export function selectedAudioView(sessionCode: string, hostUserId?: string) {
+  const selection = audioSelection(sessionCode);
+  let view = managedAudioView(sessionCode);
+  if (selection === "managed" && hostUserId) {
+    try {
+      view = view.mode === "managed"
+        ? renewManagedAudioLease(sessionCode)
+        : acquireManagedAudioLease(sessionCode, hostUserId);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "No managed audio source is online and available.") {
+        throw error;
+      }
+      // Keep the managed choice visible while the source is temporarily unavailable.
+    }
+  }
+  return { ...view, selection };
+}
+
+export function selectAudioSource(
+  sessionCode: string,
+  hostUserId: string,
+  selection: "local" | "managed",
+) {
+  database().prepare("UPDATE game_sessions SET audio_mode = ?, updated_at = ? WHERE code = ?")
+    .run(selection, Date.now(), sessionCode);
+  if (selection === "local") {
+    return { ...releaseManagedAudioLease(sessionCode), selection };
+  }
+  return { ...acquireManagedAudioLease(sessionCode, hostUserId), selection };
 }
 
 export function releaseManagedAudioLease(sessionCode: string) {

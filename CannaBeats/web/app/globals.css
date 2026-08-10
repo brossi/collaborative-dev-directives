@@ -18,7 +18,7 @@ html { min-height: 100%; background: var(--paper); }
 body { min-height: 100vh; margin: 0; color: var(--ink); background-color: var(--paper); background-image: radial-gradient(rgba(23,28,43,.1) .7px, transparent .8px), radial-gradient(circle at 10% 0%, #fff5bf 0, transparent 34rem); background-size: 5px 5px, auto; font-family: var(--font-geist-sans), system-ui, sans-serif; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
 
 .welcome-shell, .game-shell { width: min(100% - 2rem, 1060px); margin: 0 auto; }
 .welcome-shell { min-height: 100vh; display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(2rem, 8vw, 7rem); align-items: center; padding: 4rem 0; }
@@ -45,6 +45,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .primary-button:hover, .secondary-button:hover, .spotify-button:hover { transform: translateY(-1px); }
 .spotify-status { display: flex; align-items: center; gap: .55rem; margin: 1rem 0 0; color: var(--green); font-size: .86rem; font-weight: 750; }
 .spotify-status i { width: 9px; height: 9px; border-radius: 50%; background: #1ed760; box-shadow: 0 0 0 4px rgba(30,215,96,.16); }
+.audio-source-picker { display: grid; gap: .4rem; margin-top: 1.25rem; color: var(--muted); font-size: .8rem; font-weight: 800; }
+.audio-source-picker select { width: 100%; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: white; font: inherit; }
 button:disabled { cursor: not-allowed; opacity: .42; transform: none !important; }
 .text-button, .leave-link { border: 0; padding: .4rem; color: var(--muted); background: transparent; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .error-message { margin: 1rem 0 0; padding: .8rem 1rem; border-radius: 12px; color: #762e1d; background: #ffe5d9; font-size: .9rem; }

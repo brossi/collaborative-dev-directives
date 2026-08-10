@@ -147,6 +147,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(created.room.code, sessionCode);
   assert.equal(created.room.phase, "lobby");
   assert.equal(created.room.isHost, true);
+  assert.equal(created.audio.selection, "managed");
+  assert.equal(created.audio.mode, "managed");
+  assert.equal(created.audio.sourceOnline, true);
   const lobby = db.prepare("SELECT active_run_id FROM game_sessions WHERE code = ?").get(sessionCode);
   assert.match(lobby.active_run_id, /^[0-9a-f-]{36}$/);
   assert.equal(db.prepare("SELECT session_code FROM game_runs WHERE id = ?").get(lobby.active_run_id).session_code, sessionCode);
@@ -207,6 +210,11 @@ test("an authenticated lobby owns an internal game run and preserves host author
     { Authorization: `Bearer ${playerToken}` },
   );
   assert.equal(playerCannotAcquireSource.status, 403);
+  const playerCannotSelectSource = await gamePost(
+    { action: "audioSelect", code: sessionCode, mode: "local" },
+    { Authorization: `Bearer ${playerToken}` },
+  );
+  assert.equal(playerCannotSelectSource.status, 403);
 
   const added = await gamePost(
     { action: "addPlayer", code: sessionCode, name: "Shared Screen Player" },
@@ -230,13 +238,25 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(unauthenticatedSource.status, 401);
   const sourceHeartbeat = await sourcePost({ action: "poll", deviceId: "test-device" });
   assert.equal(sourceHeartbeat.status, 200);
-  assert.equal((await sourceHeartbeat.json()).lease, null);
+  assert.equal((await sourceHeartbeat.json()).lease.sessionCode, sessionCode);
+  const localSource = await gamePost(
+    { action: "audioSelect", code: sessionCode, mode: "local" },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(localSource.status, 200);
+  const localSourcePayload = await localSource.json();
+  assert.equal(localSourcePayload.audio.selection, "local");
+  assert.equal(localSourcePayload.audio.mode, "local");
+  const releasedHeartbeat = await sourcePost({ action: "poll", deviceId: "test-device" });
+  assert.equal(releasedHeartbeat.status, 200);
+  assert.equal((await releasedHeartbeat.json()).lease, null);
   const acquired = await gamePost(
-    { action: "audioAcquire", code: sessionCode },
+    { action: "audioSelect", code: sessionCode, mode: "managed" },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(acquired.status, 200);
   const acquiredPayload = await acquired.json();
+  assert.equal(acquiredPayload.audio.selection, "managed");
   assert.equal(acquiredPayload.audio.mode, "managed");
   assert.equal(acquiredPayload.audio.sourceOnline, true);
   assert.equal(

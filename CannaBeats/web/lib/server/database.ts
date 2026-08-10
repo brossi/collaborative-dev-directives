@@ -164,6 +164,9 @@ export function database() {
   if (!gameSessionColumns.has("active_run_id")) {
     db.exec("ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT");
   }
+  if (!gameSessionColumns.has("audio_mode")) {
+    db.exec("ALTER TABLE game_sessions ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'managed' CHECK (audio_mode IN ('local', 'managed'))");
+  }
   const ticketColumns = new Set(
     db.prepare("PRAGMA table_info(desktop_web_tickets)").all().map((column) => (column as { name: string }).name),
   );

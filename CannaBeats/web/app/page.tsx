@@ -233,7 +233,7 @@ function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri
 
 export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
-  const [audio, setAudio] = useState<AudioControlView>({ mode: "local", sourceOnline: false, status: "disconnected" });
+  const [audio, setAudio] = useState<AudioControlView>({ selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" });
   const [session, setSession] = useState<GameSession | null>(null);
   const [name, setName] = useState("");
   const [hostPlayerName, setHostPlayerName] = useState("");
@@ -364,16 +364,18 @@ export default function Home() {
   const isMyTurn = Boolean(currentPlayer?.control === "phone" && room?.activePlayerId === currentPlayer.id);
   const hostControlsActivePlayer = Boolean(room?.isHost && activePlayer?.control === "host");
   const selected = selection && selection.round === room?.round ? selection.index : null;
-  const managedPlaybackActive = audio.mode === "managed"
+  const managedPlaybackActive = audio.selection === "managed" && audio.mode === "managed"
     && ["starting", "playing", "resuming"].includes(audio.status);
-  const playbackLabel = audio.mode === "managed"
+  const playbackLabel = audio.selection === "managed"
     ? managedPlaybackActive ? "Pause" : "Resume"
     : spotify.status === "playing"
     ? "Pause"
     : spotify.status === "paused"
       ? "Resume"
       : "Play";
-  const playbackReady = audio.mode === "managed" ? audio.sourceOnline : spotify.isReady;
+  const playbackReady = audio.selection === "managed"
+    ? audio.mode === "managed" && audio.sourceOnline
+    : spotify.isReady;
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return false;
@@ -384,7 +386,7 @@ export default function Home() {
       if (payload.audio) setAudio(payload.audio);
       if (payload.room) {
         setRoom(payload.room);
-        const managed = (payload.audio ?? audio).mode === "managed";
+        const managed = (payload.audio ?? audio).selection === "managed";
         if (!managed && playNewSong && payload.room.phase === "playing" && payload.room.currentSong?.uri) {
           await spotify.play(payload.room.currentSong.uri);
         }
@@ -436,7 +438,7 @@ export default function Home() {
 
   function leaveRoom() {
     if (room?.isHost) {
-      if (audio.mode === "managed" && session) {
+      if (audio.selection === "managed" && session) {
         void gameRequest({ action: "audioRelease", code: session.code });
       } else {
         void spotify.stop();
@@ -445,7 +447,7 @@ export default function Home() {
     sessionStorage.removeItem(SESSION_KEY);
     setSession(null);
     setRoom(null);
-    setAudio({ mode: "local", sourceOnline: false, status: "disconnected" });
+    setAudio({ selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" });
     setSelection(null);
     setError("");
   }
@@ -463,7 +465,7 @@ export default function Home() {
   }
 
   async function controlSharedPlayback() {
-    if (audio.mode === "managed") {
+    if (audio.selection === "managed") {
       await act({ action: "audioControl", command: managedPlaybackActive ? "pause" : "resume" });
       return;
     }
@@ -569,15 +571,24 @@ export default function Home() {
                   <p className="helper">Phone guests scan this private invitation; add shared-screen players above. Room code: <strong>{room.code}</strong></p>
                 </div>
               </div>
-              {audio.mode === "managed" ? (
+              <label className="audio-source-picker">
+                Audio source
+                <select
+                  disabled={busy}
+                  value={audio.selection}
+                  onChange={(event) => void act({ action: "audioSelect", mode: event.target.value })}
+                >
+                  <option value="managed">CannaBeats Linux Spotify source</option>
+                  <option value="local">Spotify on this device</option>
+                </select>
+              </label>
+              {audio.selection === "managed" ? (
                 <>
-                  <p className="spotify-status"><i /> {audio.sourceOnline ? `${audio.sourceName ?? "Managed source"} is reserved for this game` : "Managed source is reconnecting"}</p>
-                  <button className="text-button" disabled={busy} type="button" onClick={() => void act({ action: "audioRelease" })}>Use Spotify on this device instead</button>
+                  <p className="spotify-status"><i /> {audio.mode === "managed" && audio.sourceOnline ? `${audio.sourceName ?? "Managed source"} is reserved for this game` : "Linux Spotify source is reconnecting"}</p>
                 </>
               ) : (
                 <>
-                  <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready on this device" : "Choose managed audio or connect Spotify here"}</p>
-                  <button className="spotify-button" disabled={busy} type="button" onClick={() => void act({ action: "audioAcquire" })}>Use managed Spotify source</button>
+                  <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready on this device" : "Connect Spotify on this device"}</p>
                   {!spotify.isReady && <button className="secondary-button" type="button" onClick={() => void spotify.connect()}>Connect Spotify on this device</button>}
                 </>
               )}
@@ -660,7 +671,7 @@ export default function Home() {
         <header className="player-header">
           <strong>{currentPlayer.name}</strong>
           <span>{currentPlayer.timeline.length} / {room.rules.targetScore}</span>
-          {audio.mode === "managed" && (room.phase === "playing" || room.phase === "placed") && (
+          {audio.selection === "managed" && (room.phase === "playing" || room.phase === "placed") && (
             <button className="text-button" disabled={busy || !audio.sourceOnline} onClick={() => void controlSharedPlayback()} type="button">{playbackLabel}</button>
           )}
         </header>

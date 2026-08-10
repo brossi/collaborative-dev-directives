@@ -4,11 +4,11 @@ import { normalizePlayerControl, type RoomState, type RoomView, type Song } from
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
 import {
-  acquireManagedAudioLease,
   enqueueManagedAudioCommand,
   managedAudioView,
   releaseManagedAudioLease,
-  renewManagedAudioLease,
+  selectAudioSource,
+  selectedAudioView,
 } from "../../../lib/server/managed-audio";
 
 export const runtime = "nodejs";
@@ -338,7 +338,7 @@ export async function GET(request: Request) {
     return Response.json(
       {
         room: roomView(room.state, callerIsHost),
-        audio: callerIsHost ? renewManagedAudioLease(code) : managedAudioView(code),
+        audio: selectedAudioView(code, callerIsHost ? principal.id : undefined),
       },
       { headers: { "Cache-Control": "no-store" } },
     );
@@ -363,7 +363,11 @@ export async function POST(request: Request) {
       if (!lobby || lobby.host_user_id !== principal.id) return fail("Host access required.", 403);
       if (lobby.status === "ended") return fail("This lobby has ended.", 409);
       const existing = loadRoom(code);
-      if (existing) return Response.json({ room: roomView(existing.state, true), created: false });
+      if (existing) return Response.json({
+        room: roomView(existing.state, true),
+        audio: selectedAudioView(code, principal.id),
+        created: false,
+      });
       const runId = randomUUID();
       const state = newRoomState(code, payload.rules);
       const now = Date.now();
@@ -384,7 +388,7 @@ export async function POST(request: Request) {
       const joinOrigin = process.env.CANNABEATS_PUBLIC_GAME_ORIGIN
         ?? `${new URL(request.url).origin}${process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? ""}`;
       return Response.json(
-        { room: roomView(state, true), created: true, joinOrigin },
+        { room: roomView(state, true), audio: selectedAudioView(code, principal.id), created: true, joinOrigin },
         { status: 201 },
       );
     }
@@ -496,16 +500,26 @@ export async function POST(request: Request) {
     if (action === "audioAcquire") {
       if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase === "finished") return fail("This game has finished.", 409);
-      const acquired = acquireManagedAudioLease(code, principal.id);
+      const acquired = selectAudioSource(code, principal.id, "managed");
       const audio = (state.phase === "playing" || state.phase === "placed") && state.currentSong?.uri
         ? enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri)
         : acquired;
       return Response.json({ room: roomView(state, true), audio });
     }
 
+    if (action === "audioSelect") {
+      if (!callerIsHost) return fail("Host access required.", 403);
+      if (state.phase === "finished") return fail("This game has finished.", 409);
+      const selection = String(payload.mode ?? "");
+      if (selection !== "managed" && selection !== "local") return fail("Audio source is invalid.");
+      const audio = selectAudioSource(code, principal.id, selection);
+      return Response.json({ room: roomView(state, true), audio });
+    }
+
     if (action === "audioRelease") {
       if (!callerIsHost) return fail("Host access required.", 403);
-      return Response.json({ room: roomView(state, true), audio: releaseManagedAudioLease(code) });
+      releaseManagedAudioLease(code);
+      return Response.json({ room: roomView(state, true), audio: selectedAudioView(code) });
     }
 
     if (action === "audioControl") {
@@ -571,8 +585,8 @@ export async function POST(request: Request) {
       if (!callerIsHost) return fail("Host access required.", 403);
       if (state.phase !== "lobby") return fail("The game has already started.");
       if (!state.players.length) return fail("At least one player is required.");
-      const audio = renewManagedAudioLease(code);
-      if (audio.mode === "managed" && !audio.sourceOnline) {
+      const audio = selectedAudioView(code, principal.id);
+      if (audio.selection === "managed" && (audio.mode !== "managed" || !audio.sourceOnline)) {
         return fail("The managed audio source is offline.", 409);
       }
       for (const player of state.players) player.timeline = [pickSong(state)];
@@ -597,7 +611,7 @@ export async function POST(request: Request) {
       if (state.phase !== "ready" || !state.currentSong) return fail("The first round is not ready.", 409);
       state.phase = "playing";
       saveRoom(state);
-      const audio = renewManagedAudioLease(code);
+      const audio = selectedAudioView(code, principal.id);
       if (audio.mode === "managed") {
         enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
       }
