@@ -18,3 +18,12 @@ poc.cannabeats.social {
     }
     encode zstd gzip
 }
+
+# btaudio relay. No `encode`: the payload is raw PCM and compressing a live
+# stream buys nothing. No `flush_interval -1`: Caddy already auto-flushes when
+# Content-Length is unknown, and low-latency mode explicitly does not cancel
+# the upstream request when a client disconnects -- which would strand a
+# listener in the relay hub forever.
+cannaudio.cannabeats.social {
+    reverse_proxy 127.0.0.1:8445
+}
