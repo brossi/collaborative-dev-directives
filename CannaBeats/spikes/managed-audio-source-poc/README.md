@@ -142,13 +142,18 @@ negotiates and reports that source-defined format to listeners.
 - [x] Graphical Chrome starts with Widevine present.
 - [x] PulseAudio monitor captures non-silent synthetic audio.
 - [x] The existing repeater delivered that audio to a remote listener.
+- [x] A Premium account authorized successfully and the Web Playback SDK became
+  ready in graphical Chrome.
+- [x] Real Spotify audio reached the virtual monitor and a listener on the
+  separate game droplet (44.1 kHz stereo; nonzero peak and RMS).
+- [x] The Spotify authorization survived a browser restart.
 - [x] Browser, relay, and Spotify credentials have separate Unix access.
 - [x] Tailscale enrollment and Tailscale SSH are enabled.
 - [ ] Verify private administration from an operator device, then remove the
   temporary public SSH allowlist.
-- [ ] Authorize Spotify interactively and verify Web Playback SDK audio.
 - [ ] Add an authenticated, single-owner game-session lease and command queue.
-- [ ] Verify play/pause from CannaBeats, restart recovery, and lease cleanup.
+- [ ] Verify play/pause from CannaBeats, droplet restart recovery, and lease
+  cleanup.
 
 ## Rebuild notes
 
