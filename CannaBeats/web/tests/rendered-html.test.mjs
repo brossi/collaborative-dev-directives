@@ -161,6 +161,8 @@ test("host game setup retains persisted presets and uses weighted era selection"
   assert.match(rules, /"all-eras"/);
   assert.match(rules, /modern:/);
   assert.match(rules, /younger:/);
+  assert.match(rules, /name: "Broadway, TV, and Movies"/);
+  assert.match(rules, /catalogScope: "broadway-tv-movies"/);
   assert.match(page, /function GameSetup/);
   assert.match(page, /Advanced settings/);
   assert.match(page, /Relative era weighting/);
@@ -175,6 +177,10 @@ test("host game setup retains persisted presets and uses weighted era selection"
   assert.match(route, /action === "rules"/);
   assert.match(route, /Rules are locked after the game starts/);
   assert.match(route, /song\.year >= state\.rules\.minYear/);
+  assert.match(route, /film-soundtracks/);
+  assert.match(route, /tony-musicals/);
+  assert.match(route, /tv-soundtracks/);
+  assert.match(route, /state\.rules\.catalogScope === "all"/);
   assert.match(route, /state\.rules\.eraWeights\[era\.id\]/);
   assert.match(route, /Math\.random\(\) \* totalWeight/);
   assert.match(route, /player\.timeline\.length >= state\.rules\.targetScore/);

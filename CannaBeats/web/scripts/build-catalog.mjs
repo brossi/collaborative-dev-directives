@@ -18,6 +18,7 @@ async function modulesIn(directoryName) {
   const files = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
   return Promise.all(files.map(async (file) => ({
     label: `${directoryName}/${file}`,
+    theme: directoryName === "themes" ? file.replace(/\.json$/, "") : null,
     catalogModule: JSON.parse(await readFile(resolve(directory, file), "utf8")),
   })));
 }
@@ -29,13 +30,16 @@ const byUri = new Map();
 const conflicts = [];
 
 for (const directoryName of sourceDirectories) {
-  for (const { label, catalogModule } of await modulesIn(directoryName)) {
+  for (const { label, theme, catalogModule } of await modulesIn(directoryName)) {
     for (const song of catalogModule.songs ?? []) {
       if (typeof song.uri !== "string" || !song.uri.startsWith("spotify:track:")) {
         continue;
       }
       const seen = byUri.get(song.uri);
       if (seen) {
+        if (theme && !seen.song.themes?.includes(theme)) {
+          seen.song.themes = [...(seen.song.themes ?? []), theme];
+        }
         // A URI carrying two different years is either a theme module dating
         // the same recording differently, or a genuinely wrong URI on one of
         // the rows. Keeping the first is safe; staying silent is not.
@@ -54,6 +58,7 @@ for (const directoryName of sourceDirectories) {
           // rather than nulled — `year` is the answer a card asks for, and
           // this is the second question the same audio can be asked.
           ...(Number.isInteger(song.releaseYear) ? { releaseYear: song.releaseYear } : {}),
+          ...(theme ? { themes: [theme] } : {}),
           uri: song.uri,
         },
       });

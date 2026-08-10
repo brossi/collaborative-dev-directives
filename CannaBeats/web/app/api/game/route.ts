@@ -152,11 +152,19 @@ function saveRoom(state: RoomState) {
 }
 
 function pickSong(state: RoomState): Song {
+  const stageAndScreenThemes = new Set([
+    "film-soundtracks",
+    "oscar-songs",
+    "tony-musicals",
+    "tv-soundtracks",
+  ]);
   const available = (catalog as Song[]).filter(
     (song) => song.uri
       && !state.usedUris.includes(song.uri)
       && song.year >= state.rules.minYear
-      && song.year <= state.rules.maxYear,
+      && song.year <= state.rules.maxYear
+      && (state.rules.catalogScope === "all"
+        || song.themes?.some((theme) => stageAndScreenThemes.has(theme))),
   );
   if (!available.length) throw new Error("The playable catalogue is exhausted.");
   const weightedBuckets = ERA_BUCKETS.map((era) => ({

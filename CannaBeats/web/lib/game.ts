@@ -16,6 +16,8 @@ export type Song = {
   /** Publication year — when the recording first entered circulation. Absent
    *  where no source has it. Differs from `year` by decades for revivals. */
   releaseYear?: number;
+  /** Source collections this recording belongs to after URI deduplication. */
+  themes?: string[];
   uri?: string;
 };
 

@@ -64,6 +64,22 @@ test("the built catalogue holds each playable URI exactly once", async () => {
   assert.equal(built.length, expected.size);
 });
 
+test("theme membership survives URI deduplication", async () => {
+  const built = await build();
+  const byUri = new Map(built.map((song) => [song.uri, song]));
+  const directory = new URL("themes/", SOURCE_ROOT);
+  const files = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
+
+  for (const file of files) {
+    const theme = file.replace(/\.json$/, "");
+    const catalogModule = JSON.parse(await readFile(new URL(file, directory), "utf8"));
+    for (const song of catalogModule.songs ?? []) {
+      if (typeof song.uri !== "string" || !song.uri.startsWith("spotify:track:")) continue;
+      assert.ok(byUri.get(song.uri)?.themes?.includes(theme), `${song.title} lost its ${theme} membership`);
+    }
+  }
+});
+
 test("catalog/years wins the year when a URI appears in both directories", async () => {
   const built = await build();
   const byUri = new Map(built.map((song) => [song.uri, song]));

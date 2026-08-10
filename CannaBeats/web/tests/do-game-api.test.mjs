@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,6 +14,10 @@ const internalToken = "game-api-test-internal-token";
 const hostCookie = `host-browser-${randomUUID()}`;
 const playerToken = `desktop-player-${randomUUID()}`;
 const db = openDatabase(databasePath);
+const builtCatalog = JSON.parse(readFileSync(new URL("../data/catalog.json", import.meta.url), "utf8"));
+const stageAndScreenUris = new Set(
+  builtCatalog.filter((song) => song.themes?.length).map((song) => song.uri),
+);
 const hostId = randomUUID();
 const playerId = randomUUID();
 const now = Date.now();
@@ -189,12 +193,27 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(added.status, 201);
   assert.equal((await added.json()).room.players.length, 2);
 
+  const themed = await gamePost(
+    {
+      action: "rules",
+      code: sessionCode,
+      rules: { preset: "broadway-tv-movies", catalogScope: "broadway-tv-movies" },
+    },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(themed.status, 200);
+  assert.equal((await themed.json()).room.rules.catalogScope, "broadway-tv-movies");
+
   const started = await gamePost(
     { action: "start", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(started.status, 200);
   const readyRoom = (await started.json()).room;
+  assert.ok(stageAndScreenUris.has(readyRoom.currentSong.uri));
+  assert.ok(readyRoom.players.every((player) => player.timeline.every(
+    (song) => stageAndScreenUris.has(song.uri),
+  )));
   const begun = await gamePost(
     { action: "begin", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
