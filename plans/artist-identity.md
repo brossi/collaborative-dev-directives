@@ -3,8 +3,8 @@
 Written 2026-08-10. Everything marked ✅ was measured in-session; anything
 inferred is marked «unverified» with the check that would settle it.
 
-Resume point: **Phase 2**. Phase 1 landed 2026-08-10 (`8d3864c`, plus the
-ranking fix it exposed, `d1ad4f0`) — see §2.
+Resume point: **Phase 3**. Phase 1 landed 2026-08-10 (`8d3864c`, plus the
+ranking fix it exposed, `d1ad4f0`); Phase 2 landed the same day (`5194271`).
 
 ---
 
@@ -146,9 +146,65 @@ Playable 3,415 → 3,423. Pending is now **85** (13 themes, 72 years), of which 
 are the deprioritized pre-1950 set — left alone rather than spending quota to
 mark them unresolved.
 
-## 3. Phase 2 — bootstrap the artist registry
+## 3. Phase 2 — bootstrap the artist registry ✅ DONE 2026-08-10
 
-**Free.** New file: `mappings/artist-registry.jsonl`, one row per distinct
+`tools/harvest_artist_ids.py` → `mappings/artist-registry.jsonl` (1.1 MB, all
+candidates stored, `--rederive` replays with no network). 12 queries, free.
+
+| confidence | credits | songs | meaning |
+|---|---|---|---|
+| `single-exact` | 1279 | 2675 | one item, matched on the full credit |
+| `single-shortened` | 423 | 546 | one item, but only after trimming the credit |
+| `multi` | 182 | 303 | several items — no ID recorded, human decides |
+| `none` | 85 | 92 | nothing found |
+
+3,221 of 3,616 song rows sit on an identified artist. 1,266 credits carry a
+Spotify artist ID, 1,671 carry MusicBrainz or Spotify.
+
+**Deviation:** keyed on the **credit string** (1,969), not the normalized
+primary (1,662). Phase 4 needs "given this exact catalog spelling, which
+artist?", and `primary_artist()` is lossy in ways that matter here — it mangles
+`Simon & Garfunkel` to `simon` and `? and the Mysterians` to `""`.
+
+**The finding that nearly sank it:** matching `rdfs:label` alone is silently
+incomplete. Q26876 (Taylor Swift) carries 74 labels, **none English**, no
+English altLabel, and both P434 and P1902 ✅. Bruno Mars, ABBA, Céline Dion and
+Dua Lipa are the same. A label-only harvest filed them as "no Wikidata entity",
+so `none` meant two different things and the Phase 3 queue would have been
+auditing an artefact of the query. Matching the **en.wikipedia sitelink title**
+recovers them.
+
+Neither route may be dropped. Article titles are disambiguated, so `Seal` is
+"Seal (musician)" and the sitelink misses him, and `Jim Jones` as an article is
+only the cult leader — which would convert a correctly-flagged `multi` into a
+confident error. Both run; candidates merge by Q-number. The union also fixed
+`Kool & the Gang`, which the label route missed and then mis-resolved via its
+`Kool` fallback to Robert Bell.
+
+`skos:altLabel` resolves the glyph spellings `ARTIST_ALIASES` was kept for
+(`P!nk` → Q160009, `Ke$ha` → Q33605), which is what lets §5 delete that table.
+
+### 3a. What Phase 3 is inheriting
+
+690 credits need a human. Known shapes, so the audit can be batched:
+
+- **202 of the 423 `single-shortened` reduce a joined credit to one act.** Two
+  kinds, and they need opposite treatment: `Paul Whiteman and His Orchestra` →
+  Paul Whiteman is fine (the bandleader is the entity), but `John Travolta &
+  Olivia Newton-John` → John Travolta drops half a duet.
+- **`multi` is mostly real ambiguity** — `Jim Jones` (3), `Michael Jackson` vs
+  Michael R. Jackson, `TLC` vs The Learning Company, `Pink` vs someone whose
+  alias is Pink.
+- **`none` includes diacritic misses** — the catalog spells it `Beyonce`,
+  Wikidata `Beyoncé`. «unverified» how many of the 85 this accounts for; a scan
+  of accent-folded label equality against the 85 would settle it.
+- Cast credits (`Original Broadway Cast of …`) are genuinely not Wikidata
+  entities and will stay `none`. Their identity comes from Spotify artist IDs
+  via the Phase 1 track log instead.
+
+### Original sketch (superseded by the above)
+
+New file: `mappings/artist-registry.jsonl`, one row per distinct
 primary artist:
 
 ```json
