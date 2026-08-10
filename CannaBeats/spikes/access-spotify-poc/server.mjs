@@ -133,7 +133,7 @@ function makeGameCode() {
 }
 
 function normalizeGameCode(value) {
-  return normalizeInvitationCode(value).slice(0, 6);
+  return normalizeInvitationCode(value);
 }
 
 function validateAgentPublicKey(value) {
@@ -322,6 +322,45 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
       createdAt: new Date(session.created_at).toISOString(),
       updatedAt: new Date(session.updated_at).toISOString(),
     };
+  }
+
+  function createGameSessionForHost(hostUserId) {
+    let code = makeGameCode();
+    while (db.prepare('SELECT 1 FROM game_sessions WHERE code = ?').get(code)) code = makeGameCode();
+    const now = Date.now();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.prepare(`
+        INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+        VALUES (?, ?, 'lobby', ?, ?)
+      `).run(code, hostUserId, now, now);
+      db.prepare(`
+        INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+        VALUES (?, ?, ?, ?)
+      `).run(code, hostUserId, now, now);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+    writeAuditEvent(db, hostUserId, 'game_session.created', code);
+    return gameSessionView(code);
+  }
+
+  function existingGameSessionForHost(hostUserId, rawCode) {
+    const code = normalizeGameCode(rawCode);
+    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    const session = db.prepare(`
+      SELECT code, status FROM game_sessions
+      WHERE code = ? AND host_user_id = ?
+    `).get(code, hostUserId);
+    if (!session) throw new HttpError(404, 'Game session was not found for this host account');
+    if (session.status === 'ended') throw new HttpError(409, 'This game session has ended');
+    db.prepare(`
+      UPDATE game_session_members SET last_seen_at = ?
+      WHERE session_code = ? AND user_id = ?
+    `).run(Date.now(), code, hostUserId);
+    return gameSessionView(code);
   }
 
   function issueSession(res, userId) {
@@ -749,26 +788,7 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
 
   app.post('/api/game-sessions', requireUser, (req, res) => {
     if (req.user.role !== 'host') throw new HttpError(403, 'Host role required');
-    let code = makeGameCode();
-    while (db.prepare('SELECT 1 FROM game_sessions WHERE code = ?').get(code)) code = makeGameCode();
-    const now = Date.now();
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      db.prepare(`
-        INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
-        VALUES (?, ?, 'lobby', ?, ?)
-      `).run(code, req.user.id, now, now);
-      db.prepare(`
-        INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
-        VALUES (?, ?, ?, ?)
-      `).run(code, req.user.id, now, now);
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-    writeAuditEvent(db, req.user.id, 'game_session.created', code);
-    res.status(201).json({ session: gameSessionView(code) });
+    res.status(201).json({ session: createGameSessionForHost(req.user.id) });
   });
 
   app.get('/api/game-sessions/current', requireUser, (req, res) => {
@@ -1102,6 +1122,23 @@ export function createApp({ config = readConfig(), db = openDatabase(config.data
         mode: 'poc-shared-static',
       },
     });
+  });
+
+  app.post('/api/host-agents/game-sessions/prepare', (req, res) => {
+    const agent = verifyHostAgentProof(req.body);
+    if (agent.role !== 'host') throw new HttpError(403, 'Host role required');
+    const hasExistingCode = typeof req.body?.code === 'string'
+      && req.body.code.trim().length > 0;
+    const session = hasExistingCode
+      ? existingGameSessionForHost(agent.user_id, req.body.code)
+      : createGameSessionForHost(agent.user_id);
+    writeAuditEvent(
+      db,
+      agent.user_id,
+      hasExistingCode ? 'host_agent.game_session_selected' : 'host_agent.game_session_created',
+      session.code,
+    );
+    res.status(hasExistingCode ? 200 : 201).json({ session, created: !hasExistingCode });
   });
 
   app.get('/api/host-agents', requireUser, (req, res) => {

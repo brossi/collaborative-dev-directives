@@ -70,7 +70,14 @@ async function loadSession() {
     await loadPasskeys();
     await loadDesktopApplications();
     if (state.user.role === 'host') await loadHostAgents();
-    if (state.user.role === 'host') await loadCurrentGameSession();
+    if (state.user.role === 'host') {
+      try {
+        await loadRequestedOrCurrentGameSession();
+      } catch (error) {
+        state.gameSession = null;
+        showMessage(errorMessage(error), 'error');
+      }
+    }
   } catch {
     state.user = null;
     state.gameSession = null;
@@ -249,6 +256,16 @@ function renderGameSession() {
   }
 }
 
+function requestedGameCode() {
+  const rawCode = new URLSearchParams(location.search).get('game');
+  if (!rawCode) return null;
+  const code = rawCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+    throw new Error('The Host app supplied an invalid game code.');
+  }
+  return code;
+}
+
 function startGameSessionPolling() {
   clearInterval(state.gameSessionTimer);
   if (!state.gameSession) return;
@@ -263,11 +280,18 @@ function startGameSessionPolling() {
   }, 2_000);
 }
 
-async function loadCurrentGameSession() {
-  const result = await api('/api/game-sessions/current');
-  state.gameSession = result.sessions[0] ?? null;
+async function loadRequestedOrCurrentGameSession() {
+  const requestedCode = requestedGameCode();
+  if (requestedCode) {
+    const result = await api(`/api/game-sessions/${encodeURIComponent(requestedCode)}`);
+    state.gameSession = result.session;
+  } else {
+    const result = await api('/api/game-sessions/current');
+    state.gameSession = result.sessions[0] ?? null;
+  }
   renderGameSession();
   startGameSessionPolling();
+  if (requestedCode) showMessage(`Game session ${requestedCode} selected.`);
 }
 
 async function createGameSession() {
@@ -407,6 +431,7 @@ async function enroll(event) {
 
 async function signIn() {
   try {
+    const followUpErrors = [];
     const result = await api('/api/auth/sign-in/options', { method: 'POST', body: '{}' });
     const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
     const verified = await api('/api/auth/sign-in/verify', {
@@ -418,8 +443,20 @@ async function signIn() {
     await loadPasskeys();
     await loadDesktopApplications();
     if (state.user.role === 'host') await loadHostAgents();
+    if (state.user.role === 'host') {
+      try {
+        await loadRequestedOrCurrentGameSession();
+      } catch (error) {
+        state.gameSession = null;
+        renderGameSession();
+        followUpErrors.push(errorMessage(error));
+      }
+    }
     if (state.desktopApproval) await loadPendingDesktopApproval();
-    showMessage('Signed in with your passkey.');
+    showMessage(
+      followUpErrors[0] ?? 'Signed in with your passkey.',
+      followUpErrors.length ? 'error' : 'info',
+    );
   } catch (error) {
     showMessage(errorMessage(error), 'error');
   }

@@ -25,6 +25,7 @@ private struct HostAgentView: View {
                 serverSection
                 authorizationSection
                 statusSection
+                gameSessionSection
                 audioSection
             }
             .padding(28)
@@ -158,9 +159,9 @@ private struct HostAgentView: View {
     private var audioSection: some View {
         GroupBox("Shared audio proof") {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Start the game from here", systemImage: "waveform")
+                Label("Shared audio relay", systemImage: "waveform")
                     .font(.headline)
-                Text("Prepare the relay first, then let this app open CannaBeats. It watches for the PWA’s Spotify audio and attaches automatically. Once attached, the source’s direct output is muted and this Mac listens through the same relay stream as the players.")
+                Text("After the game is resolved above, this app prepares the relay before opening CannaBeats. It watches for the PWA’s Spotify audio and attaches automatically. Once attached, the source’s direct output is muted and this Mac listens through the same relay stream as the players.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -177,13 +178,6 @@ private struct HostAgentView: View {
                             .buttonStyle(.borderedProminent)
                         Button("Cancel") { model.cancelAudioPreparation() }
                             .buttonStyle(.bordered)
-                    } else {
-                        Button("Prepare shared audio & open CannaBeats") {
-                            Task { await model.prepareAndOpenCannaBeats() }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .disabled(model.isBusy || !model.isPaired)
                     }
                     if model.isBusy { ProgressView().controlSize(.small) }
                 }
@@ -234,6 +228,55 @@ private struct HostAgentView: View {
                         .disabled(model.isBusy || model.isRelaying || !model.isPaired || model.selectedAudioProcess == nil)
                     }
                     .padding(.top, 8)
+                }
+            }
+            .padding(6)
+        }
+    }
+
+    private var gameSessionSection: some View {
+        GroupBox("Game session") {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Resolve the game before opening CannaBeats", systemImage: "person.3.sequence.fill")
+                    .font(.headline)
+                Text("Create a new server lobby for the game you are about to configure, or enter the code for an existing lobby owned by this host account. The real code is passed into the PWA when it opens.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button("Create new game & open CannaBeats") {
+                    Task { await model.createGameAndOpenCannaBeats() }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(model.isBusy || model.isRelaying || model.isAwaitingAudioProcess || !model.isPaired)
+
+                HStack {
+                    TextField("Six-character game code", text: $model.existingGameCode)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 260)
+                        .disabled(model.isBusy || model.isRelaying || model.isAwaitingAudioProcess)
+                    Button("Use existing game & open") {
+                        Task { await model.useExistingGameAndOpenCannaBeats() }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(
+                        model.isBusy || model.isRelaying || model.isAwaitingAudioProcess
+                            || !model.isPaired || !model.canUseExistingGameCode
+                    )
+                }
+
+                if !model.activeGameCode.isEmpty {
+                    Text(model.formattedActiveGameCode)
+                        .font(.system(size: 30, weight: .bold, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+                Text(model.gameSessionStatus)
+                    .foregroundStyle(model.errorMessage.isEmpty ? .primary : .secondary)
+
+                if !model.isPaired {
+                    Text("Authorize this Mac above before creating or selecting a game.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(6)

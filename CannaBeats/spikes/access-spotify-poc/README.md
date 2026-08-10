@@ -13,6 +13,7 @@ This spike proves the risky integration boundaries without loading the game engi
 - P-256 device challenge proofs without sharing a browser cookie;
 - signed-device delivery of in-memory audio-relay credentials.
 - passkey-approved, revocable desktop-client installation credentials;
+- signed Host creation or selection of a host-owned game session before launching the PWA;
 - authenticated game-session creation, desktop join/resume, and lobby membership polling.
 
 The SQLite database has no Spotify columns. The server exposes only the public Spotify client ID and
@@ -27,10 +28,13 @@ confirm the named installation and complete a fresh passkey assertion. The deskt
 resulting opaque credential in the operating system credential store; its bundled web UI never
 receives the value.
 
-Hosts can create a minimal test lobby from this page. A paired desktop installation can join with the
-six-character game code or resume an active lobby already associated with its account. The game code
-only locates the lobby: all join, resume, and polling endpoints require the revocable desktop
-credential. No gameplay or audio transport is part of this slice yet.
+Hosts can create a minimal test lobby from this page or from the paired Host application. The Host
+application can also validate and reopen an existing non-ended lobby owned by the same host account.
+It passes the resolved six-character code to the PWA as `?game=...`, where the authenticated host
+view selects that exact lobby. A paired desktop installation can join with the code or resume an
+active lobby already associated with its account. The game code only locates the lobby: all join,
+resume, and polling endpoints still require authenticated application credentials. No gameplay is
+part of this slice yet.
 
 ## Local development
 

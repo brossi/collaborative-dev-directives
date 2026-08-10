@@ -51,6 +51,22 @@ private struct AgentProofRequest: Encodable {
     let signature: String
 }
 
+private struct HostGameSessionRequest: Encodable {
+    let agentId: String
+    let challengeToken: String
+    let signature: String
+    let code: String?
+}
+
+private struct HostGameSession: Decodable {
+    let code: String
+}
+
+private struct HostGameSessionResponse: Decodable {
+    let session: HostGameSession
+    let created: Bool
+}
+
 private struct AgentProofResponse: Decodable {
     struct User: Decodable {
         let id: String
@@ -159,9 +175,12 @@ final class HostAgentModel: ObservableObject {
     @Published private(set) var isBusy = false
     @Published private(set) var audioProcesses: [CBAudioProcessInfo] = []
     @Published var selectedAudioProcessID: UInt32 = 0
+    @Published var existingGameCode = ""
+    @Published private(set) var activeGameCode = ""
+    @Published private(set) var gameSessionStatus = "Create a new game or enter a code for one you already host."
     @Published private(set) var isRelaying = false
     @Published private(set) var isAwaitingAudioProcess = false
-    @Published private(set) var audioStatus = "Start here to prepare sharing and open CannaBeats."
+    @Published private(set) var audioStatus = "Resolve a game above to prepare sharing and open CannaBeats."
     @Published private(set) var audioMetrics = "No audio captured yet."
 
     private var signingKey: DeviceSigningKey?
@@ -198,6 +217,12 @@ final class HostAgentModel: ObservableObject {
 
     var isPaired: Bool { agentID != nil }
     var canOpenAuthorization: Bool { verificationURL != nil }
+    var canUseExistingGameCode: Bool { normalizeGameCode(existingGameCode).count == 6 }
+    var formattedActiveGameCode: String {
+        guard activeGameCode.count == 6 else { return activeGameCode }
+        let midpoint = activeGameCode.index(activeGameCode.startIndex, offsetBy: 3)
+        return "\(activeGameCode[..<midpoint])-\(activeGameCode[midpoint...])"
+    }
     var selectedAudioProcess: CBAudioProcessInfo? {
         audioProcesses.first { $0.objectID == selectedAudioProcessID }
     }
@@ -330,14 +355,39 @@ final class HostAgentModel: ObservableObject {
             : "Choose the process producing the Spotify audio."
     }
 
-    func prepareAndOpenCannaBeats() async {
+    func createGameAndOpenCannaBeats() async {
+        await prepareGameAndOpenCannaBeats(existingCode: nil)
+    }
+
+    func useExistingGameAndOpenCannaBeats() async {
+        let code = normalizeGameCode(existingGameCode)
+        guard code.count == 6 else {
+            errorMessage = "Enter a valid six-character game code."
+            gameSessionStatus = "The existing game code is invalid."
+            return
+        }
+        existingGameCode = formattedGameCode(code)
+        await prepareGameAndOpenCannaBeats(existingCode: code)
+    }
+
+    private func prepareGameAndOpenCannaBeats(existingCode: String?) async {
         guard !isBusy, !isRelaying, !isAwaitingAudioProcess, let agentID else { return }
         isBusy = true
         errorMessage = ""
-        audioStatus = "Authenticating this host app and preparing the relay…"
+        gameSessionStatus = existingCode == nil
+            ? "Creating a new game session…"
+            : "Validating the existing game session…"
+        audioStatus = "Waiting for a game session before preparing the relay…"
         defer { isBusy = false }
 
         do {
+            let game = try await prepareGameSession(agentID: agentID, existingCode: existingCode)
+            activeGameCode = game.session.code
+            self.existingGameCode = formattedGameCode(game.session.code)
+            gameSessionStatus = game.created
+                ? "Created game \(formattedActiveGameCode)."
+                : "Using game \(formattedActiveGameCode)."
+            audioStatus = "Game selected. Authenticating this host app and preparing the relay…"
             let grant = try await fetchRelayGrant(agentID: agentID)
             preparedRelayGrant = grant
             let existing = CBAudioTap.audioOutputProcesses()
@@ -346,28 +396,44 @@ final class HostAgentModel: ObservableObject {
             isAwaitingAudioProcess = true
             audioStatus = "CannaBeats is opening. Connect Spotify and start the browser player; sharing will begin when audio starts."
             startAudioProcessDiscovery()
-            openCannaBeats()
+            openCannaBeats(gameCode: game.session.code)
         } catch {
             preparedRelayGrant = nil
             errorMessage = error.localizedDescription
-            audioStatus = "Shared audio preparation failed."
+            audioStatus = "The game could not be prepared for shared audio."
         }
     }
 
     func openCannaBeats() {
-        guard let origin = try? HostAPIClient(originText: serverOrigin).origin else { return }
+        guard !activeGameCode.isEmpty else {
+            errorMessage = "Create or select a game before opening CannaBeats."
+            return
+        }
+        openCannaBeats(gameCode: activeGameCode)
+    }
+
+    private func openCannaBeats(gameCode: String) {
+        guard let origin = try? HostAPIClient(originText: serverOrigin).origin,
+              var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) else { return }
+        components.path = "/"
+        components.queryItems = [URLQueryItem(name: "game", value: gameCode)]
+        guard let launchURL = components.url else { return }
         if let applicationURL = installedPWA(for: origin) {
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = true
-            NSWorkspace.shared.openApplication(at: applicationURL, configuration: configuration) { [weak self] _, error in
+            NSWorkspace.shared.open(
+                [launchURL],
+                withApplicationAt: applicationURL,
+                configuration: configuration
+            ) { [weak self] _, error in
                 guard let error else { return }
                 Task { @MainActor in
                     self?.errorMessage = "The installed CannaBeats app did not open: \(error.localizedDescription)"
-                    NSWorkspace.shared.open(origin)
+                    NSWorkspace.shared.open(launchURL)
                 }
             }
         } else {
-            NSWorkspace.shared.open(origin)
+            NSWorkspace.shared.open(launchURL)
         }
     }
 
@@ -457,6 +523,9 @@ final class HostAgentModel: ObservableObject {
         verificationURL = nil
         agentID = nil
         pairedUser = ""
+        existingGameCode = ""
+        activeGameCode = ""
+        gameSessionStatus = "Create a new game or enter a code for one you already host."
         keyProtection = "No device key created"
         errorMessage = ""
         status = "Local authorization removed. Revoke the old application from your CannaBeats account if needed."
@@ -477,6 +546,39 @@ final class HostAgentModel: ObservableObject {
                 if self.agentID != nil { return }
             }
         }
+    }
+
+    private func prepareGameSession(
+        agentID: String,
+        existingCode: String?
+    ) async throws -> HostGameSessionResponse {
+        let client = try HostAPIClient(originText: serverOrigin)
+        let key: DeviceSigningKey
+        if let signingKey {
+            key = signingKey
+        } else if let stored = try DeviceSigningKey.load() {
+            key = stored
+        } else {
+            throw HostAgentError.missingKey
+        }
+        signingKey = key
+        let challenge: AgentChallenge = try await client.post(
+            "/api/host-agents/challenge",
+            body: AgentIDRequest(agentId: agentID)
+        )
+        guard let challengeData = challenge.challenge.data(using: .utf8) else {
+            throw HostAgentError.invalidChallenge
+        }
+        let signature = try key.signature(for: challengeData).base64EncodedString()
+        return try await client.post(
+            "/api/host-agents/game-sessions/prepare",
+            body: HostGameSessionRequest(
+                agentId: agentID,
+                challengeToken: challenge.challengeToken,
+                signature: signature,
+                code: existingCode
+            )
+        )
     }
 
     private func fetchRelayGrant(agentID: String) async throws -> RelayGrant {
@@ -507,6 +609,19 @@ final class HostAgentModel: ObservableObject {
             )
         )
         return response.relay
+    }
+
+    private func normalizeGameCode(_ value: String) -> String {
+        let allowed = Set("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+        let compact = value.uppercased().filter { $0 != "-" && !$0.isWhitespace }
+        guard compact.allSatisfy({ allowed.contains($0) }) else { return "" }
+        return compact
+    }
+
+    private func formattedGameCode(_ code: String) -> String {
+        guard code.count == 6 else { return code }
+        let midpoint = code.index(code.startIndex, offsetBy: 3)
+        return "\(code[..<midpoint])-\(code[midpoint...])"
     }
 
     private func startMetricsTimer() {

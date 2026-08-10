@@ -58,6 +58,19 @@ async function nativePost(path, body = {}, headers = {}) {
   });
 }
 
+async function signedHostPost(path, agentId, privateKey, body = {}) {
+  const challengeResponse = await post('/api/host-agents/challenge', { agentId });
+  assert.equal(challengeResponse.status, 200);
+  const challenge = await challengeResponse.json();
+  const signature = sign('sha256', Buffer.from(challenge.challenge), privateKey).toString('base64');
+  return post(path, {
+    ...body,
+    agentId,
+    challengeToken: challenge.challengeToken,
+    signature,
+  });
+}
+
 test('health, public config, and defensive headers are present', async () => {
   const response = await fetch(`${baseUrl}/api/health`);
   assert.equal(response.status, 200);
@@ -229,6 +242,42 @@ test('an approved P-256 host application can prove its device identity once per 
       mode: 'poc-shared-static',
     },
   });
+
+  const createdResponse = await signedHostPost(
+    '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey,
+  );
+  assert.equal(createdResponse.status, 201);
+  const created = await createdResponse.json();
+  assert.equal(created.created, true);
+  assert.match(created.session.code, /^[A-Z2-9]{6}$/);
+  assert.equal(created.session.host.id, host.id);
+
+  const formattedCode = `${created.session.code.slice(0, 3)}-${created.session.code.slice(3)}`;
+  const existingResponse = await signedHostPost(
+    '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: formattedCode },
+  );
+  assert.equal(existingResponse.status, 200);
+  const existing = await existingResponse.json();
+  assert.equal(existing.created, false);
+  assert.equal(existing.session.code, created.session.code);
+
+  const otherHostId = randomUUID();
+  const otherCode = 'ZZZ999';
+  const now = Date.now();
+  db.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)')
+    .run(otherHostId, 'Other Test Host', 'host', now);
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+    VALUES (?, ?, 'lobby', ?, ?)
+  `).run(otherCode, otherHostId, now, now);
+  db.prepare(`
+    INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+    VALUES (?, ?, ?, ?)
+  `).run(otherCode, otherHostId, now, now);
+  const otherHostSession = await signedHostPost(
+    '/api/host-agents/game-sessions/prepare', claimed.agent.id, privateKey, { code: otherCode },
+  );
+  assert.equal(otherHostSession.status, 404);
 });
 
 test('a desktop installation needs explicit approval before its revocable credential works', async () => {

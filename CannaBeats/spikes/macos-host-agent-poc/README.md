@@ -65,18 +65,23 @@ reminds the user to revoke it explicitly.
 ## Shared-audio proof
 
 1. Start the native host app before opening CannaBeats.
-2. Choose **Prepare shared audio & open CannaBeats**. The app authenticates the
-   relay grant, snapshots existing audio processes, and opens the installed
-   CannaBeats PWA. If the PWA is not installed, it opens the website instead.
-3. In CannaBeats, connect Spotify if needed, start the browser player, and begin
+2. Choose **Create new game & open CannaBeats**, or enter a host-owned game code
+   and choose **Use existing game & open**. The app proves its device identity,
+   creates or validates the server lobby, and displays the real code before it
+   does anything else.
+3. The app authenticates the relay grant, snapshots existing audio processes,
+   and opens the installed CannaBeats PWA at `?game=REALCODE`. If the PWA is not
+   installed, it opens the same URL in the default browser. The authenticated
+   PWA selects that exact session.
+4. In CannaBeats, connect Spotify if needed, start the browser player, and begin
    playback. The host app watches for the newly active audio process and
    attaches automatically; no process selection is normally required.
-4. Approve macOS **Screen & System Audio Recording** access if prompted. macOS
+5. Approve macOS **Screen & System Audio Recording** access if prompted. macOS
    may require the host app to be restarted after the first permission change.
-5. The detected process's direct output should become silent, then return
+6. The detected process's direct output should become silent, then return
    through `cannaudio.cannabeats.social`. The status should say the host is
    listening through the same relay stream as players.
-6. Confirm that captured seconds increase, peak is above `silence`, and dropped
+7. Confirm that captured seconds increase, peak is above `silence`, and dropped
    upload packets remain at zero. Choose **Stop shared audio** to remove the tap
    and restore direct playback.
 
