@@ -358,4 +358,29 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
     headers: { Cookie: guestCookie },
   });
   assert.equal(existingGuestStillWorks.status, 200);
+
+  const secondInviteResponse = await gamePost(
+    { action: "guestInvite", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(secondInviteResponse.status, 200);
+  const secondInvite = (await secondInviteResponse.json()).guestInvite;
+  const started = await gamePost(
+    { action: "start", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(started.status, 200);
+  assert.ok(db.prepare(`
+    SELECT revoked_at FROM game_guest_invites WHERE token_hash = ? AND revoked_at IS NOT NULL
+  `).get(sha256(secondInvite)));
+
+  const postStartJoin = await gamePost(
+    { action: "joinGuest", code: sessionCode, name: "Late Guest", invite: secondInvite },
+    { Origin: origin },
+  );
+  assert.equal(postStartJoin.status, 403);
+  const admittedGuestAfterStart = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
+    headers: { Cookie: guestCookie },
+  });
+  assert.equal(admittedGuestAfterStart.status, 200);
 });

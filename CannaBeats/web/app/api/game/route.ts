@@ -25,7 +25,8 @@ type Principal = {
 const SESSION_COOKIE = "cb_session";
 const DESKTOP_WEB_COOKIE = "cb_desktop_web";
 const GUEST_COOKIE = "cb_guest";
-const GUEST_INVITE_TTL_MS = 8 * 60 * 60 * 1000;
+// Abandoned lobbies still need a cleanup ceiling; starting a game revokes its invites immediately.
+const GUEST_ACCESS_MAX_TTL_MS = 8 * 60 * 60 * 1000;
 
 function parseCookies(header = "") {
   return Object.fromEntries(
@@ -386,7 +387,7 @@ export async function POST(request: Request) {
       if (room.state.phase !== "lobby") return fail("Guest invitations are locked after the game starts.", 409);
       const token = randomToken();
       const now = Date.now();
-      const expiresAt = now + GUEST_INVITE_TTL_MS;
+      const expiresAt = now + GUEST_ACCESS_MAX_TTL_MS;
       database().prepare(`
         INSERT INTO game_guest_invites
           (token_hash, session_code, created_by, created_at, expires_at)
@@ -434,7 +435,7 @@ export async function POST(request: Request) {
       const sessionToken = randomToken();
       const sessionHash = sha256(sessionToken);
       const now = Date.now();
-      const expiresAt = Math.min(invite.expires_at, now + GUEST_INVITE_TTL_MS);
+      const expiresAt = Math.min(invite.expires_at, now + GUEST_ACCESS_MAX_TTL_MS);
       database().exec("BEGIN IMMEDIATE");
       try {
         database().prepare(`INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, 'player', ?)`)
@@ -536,6 +537,10 @@ export async function POST(request: Request) {
       state.round = 1;
       state.retractionUsed = false;
       state.phase = "ready";
+      database().prepare(`
+        UPDATE game_guest_invites SET revoked_at = ?
+        WHERE session_code = ? AND revoked_at IS NULL
+      `).run(Date.now(), code);
       database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
         .run(Date.now(), code);
       saveRoom(state);
