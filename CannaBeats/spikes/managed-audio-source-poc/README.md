@@ -159,6 +159,25 @@ dedicated, noninteractive source. This avoids a silent autoplay failure after
 a browser restart. The source UI still reports SDK state before acknowledging
 success.
 
+### Measured full-reboot recovery
+
+On 2026-08-10, a play command was queued only after SSH to the source droplet
+had become unavailable. The host lease remained renewed while the droplet
+performed a full reboot. One measured run produced:
+
+| Milestone from reboot request | Time |
+| --- | ---: |
+| SSH unavailable | 3.2 s |
+| SSH, controller, and Chrome debugging endpoint restored | 36.2 s |
+| Queued Spotify command acknowledged as playing | 43.3 s |
+| Non-silent PCM confirmed at a remote relay listener | 46.7 s |
+
+The last measurement includes collecting 262,144 bytes (about 1.5 seconds) of
+44.1 kHz stereo PCM, so first audible recovery occurred somewhat earlier than
+the confirmation timestamp. Treat 60 seconds as the normal full-reboot grace
+window and retain the 90-second lease ceiling for margin. This is a single-run
+baseline rather than a latency distribution.
+
 The PulseAudio device presents to PortAudio as 44.1 kHz stereo. The repeater
 negotiates and reports that source-defined format to listeners.
 
