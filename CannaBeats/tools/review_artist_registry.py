@@ -26,19 +26,36 @@ WHY THIS EXISTS AT ALL
     A person can decide it in two seconds, once. This turns that into a
     permanent fact rather than a coin flip repeated on every comparison.
 
-    So a decision, once made, is final: rows written here carry
-    `source: "human"`, and both rederive_rows() and apply_resolver_ids() skip
-    them. A confirmed absence counts as a decision too — a later harvest
+    So a decision, once made, is final: rows written here carry a `source` of
+    "human" or "assistant", and both rederive_rows() and apply_resolver_ids()
+    skip them. A confirmed absence counts as a decision too — a later harvest
     turning up a plausible candidate must not overturn someone who looked.
 
-WHAT IS DELIBERATELY NOT AUTOMATED
-    No rule fills the decision column. Every mechanical shortcut available here
-    is another similarity heuristic, which is the thing this whole plan is
-    retiring. The tool's job is to make deciding cheap, not to decide:
-    candidates spelled out with their types and identifiers, real song titles
-    alongside them, and rows grouped by `shape` — WHICH cut was applied, never
-    whether it was right — so 219 "X feat. Y" rows are one judgement repeated
-    rather than 219 separate ones. Within a group, most songs first.
+WHO DECIDED  (--reviewer, default "human")
+    An assistant can work this queue too, and should: reading "Harry James"
+    beside "Ciribiribin (1939)" and two candidate descriptions is the same act
+    of judgement the column is asking for, and it is not the thing the plan
+    retires. What the plan proves impossible is a FUNCTION OF THE CHARACTERS —
+    "seal"/"seals" are different acts and score higher than "pnk"/"pink", which
+    are the same. Nothing there constrains a reader with world knowledge.
+
+    But those two sources are not interchangeable, so they are not conflated:
+
+      - `--reviewer assistant` stamps `source: "assistant"`. Those rows STAY in
+        the review queue with their answer pre-filled in `decision` and their
+        author in `reviewed_by`, so the human sees every one and overrides by
+        editing the cell. Accepting them is re-applying the file.
+      - `--reviewer human` stamps `source: "human"` and retires the row.
+
+    An assistant may only choose among candidates already stored on the row, so
+    it cannot invent a Q-number; anything it wants that is not there has to be
+    looked up against Wikidata like any other hand-entered ID.
+
+WHAT IS STILL NOT AUTOMATED
+    No RULE fills the decision column — no threshold, no similarity score, no
+    "if it ends in `and His Orchestra` then". The tool also makes deciding
+    cheap: candidates spelled out with their types and identifiers, real song
+    titles alongside them, rows grouped by `shape` so like judgements batch.
 """
 import argparse
 import collections
@@ -53,8 +70,8 @@ import urllib.parse
 import urllib.request
 
 from _common import CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED
-from harvest_artist_ids import (ENDPOINT, HERE, REGISTRY, UA, read_rows,
-                                summarize, write_rows)
+from harvest_artist_ids import (ENDPOINT, HERE, REGISTRY, REVIEWED, UA,
+                                read_rows, summarize, write_rows)
 
 REVIEW_CSV = HERE / "mappings" / "artist-registry-review.csv"
 
@@ -63,15 +80,25 @@ DECISION_NONE = "none"
 # Everything except a settled machine answer and an already-audited row.
 REVIEWABLE = ("single-shortened", "multi", "none")
 
-FIELDS = ["shape", "credit", "songs", "removed", "decision", "harvested",
-          "candidates", "examples", "confidence", "labels", "matched_label"]
+FIELDS = ["shape", "credit", "songs", "removed", "decision", "reviewed_by",
+          "harvested", "candidates", "examples", "confidence", "labels",
+          "matched_label"]
 
-# A backing band rather than a second act: "and His Orchestra", "& the Drells".
-BACKING_BAND = re.compile(r"^(?:and|&|with)\s+(?:his|her|their|the)\b", re.I)
+# A POSSESSIVE backing band — "and His Orchestra", "and His Five Pennies". The
+# possessive is what makes it safe to drop: the ensemble is named as the
+# leader's, so the leader is the entity.
+#
+# "& The <Name>" deliberately does NOT count, even though it looks identical.
+# "& The Teenagers", "& The Supremes", "& The Fresh Prince" name a second act
+# with its own identity, and dropping it can lose the better-known half —
+# "DJ Jazzy Jeff & The Fresh Prince" reduces to DJ Jazzy Jeff, discarding Will
+# Smith. Lumping the two together was wrong when this file first grouped them.
+BACKING_BAND = re.compile(r"^(?:and|&|with)\s+(?:his|her|their)\b", re.I)
+NAMED_GROUP = re.compile(r"^(?:and|&|with)\s+the\b", re.I)
 
 # Cheapest-to-decide first, so the queue drains; genuinely hard ones last.
-SHAPE_ORDER = ["trimmed:featured", "trimmed:backing-band", "trimmed:co-credited",
-               "trimmed:other", "multi", "none"]
+SHAPE_ORDER = ["trimmed:featured", "trimmed:backing-band", "trimmed:named-group",
+               "trimmed:co-credited", "trimmed:other", "multi", "none"]
 
 
 def review_shape(row) -> str:
@@ -84,12 +111,20 @@ def review_shape(row) -> str:
     decision:
 
       trimmed:featured      "X feat. Y" -> X. The lead is the act.
-      trimmed:backing-band  "X and His Orchestra" -> X. The leader is the entity.
-      trimmed:co-credited   "X & Y" -> X. Drops a real co-artist — the risky
-                            group, e.g. "John Travolta & Olivia Newton-John".
+      trimmed:backing-band  "X and His Orchestra" -> X. The possessive says the
+                            ensemble is the leader's, so the leader is the entity.
+      trimmed:named-group   "X & The Teenagers" -> X. Looks the same, is not: the
+                            group is a second act, and dropping it can lose the
+                            better-known half (DJ Jazzy Jeff & The Fresh Prince).
+      trimmed:co-credited   "X & Y" -> X. Drops a real co-artist — e.g.
+                            "John Travolta & Olivia Newton-John".
     """
-    if row["confidence"] != "single-shortened":
-        return row["confidence"]
+    # harvest_confidence outlives a decision: once `confidence` becomes
+    # "assistant" the row is still in the queue, and it still has to sort into
+    # the block it came from.
+    verdict = row.get("harvest_confidence") or row["confidence"]
+    if verdict != "single-shortened":
+        return verdict
     credit, matched = row["credit"], row["matched_label"] or ""
     trimmed = CREDIT_FEAT_X.sub("", CREDIT_FEAT.sub("", credit)).strip()
     if matched == trimmed and trimmed != credit:
@@ -97,6 +132,8 @@ def review_shape(row) -> str:
     dropped = removed_text(row)
     if BACKING_BAND.match(dropped):
         return "trimmed:backing-band"
+    if NAMED_GROUP.match(dropped):
+        return "trimmed:named-group"
     if CREDIT_JOINED.split(trimmed)[0].strip() == matched:
         return "trimmed:co-credited"
     return "trimmed:other"
@@ -127,9 +164,23 @@ def needs_review(rows) -> list:
     John Travolta silently drops half a duet.
     """
     pending = [row for row in rows
-               if row.get("source") != "human" and row["confidence"] in REVIEWABLE]
+               if row.get("source") != "human"
+               and (row["confidence"] in REVIEWABLE
+                    or row.get("source") in REVIEWED)]
     return sorted(pending, key=lambda row: (SHAPE_ORDER.index(review_shape(row)),
                                             -row["songs"], row["credit"]))
+
+
+def prior_decision(row) -> str:
+    """The decision already on the row, re-rendered so it round-trips.
+
+    An assistant-reviewed row comes back into the queue with its answer showing
+    rather than blank: the human is reviewing a proposal, not re-deriving it
+    from scratch. Leaving the cell alone accepts it; editing it overrides.
+    """
+    if row.get("source") not in REVIEWED:
+        return ""
+    return row["wikidata"] or DECISION_NONE
 
 
 def format_candidates(row) -> str:
@@ -185,7 +236,8 @@ def emit_csv(rows, examples, handle) -> None:
             "songs": row["songs"],
             "removed": removed_text(row),
             "confidence": row["confidence"],
-            "decision": "",
+            "decision": prior_decision(row),
+            "reviewed_by": row["source"] if row["source"] in REVIEWED else "",
             "harvested": format_harvested(row),
             "candidates": format_candidates(row),
             "examples": "; ".join(examples.get(row["credit"], [])),
@@ -232,7 +284,7 @@ def unresolved_qids(rows, decisions) -> dict:
     return missing
 
 
-def apply_decisions(rows, decisions, extra=None) -> int:
+def apply_decisions(rows, decisions, extra=None, reviewer="human") -> int:
     """Write decisions into rows in place; returns how many changed.
 
     `extra` supplies identifiers for Q-numbers that were not among the stored
@@ -262,6 +314,10 @@ def apply_decisions(rows, decisions, extra=None) -> int:
             chosen = {"wikidata": None, "name": None,
                       "spotify_artist_id": None, "musicbrainz_artist_id": None}
         else:
+            if reviewer != "human" and decision not in _candidate_index(row):
+                raise ValueError(
+                    f"{credit!r}: {reviewer} may only choose among the candidates "
+                    f"stored on the row; {decision} is not one of them.")
             item = _candidate_index(row).get(decision) or extra.get(decision)
             if item is None:
                 raise ValueError(
@@ -270,7 +326,9 @@ def apply_decisions(rows, decisions, extra=None) -> int:
             chosen = {"wikidata": item["wikidata"], "name": item["name"],
                       "spotify_artist_id": item["spotify_artist_id"],
                       "musicbrainz_artist_id": item["musicbrainz_artist_id"]}
-        after = {**chosen, "confidence": "human", "source": "human",
+        after = {**chosen, "confidence": reviewer, "source": reviewer,
+                 "harvest_confidence": (row.get("harvest_confidence")
+                                        or row["confidence"]),
                  "spotify_artist_id_source": (
                      row["spotify_artist_id_source"]
                      if chosen["spotify_artist_id"] == row["spotify_artist_id"]
@@ -329,6 +387,10 @@ def main() -> None:
                         help="read decisions back out of the CSV")
     parser.add_argument("--dry-run", action="store_true",
                         help="with --apply: report what would change, write nothing")
+    parser.add_argument("--reviewer", choices=("human", "assistant"), default="human",
+                        help="who made these calls. 'assistant' rows stay in the "
+                             "queue with their answer pre-filled for a human to "
+                             "accept or override (default: human)")
     args = parser.parse_args()
 
     rows = read_rows(args.registry)
@@ -337,11 +399,14 @@ def main() -> None:
 
     if not args.apply:
         if args.csv.exists():
-            existing = parse_decisions(args.csv.open())
-            if existing:
-                sys.exit(f"{args.csv} already holds {len(existing)} decision(s). "
-                         f"Apply them first (--apply), or move the file aside — "
-                         f"regenerating would discard them.")
+            applied_already = {row["credit"]: prior_decision(row) for row in rows}
+            unapplied = {credit: decision
+                         for credit, decision in parse_decisions(args.csv.open()).items()
+                         if applied_already.get(credit) != decision}
+            if unapplied:
+                sys.exit(f"{args.csv} holds {len(unapplied)} decision(s) not yet in "
+                         f"the registry. Apply them first (--apply), or move the "
+                         f"file aside — regenerating would discard them.")
         pending = needs_review(rows)
         args.csv.parent.mkdir(parents=True, exist_ok=True)
         with args.csv.open("w", newline="") as handle:
@@ -379,14 +444,14 @@ def main() -> None:
             if still_missing:
                 sys.exit(f"could not look up {', '.join(sorted(still_missing))} — "
                          f"nothing written")
-    applied = apply_decisions(rows, decisions, extra)
+    applied = apply_decisions(rows, decisions, extra, args.reviewer)
     if args.dry_run:
         print(f"would apply {applied} of {len(decisions)} previewable decision(s); "
               f"nothing written", file=sys.stderr)
         return
     write_rows(args.registry, rows)
-    print(f"applied {applied} of {len(decisions)} decision(s) -> {args.registry}",
-          file=sys.stderr)
+    print(f"applied {applied} of {len(decisions)} {args.reviewer} decision(s) "
+          f"-> {args.registry}", file=sys.stderr)
     summarize(rows)
 
 

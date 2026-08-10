@@ -106,12 +106,25 @@ class ShapeSaysWhichCutFiredNotWhetherItWasRight(unittest.TestCase):
         self.assertEqual(self.shape_of("Tommy Dorsey featuring Frank Sinatra", "Tommy Dorsey"),
                          "trimmed:featured")
 
-    def test_a_backing_band(self):
+    def test_a_possessive_backing_band(self):
+        # The possessive is the signal: the ensemble is named as the leader's.
         for credit, matched in (("Abe Lyman and His Orchestra", "Abe Lyman"),
                                 ("Ted Lewis and His Band", "Ted Lewis"),
-                                ("Archie Bell & the Drells", "Archie Bell")):
+                                ("Red Nichols and His Five Pennies", "Red Nichols")):
             with self.subTest(credit=credit):
                 self.assertEqual(self.shape_of(credit, matched), "trimmed:backing-band")
+
+    def test_a_named_group_is_not_a_backing_band(self):
+        # Same syntax, different thing: these name a second act with its own
+        # identity. "DJ Jazzy Jeff & The Fresh Prince" reducing to DJ Jazzy
+        # Jeff discards Will Smith. Grouping them with "and His Orchestra" is
+        # what made a whole block look safe to confirm in bulk.
+        for credit, matched in (("DJ Jazzy Jeff & The Fresh Prince", "DJ Jazzy Jeff"),
+                                ("Frankie Lymon & The Teenagers", "Frankie Lymon"),
+                                ("Archie Bell & the Drells", "Archie Bell"),
+                                ("Post Malone & The Weeknd", "Post Malone")):
+            with self.subTest(credit=credit):
+                self.assertEqual(self.shape_of(credit, matched), "trimmed:named-group")
 
     def test_a_co_credited_act_is_kept_separate_from_a_backing_band(self):
         # The risky group: this one drops half a duet, the ones above drop a
@@ -259,6 +272,67 @@ class ApplyingDecisionsIsExplicit(unittest.TestCase):
         self.assertEqual(unresolved_qids(self.rows, {"Beyonce": "Q36153"}),
                          {"Beyonce": "Q36153"})
         self.assertEqual(unresolved_qids(self.rows, {"Jim Jones": "Q707008"}), {})
+
+
+class AnAssistantDecidesButDoesNotGetTheLastWord(unittest.TestCase):
+    """Reading a candidate list beside real song titles is judgement, not a
+    similarity score, so an assistant can do it. It is still not the same as
+    the human deciding, so the two are never conflated."""
+
+    def setUp(self):
+        self.rows = [row("TLC", "multi", 6, candidates={"TLC": [
+            candidate("Q742804", "TLC", spotify="sp", types=["girl group"]),
+            candidate("Q1045344", "The Learning Company", types=["video game developer"])]})]
+
+    def test_the_decision_is_attributed_to_the_assistant(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        self.assertEqual(self.rows[0]["source"], "assistant")
+        self.assertEqual(self.rows[0]["wikidata"], "Q742804")
+
+    def test_it_stays_in_the_queue_for_a_human_to_see(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        self.assertEqual([r["credit"] for r in needs_review(self.rows)], ["TLC"],
+                         "an assistant call must not retire the row")
+
+    def test_a_human_call_does_retire_the_row(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="human")
+        self.assertEqual(needs_review(self.rows), [])
+
+    def test_the_answer_comes_back_pre_filled_and_attributed(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        buffer = io.StringIO()
+        emit_csv(needs_review(self.rows), {}, buffer)
+        out = list(csv.DictReader(io.StringIO(buffer.getvalue())))[0]
+        self.assertEqual(out["decision"], "Q742804")
+        self.assertEqual(out["reviewed_by"], "assistant")
+
+    def test_leaving_the_cell_alone_re_applies_the_same_answer(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        before = json.dumps(self.rows, sort_keys=True)
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        self.assertEqual(json.dumps(self.rows, sort_keys=True), before)
+
+    def test_a_human_edit_overrides_it(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        apply_decisions(self.rows, {"TLC": "Q1045344"}, reviewer="human")
+        self.assertEqual(self.rows[0]["wikidata"], "Q1045344")
+        self.assertEqual(self.rows[0]["source"], "human")
+
+    def test_an_assistant_cannot_invent_a_qid(self):
+        # A human may paste one they looked up; an assistant may only choose
+        # among what Wikidata already returned for this row.
+        with self.assertRaises(ValueError):
+            apply_decisions(self.rows, {"TLC": "Q36153"}, reviewer="assistant")
+
+    def test_the_shape_survives_so_the_row_sorts_where_it_came_from(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        self.assertEqual(review_shape(self.rows[0]), "multi")
+
+    def test_rederive_does_not_overturn_an_assistant_call(self):
+        apply_decisions(self.rows, {"TLC": "Q742804"}, reviewer="assistant")
+        before = json.dumps(self.rows[0], sort_keys=True)
+        rederive_rows(self.rows)
+        self.assertEqual(json.dumps(self.rows[0], sort_keys=True), before)
 
 
 class HumanDecisionsSurviveEverythingAfterThem(unittest.TestCase):

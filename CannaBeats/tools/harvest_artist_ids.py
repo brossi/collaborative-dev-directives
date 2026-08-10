@@ -98,6 +98,11 @@ PACE = 2.0
 # Re-exported under the old names because this module's callers import them.
 FEAT, FEAT_X, JOINED = CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED
 
+# Sources that represent a judgement someone made, as opposed to what the
+# harvester derived. Both survive rederive; only "human" leaves the audit queue.
+REVIEWED = frozenset({"human", "assistant"})
+
+
 # A one-character fallback ("? and the Mysterians" -> "?") matches junk. The
 # full credit is always kept regardless of length.
 MIN_FALLBACK = 2
@@ -225,8 +230,8 @@ def apply_resolver_ids(rows, track_log) -> int:
     applied = 0
     for logged in track_log:
         row = by_credit.get(logged["artist"])
-        if row is None or row.get("source") == "human":
-            continue  # an audited row outranks anything automatic
+        if row is None or row.get("source") in REVIEWED:
+            continue  # a reviewed row outranks anything automatic
         artists = logged.get("track", {}).get("artists", [])
         ids = [a["id"] for a in artists if a.get("id")]
         if len(ids) != 1 or row.get("spotify_artist_id") == ids[0]:
@@ -276,7 +281,8 @@ def summarize(rows) -> None:
     for row in rows:
         songs[row["confidence"]] += row["songs"]
     print(f"\n{len(rows)} credits in the registry:", file=sys.stderr)
-    for confidence in ("human", "single-exact", "single-shortened", "multi", "none"):
+    for confidence in ("human", "assistant", "single-exact", "single-shortened",
+                       "multi", "none"):
         if tally[confidence]:
             print(f"  {confidence:18} {tally[confidence]:5} credits  "
                   f"{songs[confidence]:5} songs", file=sys.stderr)
@@ -287,15 +293,15 @@ def summarize(rows) -> None:
 def rederive_rows(rows) -> int:
     """Replay decide() over stored candidates, in place. Returns rows changed.
 
-    Rows carrying `source: "human"` are SKIPPED. That is the whole value of the
-    Phase 3 audit: "Seal" vs "Seals and Crofts" is meant to be one permanent
-    decision, not a heuristic re-guessing it on every pass. A confirmed absence
-    is a decision too — a later harvest turning up a plausible candidate must
-    not overturn someone who looked and concluded there is no entity.
+    Reviewed rows are SKIPPED. That is the whole value of the Phase 3 audit:
+    "Seal" vs "Seals and Crofts" is meant to be one permanent decision, not a
+    heuristic re-guessing it on every pass. A confirmed absence is a decision
+    too — a later harvest turning up a plausible candidate must not overturn
+    someone who looked and concluded there is no entity.
     """
     changed = 0
     for row in rows:
-        if row.get("source") == "human":
+        if row.get("source") in REVIEWED:
             continue
         before = (row["wikidata"], row["confidence"])
         row.update(decide(row.get("candidates", {}), row["labels"]))
@@ -311,11 +317,11 @@ def rederive(path: pathlib.Path) -> None:
     if not rows:
         sys.exit(f"nothing to rederive: {path} is missing or empty")
     changed = rederive_rows(rows)
-    kept = sum(1 for row in rows if row.get("source") == "human")
+    kept = sum(1 for row in rows if row.get("source") in REVIEWED)
     applied = apply_resolver_ids(rows, read_rows(TRACK_LOG))
     write_rows(path, rows)
     print(f"rederived {len(rows)} rows with no network: {changed} changed, "
-          f"{kept} human decisions preserved; {applied} Spotify IDs from the resolver",
+          f"{kept} reviewed rows preserved; {applied} Spotify IDs from the resolver",
           file=sys.stderr)
     summarize(rows)
 

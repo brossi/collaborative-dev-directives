@@ -23,8 +23,8 @@ import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from harvest_artist_ids import (REGISTRY, apply_resolver_ids, collect, decide,
-                                lookup_labels, registry_row)
+from harvest_artist_ids import (REGISTRY, REVIEWED, apply_resolver_ids, collect,
+                                decide, lookup_labels, registry_row)
 
 
 def binding(label, qid, name, spotify=None, mbid=None, type_label=None):
@@ -252,16 +252,32 @@ class TheCommittedRegistryIsUsable(unittest.TestCase):
         for row in self.rows:
             with self.subTest(credit=row["credit"]):
                 self.assertIn(row["confidence"],
-                              {"single-exact", "single-shortened", "multi", "none"})
+                              {"single-exact", "single-shortened", "multi", "none",
+                               "human", "assistant"})
+
+    def test_a_reviewed_row_says_who_reviewed_it_and_what_it_used_to_be(self):
+        # harvest_confidence is what keeps a decided row sorting into the block
+        # it came from when it goes back into the queue.
+        for row in self.rows:
+            if row["source"] in REVIEWED:
+                with self.subTest(credit=row["credit"]):
+                    self.assertEqual(row["confidence"], row["source"])
+                    self.assertIn(row.get("harvest_confidence"),
+                                  {"single-shortened", "multi", "none"})
 
     def test_a_resolved_row_carries_an_identifier_and_an_unresolved_one_does_not(self):
+        # Stated as invariants rather than a list of verdict names, so adding a
+        # reviewer does not silently widen what counts as resolved. A row with a
+        # Q-number and no identifier is the one state nothing downstream can
+        # join on; an undecided verdict must never carry a Q-number at all.
         for row in self.rows:
             with self.subTest(credit=row["credit"]):
-                if row["confidence"].startswith("single"):
-                    self.assertTrue(row["wikidata"])
+                if row["wikidata"]:
                     self.assertTrue(row["spotify_artist_id"] or
                                     row["musicbrainz_artist_id"])
-                else:
+                if row["confidence"].startswith("single"):
+                    self.assertTrue(row["wikidata"])
+                if row["confidence"] in {"multi", "none"}:
                     self.assertIsNone(row["wikidata"])
 
     def test_an_artist_with_no_english_wikidata_label_still_resolves(self):
