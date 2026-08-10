@@ -7,9 +7,9 @@ inferred is marked «unverified» with the check that would settle it.
 
 Phases 1–3 landed 2026-08-10: `8d3864c` (capture) + `d1ad4f0` (the ranking fix
 it exposed) · `5194271` (registry) · `0fe0caa` (review tooling) + `80969d5`
-(assistant pass). All tests green: 123 Python, 23 web, lint clean.
+(assistant pass). All tests green: 131 Python, 23 web, lint clean.
 
-**Immediate next task — Phase 4 (§5), or the remaining 120 audit rows.**
+**Immediate next task — Phase 4 (§5), or the remaining 118 audit rows.**
 The co-credited pass landed 2026-08-10 (`39d003e`).
 
 ```sh
@@ -21,24 +21,47 @@ python3 tools/review_artist_registry.py --csv <file> --apply --reviewer assistan
 python3 -m unittest discover -s tools -p 'test_*.py'
 ```
 
-**State right now:** 1,969 credits · 1,279 `single-exact` · 570 `assistant` ·
-31 `multi` · 85 `none` · 4 `single-shortened`. **3,476 / 3,616 song rows sit on
-an identified artist.** 120 undecided: 85 `none`, 31 `multi`, 3 named-group,
-1 co-credited.
+**State right now:** 1,969 credits · 1,279 `single-exact` · 572 `assistant` ·
+31 `multi` · 85 `none` · 2 `single-shortened`. **3,476 / 3,616 song rows sit on
+an identified artist.** 118 undecided: 85 `none`, 31 `multi`, 2 named-group.
 
-The 120 left are the ones an assistant genuinely cannot settle from the stored
-candidates: `none` rows have no candidate at all (diacritic misses like
-`Beyonce`→Beyoncé, and cast credits that legitimately have no entity), and the
-`multi` remainder is 1920s vaudeville where several same-named people carry no
-distinguishing evidence. Both need a hand-entered Q-number, which only
-`--reviewer human` may supply.
+The `none` rows have no candidate at all (diacritic misses like
+`Beyonce`→Beyoncé, and cast credits that legitimately have no entity), so they
+need a hand-entered Q-number, which only `--reviewer human` may supply. The 31
+`multi` rows got a lot easier — see the article-title note below.
 
-**Known-wrong IDs still sitting in the registry, unreviewed** ⚠ — these are
-`single-shortened`/`named-group` rows whose harvested answer is WRONG, so
-anything joining on the registry today picks up a bad ID:
-`Frankie Lymon & The Teenagers` → Q683420 "Nicolás Sestito" ·
-`Zoe Saldana, Karla Sofia Gascon` → Q190162 "Zoe Sandalia".
-They are visible in the queue but not yet corrected.
+**The two "known-wrong IDs" were NOT wrong** ⚠ — this corrects an earlier claim
+in this same block. `Frankie Lymon & The Teenagers` → Q683420 and
+`Zoe Saldana, Karla Sofia Gascon` → Q190162 are the RIGHT entities. What was
+wrong was their English `rdfs:label`, which read "Nicolás Sestito" and
+"Zoe Sandalia", and the audit mistook a bad NAME for a bad ENTITY. Verified
+2026-08-10 against three independent sources: the en.wikipedia sitelinks are
+`Frankie Lymon` and `Zoe Saldaña`; Q683420's P434 resolves on MusicBrainz to
+"Frankie Lymon"; the fr/de/it/nl/pt labels all read correctly. Both rows are
+now decided `ok` (`source: assistant`), and neither name was hand-patched —
+they still mirror Wikidata, which is where the defect actually lives.
+
+**The lesson, now built into the tooling:** an English label is free text
+anyone may edit, and a bad one is INVISIBLE from inside a single query — it
+looks exactly like a wrong entity. `harvest_artist_ids.QUERY` therefore binds
+the en.wikipedia article title onto every candidate, and the review CSV renders
+a disagreement as `Q190162 Zoe Sandalia ~ Zoe Saldaña`. The title is NOT a
+better name — "MGK" and "The Revolution (band)" are worse — it is a second,
+independently maintained witness, and the disagreement is the signal.
+
+Measured across all 1,560 decided entities: 24 stored names differ from the
+article title, and only those 2 were genuinely wrong. The rest is legitimate
+variance (`Sananda Maitreya`/`Terence Trent D'Arby`, `and`/`&`, a leading
+`The`). The same field also cracks the hard queue — 27 of the 31 `multi` rows
+now carry a disambiguator: `Tony Martin` splits into `(British singer)` /
+`(American singer)` / `(songwriter)`, and `Jim Jones` into `(rapper)` /
+`(cult leader)` / `(guitarist)`. Those are decidable against the `examples`
+column now; they were coin flips before.
+
+Existing rows were backfilled once (2,270 candidates, 2,140 with a title; 10
+batched queries, one 429 with `Retry-After: 120` waited out in full). New
+credits get the title from the query, so that backfill is not needed again and
+deliberately was not kept as a flag.
 
 **Then Phase 4** (§5) — switch the hot paths to ID joins and delete
 `ARTIST_ALIASES`.
@@ -49,6 +72,10 @@ They are visible in the queue but not yet corrected.
 - `--reviewer assistant` keeps the row in Ben's queue; only `human` retires it.
 - Never write `--reviewer human` on Ben's behalf.
 - Reviewed rows survive `rederive_rows()` and `apply_resolver_ids()`.
+- Never rule an entity WRONG on the strength of its English label alone. The
+  label is free text and can be vandalised; that is what cost two correct IDs
+  above. Check the article title beside it (the CSV shows both), and if they
+  disagree, check P434 against MusicBrainz before concluding anything.
 
 ---
 

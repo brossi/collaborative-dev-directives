@@ -46,9 +46,54 @@ def row(credit, confidence, songs=1, wikidata=None, candidates=None, **extra):
     return base
 
 
-def candidate(qid, name, spotify=None, mbid=None, types=None):
+def candidate(qid, name, spotify=None, mbid=None, types=None, article=""):
     return {"wikidata": qid, "name": name, "spotify_artist_id": spotify,
-            "musicbrainz_artist_id": mbid, "types": types or []}
+            "musicbrainz_artist_id": mbid, "types": types or [], "article": article}
+
+
+class AConflictingArticleTitleIsShownNotHidden(unittest.TestCase):
+    """The label and the en.wikipedia title are two independent witnesses to
+    what an entity is called. When they disagree the reviewer has to see it —
+    that disagreement is the only local signal that Q683420's `en` label had
+    been vandalised to "Nicolás Sestito" while the entity was Frankie Lymon."""
+
+    def emit(self, rows):
+        buffer = io.StringIO()
+        emit_csv(rows, {}, buffer)
+        return list(csv.DictReader(io.StringIO(buffer.getvalue())))
+
+    def test_a_disagreeing_title_is_spelled_out(self):
+        # The article title is the only place "Saldaña" appears — the credit,
+        # the matched label and the stored name are all spelled otherwise, so
+        # nothing but the fix can put it in the cell.
+        rows = [row("Zoe Saldana, Karla Sofia Gascon", "single-shortened", 1,
+                    "Q190162", candidates={"Zoe Saldana": [
+                        candidate("Q190162", "Zoe Sandalia", article="Zoe Saldaña")]})]
+        self.assertIn("Zoe Saldaña", self.emit(rows)[0]["candidates"])
+
+    def test_an_agreeing_title_is_not_repeated(self):
+        # Every row would otherwise carry the same name twice, and the column a
+        # person reads to tell candidates apart gets twice as long to no end.
+        rows = [row("Aretha Franklin", "multi", 1, candidates={"Aretha Franklin": [
+            candidate("Q125121", "Aretha Franklin", article="Aretha Franklin")]})]
+        self.assertEqual(self.emit(rows)[0]["candidates"].count("Aretha Franklin"), 1)
+
+    def test_the_disambiguator_survives_because_it_is_the_useful_part(self):
+        # "Jim Jones" is three entities and the label is identical on all
+        # three; the article title is what separates the rapper from the cult
+        # leader, and stripping "(rapper)" would throw that away.
+        rows = [row("Jim Jones", "multi", 1, candidates={"Jim Jones": [
+            candidate("Q213861", "Jim Jones", article="Jim Jones (cult leader)"),
+            candidate("Q707008", "Jim Jones", article="Jim Jones (rapper)")]})]
+        cell = self.emit(rows)[0]["candidates"]
+        self.assertIn("(rapper)", cell)
+        self.assertIn("(cult leader)", cell)
+
+    def test_a_candidate_harvested_before_titles_existed_still_renders(self):
+        rows = [row("Seal", "multi", 1, candidates={"Seal": [
+            {"wikidata": "Q218091", "name": "Seal", "spotify_artist_id": None,
+             "musicbrainz_artist_id": None, "types": []}]})]
+        self.assertIn("Q218091 Seal", self.emit(rows)[0]["candidates"])
 
 
 class NeedsReviewPicksTheUncertainRows(unittest.TestCase):

@@ -27,7 +27,8 @@ from harvest_artist_ids import (REGISTRY, REVIEWED, apply_resolver_ids, collect,
                                 decide, lookup_labels, registry_row)
 
 
-def binding(label, qid, name, spotify=None, mbid=None, type_label=None):
+def binding(label, qid, name, spotify=None, mbid=None, type_label=None,
+            article=None):
     """One SPARQL result row, shaped as query.wikidata.org returns it."""
     row = {"label": {"value": label},
            "item": {"value": f"http://www.wikidata.org/entity/{qid}"},
@@ -38,6 +39,8 @@ def binding(label, qid, name, spotify=None, mbid=None, type_label=None):
         row["mbid"] = {"value": mbid}
     if type_label:
         row["typeLabel"] = {"value": type_label}
+    if article:
+        row["article"] = {"value": "https://en.wikipedia.org/wiki/" + article}
     return row
 
 
@@ -113,6 +116,44 @@ class CollectFoldsWikidatasRepeatedRows(unittest.TestCase):
     def test_a_real_name_is_left_alone(self):
         items = collect([binding("Celine Dion", "Q5105", "Céline Dion", "4S9EykWX")])
         self.assertEqual(items["Celine Dion"][0]["name"], "Céline Dion")
+
+
+class TheArticleTitleIsKeptBesideTheLabel(unittest.TestCase):
+    """An English rdfs:label is free text anyone may edit, and a bad one is
+    invisible: Q683420 is Frankie Lymon (enwiki article, MusicBrainz, and the
+    fr/de/it/nl/pt labels all agree) but its `en` label read "Nicolás Sestito",
+    and the audit read that as a wrong ENTITY rather than a wrong NAME.
+
+    An article title is not a better name — "MGK" and "The Revolution (band)"
+    are worse — so it does not replace the label. It is a second, independently
+    maintained witness, and keeping both is what makes a disagreement visible.
+    """
+
+    def test_the_article_title_rides_along(self):
+        items = collect([binding("Frankie Lymon", "Q683420", "Nicolás Sestito",
+                                 mbid="8e4bd349", article="Frankie_Lymon")])
+        item = items["Frankie Lymon"][0]
+        self.assertEqual(item["name"], "Nicolás Sestito")
+        self.assertEqual(item["article"], "Frankie Lymon")
+
+    def test_underscores_and_escapes_become_a_readable_title(self):
+        items = collect([binding("Zoe Saldana", "Q190162", "Zoe Sandalia",
+                                 article="Zoe_Salda%C3%B1a")])
+        self.assertEqual(items["Zoe Saldana"][0]["article"], "Zoe Saldaña")
+
+    def test_no_article_is_an_empty_string_not_a_crash(self):
+        items = collect([binding("Seal", "Q218091", "Seal", "5GtM")])
+        self.assertEqual(items["Seal"][0]["article"], "")
+
+    def test_a_row_without_the_article_still_merges_by_qid(self):
+        # Wikidata repeats a row per P31 value and only one carries the join.
+        rows = [binding("Seals and Crofts", "Q763765", "Seals and Crofts",
+                        type_label="male duo", article="Seals_%26_Crofts"),
+                binding("Seals and Crofts", "Q763765", "Seals and Crofts",
+                        type_label="musical duo")]
+        items = collect(rows)["Seals and Crofts"]
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["article"], "Seals & Crofts")
 
     def test_the_two_routes_merge_into_one_candidate(self):
         # The same item arrives twice — once by label, once by sitelink. Two

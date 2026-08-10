@@ -201,7 +201,14 @@ def format_candidates(row) -> str:
                 marks.append("mb")
             if label != row["credit"]:
                 marks.append(f"via {label!r}")
-            lines.append(f"{item['wikidata']} {item['name']}"
+            # Two independent witnesses to the name. The disagreement is the
+            # signal — it is what a vandalised English label looks like from
+            # here — and the disambiguator is the point on an ambiguous row:
+            # "Jim Jones" is identical on all three entities, and only
+            # "(rapper)" vs "(cult leader)" tells them apart.
+            article = item.get("article") or ""
+            title = f" ~ {article}" if article and article != item["name"] else ""
+            lines.append(f"{item['wikidata']} {item['name']}{title}"
                          + (f" [{', '.join(marks)}]" if marks else ""))
     return "\n".join(lines)
 

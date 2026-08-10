@@ -1,7 +1,7 @@
 shape,credit,songs,removed,decision,reviewed_by,harvested,candidates,examples,confidence,labels,matched_label
 trimmed:featured,Tommy Dorsey feat. Frank Sinatra,8,feat. Frank Sinatra,Q313529,assistant,"Q313529 Tommy Dorsey [spotify, mb]","Q313529 Tommy Dorsey [human, spotify, mb, via 'Tommy Dorsey']",I'll Never Smile Again (1940); Dolores (1941); Everything Happens to Me (1941); Oh! Look at Me Now (1941),assistant,Tommy Dorsey feat. Frank Sinatra | Tommy Dorsey,Tommy Dorsey
 trimmed:featured,Larry Clinton feat. Bea Wain,3,feat. Bea Wain,Q1806037,assistant,Q1806037 Larry Clinton [mb],"Q1806037 Larry Clinton [human, mb, via 'Larry Clinton']",Heart and Soul (1938); My Reverie (1938); Deep Purple (1939),assistant,Larry Clinton feat. Bea Wain | Larry Clinton,Larry Clinton
-trimmed:featured,Les Brown feat. Doris Day,3,feat. Doris Day,Q353587,assistant,Q353587 Les Brown [mb],"Q353587 Les Brown [human, mb, via 'Les Brown']",My Dreams Are Getting Better All the Time (1945); Sentimental Journey (1945); You Won't Be Satisfied (Until You Break My Heart) (1946),assistant,Les Brown feat. Doris Day | Les Brown,Les Brown
+trimmed:featured,Les Brown feat. Doris Day,3,feat. Doris Day,Q353587,assistant,Q353587 Les Brown [mb],"Q353587 Les Brown ~ Les Brown (bandleader) [human, mb, via 'Les Brown']",My Dreams Are Getting Better All the Time (1945); Sentimental Journey (1945); You Won't Be Satisfied (Until You Break My Heart) (1946),assistant,Les Brown feat. Doris Day | Les Brown,Les Brown
 trimmed:featured,Eminem feat. Rihanna,2,feat. Rihanna,Q5608,assistant,"Q5608 Eminem [spotify, mb]","Q5608 Eminem [human, spotify, mb, via 'Eminem']",Love the Way You Lie (2010); The Monster (2014),assistant,Eminem feat. Rihanna | Eminem,Eminem
 trimmed:featured,Ja Rule featuring Ashanti,2,featuring Ashanti,Q309843,assistant,"Q309843 Ja Rule [spotify, mb]","Q309843 Ja Rule [human, spotify, mb, via 'Ja Rule']",Always on Time (2002); Mesmerize (2003),assistant,Ja Rule featuring Ashanti | Ja Rule,Ja Rule
 trimmed:featured,Jennifer Lopez featuring Ja Rule,2,featuring Ja Rule,Q40715,assistant,"Q40715 Jennifer Lopez [spotify, mb]","Q40715 Jennifer Lopez [human, spotify, mb, via 'Jennifer Lopez']",I'm Real (Murder Remix) (2001); Ain't It Funny (Murder Remix) (2002),assistant,Jennifer Lopez featuring Ja Rule | Jennifer Lopez,Jennifer Lopez
@@ -52,13 +52,13 @@ trimmed:featured,Daft Punk feat. Pharrell Williams,1,feat. Pharrell Williams,Q18
 trimmed:featured,"David Guetta feat. Nicki Minaj, Bebe Rexha & Afrojack",1,"feat. Nicki Minaj, Bebe Rexha & Afrojack",Q8298,assistant,"Q8298 David Guetta [spotify, mb]","Q8298 David Guetta [human, spotify, mb, via 'David Guetta']",Hey Mama (2015),assistant,"David Guetta feat. Nicki Minaj, Bebe Rexha & Afrojack | David Guetta",David Guetta
 trimmed:featured,David Guetta feat. Sia,1,feat. Sia,Q8298,assistant,"Q8298 David Guetta [spotify, mb]","Q8298 David Guetta [human, spotify, mb, via 'David Guetta']",Titanium (2012),assistant,David Guetta feat. Sia | David Guetta,David Guetta
 trimmed:featured,Destiny's Child featuring T.I. and Lil Wayne,1,featuring T.I. and Lil Wayne,Q153056,assistant,"Q153056 Destiny's Child [spotify, mb]","Q153056 Destiny's Child [musical group, spotify, mb, via ""Destiny's Child""]",Soldier (2005),assistant,Destiny's Child featuring T.I. and Lil Wayne | Destiny's Child,Destiny's Child
-trimmed:featured,Disclosure feat. Sam Smith,1,feat. Sam Smith,Q1228440,assistant,"Q1228440 Disclosure [spotify, mb]","Q1228440 Disclosure [musical duo, spotify, mb, via 'Disclosure']",Latch (2014),assistant,Disclosure feat. Sam Smith | Disclosure,Disclosure
+trimmed:featured,Disclosure feat. Sam Smith,1,feat. Sam Smith,Q1228440,assistant,"Q1228440 Disclosure [spotify, mb]","Q1228440 Disclosure ~ Disclosure (band) [musical duo, spotify, mb, via 'Disclosure']",Latch (2014),assistant,Disclosure feat. Sam Smith | Disclosure,Disclosure
 trimmed:featured,Doja Cat feat. SZA,1,feat. SZA,Q51120673,assistant,"Q51120673 Doja Cat [spotify, mb]","Q51120673 Doja Cat [human, spotify, mb, via 'Doja Cat']",Kiss Me More (2021),assistant,Doja Cat feat. SZA | Doja Cat,Doja Cat
 trimmed:featured,Don Toliver feat. Doja Cat,1,feat. Doja Cat,Q56513383,assistant,"Q56513383 Don Toliver [spotify, mb]","Q56513383 Don Toliver [human, spotify, mb, via 'Don Toliver']",Lose My Mind (2025),assistant,Don Toliver feat. Doja Cat | Don Toliver,Don Toliver
-trimmed:featured,Drake feat. Lil Wayne,1,feat. Lil Wayne,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake [human, spotify, mb, via 'Drake']",The Motto (2012),assistant,Drake feat. Lil Wayne | Drake,Drake
-trimmed:featured,Drake feat. Molly Santana,1,feat. Molly Santana,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake [human, spotify, mb, via 'Drake']",Ran to Atlanta (2026),assistant,Drake feat. Molly Santana | Drake,Drake
-trimmed:featured,Drake feat. Rihanna,1,feat. Rihanna,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake [human, spotify, mb, via 'Drake']",Take Care (2012),assistant,Drake feat. Rihanna | Drake,Drake
-trimmed:featured,Drake feat. WizKid & Kyla,1,feat. WizKid & Kyla,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake [human, spotify, mb, via 'Drake']",One Dance (2016),assistant,Drake feat. WizKid & Kyla | Drake,Drake
+trimmed:featured,Drake feat. Lil Wayne,1,feat. Lil Wayne,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake ~ Drake (musician) [human, spotify, mb, via 'Drake']",The Motto (2012),assistant,Drake feat. Lil Wayne | Drake,Drake
+trimmed:featured,Drake feat. Molly Santana,1,feat. Molly Santana,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake ~ Drake (musician) [human, spotify, mb, via 'Drake']",Ran to Atlanta (2026),assistant,Drake feat. Molly Santana | Drake,Drake
+trimmed:featured,Drake feat. Rihanna,1,feat. Rihanna,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake ~ Drake (musician) [human, spotify, mb, via 'Drake']",Take Care (2012),assistant,Drake feat. Rihanna | Drake,Drake
+trimmed:featured,Drake feat. WizKid & Kyla,1,feat. WizKid & Kyla,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake ~ Drake (musician) [human, spotify, mb, via 'Drake']",One Dance (2016),assistant,Drake feat. WizKid & Kyla | Drake,Drake
 trimmed:featured,Eddie Rabbitt with Crystal Gayle,1,with Crystal Gayle,Q1282956,assistant,"Q1282956 Eddie Rabbitt [spotify, mb]","Q1282956 Eddie Rabbitt [human, spotify, mb, via 'Eddie Rabbitt']",You and I (1983),assistant,Eddie Rabbitt with Crystal Gayle | Eddie Rabbitt,Eddie Rabbitt
 trimmed:featured,Empire Cast feat. Jussie Smollett,1,feat. Jussie Smollett,Q139680521,assistant,"Q139680521 Empire Cast [spotify, mb]","Q139680521 Empire Cast [original cast, spotify, mb, via 'Empire Cast']",You're So Beautiful (2015),assistant,Empire Cast feat. Jussie Smollett | Empire Cast,Empire Cast
 trimmed:featured,Enrique Iglesias feat. Ludacris & DJ Frank E,1,feat. Ludacris & DJ Frank E,Q47122,assistant,"Q47122 Enrique Iglesias [spotify, mb]","Q47122 Enrique Iglesias [human, spotify, mb, via 'Enrique Iglesias']",Tonight (I'm Lovin' You) (2011),assistant,Enrique Iglesias feat. Ludacris & DJ Frank E | Enrique Iglesias,Enrique Iglesias
@@ -105,7 +105,7 @@ trimmed:featured,Justin Bieber feat. Ludacris,1,feat. Ludacris,Q34086,assistant,
 trimmed:featured,Justin Bieber feat. Quavo,1,feat. Quavo,Q34086,assistant,"Q34086 Justin Bieber [spotify, mb]","Q34086 Justin Bieber [human, spotify, mb, via 'Justin Bieber']",Intentions (2020),assistant,Justin Bieber feat. Quavo | Justin Bieber,Justin Bieber
 trimmed:featured,Justin Timberlake feat. Jay-Z,1,feat. Jay-Z,Q43432,assistant,"Q43432 Justin Timberlake [spotify, mb]","Q43432 Justin Timberlake [human/trademark, spotify, mb, via 'Justin Timberlake']",Suit & Tie (2013),assistant,Justin Timberlake feat. Jay-Z | Justin Timberlake,Justin Timberlake
 trimmed:featured,Justin Timberlake featuring T.I.,1,featuring T.I.,Q43432,assistant,"Q43432 Justin Timberlake [spotify, mb]","Q43432 Justin Timberlake [human/trademark, spotify, mb, via 'Justin Timberlake']",My Love (2007),assistant,Justin Timberlake featuring T.I. | Justin Timberlake,Justin Timberlake
-trimmed:featured,Juvenile featuring Soulja Slim,1,featuring Soulja Slim,Q724501,assistant,"Q724501 Juvenile [spotify, mb]","Q724501 Juvenile [human, spotify, mb, via 'Juvenile']",Slow Motion (2004),assistant,Juvenile featuring Soulja Slim | Juvenile,Juvenile
+trimmed:featured,Juvenile featuring Soulja Slim,1,featuring Soulja Slim,Q724501,assistant,"Q724501 Juvenile [spotify, mb]","Q724501 Juvenile ~ Juvenile (rapper) [human, spotify, mb, via 'Juvenile']",Slow Motion (2004),assistant,Juvenile featuring Soulja Slim | Juvenile,Juvenile
 trimmed:featured,Kanye West featuring Jamie Foxx,1,featuring Jamie Foxx,Q15935,assistant,"Q15935 Kanye West [spotify, mb]","Q15935 Kanye West [human, spotify, mb, via 'Kanye West']",Gold Digger (2005),assistant,Kanye West featuring Jamie Foxx | Kanye West,Kanye West
 trimmed:featured,Kardinal Offishall featuring Akon,1,featuring Akon,Q371238,assistant,"Q371238 Kardinal Offishall [spotify, mb]","Q371238 Kardinal Offishall [human, spotify, mb, via 'Kardinal Offishall']",Dangerous (2008),assistant,Kardinal Offishall featuring Akon | Kardinal Offishall,Kardinal Offishall
 trimmed:featured,Katy Perry feat. Juicy J,1,feat. Juicy J,Q42493,assistant,"Q42493 Katy Perry [spotify, mb]","Q42493 Katy Perry [human, spotify, mb, via 'Katy Perry']",Dark Horse (2014),assistant,Katy Perry feat. Juicy J | Katy Perry,Katy Perry
@@ -116,7 +116,7 @@ trimmed:featured,Kendrick Lamar feat. Lefty Gunplay,1,feat. Lefty Gunplay,Q13079
 trimmed:featured,Keri Hilson featuring Kanye West and Ne-Yo,1,featuring Kanye West and Ne-Yo,Q152453,assistant,"Q152453 Keri Hilson [spotify, mb]","Q152453 Keri Hilson [human, spotify, mb, via 'Keri Hilson']",Knock You Down (2009),assistant,Keri Hilson featuring Kanye West and Ne-Yo | Keri Hilson,Keri Hilson
 trimmed:featured,Kid Rock featuring Sheryl Crow,1,featuring Sheryl Crow,Q158175,assistant,"Q158175 Kid Rock [spotify, mb]","Q158175 Kid Rock [human, spotify, mb, via 'Kid Rock']",Picture (2003),assistant,Kid Rock featuring Sheryl Crow | Kid Rock,Kid Rock
 trimmed:featured,Kygo x Selena Gomez,1,x Selena Gomez,Q16845512,assistant,"Q16845512 Kygo [spotify, mb]","Q16845512 Kygo [human, spotify, mb, via 'Kygo']",It Ain't Me (2017),assistant,Kygo x Selena Gomez | Kygo,Kygo
-trimmed:featured,Kyle feat. Lil Yachty,1,feat. Lil Yachty,Q28606665,assistant,"Q28606665 Kyle [spotify, mb]","Q28606665 Kyle [human, spotify, mb, via 'Kyle']",iSpy (2017),assistant,Kyle feat. Lil Yachty | Kyle,Kyle
+trimmed:featured,Kyle feat. Lil Yachty,1,feat. Lil Yachty,Q28606665,assistant,"Q28606665 Kyle [spotify, mb]","Q28606665 Kyle ~ Kyle (musician) [human, spotify, mb, via 'Kyle']",iSpy (2017),assistant,Kyle feat. Lil Yachty | Kyle,Kyle
 trimmed:featured,LL Cool J featuring Boyz II Men,1,featuring Boyz II Men,Q52440,assistant,"Q52440 LL Cool J [spotify, mb]","Q52440 LL Cool J [human, spotify, mb, via 'LL Cool J']",Hey Lover (1996),assistant,LL Cool J featuring Boyz II Men | LL Cool J,LL Cool J
 trimmed:featured,LMFAO feat. Lauren Bennett & GoonRock,1,feat. Lauren Bennett & GoonRock,Q48978,assistant,"Q48978 LMFAO [spotify, mb]","Q48978 LMFAO [musical duo/male duo, spotify, mb, via 'LMFAO']",Party Rock Anthem (2011),assistant,LMFAO feat. Lauren Bennett & GoonRock | LMFAO,LMFAO
 trimmed:featured,Lady Gaga feat. Beyonce,1,feat. Beyonce,Q19848,assistant,"Q19848 Lady Gaga [spotify, mb]","Q19848 Lady Gaga [human, spotify, mb, via 'Lady Gaga']",Telephone (2010),assistant,Lady Gaga feat. Beyonce | Lady Gaga,Lady Gaga
@@ -133,11 +133,11 @@ trimmed:featured,Lil' Flip featuring Lea,1,featuring Lea,Q955684,assistant,"Q955
 trimmed:featured,Lil' Kim featuring 50 Cent,1,featuring 50 Cent,Q229379,assistant,"Q229379 Lil' Kim [spotify, mb]","Q229379 Lil' Kim [human, spotify, mb, via ""Lil' Kim""]",Magic Stick (2003),assistant,Lil' Kim featuring 50 Cent | Lil' Kim,Lil' Kim
 trimmed:featured,Linda Ronstadt featuring Aaron Neville,1,featuring Aaron Neville,Q229375,assistant,"Q229375 Linda Ronstadt [spotify, mb]","Q229375 Linda Ronstadt [human, spotify, mb, via 'Linda Ronstadt']",Don't Know Much (1990),assistant,Linda Ronstadt featuring Aaron Neville | Linda Ronstadt,Linda Ronstadt
 trimmed:featured,MFSB featuring The Three Degrees,1,featuring The Three Degrees,Q1670579,assistant,"Q1670579 MFSB [spotify, mb]","Q1670579 MFSB [musical group, spotify, mb, via 'MFSB']",TSOP (The Sound of Philadelphia) (1974),assistant,MFSB featuring The Three Degrees | MFSB,MFSB
-trimmed:featured,Machine Gun Kelly feat. blackbear,1,feat. blackbear,Q1354843,assistant,"Q1354843 Machine Gun Kelly [spotify, mb]","Q1354843 Machine Gun Kelly [human, spotify, mb, via 'Machine Gun Kelly']",My Ex's Best Friend (2021),assistant,Machine Gun Kelly feat. blackbear | Machine Gun Kelly,Machine Gun Kelly
+trimmed:featured,Machine Gun Kelly feat. blackbear,1,feat. blackbear,Q1354843,assistant,"Q1354843 Machine Gun Kelly [spotify, mb]","Q1354843 Machine Gun Kelly ~ MGK [human, spotify, mb, via 'Machine Gun Kelly']",My Ex's Best Friend (2021),assistant,Machine Gun Kelly feat. blackbear | Machine Gun Kelly,Machine Gun Kelly
 trimmed:featured,Macklemore & Ryan Lewis feat. Ray Dalton,1,feat. Ray Dalton,Q16853301,assistant,"Q16853301 Macklemore & Ryan Lewis [spotify, mb]","Q16853301 Macklemore & Ryan Lewis [musical duo/male duo, spotify, mb, via 'Macklemore & Ryan Lewis']
-Q484874 MACKLEMORE [human, spotify, mb, via 'Macklemore']",Can't Hold Us (2013),assistant,Macklemore & Ryan Lewis feat. Ray Dalton | Macklemore & Ryan Lewis | Macklemore,Macklemore & Ryan Lewis
+Q484874 MACKLEMORE ~ Macklemore [human, spotify, mb, via 'Macklemore']",Can't Hold Us (2013),assistant,Macklemore & Ryan Lewis feat. Ray Dalton | Macklemore & Ryan Lewis | Macklemore,Macklemore & Ryan Lewis
 trimmed:featured,Macklemore & Ryan Lewis feat. Wanz,1,feat. Wanz,Q16853301,assistant,"Q16853301 Macklemore & Ryan Lewis [spotify, mb]","Q16853301 Macklemore & Ryan Lewis [musical duo/male duo, spotify, mb, via 'Macklemore & Ryan Lewis']
-Q484874 MACKLEMORE [human, spotify, mb, via 'Macklemore']",Thrift Shop (2013),assistant,Macklemore & Ryan Lewis feat. Wanz | Macklemore & Ryan Lewis | Macklemore,Macklemore & Ryan Lewis
+Q484874 MACKLEMORE ~ Macklemore [human, spotify, mb, via 'Macklemore']",Thrift Shop (2013),assistant,Macklemore & Ryan Lewis feat. Wanz | Macklemore & Ryan Lewis | Macklemore,Macklemore & Ryan Lewis
 trimmed:featured,Madonna featuring Justin Timberlake and Timbaland,1,featuring Justin Timberlake and Timbaland,Q1744,assistant,"Q1744 Madonna [spotify, mb]","Q1744 Madonna [human, spotify, mb, via 'Madonna']",4 Minutes (2008),assistant,Madonna featuring Justin Timberlake and Timbaland | Madonna,Madonna
 trimmed:featured,Major Lazer feat. Justin Bieber & MO,1,feat. Justin Bieber & MO,Q2604214,assistant,"Q2604214 Major Lazer [spotify, mb]","Q2604214 Major Lazer [musical group, spotify, mb, via 'Major Lazer']",Cold Water (2016),assistant,Major Lazer feat. Justin Bieber & MO | Major Lazer,Major Lazer
 trimmed:featured,Mario Winans featuring Enya and P. Diddy,1,featuring Enya and P. Diddy,Q1353962,assistant,Q1353962 Mario Winans [mb],"Q1353962 Mario Winans [human, mb, via 'Mario Winans']",I Don't Wanna Know (2004),assistant,Mario Winans featuring Enya and P. Diddy | Mario Winans,Mario Winans
@@ -157,19 +157,19 @@ trimmed:featured,Missy Elliott featuring Ciara and Fatman Scoop,1,featuring Ciar
 trimmed:featured,Montell Jordan featuring Master P and Silkk the Shocker,1,featuring Master P and Silkk the Shocker,Q1394645,assistant,Q1394645 Montell Jordan [mb],"Q1394645 Montell Jordan [human, mb, via 'Montell Jordan']",Let's Ride (1998),assistant,Montell Jordan featuring Master P and Silkk the Shocker | Montell Jordan,Montell Jordan
 trimmed:featured,Morgan Wallen feat. ERNEST,1,feat. ERNEST,Q29561472,assistant,"Q29561472 Morgan Wallen [spotify, mb]","Q29561472 Morgan Wallen [human, spotify, mb, via 'Morgan Wallen']",Cowgirls (2024),assistant,Morgan Wallen feat. ERNEST | Morgan Wallen,Morgan Wallen
 trimmed:featured,Morgan Wallen feat. Tate McRae,1,feat. Tate McRae,Q29561472,assistant,"Q29561472 Morgan Wallen [spotify, mb]","Q29561472 Morgan Wallen [human, spotify, mb, via 'Morgan Wallen']",What I Want (2025),assistant,Morgan Wallen feat. Tate McRae | Morgan Wallen,Morgan Wallen
-trimmed:featured,Mustard feat. Roddy Ricch,1,feat. Roddy Ricch,Q15941115,assistant,"Q15941115 Mustard [spotify, mb]","Q15941115 Mustard [human, spotify, mb, via 'Mustard']",Ballin' (2020),assistant,Mustard feat. Roddy Ricch | Mustard,Mustard
+trimmed:featured,Mustard feat. Roddy Ricch,1,feat. Roddy Ricch,Q15941115,assistant,"Q15941115 Mustard [spotify, mb]","Q15941115 Mustard ~ Mustard (music producer) [human, spotify, mb, via 'Mustard']",Ballin' (2020),assistant,Mustard feat. Roddy Ricch | Mustard,Mustard
 trimmed:featured,Nelly Furtado featuring Timbaland,1,featuring Timbaland,Q80424,assistant,"Q80424 Nelly Furtado [spotify, mb]","Q80424 Nelly Furtado [human, spotify, mb, via 'Nelly Furtado']",Promiscuous (2006),assistant,Nelly Furtado featuring Timbaland | Nelly Furtado,Nelly Furtado
 trimmed:featured,Nina Sky featuring Jabba,1,featuring Jabba,Q1669590,assistant,"Q1669590 Nina Sky [spotify, mb]","Q1669590 Nina Sky [musical group, spotify, mb, via 'Nina Sky']",Move Ya Body (2004),assistant,Nina Sky featuring Jabba | Nina Sky,Nina Sky
 trimmed:featured,Orrin Tucker feat. Bonnie Baker,1,feat. Bonnie Baker,Q1322266,assistant,Q1322266 Orrin Tucker [mb],"Q1322266 Orrin Tucker [human, mb, via 'Orrin Tucker']","Oh Johnny, Oh Johnny, Oh! (1940)",assistant,Orrin Tucker feat. Bonnie Baker | Orrin Tucker,Orrin Tucker
-trimmed:featured,OutKast featuring Sleepy Brown,1,featuring Sleepy Brown,Q472595,assistant,"Q472595 OutKast [spotify, mb]","Q472595 OutKast [musical group, spotify, mb, via 'OutKast']",The Way You Move (2004),assistant,OutKast featuring Sleepy Brown | OutKast,OutKast
+trimmed:featured,OutKast featuring Sleepy Brown,1,featuring Sleepy Brown,Q472595,assistant,"Q472595 OutKast [spotify, mb]","Q472595 OutKast ~ Outkast [musical group, spotify, mb, via 'OutKast']",The Way You Move (2004),assistant,OutKast featuring Sleepy Brown | OutKast,OutKast
 trimmed:featured,P. Diddy featuring Usher and Loon,1,featuring Usher and Loon,Q216936,assistant,"Q216936 Sean Combs [spotify, mb]","Q216936 Sean Combs [human, spotify, mb, via 'P. Diddy']",I Need a Girl (Part One) (2002),assistant,P. Diddy featuring Usher and Loon | P. Diddy,P. Diddy
 trimmed:featured,Patti Austin with James Ingram,1,with James Ingram,Q238422,assistant,"Q238422 Patti Austin [spotify, mb]","Q238422 Patti Austin [human, spotify, mb, via 'Patti Austin']","Baby, Come to Me (1983)",assistant,Patti Austin with James Ingram | Patti Austin,Patti Austin
 trimmed:featured,Patty Smyth with Don Henley,1,with Don Henley,Q444096,assistant,"Q444096 Patty Smyth [spotify, mb]","Q444096 Patty Smyth [human, spotify, mb, via 'Patty Smyth']",Sometimes Love Just Ain't Enough (1992),assistant,Patty Smyth with Don Henley | Patty Smyth,Patty Smyth
 trimmed:featured,Paula Abdul with The Wild Pair,1,with The Wild Pair,Q185465,assistant,"Q185465 Paula Abdul [spotify, mb]","Q185465 Paula Abdul [human, spotify, mb, via 'Paula Abdul']",Opposites Attract (1990),assistant,Paula Abdul with The Wild Pair | Paula Abdul,Paula Abdul
 trimmed:featured,Percy Faith featuring Felicia Sanders,1,featuring Felicia Sanders,Q712683,assistant,"Q712683 Percy Faith [spotify, mb]","Q712683 Percy Faith [human, spotify, mb, via 'Percy Faith']",The Song from Moulin Rouge (Where Is Your Heart) (1953),assistant,Percy Faith featuring Felicia Sanders | Percy Faith,Percy Faith
-trimmed:featured,Pitbull feat. Christina Aguilera,1,feat. Christina Aguilera,Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull [human, spotify, mb, via 'Pitbull']",Feel This Moment (2013),assistant,Pitbull feat. Christina Aguilera | Pitbull,Pitbull
-trimmed:featured,Pitbull feat. Kesha,1,feat. Kesha,Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull [human, spotify, mb, via 'Pitbull']",Timber (2014),assistant,Pitbull feat. Kesha | Pitbull,Pitbull
-trimmed:featured,"Pitbull feat. Ne-Yo, Afrojack & Nayer",1,"feat. Ne-Yo, Afrojack & Nayer",Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull [human, spotify, mb, via 'Pitbull']",Give Me Everything (2011),assistant,"Pitbull feat. Ne-Yo, Afrojack & Nayer | Pitbull",Pitbull
+trimmed:featured,Pitbull feat. Christina Aguilera,1,feat. Christina Aguilera,Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull ~ Pitbull (rapper) [human, spotify, mb, via 'Pitbull']",Feel This Moment (2013),assistant,Pitbull feat. Christina Aguilera | Pitbull,Pitbull
+trimmed:featured,Pitbull feat. Kesha,1,feat. Kesha,Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull ~ Pitbull (rapper) [human, spotify, mb, via 'Pitbull']",Timber (2014),assistant,Pitbull feat. Kesha | Pitbull,Pitbull
+trimmed:featured,"Pitbull feat. Ne-Yo, Afrojack & Nayer",1,"feat. Ne-Yo, Afrojack & Nayer",Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull ~ Pitbull (rapper) [human, spotify, mb, via 'Pitbull']",Give Me Everything (2011),assistant,"Pitbull feat. Ne-Yo, Afrojack & Nayer | Pitbull",Pitbull
 trimmed:featured,Pop Smoke feat. Lil Baby & DaBaby,1,feat. Lil Baby & DaBaby,Q81698554,assistant,"Q81698554 Pop Smoke [spotify, mb]","Q81698554 Pop Smoke [human, spotify, mb, via 'Pop Smoke']",For the Night (2021),assistant,Pop Smoke feat. Lil Baby & DaBaby | Pop Smoke,Pop Smoke
 trimmed:featured,Post Malone feat. 21 Savage,1,feat. 21 Savage,Q21621919,assistant,"Q21621919 Post Malone [spotify, mb]","Q21621919 Post Malone [human, spotify, mb, via 'Post Malone']",Rockstar (2018),assistant,Post Malone feat. 21 Savage | Post Malone,Post Malone
 trimmed:featured,Post Malone feat. Doja Cat,1,feat. Doja Cat,Q21621919,assistant,"Q21621919 Post Malone [spotify, mb]","Q21621919 Post Malone [human, spotify, mb, via 'Post Malone']",I Like You (A Happier Song) (2022),assistant,Post Malone feat. Doja Cat | Post Malone,Post Malone
@@ -216,17 +216,17 @@ trimmed:featured,Timbaland featuring OneRepublic,1,featuring OneRepublic,Q179257
 trimmed:featured,Travie McCoy feat. Bruno Mars,1,feat. Bruno Mars,Q314107,assistant,"Q314107 Travie McCoy [spotify, mb]","Q314107 Travie McCoy [human, spotify, mb, via 'Travie McCoy']",Billionaire (2010),assistant,Travie McCoy feat. Bruno Mars | Travie McCoy,Travie McCoy
 trimmed:featured,Twista featuring Kanye West and Jamie Foxx,1,featuring Kanye West and Jamie Foxx,Q448638,assistant,"Q448638 Twista [spotify, mb]","Q448638 Twista [human, spotify, mb, via 'Twista']",Slow Jamz (2004),assistant,Twista featuring Kanye West and Jamie Foxx | Twista,Twista
 trimmed:featured,Uncle Kracker featuring Dobie Gray,1,featuring Dobie Gray,Q1299129,assistant,"Q1299129 Uncle Kracker [spotify, mb]","Q1299129 Uncle Kracker [human, spotify, mb, via 'Uncle Kracker']",Drift Away (2003),assistant,Uncle Kracker featuring Dobie Gray | Uncle Kracker,Uncle Kracker
-trimmed:featured,Usher feat. will.i.am,1,feat. will.i.am,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher [human, spotify, mb, via 'Usher']",OMG (2010),assistant,Usher feat. will.i.am | Usher,Usher
-trimmed:featured,Usher featuring Lil Jon and Ludacris,1,featuring Lil Jon and Ludacris,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher [human, spotify, mb, via 'Usher']",Yeah! (2004),assistant,Usher featuring Lil Jon and Ludacris | Usher,Usher
-trimmed:featured,Usher featuring Young Jeezy,1,featuring Young Jeezy,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher [human, spotify, mb, via 'Usher']",Love in This Club (2008),assistant,Usher featuring Young Jeezy | Usher,Usher
+trimmed:featured,Usher feat. will.i.am,1,feat. will.i.am,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher ~ Usher (musician) [human, spotify, mb, via 'Usher']",OMG (2010),assistant,Usher feat. will.i.am | Usher,Usher
+trimmed:featured,Usher featuring Lil Jon and Ludacris,1,featuring Lil Jon and Ludacris,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher ~ Usher (musician) [human, spotify, mb, via 'Usher']",Yeah! (2004),assistant,Usher featuring Lil Jon and Ludacris | Usher,Usher
+trimmed:featured,Usher featuring Young Jeezy,1,featuring Young Jeezy,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher ~ Usher (musician) [human, spotify, mb, via 'Usher']",Love in This Club (2008),assistant,Usher featuring Young Jeezy | Usher,Usher
 trimmed:featured,Wham! featuring George Michael,1,featuring George Michael,Q744087,assistant,"Q744087 Wham! [spotify, mb]","Q744087 Wham! [musical duo/male duo, spotify, mb, via 'Wham!']",Careless Whisper (1985),assistant,Wham! featuring George Michael | Wham!,Wham!
 trimmed:featured,Whitney Houston featuring Faith Evans and Kelly Price,1,featuring Faith Evans and Kelly Price,Q34389,assistant,"Q34389 Whitney Houston [spotify, mb]","Q34389 Whitney Houston [human, spotify, mb, via 'Whitney Houston']",Heartbreak Hotel (1999),assistant,Whitney Houston featuring Faith Evans and Kelly Price | Whitney Houston,Whitney Houston
 trimmed:featured,Young Money feat. Lloyd,1,feat. Lloyd,Q99493768,assistant,"Q99493768 Young Money [spotify, mb]","Q99493768 Young Money [musical group, spotify, mb, via 'Young Money']",BedRock (2010),assistant,Young Money feat. Lloyd | Young Money,Young Money
 trimmed:featured,Zach Bryan feat. Kacey Musgraves,1,feat. Kacey Musgraves,Q106770023,assistant,"Q106770023 Zach Bryan [spotify, mb]","Q106770023 Zach Bryan [human, spotify, mb, via 'Zach Bryan']",I Remember Everything (2024),assistant,Zach Bryan feat. Kacey Musgraves | Zach Bryan,Zach Bryan
-trimmed:featured,fun. feat. Janelle Monae,1,feat. Janelle Monae,Q838984,assistant,"Q838984 Fun [spotify, mb]","Q838984 Fun [musical group, spotify, mb, via 'fun.']",We Are Young (2012),assistant,fun. feat. Janelle Monae | fun.,fun.
+trimmed:featured,fun. feat. Janelle Monae,1,feat. Janelle Monae,Q838984,assistant,"Q838984 Fun [spotify, mb]","Q838984 Fun ~ Fun (band) [musical group, spotify, mb, via 'fun.']",We Are Young (2012),assistant,fun. feat. Janelle Monae | fun.,fun.
 trimmed:backing-band,Paul Whiteman and His Orchestra,44,and His Orchestra,Q470182,assistant,"Q470182 Paul Whiteman [spotify, mb]","Q470182 Paul Whiteman [human, spotify, mb, via 'Paul Whiteman']",The Japanese Sandman (1920); Whispering (1920); Canadian Capers (1921); Cherie (1921),assistant,Paul Whiteman and His Orchestra | Paul Whiteman,Paul Whiteman
 trimmed:backing-band,Isham Jones and His Orchestra,12,and His Orchestra,Q167409,assistant,Q167409 Isham Jones [mb],"Q167409 Isham Jones [human, mb, via 'Isham Jones']",Wabash Blues (1921); My Honey's Lovin' Arms (1922); On the Alamo (1922); Farewell Blues (1923),assistant,Isham Jones and His Orchestra | Isham Jones,Isham Jones
-trimmed:backing-band,Ted Lewis and His Band,7,and His Band,Q447255,assistant,Q447255 Ted Lewis [mb],"Q447255 Ted Lewis [human, mb, via 'Ted Lewis']",When My Baby Smiles at Me (1920); All by Myself (1921); Dancing Fool (1922); Georgette (1922),assistant,Ted Lewis and His Band | Ted Lewis,Ted Lewis
+trimmed:backing-band,Ted Lewis and His Band,7,and His Band,Q447255,assistant,Q447255 Ted Lewis [mb],"Q447255 Ted Lewis ~ Ted Lewis (musician) [human, mb, via 'Ted Lewis']",When My Baby Smiles at Me (1920); All by Myself (1921); Dancing Fool (1922); Georgette (1922),assistant,Ted Lewis and His Band | Ted Lewis,Ted Lewis
 trimmed:backing-band,Ben Bernie and His Orchestra,5,and His Orchestra,Q816444,assistant,Q816444 Ben Bernie [mb],"Q816444 Ben Bernie [human, mb, via 'Ben Bernie']",Oh! How I Miss You Tonight (1925); Sleepy Time Gal (1925); Sweet Georgia Brown (1925); 'Deed I Do (1927),assistant,Ben Bernie and His Orchestra | Ben Bernie,Ben Bernie
 trimmed:backing-band,Ben Selvin and His Orchestra,5,and His Orchestra,Q304517,assistant,Q304517 Ben Selvin [mb],"Q304517 Ben Selvin [human, mb, via 'Ben Selvin']",Dardanella (1920); My Isle of Golden Dreams (1920); Where the Lazy Daisies Grow (1924); Manhattan (1925),assistant,Ben Selvin and His Orchestra | Ben Selvin,Ben Selvin
 trimmed:backing-band,Roger Wolfe Kahn and His Orchestra,4,and His Orchestra,Q961834,assistant,"Q961834 Roger Wolfe Kahn [spotify, mb]","Q961834 Roger Wolfe Kahn [human, spotify, mb, via 'Roger Wolfe Kahn']",Clap Yo' Hands (1926); Russian Lullaby (1927); Sometimes I'm Happy (1927); Crazy Rhythm (1928),assistant,Roger Wolfe Kahn and His Orchestra | Roger Wolfe Kahn,Roger Wolfe Kahn
@@ -235,7 +235,7 @@ trimmed:backing-band,Paul Whiteman and His Orchestra with Bing Crosby,2,and His 
 trimmed:backing-band,Red Nichols and His Five Pennies,2,and His Five Pennies,Q495464,assistant,Q495464 Red Nichols [mb],"Q495464 Red Nichols [human, mb, via 'Red Nichols']",Embraceable You (1930); I Got Rhythm (1930),assistant,Red Nichols and His Five Pennies | Red Nichols,Red Nichols
 trimmed:backing-band,Abe Lyman and His Orchestra,1,and His Orchestra,Q318176,assistant,Q318176 Abe Lyman [mb],"Q318176 Abe Lyman [human, mb, via 'Abe Lyman']",Mary Lou (1926),assistant,Abe Lyman and His Orchestra | Abe Lyman,Abe Lyman
 trimmed:backing-band,Al Dexter and His Troopers,1,and His Troopers,Q1423868,assistant,Q1423868 Al Dexter [mb],"Q1423868 Al Dexter [human, mb, via 'Al Dexter']",Pistol Packin' Mama (1943),assistant,Al Dexter and His Troopers | Al Dexter,Al Dexter
-trimmed:backing-band,Art Hickman and His Orchestra,1,and His Orchestra,Q2864536,assistant,Q2864536 Arthur George Hickman [mb],"Q2864536 Arthur George Hickman [human, mb, via 'Art Hickman']",Hold Me (1920),assistant,Art Hickman and His Orchestra | Art Hickman,Art Hickman
+trimmed:backing-band,Art Hickman and His Orchestra,1,and His Orchestra,Q2864536,assistant,Q2864536 Arthur George Hickman [mb],"Q2864536 Arthur George Hickman ~ Art Hickman [human, mb, via 'Art Hickman']",Hold Me (1920),assistant,Art Hickman and His Orchestra | Art Hickman,Art Hickman
 trimmed:backing-band,Ben Pollack and His Californians,1,and His Californians,Q816581,assistant,Q816581 Ben Pollack [mb],"Q816581 Ben Pollack [human, mb, via 'Ben Pollack']","Sweet Sue, Just You (1928)",assistant,Ben Pollack and His Californians | Ben Pollack,Ben Pollack
 trimmed:backing-band,Bert Lown and His Orchestra,1,and His Orchestra,Q827409,assistant,Q827409 Bert Lown [mb],"Q827409 Bert Lown [human, mb, via 'Bert Lown']",Bye Bye Blues (1930),assistant,Bert Lown and His Orchestra | Bert Lown,Bert Lown
 trimmed:backing-band,Blue Steele and His Orchestra,1,and His Orchestra,Q885891,assistant,Q885891 Blue Steele [mb],"Q885891 Blue Steele [human, mb, via 'Blue Steele']",Girl of My Dreams (1927),assistant,Blue Steele and His Orchestra | Blue Steele,Blue Steele
@@ -249,13 +249,13 @@ trimmed:backing-band,Kenny Ball and His Jazzmen,1,and His Jazzmen,Q1364120,assis
 trimmed:backing-band,Paul Whiteman and His Orchestra with George Gershwin,1,and His Orchestra with George Gershwin,Q470182,assistant,"Q470182 Paul Whiteman [spotify, mb]","Q470182 Paul Whiteman [human, spotify, mb, via 'Paul Whiteman']",Rhapsody in Blue (1924),assistant,Paul Whiteman and His Orchestra with George Gershwin | Paul Whiteman and His Orchestra | Paul Whiteman,Paul Whiteman
 trimmed:backing-band,Paul Whiteman and His Orchestra with the Rhythm Boys,1,and His Orchestra with the Rhythm Boys,Q470182,assistant,"Q470182 Paul Whiteman [spotify, mb]","Q470182 Paul Whiteman [human, spotify, mb, via 'Paul Whiteman']",Mississippi Mud (1928),assistant,Paul Whiteman and His Orchestra with the Rhythm Boys | Paul Whiteman and His Orchestra | Paul Whiteman,Paul Whiteman
 trimmed:named-group,Glen Gray and the Casa Loma Orchestra,7,and the Casa Loma Orchestra,Q280103,assistant,Q280103 Glen Gray [mb],"Q280103 Glen Gray [human, mb, via 'Glen Gray']",It's the Talk of the Town (1933); Smoke Rings (1933); Blue Moon (1935); When I Grow Too Old to Dream (1935),assistant,Glen Gray and the Casa Loma Orchestra | Glen Gray,Glen Gray
-trimmed:named-group,Nat Shilkret and the Victor Orchestra,3,and the Victor Orchestra,Q1625070,assistant,Q1625070 Nathaniel Shilkret [mb],"Q1625070 Nathaniel Shilkret [human, mb, via 'Nat Shilkret']",Diane (1927); Hallelujah! (1927); The Doll Dance (1927),assistant,Nat Shilkret and the Victor Orchestra | Nat Shilkret,Nat Shilkret
+trimmed:named-group,Nat Shilkret and the Victor Orchestra,3,and the Victor Orchestra,Q1625070,assistant,Q1625070 Nathaniel Shilkret [mb],"Q1625070 Nathaniel Shilkret ~ Nat Shilkret [human, mb, via 'Nat Shilkret']",Diane (1927); Hallelujah! (1927); The Doll Dance (1927),assistant,Nat Shilkret and the Victor Orchestra | Nat Shilkret,Nat Shilkret
 trimmed:named-group,Bing Crosby & The Andrews Sisters,2,& The Andrews Sisters,Q72984,assistant,"Q72984 Bing Crosby [spotify, mb]","Q72984 Bing Crosby [human, spotify, mb, via 'Bing Crosby']","Don't Fence Me In (1944); South America, Take It Away (1946)",assistant,Bing Crosby & The Andrews Sisters | Bing Crosby,Bing Crosby
 trimmed:named-group,Bing Crosby and The Mills Brothers,2,and The Mills Brothers,Q72984,assistant,"Q72984 Bing Crosby [spotify, mb]","Q72984 Bing Crosby [human, spotify, mb, via 'Bing Crosby']",Dinah (1932); Shine (1932),assistant,Bing Crosby and The Mills Brothers | Bing Crosby,Bing Crosby
 trimmed:named-group,Ella Fitzgerald & The Ink Spots,2,& The Ink Spots,Q1768,assistant,"Q1768 Ella Fitzgerald [spotify, mb]","Q1768 Ella Fitzgerald [human, spotify, mb, via 'Ella Fitzgerald']",I'm Making Believe (1944); Into Each Life Some Rain Must Fall (1944),assistant,Ella Fitzgerald & The Ink Spots | Ella Fitzgerald,Ella Fitzgerald
 trimmed:named-group,Johnnie Ray & The Four Lads,2,& The Four Lads,Q1198056,assistant,Q1198056 Johnnie Ray [mb],"Q1198056 Johnnie Ray [human, mb, via 'Johnnie Ray']",Cry (1952); The Little White Cloud That Cried (1952),assistant,Johnnie Ray & The Four Lads | Johnnie Ray,Johnnie Ray
 trimmed:named-group,Jr. Walker and the All Stars,2,and the All Stars,Q1710284,assistant,Q1710284 Junior Walker [mb],"Q1710284 Junior Walker [human, mb, via 'Jr. Walker']",Shotgun (1965); What Does It Take (To Win Your Love) (1969),assistant,Jr. Walker and the All Stars | Jr. Walker,Jr. Walker
-trimmed:named-group,Prince & The Revolution,2,& The Revolution,Q7542,assistant,"Q7542 Prince [spotify, mb]","Q7542 Prince [human, spotify, mb, via 'Prince']",Purple Rain (1984); When Doves Cry (1984),assistant,Prince & The Revolution | Prince,Prince
+trimmed:named-group,Prince & The Revolution,2,& The Revolution,Q7542,assistant,"Q7542 Prince [spotify, mb]","Q7542 Prince ~ Prince (musician) [human, spotify, mb, via 'Prince']",Purple Rain (1984); When Doves Cry (1984),assistant,Prince & The Revolution | Prince,Prince
 trimmed:named-group,Sam the Sham and the Pharaohs,2,and the Pharaohs,Q1971786,assistant,Q1971786 Sam the Sham [mb],"Q1971786 Sam the Sham [human, mb, via 'Sam the Sham']",Wooly Bully (1965); Li'l Red Riding Hood (1966),assistant,Sam the Sham and the Pharaohs | Sam the Sham,Sam the Sham
 trimmed:named-group,Billy J. Kramer and the Dakotas,1,and the Dakotas,Q863140,assistant,Q863140 Billy J. Kramer [mb],"Q863140 Billy J. Kramer [human, mb, via 'Billy J. Kramer']",Little Children (1964),assistant,Billy J. Kramer and the Dakotas | Billy J. Kramer,Billy J. Kramer
 trimmed:named-group,Billy Vera and the Beaters,1,and the Beaters,Q434492,assistant,Q434492 Billy Vera [mb],"Q434492 Billy Vera [human, mb, via 'Billy Vera']",At This Moment (1987),assistant,Billy Vera and the Beaters | Billy Vera,Billy Vera
@@ -268,14 +268,14 @@ trimmed:named-group,DJ Jazzy Jeff & The Fresh Prince,1,& The Fresh Prince,,,"Q55
 trimmed:named-group,Danny Kaye & The Andrews Sisters,1,& The Andrews Sisters,Q213425,assistant,"Q213425 Danny Kaye [spotify, mb]","Q213425 Danny Kaye [human, spotify, mb, via 'Danny Kaye']","Civilization (Bongo, Bongo, Bongo) (1947)",assistant,Danny Kaye & The Andrews Sisters | Danny Kaye,Danny Kaye
 trimmed:named-group,Diana Ross and the Supremes,1,and the Supremes,Q36290,assistant,"Q36290 Diana Ross [spotify, mb]","Q36290 Diana Ross [human, spotify, mb, via 'Diana Ross']",Love Child (1968),assistant,Diana Ross and the Supremes | Diana Ross,Diana Ross
 trimmed:named-group,Dion & The Belmonts,1,& The Belmonts,Q1226921,assistant,"Q1226921 Dion DiMucci [spotify, mb]","Q1226921 Dion DiMucci [human, spotify, mb, via 'Dion']",A Teenager in Love (1959),assistant,Dion & The Belmonts | Dion,Dion
-trimmed:named-group,Frankie Lymon & The Teenagers,1,& The Teenagers,,,Q683420 Nicolás Sestito [mb],"Q683420 Nicolás Sestito [human, mb, via 'Frankie Lymon']",Why Do Fools Fall in Love (1956),single-shortened,Frankie Lymon & The Teenagers | Frankie Lymon,Frankie Lymon
+trimmed:named-group,Frankie Lymon & The Teenagers,1,& The Teenagers,,,Q683420 Nicolás Sestito [mb],"Q683420 Nicolás Sestito ~ Frankie Lymon [human, mb, via 'Frankie Lymon']",Why Do Fools Fall in Love (1956),single-shortened,Frankie Lymon & The Teenagers | Frankie Lymon,Frankie Lymon
 trimmed:named-group,Gary Puckett and the Union Gap,1,and the Union Gap,Q22132530,assistant,Q22132530 Gary Puckett [mb],"Q22132530 Gary Puckett [human, mb, via 'Gary Puckett']",Young Girl (1968),assistant,Gary Puckett and the Union Gap | Gary Puckett,Gary Puckett
 trimmed:named-group,Keala Settle & The Greatest Showman Ensemble,1,& The Greatest Showman Ensemble,Q13560560,assistant,"Q13560560 Keala Settle [spotify, mb]","Q13560560 Keala Settle [human, spotify, mb, via 'Keala Settle']",This Is Me (2017),assistant,Keala Settle & The Greatest Showman Ensemble | Keala Settle,Keala Settle
 trimmed:named-group,Merrilee Rush and the Turnabouts,1,and the Turnabouts,Q6820153,assistant,Q6820153 Merrilee Rush [mb],"Q6820153 Merrilee Rush [human, mb, via 'Merrilee Rush']",Angel of the Morning (1968),assistant,Merrilee Rush and the Turnabouts | Merrilee Rush,Merrilee Rush
 trimmed:named-group,Nick Cave & The Bad Seeds,1,& The Bad Seeds,Q192668,assistant,"Q192668 Nick Cave [spotify, mb]","Q192668 Nick Cave [human, spotify, mb, via 'Nick Cave']",Red Right Hand (1994),assistant,Nick Cave & The Bad Seeds | Nick Cave,Nick Cave
 trimmed:named-group,Perry Como & The Fontane Sisters,1,& The Fontane Sisters,Q333405,assistant,"Q333405 Perry Como [spotify, mb]","Q333405 Perry Como [human, spotify, mb, via 'Perry Como']",You're Just in Love (1951),assistant,Perry Como & The Fontane Sisters | Perry Como,Perry Como
 trimmed:named-group,Post Malone & The Weeknd,1,& The Weeknd,,,"Q21621919 Post Malone [spotify, mb]","Q21621919 Post Malone [human, spotify, mb, via 'Post Malone']",One Right Now (2022),single-shortened,Post Malone & The Weeknd | Post Malone,Post Malone
-trimmed:named-group,Prince and The New Power Generation,1,and The New Power Generation,Q7542,assistant,"Q7542 Prince [spotify, mb]","Q7542 Prince [human, spotify, mb, via 'Prince']",Diamonds and Pearls (1992),assistant,Prince and The New Power Generation | Prince,Prince
+trimmed:named-group,Prince and The New Power Generation,1,and The New Power Generation,Q7542,assistant,"Q7542 Prince [spotify, mb]","Q7542 Prince ~ Prince (musician) [human, spotify, mb, via 'Prince']",Diamonds and Pearls (1992),assistant,Prince and The New Power Generation | Prince,Prince
 trimmed:named-group,Ron Grainer & the BBC Radiophonic Workshop,1,& the BBC Radiophonic Workshop,Q320816,assistant,Q320816 Ron Grainer [mb],"Q320816 Ron Grainer [human, mb, via 'Ron Grainer']",Doctor Who (Original Theme) (1963),assistant,Ron Grainer & the BBC Radiophonic Workshop | Ron Grainer,Ron Grainer
 trimmed:named-group,Walter Murphy & The Big Apple Band,1,& The Big Apple Band,Q534419,assistant,Q534419 Walter Murphy [mb],"Q534419 Walter Murphy [human, mb, via 'Walter Murphy']",A Fifth of Beethoven (1976),assistant,Walter Murphy & The Big Apple Band | Walter Murphy,Walter Murphy
 trimmed:co-credited,John Travolta & Olivia Newton-John,3,& Olivia Newton-John,Q80938,assistant,"Q80938 John Travolta [spotify, mb]","Q80938 John Travolta [human, spotify, mb, via 'John Travolta']",Summer Nights (1978); You're the One That I Want (1978); You're the One That I Want (1978),assistant,John Travolta & Olivia Newton-John | John Travolta,John Travolta
@@ -315,10 +315,10 @@ trimmed:co-credited,"Bryan Adams, Rod Stewart and Sting",1,", Rod Stewart and St
 trimmed:co-credited,Busta Rhymes and Mariah Carey featuring Flipmode Squad,1,and Mariah Carey featuring Flipmode Squad,Q59185,assistant,"Q59185 Busta Rhymes [spotify, mb]","Q59185 Busta Rhymes [human, spotify, mb, via 'Busta Rhymes']",I Know What You Want (2003),assistant,Busta Rhymes and Mariah Carey featuring Flipmode Squad | Busta Rhymes and Mariah Carey | Busta Rhymes,Busta Rhymes
 trimmed:co-credited,Cardi B & Bruno Mars,1,& Bruno Mars,Q29033668,assistant,"Q29033668 Cardi B [spotify, mb]","Q29033668 Cardi B [human, spotify, mb, via 'Cardi B']",Please Me (2019),assistant,Cardi B & Bruno Mars | Cardi B,Cardi B
 trimmed:co-credited,"Cardi B, Bad Bunny & J Balvin",1,", Bad Bunny & J Balvin",Q29033668,assistant,"Q29033668 Cardi B [spotify, mb]","Q29033668 Cardi B [human, spotify, mb, via 'Cardi B']",I Like It (2018),assistant,"Cardi B, Bad Bunny & J Balvin | Cardi B",Cardi B
-trimmed:co-credited,"Celine Dion, Peabo Bryson",1,", Peabo Bryson",Q5105,assistant,"Q5105 Céline Dion [spotify, mb]","Q5105 Céline Dion [human, spotify, mb, via 'Celine Dion']",Beauty and the Beast (1991),assistant,"Celine Dion, Peabo Bryson | Celine Dion",Celine Dion
+trimmed:co-credited,"Celine Dion, Peabo Bryson",1,", Peabo Bryson",Q5105,assistant,"Q5105 Céline Dion [spotify, mb]","Q5105 Céline Dion ~ Celine Dion [human, spotify, mb, via 'Celine Dion']",Beauty and the Beast (1991),assistant,"Celine Dion, Peabo Bryson | Celine Dion",Celine Dion
 trimmed:co-credited,"Christina Aguilera, Lil' Kim, Mýa and Pink",1,", Lil' Kim, Mýa and Pink",Q41594,assistant,"Q41594 Christina Aguilera [spotify, mb]","Q41594 Christina Aguilera [human, spotify, mb, via 'Christina Aguilera']",Lady Marmalade (2001),assistant,"Christina Aguilera, Lil' Kim, Mýa and Pink | Christina Aguilera",Christina Aguilera
 trimmed:co-credited,Cliff Nobles and Co.,1,and Co.,Q5132711,assistant,Q5132711 Cliff Nobles [mb],"Q5132711 Cliff Nobles [human, mb, via 'Cliff Nobles']",The Horse (1968),assistant,Cliff Nobles and Co. | Cliff Nobles,Cliff Nobles
-trimmed:co-credited,"Common, John Legend",1,", John Legend",Q286022,assistant,"Q286022 Common [spotify, mb]","Q286022 Common [human, spotify, mb, via 'Common']",Glory (2014),assistant,"Common, John Legend | Common",Common
+trimmed:co-credited,"Common, John Legend",1,", John Legend",Q286022,assistant,"Q286022 Common [spotify, mb]","Q286022 Common ~ Common (rapper) [human, spotify, mb, via 'Common']",Glory (2014),assistant,"Common, John Legend | Common",Common
 trimmed:co-credited,Craig Wedren & Anna Waronker,1,& Anna Waronker,Q5181581,assistant,Q5181581 Craig Wedren [mb],"Q5181581 Craig Wedren [human, mb, via 'Craig Wedren']",No Return (Main Title Theme) (2022),assistant,Craig Wedren & Anna Waronker | Craig Wedren,Craig Wedren
 trimmed:co-credited,Cynthia Erivo & Ariana Grande,1,& Ariana Grande,Q21592474,assistant,"Q21592474 Cynthia Erivo [spotify, mb]","Q21592474 Cynthia Erivo [human, spotify, mb, via 'Cynthia Erivo']",Defying Gravity (2024),assistant,Cynthia Erivo & Ariana Grande | Cynthia Erivo,Cynthia Erivo
 trimmed:co-credited,DJ Snake & Lil Jon,1,& Lil Jon,Q16728588,assistant,"Q16728588 DJ Snake [spotify, mb]","Q16728588 DJ Snake [human, spotify, mb, via 'DJ Snake']",Turn Down for What (2014),assistant,DJ Snake & Lil Jon | DJ Snake,DJ Snake
@@ -331,9 +331,9 @@ trimmed:co-credited,"Diana Ross, Lionel Richie",1,", Lionel Richie",Q36290,assis
 trimmed:co-credited,"Dick Van Dyke, Julie Andrews",1,", Julie Andrews",Q310295,assistant,Q310295 Dick Van Dyke [mb],"Q310295 Dick Van Dyke [human, mb, via 'Dick Van Dyke']",Chim Chim Cher-ee (1964),assistant,"Dick Van Dyke, Julie Andrews | Dick Van Dyke",Dick Van Dyke
 trimmed:co-credited,Dinah Shore & Buddy Clark,1,& Buddy Clark,Q466502,assistant,"Q466502 Dinah Shore [spotify, mb]","Q466502 Dinah Shore [human, spotify, mb, via 'Dinah Shore']","Baby, It's Cold Outside (1949)",assistant,Dinah Shore & Buddy Clark | Dinah Shore,Dinah Shore
 trimmed:co-credited,Doris Day & Buddy Clark,1,& Buddy Clark,Q104372,assistant,"Q104372 Doris Day [spotify, mb]","Q104372 Doris Day [human, spotify, mb, via 'Doris Day']",Love Somebody (1948),assistant,Doris Day & Buddy Clark | Doris Day,Doris Day
-trimmed:co-credited,Drake & 21 Savage,1,& 21 Savage,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake [human, spotify, mb, via 'Drake']",Rich Flex (2023),assistant,Drake & 21 Savage | Drake,Drake
+trimmed:co-credited,Drake & 21 Savage,1,& 21 Savage,Q33240,assistant,"Q33240 Drake [spotify, mb]","Q33240 Drake ~ Drake (musician) [human, spotify, mb, via 'Drake']",Rich Flex (2023),assistant,Drake & 21 Savage | Drake,Drake
 trimmed:co-credited,Ed Sheeran & Justin Bieber,1,& Justin Bieber,Q47447,assistant,"Q47447 Ed Sheeran [spotify, mb]","Q47447 Ed Sheeran [human, spotify, mb, via 'Ed Sheeran']",I Don't Care (2019),assistant,Ed Sheeran & Justin Bieber | Ed Sheeran,Ed Sheeran
-trimmed:co-credited,Elizabeth Spencer and Charles Hart,1,and Charles Hart,Q5363537,assistant,Q5363537 Elizabeth Spencer [mb],"Q5363537 Elizabeth Spencer [human, mb, via 'Elizabeth Spencer']",Let the Rest of the World Go By (1920),assistant,Elizabeth Spencer and Charles Hart | Elizabeth Spencer,Elizabeth Spencer
+trimmed:co-credited,Elizabeth Spencer and Charles Hart,1,and Charles Hart,Q5363537,assistant,Q5363537 Elizabeth Spencer [mb],"Q5363537 Elizabeth Spencer ~ Elizabeth Spencer (soprano) [human, mb, via 'Elizabeth Spencer']",Let the Rest of the World Go By (1920),assistant,Elizabeth Spencer and Charles Hart | Elizabeth Spencer,Elizabeth Spencer
 trimmed:co-credited,Ella Fitzgerald & Chick Webb,1,& Chick Webb,Q1768,assistant,"Q1768 Ella Fitzgerald [spotify, mb]","Q1768 Ella Fitzgerald [human, spotify, mb, via 'Ella Fitzgerald']","A-Tisket, A-Tasket (1938)",assistant,Ella Fitzgerald & Chick Webb | Ella Fitzgerald,Ella Fitzgerald
 trimmed:co-credited,Ella Fitzgerald & Louis Jordan,1,& Louis Jordan,Q1768,assistant,"Q1768 Ella Fitzgerald [spotify, mb]","Q1768 Ella Fitzgerald [human, spotify, mb, via 'Ella Fitzgerald']",Stone Cold Dead in the Market (1946),assistant,Ella Fitzgerald & Louis Jordan | Ella Fitzgerald,Ella Fitzgerald
 trimmed:co-credited,Ella Langley & Morgan Wallen,1,& Morgan Wallen,Q127559972,assistant,"Q127559972 Ella Langley [spotify, mb]","Q127559972 Ella Langley [human, spotify, mb, via 'Ella Langley']",I Can't Love You Anymore (2026),assistant,Ella Langley & Morgan Wallen | Ella Langley,Ella Langley
@@ -346,7 +346,7 @@ trimmed:co-credited,George Michael and Elton John,1,and Elton John,Q130311,assis
 trimmed:co-credited,Glen Hansard & Marketa Irglova,1,& Marketa Irglova,Q220010,assistant,"Q220010 Glen Hansard [spotify, mb]","Q220010 Glen Hansard [human, spotify, mb, via 'Glen Hansard']",Falling Slowly (2007),assistant,Glen Hansard & Marketa Irglova | Glen Hansard,Glen Hansard
 trimmed:co-credited,"Glen Hansard, Marketa Irglova",1,", Marketa Irglova",Q220010,assistant,"Q220010 Glen Hansard [spotify, mb]","Q220010 Glen Hansard [human, spotify, mb, via 'Glen Hansard']",Falling Slowly (2007),assistant,"Glen Hansard, Marketa Irglova | Glen Hansard",Glen Hansard
 trimmed:co-credited,Gloria Loring and Carl Anderson,1,and Carl Anderson,Q3935006,assistant,Q3935006 Gloria Loring [mb],"Q3935006 Gloria Loring [human, mb, via 'Gloria Loring']",Friends and Lovers (1986),assistant,Gloria Loring and Carl Anderson | Gloria Loring,Gloria Loring
-trimmed:co-credited,"HUNTR/X, EJAE, AUDREY NUNA, REI AMI",1,", EJAE, AUDREY NUNA, REI AMI",Q135921763,assistant,"Q135921763 HUNTR/X [spotify, mb]","Q135921763 HUNTR/X [girl group/virtual band, spotify, mb, via 'HUNTR/X']",Golden (2025),assistant,"HUNTR/X, EJAE, AUDREY NUNA, REI AMI | HUNTR/X",HUNTR/X
+trimmed:co-credited,"HUNTR/X, EJAE, AUDREY NUNA, REI AMI",1,", EJAE, AUDREY NUNA, REI AMI",Q135921763,assistant,"Q135921763 HUNTR/X [spotify, mb]","Q135921763 HUNTR/X ~ Huntrix [girl group/virtual band, spotify, mb, via 'HUNTR/X']",Golden (2025),assistant,"HUNTR/X, EJAE, AUDREY NUNA, REI AMI | HUNTR/X",HUNTR/X
 trimmed:co-credited,Henry Burr and Albert Campbell,1,and Albert Campbell,Q530690,assistant,Q530690 Henry Burr [mb],"Q530690 Henry Burr [human, mb, via 'Henry Burr']",Feather Your Nest (1920),assistant,Henry Burr and Albert Campbell | Henry Burr,Henry Burr
 trimmed:co-credited,Hugo Winterhalter & Eddie Heywood,1,& Eddie Heywood,Q1635872,assistant,Q1635872 Hugo Winterhalter [mb],"Q1635872 Hugo Winterhalter [human, mb, via 'Hugo Winterhalter']",Canadian Sunset (1956),assistant,Hugo Winterhalter & Eddie Heywood | Hugo Winterhalter,Hugo Winterhalter
 trimmed:co-credited,"Idina Menzel, Fredi Walker",1,", Fredi Walker",Q157400,assistant,"Q157400 Idina Menzel [spotify, mb]","Q157400 Idina Menzel [human, spotify, mb, via 'Idina Menzel']",Take Me or Leave Me (1996),assistant,"Idina Menzel, Fredi Walker | Idina Menzel",Idina Menzel
@@ -384,7 +384,7 @@ trimmed:co-credited,Marshmello & Kane Brown,1,& Kane Brown,Q26334949,assistant,"
 trimmed:co-credited,Marvin Gaye & Tammi Terrell,1,& Tammi Terrell,Q189758,assistant,"Q189758 Marvin Gaye [spotify, mb]","Q189758 Marvin Gaye [human, spotify, mb, via 'Marvin Gaye']",Ain't No Mountain High Enough (1967),assistant,Marvin Gaye & Tammi Terrell | Marvin Gaye,Marvin Gaye
 trimmed:co-credited,"Metro Boomin, The Weeknd & 21 Savage",1,", The Weeknd & 21 Savage",Q16235273,assistant,"Q16235273 Metro Boomin [spotify, mb]","Q16235273 Metro Boomin [human, spotify, mb, via 'Metro Boomin']",Creepin' (2023),assistant,"Metro Boomin, The Weeknd & 21 Savage | Metro Boomin",Metro Boomin
 trimmed:co-credited,"Michael Crawford, Sarah Brightman",1,", Sarah Brightman",Q656035,assistant,"Q656035 Michael Crawford [spotify, mb]","Q656035 Michael Crawford [human, spotify, mb, via 'Michael Crawford']",The Phantom of the Opera (1987),assistant,"Michael Crawford, Sarah Brightman | Michael Crawford",Michael Crawford
-trimmed:co-credited,"Miguel, Natalia Lafourcade",1,", Natalia Lafourcade",Q73463,assistant,"Q73463 Miguel [spotify, mb]","Q73463 Miguel [human, spotify, mb, via 'Miguel']",Remember Me (Duo) (2017),assistant,"Miguel, Natalia Lafourcade | Miguel",Miguel
+trimmed:co-credited,"Miguel, Natalia Lafourcade",1,", Natalia Lafourcade",Q73463,assistant,"Q73463 Miguel [spotify, mb]","Q73463 Miguel ~ Miguel (singer) [human, spotify, mb, via 'Miguel']",Remember Me (Duo) (2017),assistant,"Miguel, Natalia Lafourcade | Miguel",Miguel
 trimmed:co-credited,Nancy Sinatra and Frank Sinatra,1,and Frank Sinatra,Q233937,assistant,"Q233937 Nancy Sinatra [spotify, mb]","Q233937 Nancy Sinatra [human, spotify, mb, via 'Nancy Sinatra']",Somethin' Stupid (1967),assistant,Nancy Sinatra and Frank Sinatra | Nancy Sinatra,Nancy Sinatra
 trimmed:co-credited,Nicky Youre & dazy,1,& dazy,Q112666811,assistant,"Q112666811 Nicky Youre [spotify, mb]","Q112666811 Nicky Youre [human, spotify, mb, via 'Nicky Youre']",Sunroof (2022),assistant,Nicky Youre & dazy | Nicky Youre,Nicky Youre
 trimmed:co-credited,Nino Tempo and April Stevens,1,and April Stevens,Q615713,assistant,"Q615713 Nino Tempo [spotify, mb]","Q615713 Nino Tempo [human, spotify, mb, via 'Nino Tempo']",Deep Purple (1963),assistant,Nino Tempo and April Stevens | Nino Tempo,Nino Tempo
@@ -401,7 +401,7 @@ trimmed:co-credited,"Phil Harris, Bruce Reitherman",1,", Bruce Reitherman",Q5967
 trimmed:co-credited,Philip Bailey and Phil Collins,1,and Phil Collins,Q746618,assistant,"Q746618 Philip Bailey [spotify, mb]","Q746618 Philip Bailey [human, spotify, mb, via 'Philip Bailey']",Easy Lover (1985),assistant,Philip Bailey and Phil Collins | Philip Bailey,Philip Bailey
 trimmed:co-credited,PinkPantheress & Ice Spice,1,& Ice Spice,Q107570416,assistant,"Q107570416 PinkPantheress [spotify, mb]","Q107570416 PinkPantheress [human, spotify, mb, via 'PinkPantheress']",Boy's a Liar Pt. 2 (2023),assistant,PinkPantheress & Ice Spice | PinkPantheress,PinkPantheress
 trimmed:co-credited,PinkPantheress & Zara Larsson,1,& Zara Larsson,Q107570416,assistant,"Q107570416 PinkPantheress [spotify, mb]","Q107570416 PinkPantheress [human, spotify, mb, via 'PinkPantheress']",Stateside (2026),assistant,PinkPantheress & Zara Larsson | PinkPantheress,PinkPantheress
-trimmed:co-credited,Pitbull & Ne-Yo,1,& Ne-Yo,Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull [human, spotify, mb, via 'Pitbull']",Time of Our Lives (2015),assistant,Pitbull & Ne-Yo | Pitbull,Pitbull
+trimmed:co-credited,Pitbull & Ne-Yo,1,& Ne-Yo,Q187844,assistant,"Q187844 Pitbull [spotify, mb]","Q187844 Pitbull ~ Pitbull (rapper) [human, spotify, mb, via 'Pitbull']",Time of Our Lives (2015),assistant,Pitbull & Ne-Yo | Pitbull,Pitbull
 trimmed:co-credited,Puff Daddy and Faith Evans featuring 112,1,and Faith Evans featuring 112,Q216936,assistant,"Q216936 Sean Combs [spotify, mb]","Q216936 Sean Combs [human, spotify, mb, via 'Puff Daddy']",I'll Be Missing You (1997),assistant,Puff Daddy and Faith Evans featuring 112 | Puff Daddy and Faith Evans | Puff Daddy,Puff Daddy
 trimmed:co-credited,R. Kelly and Celine Dion,1,and Celine Dion,Q273055,assistant,"Q273055 R. Kelly [spotify, mb]","Q273055 R. Kelly [human, spotify, mb, via 'R. Kelly']",I'm Your Angel (1999),assistant,R. Kelly and Celine Dion | R. Kelly,R. Kelly
 trimmed:co-credited,Ray J and Yung Berg,1,and Yung Berg,Q542267,assistant,"Q542267 Ray J [spotify, mb]","Q542267 Ray J [human, spotify, mb, via 'Ray J']",Sexy Can I (2008),assistant,Ray J and Yung Berg | Ray J,Ray J
@@ -420,96 +420,96 @@ trimmed:co-credited,Tame Impala & JENNIE,1,& JENNIE,Q9619,assistant,"Q9619 Tame 
 trimmed:co-credited,The Chainsmokers & Coldplay,1,& Coldplay,Q7721993,assistant,"Q7721993 The Chainsmokers [spotify, mb]","Q7721993 The Chainsmokers [musical duo/male duo, spotify, mb, via 'The Chainsmokers']",Something Just Like This (2017),assistant,The Chainsmokers & Coldplay | The Chainsmokers,The Chainsmokers
 trimmed:co-credited,The Kid LAROI & Justin Bieber,1,& Justin Bieber,Q82890761,assistant,"Q82890761 The Kid Laroi [spotify, mb]","Q82890761 The Kid Laroi [human, spotify, mb, via 'The Kid LAROI']",Stay (2022),assistant,The Kid LAROI & Justin Bieber | The Kid LAROI,The Kid LAROI
 trimmed:co-credited,The Weeknd & Playboi Carti,1,& Playboi Carti,Q2121062,assistant,"Q2121062 The Weeknd [spotify, mb]","Q2121062 The Weeknd [human, spotify, mb, via 'The Weeknd']",Timeless (2025),assistant,The Weeknd & Playboi Carti | The Weeknd,The Weeknd
-trimmed:co-credited,Usher and Alicia Keys,1,and Alicia Keys,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher [human, spotify, mb, via 'Usher']",My Boo (2004),assistant,Usher and Alicia Keys | Usher,Usher
+trimmed:co-credited,Usher and Alicia Keys,1,and Alicia Keys,Q165911,assistant,"Q165911 Usher [spotify, mb]","Q165911 Usher ~ Usher (musician) [human, spotify, mb, via 'Usher']",My Boo (2004),assistant,Usher and Alicia Keys | Usher,Usher
 trimmed:co-credited,Vanessa Williams and Brian McKnight,1,and Brian McKnight,Q202801,assistant,"Q202801 Vanessa Williams [spotify, mb]","Q202801 Vanessa Williams [human, spotify, mb, via 'Vanessa Williams']",Love Is (1993),assistant,Vanessa Williams and Brian McKnight | Vanessa Williams,Vanessa Williams
 trimmed:co-credited,"Whitney Houston, Mariah Carey",1,", Mariah Carey",Q34389,assistant,"Q34389 Whitney Houston [spotify, mb]","Q34389 Whitney Houston [human, spotify, mb, via 'Whitney Houston']",When You Believe (1998),assistant,"Whitney Houston, Mariah Carey | Whitney Houston",Whitney Houston
 trimmed:co-credited,Will Ferrell & My Marianne,1,& My Marianne,Q218503,assistant,Q218503 Will Ferrell [mb],"Q218503 Will Ferrell [human, mb, via 'Will Ferrell']",Husavik (2020),assistant,Will Ferrell & My Marianne | Will Ferrell,Will Ferrell
 trimmed:co-credited,Zac Efron & Zendaya,1,& Zendaya,Q45229,assistant,"Q45229 Zac Efron [spotify, mb]","Q45229 Zac Efron [human, spotify, mb, via 'Zac Efron']",Rewrite the Stars (2017),assistant,Zac Efron & Zendaya | Zac Efron,Zac Efron
 trimmed:co-credited,Zedd & Alessia Cara,1,& Alessia Cara,Q21088,assistant,"Q21088 Zedd [spotify, mb]","Q21088 Zedd [human, spotify, mb, via 'Zedd']",Stay (2017),assistant,Zedd & Alessia Cara | Zedd,Zedd
 trimmed:co-credited,"Zedd, Maren Morris & Grey",1,", Maren Morris & Grey",Q21088,assistant,"Q21088 Zedd [spotify, mb]","Q21088 Zedd [human, spotify, mb, via 'Zedd']",The Middle (2018),assistant,"Zedd, Maren Morris & Grey | Zedd",Zedd
-trimmed:co-credited,"Zoe Saldana, Karla Sofia Gascon",1,", Karla Sofia Gascon",,,"Q190162 Zoe Sandalia [spotify, mb]","Q190162 Zoe Sandalia [human, spotify, mb, via 'Zoe Saldana']",El Mal (2024),single-shortened,"Zoe Saldana, Karla Sofia Gascon | Zoe Saldana",Zoe Saldana
+trimmed:co-credited,"Zoe Saldana, Karla Sofia Gascon",1,", Karla Sofia Gascon",,,"Q190162 Zoe Sandalia [spotify, mb]","Q190162 Zoe Sandalia ~ Zoe Saldaña [human, spotify, mb, via 'Zoe Saldana']",El Mal (2024),single-shortened,"Zoe Saldana, Karla Sofia Gascon | Zoe Saldana",Zoe Saldana
 multi,Harry James,11,,Q163861,assistant,Q163861 Harry James [mb],"Q163861 Harry James [human, mb]
-Q2424156 Thomas Garnet Henry James [human, mb]",Ciribiribin (1939); You Made Me Love You (1941); I Don't Want to Walk Without You (1942); Mister Five by Five (1942),assistant,Harry James,Harry James
+Q2424156 Thomas Garnet Henry James ~ T. G. H. James [human, mb]",Ciribiribin (1939); You Made Me Love You (1941); I Don't Want to Walk Without You (1942); Mister Five by Five (1942),assistant,Harry James,Harry James
 multi,Michael Jackson,9,,Q2831,assistant,"Q2831 Michael Jackson [spotify, mb]","Q2831 Michael Jackson [human, spotify, mb]
 Q66622353 Michael R. Jackson [human, spotify, mb]
-Q6831552 Michael Jackson [human, mb]
-Q6831555 Michael Jackson [human, mb]",Ben (1972); Ben (1972); Rock with You (1980); Beat It (1983),assistant,Michael Jackson,Michael Jackson
+Q6831552 Michael Jackson ~ Michael Jackson (English singer) [human, mb]
+Q6831555 Michael Jackson ~ Michael Jackson (anthropologist) [human, mb]",Ben (1972); Ben (1972); Rock with You (1980); Beat It (1983),assistant,Michael Jackson,Michael Jackson
 multi,Eddie Fisher,8,,Q363708,assistant,"Q363708 Eddie Fisher [spotify, mb]","Q363708 Eddie Fisher [human, spotify, mb]
-Q5336031 Eddie Fisher [human, mb]",Anytime (1952); I'm Yours (1952); Tell Me Why (1952); Wish You Were Here (1952),assistant,Eddie Fisher,Eddie Fisher
+Q5336031 Eddie Fisher ~ Eddie Fisher (drummer) [human, mb]",Anytime (1952); I'm Yours (1952); Tell Me Why (1952); Wish You Were Here (1952),assistant,Eddie Fisher,Eddie Fisher
 multi,Pink,8,,Q160009,assistant,"Q160009 Pink [spotify, mb]","Q124398531 Inbar Haiman [human, mb]
-Q160009 Pink [human, spotify, mb]
+Q160009 Pink ~ Pink (singer) [human, spotify, mb]
 Q11238738 Pink [musical group, mb]",There You Go (2000); Get the Party Started (2002); U + Ur Hand (2007); So What (2008),assistant,Pink,Pink
 multi,Phil Collins,6,,Q144622,assistant,"Q144622 Phil Collins [spotify, mb]","Q144622 Phil Collins [human, spotify, mb]
-Q7181796 Phil Collins [human, mb]",Against All Odds (Take a Look at Me Now) (1984); Against All Odds (Take a Look at Me Now) (1984); A Groovy Kind of Love (1988); Two Hearts (1989),assistant,Phil Collins,Phil Collins
-multi,TLC,6,,Q742804,assistant,"Q742804 TLC [spotify, mb]","Q742804 TLC [musical group/girl group/all-female band, spotify, mb]
+Q7181796 Phil Collins ~ Phil Collins (photographer) [human, mb]",Against All Odds (Take a Look at Me Now) (1984); Against All Odds (Take a Look at Me Now) (1984); A Groovy Kind of Love (1988); Two Hearts (1989),assistant,Phil Collins,Phil Collins
+multi,TLC,6,,Q742804,assistant,"Q742804 TLC [spotify, mb]","Q742804 TLC ~ TLC (group) [musical group/girl group/all-female band, spotify, mb]
 Q1045344 The Learning Company [video game developer, mb]",Baby-Baby-Baby (1992); Creep (1995); Red Light Special (1995); Waterfalls (1995),assistant,TLC,TLC
 multi,Jimmie Rodgers,5,,,,,"Q366358 Jimmie Rodgers [human, mb]
-Q1689292 Jimmie Rodgers [human, mb]",Blue Yodel (T for Texas) (1928); In the Jailhouse Now (1928); Waiting for a Train (1929); Honeycomb (1957),multi,Jimmie Rodgers,Jimmie Rodgers
+Q1689292 Jimmie Rodgers ~ Jimmie Rodgers (pop singer) [human, mb]",Blue Yodel (T for Texas) (1928); In the Jailhouse Now (1928); Waiting for a Train (1929); Honeycomb (1957),multi,Jimmie Rodgers,Jimmie Rodgers
 multi,The Temptations,5,,Q846373,assistant,"Q846373 The Temptations [spotify, mb]","Q846373 The Temptations [musical group, spotify, mb]
-Q7768378 The Temptations [musical group, mb]",My Girl (1965); I Wish It Would Rain (1968); I Can't Get Next to You (1969); Ball of Confusion (That's What the World Is Today) (1970),assistant,The Temptations,The Temptations
+Q7768378 The Temptations ~ The Temptations (New York vocal group) [musical group, mb]",My Girl (1965); I Wish It Would Rain (1968); I Can't Get Next to You (1969); Ball of Confusion (That's What the World Is Today) (1970),assistant,The Temptations,The Temptations
 multi,Billy Jones and Ernest Hare,4,and Ernest Hare,,,,"Q18153729 Billy Jones [human, mb, via 'Billy Jones']
-Q4912814 Billy Jones [human, mb, via 'Billy Jones']
-Q4912815 William Reese Jones [human, mb, via 'Billy Jones']","Oogie Oogie Wa Wa (1922); Barney Google (1923); Oh! Gee, Oh! Gosh, Oh! Golly, I'm in Love (1923); Old King Tut (1923)",multi,Billy Jones and Ernest Hare | Billy Jones,Billy Jones
-multi,Eagles,4,,Q189635,assistant,"Q189635 Eagles [spotify, mb]","Q7731345 The Eagles [musical group, mb]
-Q189635 Eagles [musical group, spotify, mb]",Best of My Love (1975); One of These Nights (1975); Take It to the Limit (1976); Hotel California (1977),assistant,Eagles,Eagles
-multi,Starship,4,,Q15706519,assistant,"Q15706519 Starship [spotify, mb]","Q15706519 Starship [musical group, spotify, mb]
+Q4912814 Billy Jones ~ Billy Jones (Outlaws guitarist) [human, mb, via 'Billy Jones']
+Q4912815 William Reese Jones ~ Billy Jones (singer, born 1889) [human, mb, via 'Billy Jones']","Oogie Oogie Wa Wa (1922); Barney Google (1923); Oh! Gee, Oh! Gosh, Oh! Golly, I'm in Love (1923); Old King Tut (1923)",multi,Billy Jones and Ernest Hare | Billy Jones,Billy Jones
+multi,Eagles,4,,Q189635,assistant,"Q189635 Eagles [spotify, mb]","Q7731345 The Eagles ~ The Eagles (rhythm and blues group) [musical group, mb]
+Q189635 Eagles ~ Eagles (band) [musical group, spotify, mb]",Best of My Love (1975); One of These Nights (1975); Take It to the Limit (1976); Hotel California (1977),assistant,Eagles,Eagles
+multi,Starship,4,,Q15706519,assistant,"Q15706519 Starship [spotify, mb]","Q15706519 Starship ~ Starship (band) [musical group, spotify, mb]
 Q2265203 Jefferson Starship [rock band, spotify, mb]",We Built This City (1985); Sara (1986); Nothing's Gonna Stop Us Now (1987); Nothing's Gonna Stop Us Now (1987),assistant,Starship,Starship
-multi,Tom Jones,4,,Q180850,assistant,"Q180850 Tom Jones [spotify, mb]","Q180850 Tom Jones [human, spotify, mb]
-Q2439753 Tom Jones [human, spotify, mb]",What's New Pussycat? (1965); What's New Pussycat? (1965); I'll Never Fall in Love Again (1969); She's a Lady (1971),assistant,Tom Jones,Tom Jones
-multi,Tony Martin,4,,,,,"Q434220 Tony Martin [human, mb]
-Q725874 Tony Martin [human, mb]
-Q16207079 Tony Martin [human, mb]",La Vie en Rose (1950); There's No Tomorrow (1950); I Get Ideas (1951); Here (1954),multi,Tony Martin,Tony Martin
+multi,Tom Jones,4,,Q180850,assistant,"Q180850 Tom Jones [spotify, mb]","Q180850 Tom Jones ~ Tom Jones (singer) [human, spotify, mb]
+Q2439753 Tom Jones ~ Tom Jones (lyricist) [human, spotify, mb]",What's New Pussycat? (1965); What's New Pussycat? (1965); I'll Never Fall in Love Again (1969); She's a Lady (1971),assistant,Tom Jones,Tom Jones
+multi,Tony Martin,4,,,,,"Q434220 Tony Martin ~ Tony Martin (British singer) [human, mb]
+Q725874 Tony Martin ~ Tony Martin (American singer) [human, mb]
+Q16207079 Tony Martin ~ Tony Martin (songwriter) [human, mb]",La Vie en Rose (1950); There's No Tomorrow (1950); I Get Ideas (1951); Here (1954),multi,Tony Martin,Tony Martin
 multi,Vincent Lopez and His Orchestra,4,and His Orchestra,Q917080,assistant,Q917080 Vincent Lopez [mb],"Q917080 Vincent Lopez [human, mb, via 'Vincent Lopez']
 Q1285153 Vini Lopez [human, mb, via 'Vincent Lopez']",Nola (1922); I Want to Be Happy (1925); Show Me the Way to Go Home (1925); Always (1926),assistant,Vincent Lopez and His Orchestra | Vincent Lopez,Vincent Lopez
 multi,Billy Jones,3,,,,,"Q18153729 Billy Jones [human, mb]
-Q4912814 Billy Jones [human, mb]
-Q4912815 William Reese Jones [human, mb]","Peggy O'Neil (1921); You Tell Her, I Stutter (1922); Yes! We Have No Bananas (1923)",multi,Billy Jones,Billy Jones
-multi,Billy Murray,3,,Q440215,assistant,Q440215 Billy Murray [mb],"Q8015960 William Murray [human, mb]
-Q440215 Billy Murray [human, mb]",I'll See You in C-U-B-A (1920); Oh! By Jingo! (1920); Don't Bring Lulu (1925),assistant,Billy Murray,Billy Murray
+Q4912814 Billy Jones ~ Billy Jones (Outlaws guitarist) [human, mb]
+Q4912815 William Reese Jones ~ Billy Jones (singer, born 1889) [human, mb]","Peggy O'Neil (1921); You Tell Her, I Stutter (1922); Yes! We Have No Bananas (1923)",multi,Billy Jones,Billy Jones
+multi,Billy Murray,3,,Q440215,assistant,Q440215 Billy Murray [mb],"Q8015960 William Murray ~ William Murray (musician) [human, mb]
+Q440215 Billy Murray ~ Billy Murray (singer) [human, mb]",I'll See You in C-U-B-A (1920); Oh! By Jingo! (1920); Don't Bring Lulu (1925),assistant,Billy Murray,Billy Murray
 multi,Chris Brown,3,,Q155700,assistant,"Q155700 Chris Brown [spotify, mb]","Q155700 Chris Brown [human, spotify, mb]
-Q5105997 Chris Brown [human, mb]
-Q5106001 Chris Brown [human, mb]
+Q5105997 Chris Brown ~ Hugh Christopher Brown [human, mb]
+Q5106001 Chris Brown ~ Chris Brown (composer) [human, mb]
 Q115390006 Chris Brown [human, spotify, mb]",Forever (2008); With You (2008); Under the Influence (2023),assistant,Chris Brown,Chris Brown
-multi,Creed,3,,Q308816,assistant,"Q308816 Creed [spotify, mb]","Q308816 Creed [musical group, spotify, mb]
+multi,Creed,3,,Q308816,assistant,"Q308816 Creed [spotify, mb]","Q308816 Creed ~ Creed (band) [musical group, spotify, mb]
 Q16109883 Creed [musical group, mb]",Higher (2000); My Sacrifice (2002); One Last Breath (2002),assistant,Creed,Creed
-multi,Fergie,3,,Q180004,assistant,"Q180004 Fergie [spotify, mb]","Q180004 Fergie [human, spotify, mb]
-Q5444141 Fergie [human, spotify, mb]
+multi,Fergie,3,,Q180004,assistant,"Q180004 Fergie [spotify, mb]","Q180004 Fergie ~ Fergie (singer) [human, spotify, mb]
+Q5444141 Fergie ~ Fergie (DJ) [human, spotify, mb]
 Q55720 Sarah Ferguson [human, mb]",London Bridge (2006); Big Girls Don't Cry (2007); Clumsy (2008),assistant,Fergie,Fergie
-multi,Heart,3,,Q941662,assistant,"Q941662 Heart [spotify, mb]","Q941662 Heart [rock band, spotify, mb]
+multi,Heart,3,,Q941662,assistant,"Q941662 Heart [spotify, mb]","Q941662 Heart ~ Heart (band) [rock band, spotify, mb]
 Q2237533 Heart [musical group, mb]
 Q117435025 Heart [girl group, mb]",Never (1986); Alone (1987); All I Wanna Do Is Make Love to You (1990),assistant,Heart,Heart
-multi,John Steel,3,,,,,"Q2025080 John Steel [human, mb]
-Q6258947 John Steel [human, mb]","Tell Me, Little Gypsy (1920); The Love Nest (1920); Learn to Smile (1921)",multi,John Steel,John Steel
-multi,Khalid,3,,Q28816483,assistant,"Q28816483 Khalid [spotify, mb]","Q28816483 Khalid [human, spotify, mb]
-Q125066346 Khalid [human, mb]",Location (2017); Better (2019); Talk (2019),assistant,Khalid,Khalid
-multi,The Drifters,3,,,,,"Q1014432 The Drifters [musical group/comedy troupe, spotify, mb]
+multi,John Steel,3,,,,,"Q2025080 John Steel ~ John Steel (drummer) [human, mb]
+Q6258947 John Steel ~ John Steel (singer) [human, mb]","Tell Me, Little Gypsy (1920); The Love Nest (1920); Learn to Smile (1921)",multi,John Steel,John Steel
+multi,Khalid,3,,Q28816483,assistant,"Q28816483 Khalid [spotify, mb]","Q28816483 Khalid ~ Khalid (singer) [human, spotify, mb]
+Q125066346 Khalid ~ Khalid (Bangladeshi singer) [human, mb]",Location (2017); Better (2019); Talk (2019),assistant,Khalid,Khalid
+multi,The Drifters,3,,,,,"Q1014432 The Drifters ~ The Drifters (Japanese band) [musical group/comedy troupe, spotify, mb]
 Q1060576 The Drifters [musical group, spotify, mb]
 Q15908640 The Drifters [musical duo, mb]",There Goes My Baby (1959); Save the Last Dance for Me (1960); Under the Boardwalk (1964),multi,The Drifters,The Drifters
 multi,The Seekers,3,,Q592387,assistant,"Q592387 The Seekers [spotify, mb]","Q592387 The Seekers [musical group, spotify, mb]
 Q83506288 The Seekers [musical group, spotify]",I'll Never Find Another You (1965); Georgy Girl (1967); Georgy Girl (1967),assistant,The Seekers,The Seekers
 multi,Will Smith,3,,Q40096,assistant,"Q40096 Will Smith [spotify, mb]","Q40096 Will Smith [human, spotify, mb]
-Q8003106 Will Smith [human, mb]",Men in Black (1997); Gettin' Jiggy wit It (1998); Switch (2005),assistant,Will Smith,Will Smith
-multi,Wings,3,,Q622988,assistant,"Q622988 Wings [spotify, mb]","Q622988 Wings [musical group, spotify, mb]
+Q8003106 Will Smith ~ Will Smith (comedian) [human, mb]",Men in Black (1997); Gettin' Jiggy wit It (1998); Switch (2005),assistant,Will Smith,Will Smith
+multi,Wings,3,,Q622988,assistant,"Q622988 Wings [spotify, mb]","Q622988 Wings ~ Paul McCartney and Wings [musical group, spotify, mb]
 Q2584424 Wings [musical group, mb]
-Q8025253 Wings [musical group, mb]
-Q12524597 Wings [musical group, mb]
-Q16097586 Wings [musical duo, mb]",Live and Let Die (1973); Silly Love Songs (1976); With a Little Luck (1978),assistant,Wings,Wings
+Q8025253 Wings ~ Wings (1968 band) [musical group, mb]
+Q12524597 Wings ~ Wings (Malaysian band) [musical group, mb]
+Q16097586 Wings ~ Wings (duo) [musical duo, mb]",Live and Let Die (1973); Silly Love Songs (1976); With a Little Luck (1978),assistant,Wings,Wings
 multi,Andy Williams,2,,Q214548,assistant,"Q214548 Andy Williams [spotify, mb]","Q214548 Andy Williams [human, spotify, mb]
-Q4761492 Andy Williams [human, mb]
-Q104821318 Andy Williams [human, mb]",Can't Get Used to Losing You (1963); Days of Wine and Roses (1963),assistant,Andy Williams,Andy Williams
-multi,Billy Murray and Ed Smalle,2,and Ed Smalle,Q440215,assistant,Q440215 Billy Murray [mb],"Q8015960 William Murray [human, mb, via 'Billy Murray']
-Q440215 Billy Murray [human, mb, via 'Billy Murray']",The Yankee Doodle Blues (1922); That Old Gang of Mine (1923),assistant,Billy Murray and Ed Smalle | Billy Murray,Billy Murray
+Q4761492 Andy Williams ~ Andy Williams (drummer) [human, mb]
+Q104821318 Andy Williams ~ Andy Williams (guitarist) [human, mb]",Can't Get Used to Losing You (1963); Days of Wine and Roses (1963),assistant,Andy Williams,Andy Williams
+multi,Billy Murray and Ed Smalle,2,and Ed Smalle,Q440215,assistant,Q440215 Billy Murray [mb],"Q8015960 William Murray ~ William Murray (musician) [human, mb, via 'Billy Murray']
+Q440215 Billy Murray ~ Billy Murray (singer) [human, mb, via 'Billy Murray']",The Yankee Doodle Blues (1922); That Old Gang of Mine (1923),assistant,Billy Murray and Ed Smalle | Billy Murray,Billy Murray
 multi,Brandy,2,,Q690974,assistant,"Q690974 Brandy Norwood [spotify, mb]","Q690974 Brandy Norwood [human, spotify, mb]
 Q13016228 Brandy [musical group, mb]",Sittin' Up in My Room (1996); Have You Ever? (1999),assistant,Brandy,Brandy
 multi,Breathe,2,,,,,"Q10846545 Breathe [musical group, mb]
-Q85748811 Breathe [musical group, spotify, mb]
-Q2307431 Breathe [musical group, spotify, mb]
-Q4959860 Breathe [rock band, mb]",Hands to Heaven (1988); How Can I Fall? (1989),multi,Breathe,Breathe
+Q85748811 Breathe ~ Breathe (Australian band) [musical group, spotify, mb]
+Q2307431 Breathe ~ Breathe (British band) [musical group, spotify, mb]
+Q4959860 Breathe ~ Breathe (New Zealand band) [rock band, mb]",Hands to Heaven (1988); How Can I Fall? (1989),multi,Breathe,Breathe
 multi,Dawn,2,,Q1178760,assistant,"Q1178760 Tony Orlando and Dawn [spotify, mb]","Q1178760 Tony Orlando and Dawn [musical group, spotify, mb]
 Q67199728 Corine [human, spotify, mb]
-Q18815101 Dawn [rock band, mb]
-Q42101185 Dawn [human, spotify, mb]
-Q124260302 Dawn [human, mb]",Candida (1970); Knock Three Times (1971),assistant,Dawn,Dawn
+Q18815101 Dawn ~ Dawn (Swedish band) [rock band, mb]
+Q42101185 Dawn ~ Dawn (rapper) [human, spotify, mb]
+Q124260302 Dawn ~ Dawn (drag queen) [human, mb]",Candida (1970); Knock Three Times (1971),assistant,Dawn,Dawn
 multi,Ethel Merman,2,,Q129087,assistant,Q129087 Ethel Merman [mb],"Q129087 Ethel Merman [human, mb]
 Q5105890 Chris Berman [human, mb]",I Get a Kick Out of You (1935); You're the Top (1935),assistant,Ethel Merman,Ethel Merman
 multi,Four Tops,2,,Q653480,assistant,"Q653480 Four Tops [spotify, mb]","Q653480 Four Tops [musical group, spotify, mb]
@@ -517,246 +517,246 @@ Q9363788 Four Tops [musical group, mb]",I Can't Help Myself (Sugar Pie Honey Bun
 multi,Glen Campbell,2,,Q162667,assistant,"Q162667 Glen Campbell [spotify, mb]","Q56461797 Dru Stix [human, mb]
 Q162667 Glen Campbell [human, spotify, mb]",Rhinestone Cowboy (1975); Southern Nights (1977),assistant,Glen Campbell,Glen Campbell
 multi,Harry James feat. Kitty Kallen,2,feat. Kitty Kallen,Q163861,assistant,Q163861 Harry James [mb],"Q163861 Harry James [human, mb, via 'Harry James']
-Q2424156 Thomas Garnet Henry James [human, mb, via 'Harry James']","I'll Buy That Dream (1945); It's Been a Long, Long Time (1945)",assistant,Harry James feat. Kitty Kallen | Harry James,Harry James
+Q2424156 Thomas Garnet Henry James ~ T. G. H. James [human, mb, via 'Harry James']","I'll Buy That Dream (1945); It's Been a Long, Long Time (1945)",assistant,Harry James feat. Kitty Kallen | Harry James,Harry James
 multi,Isaac Hayes,2,,Q206439,assistant,"Q206439 Isaac Hayes [spotify, mb]","Q206439 Isaac Hayes [human, spotify, mb]
-Q47594 Chef [fictional human/animated character, mb]",Theme from Shaft (1971); Theme from Shaft (1971),assistant,Isaac Hayes,Isaac Hayes
-multi,Jewel,2,,Q229018,assistant,"Q229018 Jewel [spotify, mb]","Q229018 Jewel [human, spotify, mb]
+Q47594 Chef ~ Chef (South Park) [fictional human/animated character, mb]",Theme from Shaft (1971); Theme from Shaft (1971),assistant,Isaac Hayes,Isaac Hayes
+multi,Jewel,2,,Q229018,assistant,"Q229018 Jewel [spotify, mb]","Q229018 Jewel ~ Jewel (singer) [human, spotify, mb]
 Q2500227 Jewel [musical group, mb]
 Q1275963 Elena Berkova [human, spotify, mb]",Who Will Save Your Soul (1996); You Were Meant for Me (1997),assistant,Jewel,Jewel
 multi,Nelly,2,,Q218992,assistant,"Q218992 Nelly [spotify, mb]","Q218992 Nelly [human, spotify, mb]
 Q3874508 Nelly Fioramonti [human, mb]
 Q60673695 Nelly Řehořová [human, mb]",Country Grammar (2000); Hot in Herre (2002),assistant,Nelly,Nelly
 multi,Oliver,2,,Q443281,assistant,Q443281 Oliver [mb],"Q1049934 Isaac Oliver [human, mb]
-Q443281 Oliver [human, mb]
-Q25339808 Oliver [software, mb]
-Q39074246 Oliver [musical group/record production team, spotify, mb]",Good Morning Starshine (1969); Jean (1969),assistant,Oliver,Oliver
+Q443281 Oliver ~ Oliver (singer) [human, mb]
+Q25339808 Oliver ~ Oliver (software) [software, mb]
+Q39074246 Oliver ~ Oliver (DJs) [musical group/record production team, spotify, mb]",Good Morning Starshine (1969); Jean (1969),assistant,Oliver,Oliver
 multi,Paul Simon,2,,Q4028,assistant,"Q4028 Paul Simon [spotify, mb]","Q4028 Paul Simon [human, spotify, mb]
-Q7153617 Paul Simon [human, mb]",Loves Me Like a Rock (1973); 50 Ways to Leave Your Lover (1976),assistant,Paul Simon,Paul Simon
+Q7153617 Paul Simon ~ Paul Simon (drummer) [human, mb]",Loves Me Like a Rock (1973); 50 Ways to Leave Your Lover (1976),assistant,Paul Simon,Paul Simon
 multi,Peggy Lee,2,,Q229139,assistant,"Q229139 Peggy Lee [spotify, mb]","Q229139 Peggy Lee [human, spotify, mb]
 Q2067397 Peggy Lee [human, mb]",Golden Earrings (1947); Manana (Is Soon Enough for Me) (1948),assistant,Peggy Lee,Peggy Lee
 multi,Ray Charles,2,,Q544387,assistant,"Q544387 Ray Charles [spotify, mb]","Q544387 Ray Charles [human, spotify, mb]
-Q7297319 Ray Charles [human, mb]",Hit the Road Jack (1961); I Can't Stop Loving You (1962),assistant,Ray Charles,Ray Charles
+Q7297319 Ray Charles ~ Ray Charles (conductor) [human, mb]",Hit the Road Jack (1961); I Can't Stop Loving You (1962),assistant,Ray Charles,Ray Charles
 multi,Robert Palmer,2,,Q325412,assistant,"Q325412 Robert Palmer [spotify, mb]","Q325412 Robert Palmer [human, spotify, mb]
-Q2158449 Robert Palmer [human, mb]
+Q2158449 Robert Palmer ~ Robert Palmer (American writer) [human, mb]
 Q628124 Cyriel Buysse [human, mb]",Addicted to Love (1986); Simply Irresistible (1988),assistant,Robert Palmer,Robert Palmer
-multi,Roger Williams,2,,Q716906,assistant,"Q716906 Roger Williams [spotify, mb]","Q716906 Roger Williams [human, spotify, mb]
-Q7359124 Roger Williams [human, mb]",Autumn Leaves (1955); Born Free (1966),assistant,Roger Williams,Roger Williams
+multi,Roger Williams,2,,Q716906,assistant,"Q716906 Roger Williams [spotify, mb]","Q716906 Roger Williams ~ Roger Williams (pianist) [human, spotify, mb]
+Q7359124 Roger Williams ~ Roger Williams (organist) [human, mb]",Autumn Leaves (1955); Born Free (1966),assistant,Roger Williams,Roger Williams
 multi,Sam Smith,2,,Q15123969,assistant,"Q15123969 Sam Smith [spotify, mb]","Q15123969 Sam Smith [human, spotify, mb]
-Q7408172 Sam Smith [human, mb]",Stay with Me (2014); Writing's on the Wall (2015),assistant,Sam Smith,Sam Smith
+Q7408172 Sam Smith ~ Sam Smith (artist) [human, mb]",Stay with Me (2014); Writing's on the Wall (2015),assistant,Sam Smith,Sam Smith
 multi,Sean Paul,2,,Q200577,assistant,"Q200577 Sean Paul [spotify, mb]","Q200577 Sean Paul [human, spotify, mb]
 Q20781862 Sean Paul [human, mb]",Get Busy (2003); Temperature (2006),assistant,Sean Paul,Sean Paul
 multi,Snap!,2,,Q705689,assistant,"Q705689 Snap! [spotify, mb]","Q705689 Snap! [musical group, spotify, mb]
 Q20180731 16 BIT [musical group, mb]",The Power (1990); Rhythm Is a Dancer (1993),assistant,Snap!,Snap!
 multi,The 5th Dimension,2,,Q1753111,assistant,"Q1753111 The 5th Dimension [spotify, mb]","Q1753111 The 5th Dimension [musical group, spotify, mb]
 Q994582 Brutal Attack [musical group, mb]",Stoned Soul Picnic (1968); Aquarius/Let the Sunshine In (1969),assistant,The 5th Dimension,The 5th Dimension
-multi,The Game featuring 50 Cent,2,featuring 50 Cent,Q189936,assistant,"Q189936 The Game [spotify, mb]","Q189936 The Game [human, spotify, mb, via 'The Game']
+multi,The Game featuring 50 Cent,2,featuring 50 Cent,Q189936,assistant,"Q189936 The Game [spotify, mb]","Q189936 The Game ~ The Game (rapper) [human, spotify, mb, via 'The Game']
 Q112679275 The Game [musical group, mb, via 'The Game']",Hate It or Love It (2005); How We Do (2005),assistant,The Game featuring 50 Cent | The Game,The Game
-multi,The Gaylords,2,,Q7736003,assistant,"Q7736003 The Gaylords [spotify, mb]","Q7736002 The Gaylords [musical group, mb]
-Q7736003 The Gaylords [vocal group/musical trio, spotify, mb]",Tell Me You're Mine (1953); The Little Shoemaker (1954),assistant,The Gaylords,The Gaylords
-multi,The Rascals,2,,Q1757318,assistant,"Q1757318 The Rascals [spotify, mb]","Q1309275 The Rascals [musical group, mb]
+multi,The Gaylords,2,,Q7736003,assistant,"Q7736003 The Gaylords [spotify, mb]","Q7736002 The Gaylords ~ The Gaylords (Dominican band) [musical group, mb]
+Q7736003 The Gaylords ~ The Gaylords (American vocal group) [vocal group/musical trio, spotify, mb]",Tell Me You're Mine (1953); The Little Shoemaker (1954),assistant,The Gaylords,The Gaylords
+multi,The Rascals,2,,Q1757318,assistant,"Q1757318 The Rascals [spotify, mb]","Q1309275 The Rascals ~ The Rascals (English band) [musical group, mb]
 Q1757318 The Rascals [musical group, spotify, mb]
-Q53870606 The Rascals [musical duo/record production team, mb]",A Beautiful Morning (1968); People Got to Be Free (1968),assistant,The Rascals,The Rascals
-multi,The Spinners,2,,Q2030958,assistant,"Q2030958 The Spinners [spotify, mb]","Q2030958 The Spinners [musical group, spotify, mb]
-Q7765877 The Spinners [musical group, mb]","Cupid/I've Loved You for a Long Time (1980); Working My Way Back to You/Forgive Me, Girl (1980)",assistant,The Spinners,The Spinners
-multi,Tiffany,2,,Q233886,assistant,"Q233886 Tiffany [spotify, mb]","Q233886 Tiffany [human, spotify, mb]
+Q53870606 The Rascals ~ The Rascals (producers) [musical duo/record production team, mb]",A Beautiful Morning (1968); People Got to Be Free (1968),assistant,The Rascals,The Rascals
+multi,The Spinners,2,,Q2030958,assistant,"Q2030958 The Spinners [spotify, mb]","Q2030958 The Spinners ~ The Spinners (American group) [musical group, spotify, mb]
+Q7765877 The Spinners ~ The Spinners (English band) [musical group, mb]","Cupid/I've Loved You for a Long Time (1980); Working My Way Back to You/Forgive Me, Girl (1980)",assistant,The Spinners,The Spinners
+multi,Tiffany,2,,Q233886,assistant,"Q233886 Tiffany [spotify, mb]","Q233886 Tiffany ~ Tiffany Darwish [human, spotify, mb]
 Q236355 Tiffany Young [human, spotify, mb]",I Think We're Alone Now (1987); Could've Been (1988),assistant,Tiffany,Tiffany
-multi,Toto,2,,Q207472,assistant,"Q207472 Toto [spotify, mb]","Q207472 Toto [rock band, spotify, mb]
+multi,Toto,2,,Q207472,assistant,"Q207472 Toto [spotify, mb]","Q207472 Toto ~ Toto (band) [rock band, spotify, mb]
 Q2291 Totò [human, mb]",Rosanna (1982); Africa (1983),assistant,Toto,Toto
 multi,War,2,,Q2295871,assistant,"Q2295871 War [spotify, mb]","Q1710686 War [musical group, mb]
-Q2295871 War [musical group, spotify, mb]",Slippin' into Darkness (1972); Why Can't We Be Friends? (1975),assistant,War,War
-multi,Al Morgan,1,,,,,"Q2636157 Al Morgan [human, mb]
-Q4704469 Al Morgan [human, mb]",Jealous Heart (1949),multi,Al Morgan,Al Morgan
-multi,Allan Jones,1,,,,,"Q2837729 Allan Jones [human, mb]
-Q4730732 Allan Jones [human, mb]",The Donkey Serenade (1938),multi,Allan Jones,Allan Jones
-multi,America,1,,Q126852,assistant,"Q126852 America [spotify, mb]","Q126852 America [musical group, spotify, mb]
+Q2295871 War ~ War (band) [musical group, spotify, mb]",Slippin' into Darkness (1972); Why Can't We Be Friends? (1975),assistant,War,War
+multi,Al Morgan,1,,,,,"Q2636157 Al Morgan ~ Al Morgan (bassist) [human, mb]
+Q4704469 Al Morgan ~ Al Morgan (writer) [human, mb]",Jealous Heart (1949),multi,Al Morgan,Al Morgan
+multi,Allan Jones,1,,,,,"Q2837729 Allan Jones ~ Allan Jones (actor) [human, mb]
+Q4730732 Allan Jones ~ Allan Jones (editor) [human, mb]",The Donkey Serenade (1938),multi,Allan Jones,Allan Jones
+multi,America,1,,Q126852,assistant,"Q126852 America [spotify, mb]","Q126852 America ~ America (band) [musical group, spotify, mb]
 Q3611284 America [national personification/anime character/manga character, mb]",A Horse with No Name (1972),assistant,America,America
 multi,Andrew Gold,1,,Q596698,assistant,"Q596698 Andrew Gold [spotify, mb]","Q596698 Andrew Gold [human, spotify, mb]
 Q116983806 Andrew Gold [human, mb]
-Q16231291 Andrew Goldstein [human, mb]",Thank You for Being a Friend (1978),assistant,Andrew Gold,Andrew Gold
+Q16231291 Andrew Goldstein ~ Andrew Goldstein (musician) [human, mb]",Thank You for Being a Friend (1978),assistant,Andrew Gold,Andrew Gold
 multi,Bazzi,1,,Q48720231,assistant,"Q48720231 Bazzi [spotify, mb]","Q8506 Il Sodoma [human, mb]
-Q48720231 Bazzi [human, spotify, mb]",Mine (2018),assistant,Bazzi,Bazzi
+Q48720231 Bazzi ~ Bazzi (singer) [human, spotify, mb]",Mine (2018),assistant,Bazzi,Bazzi
 multi,Billy Porter,1,,Q4913177,assistant,"Q4913177 Billy Porter [spotify, mb]","Q4913177 Billy Porter [human, spotify, mb]
-Q4910527 Bill Porter [human, mb]",Land of Lola (2013),assistant,Billy Porter,Billy Porter
-multi,"Blood, Sweat and Tears",1,", Sweat and Tears",,,,"Q921865 DAM [musical group, mb, via 'Blood']
+Q4910527 Bill Porter ~ Bill Porter (sound engineer) [human, mb]",Land of Lola (2013),assistant,Billy Porter,Billy Porter
+multi,"Blood, Sweat and Tears",1,", Sweat and Tears",,,,"Q921865 DAM ~ DAM (band) [musical group, mb, via 'Blood']
 Q26923452 BloodPop [human, spotify, mb, via 'Blood']
 Q885074 Blood [musical group, mb, via 'Blood']
 Q885080 Blood [musical group, mb, via 'Blood']
-Q885082 Blood [musical group, mb, via 'Blood']",Spinning Wheel (1969),multi,"Blood, Sweat and Tears | Blood",Blood
-multi,Bob James,1,,Q888012,assistant,"Q888012 Bob James [spotify, mb]","Q888012 Bob James [human, spotify, mb]
-Q4932919 Bob James [human, mb]",Angela (Theme from Taxi) (1978),assistant,Bob James,Bob James
+Q885082 Blood ~ Blood (band) [musical group, mb, via 'Blood']",Spinning Wheel (1969),multi,"Blood, Sweat and Tears | Blood",Blood
+multi,Bob James,1,,Q888012,assistant,"Q888012 Bob James [spotify, mb]","Q888012 Bob James ~ Bob James (musician) [human, spotify, mb]
+Q4932919 Bob James ~ Bob James (rock singer) [human, mb]",Angela (Theme from Taxi) (1978),assistant,Bob James,Bob James
 multi,Bobby Lewis,1,,,,,"Q888609 Bobby Lewis [human, mb]
 Q888607 Bobby Lewis [human, mb]
-Q4935287 Bobby Lewis [human, mb]",Tossin' and Turnin' (1961),multi,Bobby Lewis,Bobby Lewis
-multi,Bow Wow featuring Ciara,1,featuring Ciara,Q312173,assistant,Q312173 Bow Wow [mb],"Q312173 Bow Wow [human, mb, via 'Bow Wow']
-Q2123862 Bow Wow [musical group, mb, via 'Bow Wow']",Like You (2005),assistant,Bow Wow featuring Ciara | Bow Wow,Bow Wow
-multi,Bow Wow featuring Omarion,1,featuring Omarion,Q312173,assistant,Q312173 Bow Wow [mb],"Q312173 Bow Wow [human, mb, via 'Bow Wow']
-Q2123862 Bow Wow [musical group, mb, via 'Bow Wow']",Let Me Hold You (2005),assistant,Bow Wow featuring Omarion | Bow Wow,Bow Wow
+Q4935287 Bobby Lewis ~ Bobby Lewis (country singer) [human, mb]",Tossin' and Turnin' (1961),multi,Bobby Lewis,Bobby Lewis
+multi,Bow Wow featuring Ciara,1,featuring Ciara,Q312173,assistant,Q312173 Bow Wow [mb],"Q312173 Bow Wow ~ Bow Wow (rapper) [human, mb, via 'Bow Wow']
+Q2123862 Bow Wow ~ Bow Wow (band) [musical group, mb, via 'Bow Wow']",Like You (2005),assistant,Bow Wow featuring Ciara | Bow Wow,Bow Wow
+multi,Bow Wow featuring Omarion,1,featuring Omarion,Q312173,assistant,Q312173 Bow Wow [mb],"Q312173 Bow Wow ~ Bow Wow (rapper) [human, mb, via 'Bow Wow']
+Q2123862 Bow Wow ~ Bow Wow (band) [musical group, mb, via 'Bow Wow']",Let Me Hold You (2005),assistant,Bow Wow featuring Omarion | Bow Wow,Bow Wow
 multi,Brandy and Monica,1,and Monica,Q690974,assistant,"Q690974 Brandy Norwood [spotify, mb]","Q690974 Brandy Norwood [human, spotify, mb, via 'Brandy']
 Q13016228 Brandy [musical group, mb, via 'Brandy']",The Boy Is Mine (1998),assistant,Brandy and Monica | Brandy,Brandy
 multi,Carl Perkins,1,,Q310339,assistant,Q310339 Carl Perkins [mb],"Q310339 Carl Perkins [human, mb]
-Q1040029 Carl Perkins [human, mb]",Blue Suede Shoes (1956),assistant,Carl Perkins,Carl Perkins
+Q1040029 Carl Perkins ~ Carl Perkins (pianist) [human, mb]",Blue Suede Shoes (1956),assistant,Carl Perkins,Carl Perkins
 multi,Charles Harrison,1,,Q5083209,assistant,Q5083209 Charles W. Harrison [mb],"Q5083209 Charles W. Harrison [human, mb]
-Q16935013 Charles Harrison [human, mb]",I'll Be with You in Apple Blossom Time (1920),assistant,Charles Harrison,Charles Harrison
+Q16935013 Charles Harrison ~ Charles Harrison (musician) [human, mb]",I'll Be with You in Apple Blossom Time (1920),assistant,Charles Harrison,Charles Harrison
 multi,Chris Brown & Young Thug,1,& Young Thug,Q155700,assistant,"Q155700 Chris Brown [spotify, mb]","Q155700 Chris Brown [human, spotify, mb, via 'Chris Brown']
-Q5105997 Chris Brown [human, mb, via 'Chris Brown']
-Q5106001 Chris Brown [human, mb, via 'Chris Brown']
+Q5105997 Chris Brown ~ Hugh Christopher Brown [human, mb, via 'Chris Brown']
+Q5106001 Chris Brown ~ Chris Brown (composer) [human, mb, via 'Chris Brown']
 Q115390006 Chris Brown [human, spotify, mb, via 'Chris Brown']",Go Crazy (2021),assistant,Chris Brown & Young Thug | Chris Brown,Chris Brown
 multi,Chris Brown feat. Drake,1,feat. Drake,Q155700,assistant,"Q155700 Chris Brown [spotify, mb]","Q155700 Chris Brown [human, spotify, mb, via 'Chris Brown']
-Q5105997 Chris Brown [human, mb, via 'Chris Brown']
-Q5106001 Chris Brown [human, mb, via 'Chris Brown']
+Q5105997 Chris Brown ~ Hugh Christopher Brown [human, mb, via 'Chris Brown']
+Q5106001 Chris Brown ~ Chris Brown (composer) [human, mb, via 'Chris Brown']
 Q115390006 Chris Brown [human, spotify, mb, via 'Chris Brown']",No Guidance (2019),assistant,Chris Brown feat. Drake | Chris Brown,Chris Brown
 multi,Chris Brown feat. Lil Wayne & Busta Rhymes,1,feat. Lil Wayne & Busta Rhymes,Q155700,assistant,"Q155700 Chris Brown [spotify, mb]","Q155700 Chris Brown [human, spotify, mb, via 'Chris Brown']
-Q5105997 Chris Brown [human, mb, via 'Chris Brown']
-Q5106001 Chris Brown [human, mb, via 'Chris Brown']
+Q5105997 Chris Brown ~ Hugh Christopher Brown [human, mb, via 'Chris Brown']
+Q5106001 Chris Brown ~ Chris Brown (composer) [human, mb, via 'Chris Brown']
 Q115390006 Chris Brown [human, spotify, mb, via 'Chris Brown']",Look at Me Now (2011),assistant,Chris Brown feat. Lil Wayne & Busta Rhymes | Chris Brown,Chris Brown
 multi,Chris Brown featuring Juelz Santana,1,featuring Juelz Santana,Q155700,assistant,"Q155700 Chris Brown [spotify, mb]","Q155700 Chris Brown [human, spotify, mb, via 'Chris Brown']
-Q5105997 Chris Brown [human, mb, via 'Chris Brown']
-Q5106001 Chris Brown [human, mb, via 'Chris Brown']
+Q5105997 Chris Brown ~ Hugh Christopher Brown [human, mb, via 'Chris Brown']
+Q5106001 Chris Brown ~ Chris Brown (composer) [human, mb, via 'Chris Brown']
 Q115390006 Chris Brown [human, spotify, mb, via 'Chris Brown']",Run It! (2006),assistant,Chris Brown featuring Juelz Santana | Chris Brown,Chris Brown
 multi,Chris Brown featuring T-Pain,1,featuring T-Pain,Q155700,assistant,"Q155700 Chris Brown [spotify, mb]","Q155700 Chris Brown [human, spotify, mb, via 'Chris Brown']
-Q5105997 Chris Brown [human, mb, via 'Chris Brown']
-Q5106001 Chris Brown [human, mb, via 'Chris Brown']
+Q5105997 Chris Brown ~ Hugh Christopher Brown [human, mb, via 'Chris Brown']
+Q5106001 Chris Brown ~ Chris Brown (composer) [human, mb, via 'Chris Brown']
 Q115390006 Chris Brown [human, spotify, mb, via 'Chris Brown']",Kiss Kiss (2008),assistant,Chris Brown featuring T-Pain | Chris Brown,Chris Brown
 multi,Climax,1,,Q5133636,assistant,"Q5133636 Climax [spotify, mb]","Q5772684 Clímax [musical group, mb]
-Q5133636 Climax [musical group, spotify, mb]",Precious and Few (1972),assistant,Climax,Climax
+Q5133636 Climax ~ Climax (band) [musical group, spotify, mb]",Precious and Few (1972),assistant,Climax,Climax
 multi,Cream,1,,,,,"Q10846824 Cream [musical group, spotify, mb]
-Q11193828 Cream [musical group, mb]
+Q11193828 Cream ~ Cream (Japanese group) [musical group, mb]
 Q4990656 Dianne Wiston [human, mb]
-Q203736 Cream [musical group, spotify, mb]",Sunshine of Your Love (1968),multi,Cream,Cream
+Q203736 Cream ~ Cream (band) [musical group, spotify, mb]",Sunshine of Your Love (1968),multi,Cream,Cream
 multi,Danny & The Juniors,1,& The Juniors,,,,"Q324920 Danny Saucedo [human, spotify, mb, via 'Danny']
 Q3894516 Paolo Tofani [human, mb, via 'Danny']
 Q122758289 Daniel Estrin [human, mb, via 'Danny']
-Q5998567 Danny [human, spotify, mb, via 'Danny']",At the Hop (1958),multi,Danny & The Juniors | Danny,Danny
+Q5998567 Danny ~ Danny (Finnish singer) [human, spotify, mb, via 'Danny']",At the Hop (1958),multi,Danny & The Juniors | Danny,Danny
 multi,Dasha,1,,Q125157260,assistant,"Q125157260 Dasha [spotify, mb]","Q11774069 Dasha [human, mb]
-Q125157260 Dasha [human, spotify, mb]
+Q125157260 Dasha ~ Dasha (singer) [human, spotify, mb]
 Q2302686 Dasha Astafieva [human, mb]",Austin (2024),assistant,Dasha,Dasha
 multi,David Seville,1,,Q1176607,assistant,Q1176607 Ross Bagdasarian Sr. [mb],"Q26823554 David Seville [fictional human/television character, mb]
-Q1176607 Ross Bagdasarian Sr. [human, mb]",Witch Doctor (1958),assistant,David Seville,David Seville
+Q1176607 Ross Bagdasarian Sr. ~ Ross Bagdasarian [human, mb]",Witch Doctor (1958),assistant,David Seville,David Seville
 multi,Dorothy Moore,1,,Q5298560,assistant,"Q5298560 Dorothy Moore [spotify, mb]","Q5298560 Dorothy Moore [human, spotify, mb]
 Q11855915 Debbie Moore [human, mb]",Misty Blue (1976),assistant,Dorothy Moore,Dorothy Moore
 multi,Dream,1,,Q1155446,assistant,"Q1155446 Dream [spotify, mb]","Q14479224 The Dream [musical group, mb]
-Q370165 Dream [musical group, spotify, mb]
-Q1155446 Dream [girl group, spotify, mb]
-Q99196256 Dream [human, mb]",He Loves U Not (2001),assistant,Dream,Dream
-multi,Eve featuring Alicia Keys,1,featuring Alicia Keys,Q239464,assistant,"Q239464 Eve [spotify, mb]","Q5416138 Eve [musical group, mb, via 'Eve']
-Q29855173 Eve [human, spotify, mb, via 'Eve']
-Q239464 Eve [human, spotify, mb, via 'Eve']
+Q370165 Dream ~ Dream (American group) [musical group, spotify, mb]
+Q1155446 Dream ~ Dream (Japanese group) [girl group, spotify, mb]
+Q99196256 Dream ~ Dream (YouTuber) [human, mb]",He Loves U Not (2001),assistant,Dream,Dream
+multi,Eve featuring Alicia Keys,1,featuring Alicia Keys,Q239464,assistant,"Q239464 Eve [spotify, mb]","Q5416138 Eve ~ Eve (South Korean band) [musical group, mb, via 'Eve']
+Q29855173 Eve ~ Eve (Japanese singer) [human, spotify, mb, via 'Eve']
+Q239464 Eve ~ Eve (rapper) [human, spotify, mb, via 'Eve']
 Q139899497 Yeoju [human, spotify, via 'Eve']
 Q139917251 Félix Detours [human, spotify, via 'Eve']",Gangsta Lovin' (2002),assistant,Eve featuring Alicia Keys | Eve,Eve
-multi,Eve featuring Gwen Stefani,1,featuring Gwen Stefani,Q239464,assistant,"Q239464 Eve [spotify, mb]","Q5416138 Eve [musical group, mb, via 'Eve']
-Q29855173 Eve [human, spotify, mb, via 'Eve']
-Q239464 Eve [human, spotify, mb, via 'Eve']
+multi,Eve featuring Gwen Stefani,1,featuring Gwen Stefani,Q239464,assistant,"Q239464 Eve [spotify, mb]","Q5416138 Eve ~ Eve (South Korean band) [musical group, mb, via 'Eve']
+Q29855173 Eve ~ Eve (Japanese singer) [human, spotify, mb, via 'Eve']
+Q239464 Eve ~ Eve (rapper) [human, spotify, mb, via 'Eve']
 Q139899497 Yeoju [human, spotify, via 'Eve']
 Q139917251 Félix Detours [human, spotify, via 'Eve']",Let Me Blow Ya Mind (2001),assistant,Eve featuring Gwen Stefani | Eve,Eve
-multi,Exile,1,,,,,"Q363873 Exile [musical group, mb]
-Q655239 Exile [musical group/dance troupe, spotify, mb]
-Q5420277 Exile [human, spotify, mb]",Kiss You All Over (1978),multi,Exile,Exile
-multi,Fergie featuring Ludacris,1,featuring Ludacris,Q180004,assistant,"Q180004 Fergie [spotify, mb]","Q180004 Fergie [human, spotify, mb, via 'Fergie']
-Q5444141 Fergie [human, spotify, mb, via 'Fergie']
+multi,Exile,1,,,,,"Q363873 Exile ~ Exile (American band) [musical group, mb]
+Q655239 Exile ~ Exile (Japanese band) [musical group/dance troupe, spotify, mb]
+Q5420277 Exile ~ Exile (producer) [human, spotify, mb]",Kiss You All Over (1978),multi,Exile,Exile
+multi,Fergie featuring Ludacris,1,featuring Ludacris,Q180004,assistant,"Q180004 Fergie [spotify, mb]","Q180004 Fergie ~ Fergie (singer) [human, spotify, mb, via 'Fergie']
+Q5444141 Fergie ~ Fergie (DJ) [human, spotify, mb, via 'Fergie']
 Q55720 Sarah Ferguson [human, mb, via 'Fergie']",Glamorous (2007),assistant,Fergie featuring Ludacris | Fergie,Fergie
-multi,Fergie featuring will.i.am,1,featuring will.i.am,Q180004,assistant,"Q180004 Fergie [spotify, mb]","Q180004 Fergie [human, spotify, mb, via 'Fergie']
-Q5444141 Fergie [human, spotify, mb, via 'Fergie']
+multi,Fergie featuring will.i.am,1,featuring will.i.am,Q180004,assistant,"Q180004 Fergie [spotify, mb]","Q180004 Fergie ~ Fergie (singer) [human, spotify, mb, via 'Fergie']
+Q5444141 Fergie ~ Fergie (DJ) [human, spotify, mb, via 'Fergie']
 Q55720 Sarah Ferguson [human, mb, via 'Fergie']",Fergalicious (2007),assistant,Fergie featuring will.i.am | Fergie,Fergie
-multi,Free,1,,Q45650,assistant,"Q45650 Free [spotify, mb]","Q5499725 Free Marie [human, mb]
+multi,Free,1,,Q45650,assistant,"Q45650 Free [spotify, mb]","Q5499725 Free Marie ~ Free (television host) [human, mb]
 Q17514473 Bacon Popper [musical group, mb]
-Q45650 Free [rock band, spotify, mb]",All Right Now (1970),assistant,Free,Free
-multi,Future,1,,Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future [human, spotify, mb]
+Q45650 Free ~ Free (band) [rock band, spotify, mb]",All Right Now (1970),assistant,Free,Free
+multi,Future,1,,Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future ~ Future (rapper) [human, spotify, mb]
 Q3755149 Future [musical group, mb]",Mask Off (2017),assistant,Future,Future
-multi,Future feat. Drake,1,feat. Drake,Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future [human, spotify, mb, via 'Future']
+multi,Future feat. Drake,1,feat. Drake,Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future ~ Future (rapper) [human, spotify, mb, via 'Future']
 Q3755149 Future [musical group, mb, via 'Future']",Life Is Good (2020),assistant,Future feat. Drake | Future,Future
-multi,Future feat. Drake & Tems,1,feat. Drake & Tems,Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future [human, spotify, mb, via 'Future']
+multi,Future feat. Drake & Tems,1,feat. Drake & Tems,Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future ~ Future (rapper) [human, spotify, mb, via 'Future']
 Q3755149 Future [musical group, mb, via 'Future']",Wait for U (2022),assistant,Future feat. Drake & Tems | Future,Future
-multi,"Future, Metro Boomin & Kendrick Lamar",1,", Metro Boomin & Kendrick Lamar",Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future [human, spotify, mb, via 'Future']
+multi,"Future, Metro Boomin & Kendrick Lamar",1,", Metro Boomin & Kendrick Lamar",Q3445057,assistant,"Q3445057 Future [spotify, mb]","Q3445057 Future ~ Future (rapper) [human, spotify, mb, via 'Future']
 Q3755149 Future [musical group, mb, via 'Future']",Like That (2024),assistant,"Future, Metro Boomin & Kendrick Lamar | Future",Future
-multi,Gary Lewis and the Playboys,1,and the Playboys,,,,"Q113949 Gary Lewis [human, mb, via 'Gary Lewis']
-Q486185 Gary Lewis [human, mb, via 'Gary Lewis']",This Diamond Ring (1965),multi,Gary Lewis and the Playboys | Gary Lewis,Gary Lewis
+multi,Gary Lewis and the Playboys,1,and the Playboys,,,,"Q113949 Gary Lewis ~ Gary Lewis (actor) [human, mb, via 'Gary Lewis']
+Q486185 Gary Lewis ~ Gary Lewis (musician) [human, mb, via 'Gary Lewis']",This Diamond Ring (1965),multi,Gary Lewis and the Playboys | Gary Lewis,Gary Lewis
 multi,George Benson,1,,Q348459,assistant,"Q348459 George Benson [spotify, mb]","Q348459 George Benson [human, spotify, mb]
-Q5536905 George Benson [human, mb]
-Q16727460 George Benson [human, mb]",Turn Your Love Around (1982),assistant,George Benson,George Benson
+Q5536905 George Benson ~ George Benson (actor) [human, mb]
+Q16727460 George Benson ~ George Benson (saxophonist) [human, mb]",Turn Your Love Around (1982),assistant,George Benson,George Benson
 multi,Hannah Montana,1,,,,,"Q4235 Miley Cyrus [human, spotify, mb]
 Q842949 Miley Stewart [fictional human/television character, spotify, mb]",The Best of Both Worlds (2006),multi,Hannah Montana,Hannah Montana
 multi,Hanson,1,,Q768621,assistant,"Q768621 Hanson [spotify, mb]","Q2610405 Taylor Hanson [human, mb]
-Q768621 Hanson [musical group, spotify, mb]
-Q5651168 Hanson [musical group, mb]",MMMBop (1997),assistant,Hanson,Hanson
+Q768621 Hanson ~ Hanson (band) [musical group, spotify, mb]
+Q5651168 Hanson ~ Hanson (British band) [musical group, mb]",MMMBop (1997),assistant,Hanson,Hanson
 multi,Harry James feat. Dick Haymes,1,feat. Dick Haymes,Q163861,assistant,Q163861 Harry James [mb],"Q163861 Harry James [human, mb, via 'Harry James']
-Q2424156 Thomas Garnet Henry James [human, mb, via 'Harry James']",I'll Get By (As Long as I Have You) (1944),assistant,Harry James feat. Dick Haymes | Harry James,Harry James
+Q2424156 Thomas Garnet Henry James ~ T. G. H. James [human, mb, via 'Harry James']",I'll Get By (As Long as I Have You) (1944),assistant,Harry James feat. Dick Haymes | Harry James,Harry James
 multi,Hi-Five,1,,,,,"Q1617129 Hi-Five [musical group/quintet, mb]
-Q7041204 Hi-Five [musical group/boy band, mb]",I Like the Way (The Kissing Game) (1991),multi,Hi-Five,Hi-Five
+Q7041204 Hi-Five ~ Hi-Five (Israeli band) [musical group/boy band, mb]",I Like the Way (The Kissing Game) (1991),multi,Hi-Five,Hi-Five
 multi,Incubus,1,,Q1661036,assistant,"Q1661036 Incubus [spotify, mb]","Q139717624 DJ Phantasy [human, spotify, mb]
-Q1661036 Incubus [musical group, spotify, mb]
-Q1431188 Opprobrium [musical group, mb]",Drive (2001),assistant,Incubus,Incubus
-multi,Jack Owens,1,,,,,"Q6114487 Jack Owens [human, mb]
-Q6114488 Jack Owens [human, mb]",How Soon (Will I Be Seeing You) (1947),multi,Jack Owens,Jack Owens
+Q1661036 Incubus ~ Incubus (band) [musical group, spotify, mb]
+Q1431188 Opprobrium ~ Opprobrium (band) [musical group, mb]",Drive (2001),assistant,Incubus,Incubus
+multi,Jack Owens,1,,,,,"Q6114487 Jack Owens ~ Jack Owens (blues singer) [human, mb]
+Q6114488 Jack Owens ~ Jack Owens (singer-songwriter) [human, mb]",How Soon (Will I Be Seeing You) (1947),multi,Jack Owens,Jack Owens
 multi,Jade,1,,Q1678183,assistant,"Q1678183 Jade [spotify, mb]","Q1678181 Jade [musical group, mb]
-Q1678183 Jade [musical group, spotify, mb]
-Q16240077 Jade [musical group, mb]
-Q23542532 Jade [human, mb]
+Q1678183 Jade ~ Jade (R&B group) [musical group, spotify, mb]
+Q16240077 Jade ~ Jade (British band) [musical group, mb]
+Q23542532 Jade ~ Jade (producer) [human, mb]
 Q1689484 Jimsaku [musical group, mb]
 Q7577542 Spinetta Jade [musical ensemble, mb]
-Q7742896 The Jades [musical group, mb]",Don't Walk Away (1993),assistant,Jade,Jade
-multi,Jagged Edge with Nelly,1,with Nelly,Q1678447,assistant,"Q1678447 Jagged Edge [spotify, mb]","Q1678447 Jagged Edge [musical group, spotify, mb, via 'Jagged Edge']
-Q15961177 Jagged Edge [musical group, mb, via 'Jagged Edge']",Where the Party At (2001),assistant,Jagged Edge with Nelly | Jagged Edge,Jagged Edge
+Q7742896 The Jades ~ The Jades (Irish band) [musical group, mb]",Don't Walk Away (1993),assistant,Jade,Jade
+multi,Jagged Edge with Nelly,1,with Nelly,Q1678447,assistant,"Q1678447 Jagged Edge [spotify, mb]","Q1678447 Jagged Edge ~ Jagged Edge (American group) [musical group, spotify, mb, via 'Jagged Edge']
+Q15961177 Jagged Edge ~ Jagged Edge (British band) [musical group, mb, via 'Jagged Edge']",Where the Party At (2001),assistant,Jagged Edge with Nelly | Jagged Edge,Jagged Edge
 multi,James Taylor,1,,Q310300,assistant,"Q310300 James Taylor [spotify, mb]","Q310300 James Taylor [human, spotify, mb]
-Q6144058 James Taylor [human, mb]
+Q6144058 James Taylor ~ James Taylor (tenor) [human, mb]
 Q28465652 James Taylor [human, mb]
 Q2536187 James Arnold Taylor [human, mb]",You've Got a Friend (1971),assistant,James Taylor,James Taylor
 multi,Jay and the Techniques,1,and the Techniques,,,,"Q3163208 Jay [human, mb, via 'Jay']
 Q12319116 Jannik Thomsen [human, mb, via 'Jay']
-Q12616377 Typhoon [human, mb, via 'Jay']
+Q12616377 Typhoon ~ Jay (South Korean singer) [human, mb, via 'Jay']
 Q18550351 Kim Jin-hwan [human, mb, via 'Jay']
 Q24579245 Jayden Yoon [human, spotify, mb, via 'Jay']
 Q66490966 Giuseppe Di San Leonardo [human, spotify, mb, via 'Jay']","Apples, Peaches, Pumpkin Pie (1967)",multi,Jay and the Techniques | Jay,Jay
 multi,Jermaine Jackson,1,,Q317784,assistant,"Q317784 Jermaine Jackson [spotify, mb]","Q317784 Jermaine Jackson [human, spotify, mb]
 Q107719247 Mayne Zayne [human, mb]",Let's Get Serious (1980),assistant,Jermaine Jackson,Jermaine Jackson
 multi,Jim Jones,1,,Q707008,assistant,"Q707008 Jim Jones [spotify, mb]","Q213861 Jim Jones [human, mb]
-Q707008 Jim Jones [human, spotify, mb]
-Q6195946 Jim Jones [human, mb]",We Fly High (2007),assistant,Jim Jones,Jim Jones
+Q707008 Jim Jones ~ Jim Jones (rapper) [human, spotify, mb]
+Q6195946 Jim Jones ~ Jim Jones (guitarist) [human, mb]",We Fly High (2007),assistant,Jim Jones,Jim Jones
 multi,Jim Lowe,1,,Q1378364,assistant,Q1378364 Jim Lowe [mb],"Q1378364 Jim Lowe [human, mb]
-Q114232129 James Lowe [human, mb]",The Green Door (1956),assistant,Jim Lowe,Jim Lowe
+Q114232129 James Lowe ~ James Lowe (musician) [human, mb]",The Green Door (1956),assistant,Jim Lowe,Jim Lowe
 multi,Jim Reeves,1,,Q362435,assistant,"Q362435 Jim Reeves [spotify, mb]","Q362435 Jim Reeves [human, spotify, mb]
 Q1689375 Jimmy Joe [human, mb]",He'll Have to Go (1960),assistant,Jim Reeves,Jim Reeves
-multi,Jimmy Jones,1,,,,,"Q122966 Jimmy Jones [human, mb]
-Q257840 Jimmy Jones [human, mb]",Handy Man (1960),multi,Jimmy Jones,Jimmy Jones
-multi,Joe,1,,,,,"Q1077266 Joe [human, mb]
+multi,Jimmy Jones,1,,,,,"Q122966 Jimmy Jones ~ Jimmy Jones (pianist) [human, mb]
+Q257840 Jimmy Jones ~ Jimmy Jones (singer) [human, mb]",Handy Man (1960),multi,Jimmy Jones,Jimmy Jones
+multi,Joe,1,,,,,"Q1077266 Joe ~ Joe (singer) [human, mb]
 Q11225950 Joe [human, mb]
 Q348271 Joe Fagan [human, mb]
 Q11455218 Satoshi ""Joe"" Miyawaki [human, mb]
-Q53516576 Joseph Gatto [human, mb]",I Wanna Know (2000),multi,Joe,Joe
-multi,Joe featuring Mystikal,1,featuring Mystikal,,,,"Q1077266 Joe [human, mb, via 'Joe']
+Q53516576 Joseph Gatto ~ Joe Gatto [human, mb]",I Wanna Know (2000),multi,Joe,Joe
+multi,Joe featuring Mystikal,1,featuring Mystikal,,,,"Q1077266 Joe ~ Joe (singer) [human, mb, via 'Joe']
 Q11225950 Joe [human, mb, via 'Joe']
 Q348271 Joe Fagan [human, mb, via 'Joe']
 Q11455218 Satoshi ""Joe"" Miyawaki [human, mb, via 'Joe']
-Q53516576 Joseph Gatto [human, mb, via 'Joe']",Stutter (2001),multi,Joe featuring Mystikal | Joe,Joe
+Q53516576 Joseph Gatto ~ Joe Gatto [human, mb, via 'Joe']",Stutter (2001),multi,Joe featuring Mystikal | Joe,Joe
 multi,John Sebastian,1,,Q967761,assistant,"Q967761 John Sebastian [spotify, mb]","Q967761 John Sebastian [human, spotify, mb]
-Q20679336 John Sebastian [human, mb]",Welcome Back (1976),assistant,John Sebastian,John Sebastian
+Q20679336 John Sebastian ~ John Sebastian (classical harmonica player) [human, mb]",Welcome Back (1976),assistant,John Sebastian,John Sebastian
 multi,Johnny Mathis & Deniece Williams,1,& Deniece Williams,Q449612,assistant,"Q449612 Johnny Mathis [spotify, mb]","Q449612 Johnny Mathis [human, spotify, mb, via 'Johnny Mathis']
-Q1702358 Johnny ""Country"" Mathis [human, mb, via 'Johnny Mathis']","Too Much, Too Little, Too Late (1978)",assistant,Johnny Mathis & Deniece Williams | Johnny Mathis,Johnny Mathis
+Q1702358 Johnny ""Country"" Mathis ~ ""Country"" Johnny Mathis [human, mb, via 'Johnny Mathis']","Too Much, Too Little, Too Late (1978)",assistant,Johnny Mathis & Deniece Williams | Johnny Mathis,Johnny Mathis
 multi,Jon and Sondra Steele,1,and Sondra Steele,,,,"Q127457 Jon Nørgaard [human, spotify, mb, via 'Jon']
 Q1702838 Jon Rose [human, mb, via 'Jon']
 Q11310696 Jon the Dog [human, mb, via 'Jon']",My Happiness (1948),multi,Jon and Sondra Steele | Jon,Jon
-multi,Khalid & Normani,1,& Normani,Q28816483,assistant,"Q28816483 Khalid [spotify, mb]","Q28816483 Khalid [human, spotify, mb, via 'Khalid']
-Q125066346 Khalid [human, mb, via 'Khalid']",Love Lies (2018),assistant,Khalid & Normani | Khalid,Khalid
+multi,Khalid & Normani,1,& Normani,Q28816483,assistant,"Q28816483 Khalid [spotify, mb]","Q28816483 Khalid ~ Khalid (singer) [human, spotify, mb, via 'Khalid']
+Q125066346 Khalid ~ Khalid (Bangladeshi singer) [human, mb, via 'Khalid']",Love Lies (2018),assistant,Khalid & Normani | Khalid,Khalid
 multi,Labelle,1,,Q1426945,assistant,"Q1426945 Labelle [spotify, mb]","Q1426945 Labelle [musical group, spotify, mb]
 Q60485058 Labelle [human, spotify, mb]",Lady Marmalade (1975),assistant,Labelle,Labelle
-multi,Len,1,,Q2301037,assistant,"Q2301037 Len [spotify, mb]","Q2301037 Len [rock band, spotify, mb]
+multi,Len,1,,Q2301037,assistant,"Q2301037 Len [spotify, mb]","Q2301037 Len ~ Len (band) [rock band, spotify, mb]
 Q105906250 Len [human, mb]",Steal My Sunshine (1999),assistant,Len,Len
-multi,Leon Thomas,1,,Q714375,assistant,"Q714375 Leon Thomas III [spotify, mb]","Q714375 Leon Thomas III [human, spotify, mb]
-Q1497852 Leon Thomas [human, spotify, mb]",Mutt (2025),assistant,Leon Thomas,Leon Thomas
+multi,Leon Thomas,1,,Q714375,assistant,"Q714375 Leon Thomas III [spotify, mb]","Q714375 Leon Thomas III ~ Leon Thomas [human, spotify, mb]
+Q1497852 Leon Thomas ~ Leon Thomas (jazz singer) [human, spotify, mb]",Mutt (2025),assistant,Leon Thomas,Leon Thomas
 multi,Lukas Graham,1,,Q300935,assistant,"Q300935 Lukas Graham [spotify, mb]","Q300935 Lukas Graham [musical group, spotify, mb]
-Q15125833 Lukas Graham [human, mb]",7 Years (2016),assistant,Lukas Graham,Lukas Graham
+Q15125833 Lukas Graham ~ Lukas Forchhammer [human, mb]",7 Years (2016),assistant,Lukas Graham,Lukas Graham
 multi,Lulu,1,,,,,"Q255945 Louise Hay [human, mb]
 Q715783 Li Xiaolu [human, mb]
-Q22773601 Huang Lu Tzu-yin [human, mb]
+Q22773601 Huang Lu Tzu-yin ~ Lulu Huang Lu Zi Yin [human, mb]
 Q97388806 Luise Fuckface [human, mb]
-Q229716 Lulu [human, spotify, mb]",To Sir with Love (1967),multi,Lulu,Lulu
+Q229716 Lulu ~ Lulu (singer) [human, spotify, mb]",To Sir with Love (1967),multi,Lulu,Lulu
 multi,Manfred Mann,1,,Q319265,assistant,"Q319265 Manfred Mann [spotify, mb]","Q319265 Manfred Mann [musical group, spotify, mb]
-Q2583577 Manfred Mann [human, mb]",Do Wah Diddy Diddy (1964),assistant,Manfred Mann,Manfred Mann
+Q2583577 Manfred Mann ~ Manfred Mann (musician) [human, mb]",Do Wah Diddy Diddy (1964),assistant,Manfred Mann,Manfred Mann
 multi,Mario,1,,Q177131,assistant,"Q177131 Mario [spotify, mb]","Q12379 Mario [mascot character/video game character/fictional human, mb]
-Q177131 Mario [human, spotify, mb]
+Q177131 Mario ~ Mario (American singer) [human, spotify, mb]
 Q11583336 Mario [human, mb]
 Q12594537 Mario [human, mb]
 Q65016032 Mario [human, mb]",Let Me Love You (2005),assistant,Mario,Mario
-multi,Maxwell,1,,Q1378643,assistant,"Q1378643 Maxwell [spotify, mb]","Q1378643 Maxwell [human, spotify, mb]
+multi,Maxwell,1,,Q1378643,assistant,"Q1378643 Maxwell [spotify, mb]","Q1378643 Maxwell ~ Maxwell (musician) [human, spotify, mb]
 Q24008618 Maxwell [human, spotify, mb]",Fortunate (1999),assistant,Maxwell,Maxwell
 multi,Michael Bolton,1,,Q312514,assistant,"Q312514 Michael Bolton [spotify, mb]","Q312514 Michael Bolton [human, spotify, mb]
 Q62572862 Mick Bolton [human, mb]",How Am I Supposed to Live Without You (1990),assistant,Michael Bolton,Michael Bolton
@@ -778,123 +778,123 @@ multi,"Nelly, P. Diddy and Murphy Lee",1,", P. Diddy and Murphy Lee",Q218992,ass
 Q3874508 Nelly Fioramonti [human, mb, via 'Nelly']
 Q60673695 Nelly Řehořová [human, mb, via 'Nelly']",Shake Ya Tailfeather (2003),assistant,"Nelly, P. Diddy and Murphy Lee | Nelly",Nelly
 multi,Nena,1,,Q739570,assistant,"Q739570 Nena [spotify, mb]","Q153996 Nena [human, spotify, mb]
-Q739570 Nena [musical group, spotify, mb]",99 Luftballons (1984),assistant,Nena,Nena
-multi,Next,1,,Q339671,assistant,Q339671 Next [mb],"Q339671 Next [musical group, mb]
+Q739570 Nena ~ Nena (band) [musical group, spotify, mb]",99 Luftballons (1984),assistant,Nena,Nena
+multi,Next,1,,Q339671,assistant,Q339671 Next [mb],"Q339671 Next ~ Next (American group) [musical group, mb]
 Q22320398 DJ Next [human, spotify, mb]",Too Close (1998),assistant,Next,Next
 multi,Nirvana,1,,Q11649,assistant,"Q11649 Nirvana [spotify, mb]","Q7040129 Nirvana 2002 [musical group, spotify, mb]
-Q11649 Nirvana [musical group/rock band, spotify, mb]
-Q1855965 Nirvana [rock band, mb]",Smells Like Teen Spirit (1991),assistant,Nirvana,Nirvana
-multi,No Mercy,1,,Q836613,assistant,"Q836613 No Mercy [spotify, mb]","Q836613 No Mercy [musical group, spotify, mb]
-Q7044488 No Mercy [musical group, mb]",Where Do You Go (1996),assistant,No Mercy,No Mercy
-multi,Oasis,1,,Q382890,assistant,"Q382890 Oasis [spotify, mb]","Q382890 Oasis [rock band, spotify, mb]
-Q3347888 Oasis [musical group, mb]
-Q7074392 Oasis [rock band, mb]",Wonderwall (1995),assistant,Oasis,Oasis
+Q11649 Nirvana ~ Nirvana (band) [musical group/rock band, spotify, mb]
+Q1855965 Nirvana ~ Nirvana (British band) [rock band, mb]",Smells Like Teen Spirit (1991),assistant,Nirvana,Nirvana
+multi,No Mercy,1,,Q836613,assistant,"Q836613 No Mercy [spotify, mb]","Q836613 No Mercy ~ No Mercy (pop band) [musical group, spotify, mb]
+Q7044488 No Mercy ~ No Mercy (metal band) [musical group, mb]",Where Do You Go (1996),assistant,No Mercy,No Mercy
+multi,Oasis,1,,Q382890,assistant,"Q382890 Oasis [spotify, mb]","Q382890 Oasis ~ Oasis (band) [rock band, spotify, mb]
+Q3347888 Oasis ~ Oasis (1980s band) [musical group, mb]
+Q7074392 Oasis ~ Oasis (American band) [rock band, mb]",Wonderwall (1995),assistant,Oasis,Oasis
 multi,Paul & Linda McCartney,1,& Linda McCartney,,,,"Q9200 Paul the Apostle [human, mb, via 'Paul']
 Q6317989 Justin Paul [human, mb, via 'Paul']
 Q37946179 Ray Hildebrand [human, mb, via 'Paul']",Uncle Albert / Admiral Halsey (1971),multi,Paul & Linda McCartney | Paul,Paul
-multi,Paul Davis,1,,Q7150165,assistant,"Q7150165 Paul Davis [spotify, mb]","Q3370989 Paul Davis [human, mb]
-Q7149536 Paul Davis [human, mb]
-Q7150165 Paul Davis [human, spotify, mb]",I Go Crazy (1978),assistant,Paul Davis,Paul Davis
+multi,Paul Davis,1,,Q7150165,assistant,"Q7150165 Paul Davis [spotify, mb]","Q3370989 Paul Davis ~ Paul Davis (programmer) [human, mb]
+Q7149536 Paul Davis ~ Paul Brooks Davis [human, mb]
+Q7150165 Paul Davis ~ Paul Davis (singer) [human, spotify, mb]",I Go Crazy (1978),assistant,Paul Davis,Paul Davis
 multi,Paul Williams,1,,,,,"Q863212 Billy Paul [human, spotify, mb]
-Q107038706 Paul Williams [human, spotify]
-Q927415 Paul Williams [human, spotify, mb]
-Q953304 Paul Williams [human, mb]
-Q2063152 Paul Williams [human, mb]
-Q7154386 Paul Williams [human, mb]
-Q15990362 Paul Williams [human, mb]
-Q55629286 Paul Williams [human, mb]",The Huckle-Buck (1949),multi,Paul Williams,Paul Williams
+Q107038706 Paul Williams ~ Paul Williams (comedian) [human, spotify]
+Q927415 Paul Williams ~ Paul Williams (songwriter) [human, spotify, mb]
+Q953304 Paul Williams ~ Paul Williams (The Temptations singer) [human, mb]
+Q2063152 Paul Williams ~ Paul Williams (saxophonist) [human, mb]
+Q7154386 Paul Williams ~ Paul Williams (Crawdaddy) [human, mb]
+Q15990362 Paul Williams ~ Paul Williams (composer) [human, mb]
+Q55629286 Paul Williams ~ Paul Williams (English singer) [human, mb]",The Huckle-Buck (1949),multi,Paul Williams,Paul Williams
 multi,Paul Young,1,,Q360501,assistant,"Q360501 Paul Young [spotify, mb]","Q360501 Paul Young [human, spotify, mb]
-Q1935983 Paul Young [human, mb]",Everytime You Go Away (1985),assistant,Paul Young,Paul Young
+Q1935983 Paul Young ~ Paul Young (singer, born 1947) [human, mb]",Everytime You Go Away (1985),assistant,Paul Young,Paul Young
 multi,Paul and Paula,1,and Paula,,,,"Q9200 Paul the Apostle [human, mb, via 'Paul']
 Q6317989 Justin Paul [human, mb, via 'Paul']
 Q37946179 Ray Hildebrand [human, mb, via 'Paul']",Hey Paula (1963),multi,Paul and Paula | Paul,Paul
-multi,Peter Brown,1,,Q7173001,assistant,"Q7173001 Peter Brown [spotify, mb]","Q1477388 Peter Brown [human, mb]
-Q7173001 Peter Brown [human, spotify, mb]
-Q19819148 Peter Brown [human, mb]",Dance with Me (1978),assistant,Peter Brown,Peter Brown
+multi,Peter Brown,1,,Q7173001,assistant,"Q7173001 Peter Brown [spotify, mb]","Q1477388 Peter Brown ~ Peter Brown (actor) [human, mb]
+Q7173001 Peter Brown ~ Peter Brown (singer) [human, spotify, mb]
+Q19819148 Peter Brown ~ Peter Brown (illustrator) [human, mb]",Dance with Me (1978),assistant,Peter Brown,Peter Brown
 multi,Pink feat. Nate Ruess,1,feat. Nate Ruess,Q160009,assistant,"Q160009 Pink [spotify, mb]","Q124398531 Inbar Haiman [human, mb, via 'Pink']
-Q160009 Pink [human, spotify, mb, via 'Pink']
+Q160009 Pink ~ Pink (singer) [human, spotify, mb, via 'Pink']
 Q11238738 Pink [musical group, mb, via 'Pink']",Just Give Me a Reason (2013),assistant,Pink feat. Nate Ruess | Pink,Pink
-multi,Poison,1,,Q550602,assistant,"Q550602 Poison [spotify, mb]","Q550602 Poison [musical group, spotify, mb]
+multi,Poison,1,,Q550602,assistant,"Q550602 Poison [spotify, mb]","Q550602 Poison ~ Poison (band) [musical group, spotify, mb]
 Q7208435 Poison [musical group, mb]",Every Rose Has Its Thorn (1989),assistant,Poison,Poison
 multi,Raymond Scott,1,,Q1334617,assistant,"Q1334617 Raymond Scott [spotify, mb]","Q818504 Benzino [human, mb]
 Q1334617 Raymond Scott [human, spotify, mb]",The Toy Trumpet (1938),assistant,Raymond Scott,Raymond Scott
-multi,Rema & Selena Gomez,1,& Selena Gomez,Q65071082,assistant,"Q65071082 Rema [spotify, mb]","Q65071082 Rema [human, spotify, mb, via 'Rema']
+multi,Rema & Selena Gomez,1,& Selena Gomez,Q65071082,assistant,"Q65071082 Rema [spotify, mb]","Q65071082 Rema ~ Rema (musician) [human, spotify, mb, via 'Rema']
 Q6794226 Mavin Records [record label, mb, via 'Rema']
 Q16935180 Rema Namakula [human, mb, via 'Rema']",Calm Down (2023),assistant,Rema & Selena Gomez | Rema,Rema
-multi,Rob Thomas,1,,Q754094,assistant,"Q754094 Rob Thomas [spotify, mb]","Q754094 Rob Thomas [human, spotify, mb]
-Q2154158 Rob Thomas [human, mb]",Lonely No More (2005),assistant,Rob Thomas,Rob Thomas
-multi,Rockwell,1,,Q1299664,assistant,"Q1299664 Rockwell [spotify, mb]","Q1299664 Rockwell [human, spotify, mb]
+multi,Rob Thomas,1,,Q754094,assistant,"Q754094 Rob Thomas [spotify, mb]","Q754094 Rob Thomas ~ Rob Thomas (musician) [human, spotify, mb]
+Q2154158 Rob Thomas ~ Rob Thomas (writer) [human, mb]",Lonely No More (2005),assistant,Rob Thomas,Rob Thomas
+multi,Rockwell,1,,Q1299664,assistant,"Q1299664 Rockwell [spotify, mb]","Q1299664 Rockwell ~ Rockwell (musician) [human, spotify, mb]
 Q108776331 Rockwell [human, mb]",Somebody's Watching Me (1984),assistant,Rockwell,Rockwell
 multi,Roger Miller,1,,Q712359,assistant,Q712359 Roger Miller [mb],"Q712359 Roger Miller [human, mb]
-Q7358654 Roger Miller [human, mb]",King of the Road (1965),assistant,Roger Miller,Roger Miller
-multi,Rome,1,,Q952870,assistant,Q952870 Rome [mb],"Q952870 Rome [musical group, mb]
+Q7358654 Roger Miller ~ Roger Miller (rock musician) [human, mb]",King of the Road (1965),assistant,Roger Miller,Roger Miller
+multi,Rome,1,,Q952870,assistant,Q952870 Rome [mb],"Q952870 Rome ~ Rome (band) [musical group, mb]
 Q53575037 Luis Jorge Romero [human, mb]",I Belong to You (Every Time I See Your Face) (1997),assistant,Rome,Rome
 multi,Sam Hunt,1,,Q16223171,assistant,"Q16223171 Sam Hunt [spotify, mb]","Q16223171 Sam Hunt [human, spotify, mb]
-Q7407670 Sam Hunt [human, mb]",Body Like a Back Road (2017),assistant,Sam Hunt,Sam Hunt
+Q7407670 Sam Hunt ~ Sam Hunt (poet) [human, mb]",Body Like a Back Road (2017),assistant,Sam Hunt,Sam Hunt
 multi,Sam Smith & Kim Petras,1,& Kim Petras,Q15123969,assistant,"Q15123969 Sam Smith [spotify, mb]","Q15123969 Sam Smith [human, spotify, mb, via 'Sam Smith']
-Q7408172 Sam Smith [human, mb, via 'Sam Smith']",Unholy (2023),assistant,Sam Smith & Kim Petras | Sam Smith,Sam Smith
+Q7408172 Sam Smith ~ Sam Smith (artist) [human, mb, via 'Sam Smith']",Unholy (2023),assistant,Sam Smith & Kim Petras | Sam Smith,Sam Smith
 multi,Sam Smith & Normani,1,& Normani,Q15123969,assistant,"Q15123969 Sam Smith [spotify, mb]","Q15123969 Sam Smith [human, spotify, mb, via 'Sam Smith']
-Q7408172 Sam Smith [human, mb, via 'Sam Smith']",Dancing with a Stranger (2019),assistant,Sam Smith & Normani | Sam Smith,Sam Smith
-multi,Santana featuring Michelle Branch,1,featuring Michelle Branch,Q873384,assistant,"Q873384 Santana [spotify, mb]","Q873384 Santana [rock band, spotify, mb, via 'Santana']
+Q7408172 Sam Smith ~ Sam Smith (artist) [human, mb, via 'Sam Smith']",Dancing with a Stranger (2019),assistant,Sam Smith & Normani | Sam Smith,Sam Smith
+multi,Santana featuring Michelle Branch,1,featuring Michelle Branch,Q873384,assistant,"Q873384 Santana [spotify, mb]","Q873384 Santana ~ Santana (band) [rock band, spotify, mb, via 'Santana']
 Q819016 Carlos Santana [human, spotify, mb, via 'Santana']",The Game of Love (2003),assistant,Santana featuring Michelle Branch | Santana,Santana
-multi,Santana featuring Rob Thomas,1,featuring Rob Thomas,Q873384,assistant,"Q873384 Santana [spotify, mb]","Q873384 Santana [rock band, spotify, mb, via 'Santana']
+multi,Santana featuring Rob Thomas,1,featuring Rob Thomas,Q873384,assistant,"Q873384 Santana [spotify, mb]","Q873384 Santana ~ Santana (band) [rock band, spotify, mb, via 'Santana']
 Q819016 Carlos Santana [human, spotify, mb, via 'Santana']",Smooth (2000),assistant,Santana featuring Rob Thomas | Santana,Santana
-multi,Santana featuring The Product G&B,1,featuring The Product G&B,Q873384,assistant,"Q873384 Santana [spotify, mb]","Q873384 Santana [rock band, spotify, mb, via 'Santana']
+multi,Santana featuring The Product G&B,1,featuring The Product G&B,Q873384,assistant,"Q873384 Santana [spotify, mb]","Q873384 Santana ~ Santana (band) [rock band, spotify, mb, via 'Santana']
 Q819016 Carlos Santana [human, spotify, mb, via 'Santana']",Maria Maria (2000),assistant,Santana featuring The Product G&B | Santana,Santana
-multi,Shaggy,1,,Q310763,assistant,"Q310763 Shaggy [spotify, mb]","Q310763 Shaggy [human, spotify, mb]
+multi,Shaggy,1,,Q310763,assistant,"Q310763 Shaggy [spotify, mb]","Q310763 Shaggy ~ Shaggy (musician) [human, spotify, mb]
 Q848673 Shaggy Rogers [comics character/video game character/fictional human, mb]",Boombastic (1995),assistant,Shaggy,Shaggy
-multi,Shaggy featuring Rayvon,1,featuring Rayvon,Q310763,assistant,"Q310763 Shaggy [spotify, mb]","Q310763 Shaggy [human, spotify, mb, via 'Shaggy']
+multi,Shaggy featuring Rayvon,1,featuring Rayvon,Q310763,assistant,"Q310763 Shaggy [spotify, mb]","Q310763 Shaggy ~ Shaggy (musician) [human, spotify, mb, via 'Shaggy']
 Q848673 Shaggy Rogers [comics character/video game character/fictional human, mb, via 'Shaggy']",Angel (2001),assistant,Shaggy featuring Rayvon | Shaggy,Shaggy
-multi,"Shaggy featuring Ricardo ""RikRok"" Ducent",1,"featuring Ricardo ""RikRok"" Ducent",Q310763,assistant,"Q310763 Shaggy [spotify, mb]","Q310763 Shaggy [human, spotify, mb, via 'Shaggy']
+multi,"Shaggy featuring Ricardo ""RikRok"" Ducent",1,"featuring Ricardo ""RikRok"" Ducent",Q310763,assistant,"Q310763 Shaggy [spotify, mb]","Q310763 Shaggy ~ Shaggy (musician) [human, spotify, mb, via 'Shaggy']
 Q848673 Shaggy Rogers [comics character/video game character/fictional human, mb, via 'Shaggy']",It Wasn't Me (2001),assistant,"Shaggy featuring Ricardo ""RikRok"" Ducent | Shaggy",Shaggy
-multi,Silk,1,,Q4819920,assistant,"Q4819920 Silk [spotify, mb]","Q4819920 Silk [musical group, spotify, mb]
+multi,Silk,1,,Q4819920,assistant,"Q4819920 Silk [spotify, mb]","Q4819920 Silk ~ Silk (group) [musical group, spotify, mb]
 Q278203 Malik Sealy [human, mb]
 Q1352026 Jamaal Wilkes [human, mb]",Freak Me (1993),assistant,Silk,Silk
-multi,Skylark,1,,,,,"Q2520922 Skylark [musical group, mb]
-Q7537815 Skylark [musical group, mb]",Wildflower (1973),multi,Skylark,Skylark
-multi,Sly & the Family Stone,1,& the Family Stone,,,,"Q3459705 Sly [musical group, mb, via 'Sly']
+multi,Skylark,1,,,,,"Q2520922 Skylark ~ Skylark (Italian band) [musical group, mb]
+Q7537815 Skylark ~ Skylark (Canadian band) [musical group, mb]",Wildflower (1973),multi,Skylark,Skylark
+multi,Sly & the Family Stone,1,& the Family Stone,,,,"Q3459705 Sly ~ Sly (band) [musical group, mb, via 'Sly']
 Q2165958 Sly Dunbar [human, mb, via 'Sly']",Thank You (Falettinme Be Mice Elf Agin) (1970),multi,Sly & the Family Stone | Sly,Sly
-multi,Stephen Bishop,1,,Q3498517,assistant,"Q3498517 Stephen Bishop [spotify, mb]","Q3498517 Stephen Bishop [human, spotify, mb]
+multi,Stephen Bishop,1,,Q3498517,assistant,"Q3498517 Stephen Bishop [spotify, mb]","Q3498517 Stephen Bishop ~ Stephen Bishop (singer) [human, spotify, mb]
 Q1503615 Stephen Kovacevich [human, spotify, mb]",On and On (1977),assistant,Stephen Bishop,Stephen Bishop
-multi,Steve Lacy,1,,Q56733980,assistant,"Q56733980 Steve Lacy [spotify, mb]","Q504641 Steve Lacy [human, spotify, mb]
+multi,Steve Lacy,1,,Q56733980,assistant,"Q56733980 Steve Lacy [spotify, mb]","Q504641 Steve Lacy ~ Steve Lacy (saxophonist) [human, spotify, mb]
 Q56733980 Steve Lacy [human, spotify, mb]",Bad Habit (2022),assistant,Steve Lacy,Steve Lacy
-multi,Stu Phillips,1,,,,,"Q1534615 Stu Phillips [human, mb]
-Q7626208 Stu Phillips [human, mb]",Knight Rider Main Theme (1982),multi,Stu Phillips,Stu Phillips
+multi,Stu Phillips,1,,,,,"Q1534615 Stu Phillips ~ Stu Phillips (composer) [human, mb]
+Q7626208 Stu Phillips ~ Stu Phillips (country singer) [human, mb]",Knight Rider Main Theme (1982),multi,Stu Phillips,Stu Phillips
 multi,Sugarloaf,1,,,,,"Q1292212 Sugarloaf [musical group, mb]
-Q1470018 Sugarloaf [musical group, mb]",Green-Eyed Lady (1970),multi,Sugarloaf,Sugarloaf
+Q1470018 Sugarloaf ~ Sugarloaf (band) [musical group, mb]",Green-Eyed Lady (1970),multi,Sugarloaf,Sugarloaf
 multi,Surface,1,,Q3505241,assistant,"Q3505241 Surface [spotify, mb]","Q3505241 Surface [musical group, spotify, mb]
-Q7645911 Surface [musical group, spotify, mb]",The First Time (1991),assistant,Surface,Surface
-multi,Sweet Sensation,1,,Q2372456,assistant,"Q2372456 Sweet Sensation [spotify, mb]","Q888972 Sweet Sensation [musical group, mb]
-Q2372456 Sweet Sensation [musical group, spotify, mb]",If Wishes Came True (1990),assistant,Sweet Sensation,Sweet Sensation
-multi,Terror Squad,1,,Q749546,assistant,Q749546 Terror Squad [mb],"Q749546 Terror Squad [musical group, mb]
+Q7645911 Surface ~ Surface (band) [musical group, spotify, mb]",The First Time (1991),assistant,Surface,Surface
+multi,Sweet Sensation,1,,Q2372456,assistant,"Q2372456 Sweet Sensation [spotify, mb]","Q888972 Sweet Sensation ~ Sweet Sensation (group) [musical group, mb]
+Q2372456 Sweet Sensation ~ Sweet Sensation (band) [musical group, spotify, mb]",If Wishes Came True (1990),assistant,Sweet Sensation,Sweet Sensation
+multi,Terror Squad,1,,Q749546,assistant,Q749546 Terror Squad [mb],"Q749546 Terror Squad ~ Terror Squad (group) [musical group, mb]
 Q11250611 Terror Squad [musical group, mb]",Lean Back (2004),assistant,Terror Squad,Terror Squad
-multi,The Angels,1,,Q660729,assistant,"Q660729 The Angels [spotify, mb]","Q660729 The Angels [musical group, spotify, mb]
-Q1760073 The Angels [musical group, mb]",My Boyfriend's Back (1963),assistant,The Angels,The Angels
-multi,The Cascades,1,,Q1383058,assistant,"Q1383058 The Cascades [spotify, mb]","Q1383058 The Cascades [musical group, spotify, mb]
+multi,The Angels,1,,Q660729,assistant,"Q660729 The Angels [spotify, mb]","Q660729 The Angels ~ The Angels (Australian band) [musical group, spotify, mb]
+Q1760073 The Angels ~ The Angels (American group) [musical group, mb]",My Boyfriend's Back (1963),assistant,The Angels,The Angels
+multi,The Cascades,1,,Q1383058,assistant,"Q1383058 The Cascades [spotify, mb]","Q1383058 The Cascades ~ The Cascades (band) [musical group, spotify, mb]
 Q56801761 The Cascades [musical group, mb]",Rhythm of the Rain (1963),assistant,The Cascades,The Cascades
 multi,The Emotions,1,,Q837141,assistant,"Q837141 The Emotions [spotify, mb]","Q837141 The Emotions [musical group, spotify, mb]
-Q25352148 The Emotions [musical group, mb]",Best of My Love (1977),assistant,The Emotions,The Emotions
+Q25352148 The Emotions ~ The Emotions (doo-wop group) [musical group, mb]",Best of My Love (1977),assistant,The Emotions,The Emotions
 multi,The Go-Go's,1,,Q1533339,assistant,"Q1533339 The Go-Go's [spotify, mb]","Q1533339 The Go-Go's [musical group, spotify, mb]
-Q7736864 The Go-Go's [musical group, mb]",We Got the Beat (1982),assistant,The Go-Go's,The Go-Go's
+Q7736864 The Go-Go's ~ The Go-Go's (British band) [musical group, mb]",We Got the Beat (1982),assistant,The Go-Go's,The Go-Go's
 multi,The Highwaymen,1,,Q2411961,assistant,Q2411961 The Highwaymen [mb],"Q261341 The Highwaymen [supergroup, spotify, mb]
-Q2411961 The Highwaymen [musical group, mb]",Michael (1961),assistant,The Highwaymen,The Highwaymen
+Q2411961 The Highwaymen ~ The Highwaymen (folk band) [musical group, mb]",Michael (1961),assistant,The Highwaymen,The Highwaymen
 multi,The Impalas,1,,Q7741516,assistant,Q7741516 The Impalas [mb],"Q7741516 The Impalas [musical group, mb]
 Q7743198 The Jewels [musical group, mb]",Sorry (I Ran All the Way Home) (1959),assistant,The Impalas,The Impalas
 multi,The Knack,1,,Q1427240,assistant,"Q1427240 The Knack [spotify, mb]","Q1427240 The Knack [musical group, spotify, mb]
-Q22121782 The Knack [musical group, mb]
-Q22121783 The Knack [musical group, mb]",My Sharona (1979),assistant,The Knack,The Knack
-multi,The Moments,1,,Q7751957,assistant,Q7751957 The Moments [mb],"Q7751957 The Moments [musical group, mb]
+Q22121782 The Knack ~ The Knack (1960s US band) [musical group, mb]
+Q22121783 The Knack ~ The Knack (British band) [musical group, mb]",My Sharona (1979),assistant,The Knack,The Knack
+multi,The Moments,1,,Q7751957,assistant,Q7751957 The Moments [mb],"Q7751957 The Moments ~ The Moments (English band) [musical group, mb]
 Q476140 Ray, Goodman & Brown [musical group, spotify, mb]",Love on a Two-Way Street (1970),assistant,The Moments,The Moments
 multi,The Sensations,1,,Q7763291,assistant,Q7763291 The Sensations [mb],"Q7763291 The Sensations [musical group, mb]
-Q16875398 The Sensations [musical group, mb]",Let Me In (1962),assistant,The Sensations,The Sensations
+Q16875398 The Sensations ~ The Sensations (Jamaican group) [musical group, mb]",Let Me In (1962),assistant,The Sensations,The Sensations
 multi,The Surfaris,1,,Q2165679,assistant,"Q2165679 The Surfaris [spotify, mb]","Q2165679 The Surfaris [musical group, spotify, mb]
 Q2413253 The Original Surfaris [musical group, mb]",Wipe Out (1963),assistant,The Surfaris,The Surfaris
 multi,The Turtles,1,,Q627470,assistant,"Q627470 The Turtles [spotify, mb]","Q627470 The Turtles [musical group, spotify, mb]
 Q17223977 The Turtles [musical group, mb]",Happy Together (1967),assistant,The Turtles,The Turtles
-multi,The Wolverines,1,,Q428475,assistant,Q428475 The Wolverines [mb],"Q428475 The Wolverines [musical group, mb]
-Q7775453 The Wolverines [musical group, mb]",Copenhagen (1924),assistant,The Wolverines,The Wolverines
-multi,Warrant,1,,Q1631685,assistant,"Q1631685 Warrant [spotify, mb]","Q317085 Warrant [musical group, mb]
-Q1631685 Warrant [rock band, spotify, mb]",Heaven (1989),assistant,Warrant,Warrant
+multi,The Wolverines,1,,Q428475,assistant,Q428475 The Wolverines [mb],"Q428475 The Wolverines ~ The Wolverines (jazz band) [musical group, mb]
+Q7775453 The Wolverines ~ The Wolverines (rock band) [musical group, mb]",Copenhagen (1924),assistant,The Wolverines,The Wolverines
+multi,Warrant,1,,Q1631685,assistant,"Q1631685 Warrant [spotify, mb]","Q317085 Warrant ~ Warrant (German band) [musical group, mb]
+Q1631685 Warrant ~ Warrant (American band) [rock band, spotify, mb]",Heaven (1989),assistant,Warrant,Warrant
 multi,We Five,1,,Q7977554,assistant,"Q7977554 We Five [spotify, mb]","Q7977554 We Five [musical group, spotify, mb]
 Q20086421 We Five [musical group, mb]",You Were on My Mind (1965),assistant,We Five,We Five
 multi,"William Daniels, Original Broadway Cast of 1776",1,", Original Broadway Cast of 1776",Q370181,assistant,Q370181 William Daniels [mb],"Q370181 William Daniels [human, mb, via 'William Daniels']

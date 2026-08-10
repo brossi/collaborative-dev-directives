@@ -63,6 +63,25 @@ WHY THE en.wikipedia SITELINK IS MATCHED TOO  (measured 2026-08-10)
   which the label route missed and then mis-resolved via its "Kool" fallback to
   Robert Bell — a person, not the band.
 
+WHY THE ARTICLE TITLE IS ALSO KEPT  (measured 2026-08-10)
+  The title is stored on every candidate, not just used to match, because a
+  label and a title are two independently maintained witnesses to what an
+  entity is called — and an English rdfs:label is free text anyone may edit.
+  Q683420's read "Nicolás Sestito" while the entity was Frankie Lymon (its
+  enwiki article, its P434 on MusicBrainz, and its fr/de/it/nl/pt labels all
+  said so), and the Phase 3 audit read that as a wrong ENTITY and nearly
+  discarded a correct ID. From inside a label-only query the two are
+  indistinguishable.
+
+  The title does NOT replace the name: "MGK" and "The Revolution (band)" are
+  worse names than their labels. It just has to be VISIBLE when the two
+  disagree, which is what review_artist_registry.format_candidates renders.
+  Across 1,560 decided entities, 24 disagreed and only those 2 were wrong.
+
+  It pays for itself on the ambiguous rows too, for the same reason the
+  matching route cannot rely on it: titles are disambiguated. "Jim Jones" is
+  one label on three entities and three distinct titles.
+
 RATE LIMIT
   Wikidata's SPARQL endpoint 429s on sustained querying (observed 2026-08-10 on
   a paged crawl, once with Retry-After: 120). This batches ~200 labels per
@@ -107,18 +126,26 @@ REVIEWED = frozenset({"human", "assistant"})
 # full credit is always kept regardless of length.
 MIN_FALLBACK = 2
 
-QUERY = """SELECT ?label ?item ?itemLabel ?spotify ?mbid ?typeLabel WHERE {
+QUERY = """SELECT ?label ?item ?itemLabel ?spotify ?mbid ?typeLabel ?article WHERE {
   VALUES ?label { %s }
   { ?item rdfs:label|skos:altLabel ?label . }
   UNION
   { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ;
              schema:name ?label . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> }
   OPTIONAL { ?item wdt:P434 ?mbid }
   OPTIONAL { ?item wdt:P1902 ?spotify }
   OPTIONAL { ?item wdt:P31 ?type }
   FILTER(BOUND(?mbid) || BOUND(?spotify))
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }"""
+
+
+def article_title(url: str) -> str:
+    """"https://en.wikipedia.org/wiki/Zoe_Salda%C3%B1a" -> "Zoe Saldaña"."""
+    if not url:
+        return ""
+    return urllib.parse.unquote(url.rsplit("/", 1)[-1]).replace("_", " ")
 
 
 def sparql_literal(text: str) -> str:
@@ -166,10 +193,22 @@ def collect(bindings) -> dict:
             "spotify_artist_id": row.get("spotify", {}).get("value"),
             "musicbrainz_artist_id": row.get("mbid", {}).get("value"),
             "types": [],
+            "article": "",
         })
         kind = row.get("typeLabel", {}).get("value")
         if kind and kind not in item["types"]:
             item["types"].append(kind)
+        # An English rdfs:label is free text anyone may edit, and a bad one is
+        # invisible: Q683420's read "Nicolás Sestito" while the entity was
+        # Frankie Lymon (enwiki, MusicBrainz and five other-language labels all
+        # agreed), and the Phase 3 audit read that as a wrong ENTITY rather
+        # than a wrong NAME. The article title is a second, independently
+        # maintained witness. It does not REPLACE the label — "MGK" and "The
+        # Revolution (band)" are worse names — it just has to be visible when
+        # the two disagree. Only the label-matched rows of a repeated entity
+        # carry ?article, so never overwrite a title with a blank.
+        item["article"] = item["article"] or article_title(
+            row.get("article", {}).get("value", ""))
     return {label: list(items.values()) for label, items in merged.items()}
 
 
