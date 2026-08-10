@@ -14,7 +14,7 @@ async function gameRequest(body: Record<string, unknown>) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string };
+  const payload = await response.json() as { room?: RoomView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string; guestInvite?: string; expiresAt?: number };
   if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
   return payload;
 }
@@ -311,16 +311,20 @@ export default function Home() {
   useEffect(() => {
     if (!room?.isHost || room.phase !== "lobby") return;
     let cancelled = false;
-    const joinUrl = new URL(session?.joinOrigin ?? window.location.origin);
-    joinUrl.pathname = cannabeatsPath(`/join/${room.code}`);
-    joinUrl.search = "";
-    void QRCode.toDataURL(joinUrl.toString(), {
-      width: 240,
-      margin: 1,
-      color: { dark: "#171c2b", light: "#fff5c9" },
+    void gameRequest({ action: "guestInvite", code: room.code }).then(async (payload) => {
+      if (!payload.guestInvite) throw new Error("The guest invitation response was incomplete.");
+      const joinUrl = new URL(session?.joinOrigin ?? window.location.origin);
+      joinUrl.pathname = cannabeatsPath(`/join/${room.code}`);
+      joinUrl.search = "";
+      joinUrl.hash = new URLSearchParams({ invite: payload.guestInvite }).toString();
+      return QRCode.toDataURL(joinUrl.toString(), {
+        width: 240,
+        margin: 1,
+        color: { dark: "#171c2b", light: "#fff5c9" },
+      });
     }).then((url) => {
       if (!cancelled) setQrCodeUrl(url);
-    }).catch(() => setError("Unable to create the room QR code."));
+    }).catch(() => setError("Unable to create a secure guest QR code."));
     return () => { cancelled = true; };
   }, [room?.code, room?.isHost, room?.phase, session?.joinOrigin]);
 
@@ -534,7 +538,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="step-label">Scan to join</p>
-                  <p className="helper">Phone players scan here; add shared-screen players above. Manual room code: <strong>{room.code}</strong></p>
+                  <p className="helper">Phone guests scan this private invitation; add shared-screen players above. Room code: <strong>{room.code}</strong></p>
                 </div>
               </div>
               <p className="spotify-status"><i /> {spotify.isReady ? "Spotify is ready in CannaBeats" : "Reconnect Spotify before starting"}</p>

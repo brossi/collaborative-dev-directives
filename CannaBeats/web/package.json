@@ -22,7 +22,7 @@
     "start:sites": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "play:lan": "node scripts/play-lan.mjs",
     "test": "NEXT_PUBLIC_CANNABEATS_BASE_PATH=/game npm run build && node --test --test-concurrency=1 tests/*.test.mjs",
-    "test:do": "npm run catalog && npm run build:do && node --test --test-concurrency=1 tests/do-*.test.mjs",
+    "test:do": "NEXT_PUBLIC_CANNABEATS_BASE_PATH=/game npm run catalog && NEXT_PUBLIC_CANNABEATS_BASE_PATH=/game npm run build:do && node --test --test-concurrency=1 tests/do-*.test.mjs",
     "test:sites": "npm run build:sites && node --test --test-concurrency=1 tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"

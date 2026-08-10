@@ -9,11 +9,15 @@ export default function JoinRoom({ code }: { code: string }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [invitation, setInvitation] = useState<string | null>(null);
 
   useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
     const savedName = localStorage.getItem(PLAYER_NAME_KEY)?.trim();
-    if (!savedName) return;
-    const timer = window.setTimeout(() => setName((current) => current || savedName), 0);
+    const timer = window.setTimeout(() => {
+      setInvitation(fragment.get("invite") ?? "");
+      if (savedName) setName((current) => current || savedName);
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -26,7 +30,12 @@ export default function JoinRoom({ code }: { code: string }) {
       const response = await fetch(cannabeatsPath("/api/game"), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "join", code, name: chosenName }),
+        body: JSON.stringify({
+          action: invitation ? "joinGuest" : "join",
+          code,
+          name: chosenName,
+          ...(invitation ? { invite: invitation } : {}),
+        }),
       });
       const payload = await response.json() as { error?: string; playerId?: string };
       if (!response.ok || !payload.playerId) throw new Error(payload.error ?? "Unable to join this lobby.");
@@ -61,7 +70,7 @@ export default function JoinRoom({ code }: { code: string }) {
               value={name}
             />
           </label>
-          <button className="primary-button" disabled={busy}>
+          <button className="primary-button" disabled={busy || invitation === null}>
             {busy ? "Joining…" : "Join the game"}
           </button>
         </form>

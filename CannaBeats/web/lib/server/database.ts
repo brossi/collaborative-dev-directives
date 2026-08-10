@@ -46,6 +46,36 @@ export function database() {
     CREATE INDEX IF NOT EXISTS game_run_player_identities_user_id
       ON game_run_player_identities(user_id);
 
+    CREATE TABLE IF NOT EXISTS game_guest_invites (
+      token_hash TEXT PRIMARY KEY,
+      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS game_guest_invites_session_code
+      ON game_guest_invites(session_code);
+
+    CREATE TABLE IF NOT EXISTS game_guest_users (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS game_guest_sessions (
+      token_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS game_guest_sessions_user_id
+      ON game_guest_sessions(user_id);
+
     /* Legacy engine-room tables remain readable during migration, but are no longer canonical. */
     CREATE TABLE IF NOT EXISTS rooms (
       code TEXT PRIMARY KEY,

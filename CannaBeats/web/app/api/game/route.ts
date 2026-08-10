@@ -2,7 +2,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
-import { database, sha256 } from "../../../lib/server/database";
+import { database, randomToken, sha256 } from "../../../lib/server/database";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,10 +18,14 @@ type Principal = {
   id: string;
   display_name: string;
   role: "host" | "player";
+  kind: "account" | "guest";
+  sessionCode?: string;
 };
 
 const SESSION_COOKIE = "cb_session";
 const DESKTOP_WEB_COOKIE = "cb_desktop_web";
+const GUEST_COOKIE = "cb_guest";
+const GUEST_INVITE_TTL_MS = 8 * 60 * 60 * 1000;
 
 function parseCookies(header = "") {
   return Object.fromEntries(
@@ -48,7 +52,7 @@ function currentPrincipal(request: Request): Principal | null {
       database().prepare(`
         UPDATE desktop_sessions SET last_seen_at = ? WHERE token_hash = ?
       `).run(Date.now(), sha256(bearer[1]));
-      return principal;
+      return { ...principal, kind: "account" };
     }
   }
 
@@ -71,22 +75,38 @@ function currentPrincipal(request: Request): Principal | null {
       database().prepare(`
         UPDATE desktop_web_sessions SET last_seen_at = ? WHERE token_hash = ?
       `).run(Date.now(), tokenHash);
-      return principal;
+      return { ...principal, kind: "account" };
     }
   }
 
   const token = cookies[SESSION_COOKIE];
-  if (!token) return null;
-  const principal = database().prepare(`
-    SELECT users.id, users.display_name, users.role
-    FROM sessions JOIN users ON users.id = sessions.user_id
-    WHERE sessions.token_hash = ? AND sessions.expires_at > ?
-  `).get(sha256(token), Date.now()) as Principal | undefined;
-  if (principal) {
-    database().prepare("UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?")
-      .run(Date.now(), sha256(token));
+  if (token) {
+    const principal = database().prepare(`
+      SELECT users.id, users.display_name, users.role
+      FROM sessions JOIN users ON users.id = sessions.user_id
+      WHERE sessions.token_hash = ? AND sessions.expires_at > ?
+    `).get(sha256(token), Date.now()) as Omit<Principal, "kind"> | undefined;
+    if (principal) {
+      database().prepare("UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?")
+        .run(Date.now(), sha256(token));
+      return { ...principal, kind: "account" };
+    }
   }
-  return principal ?? null;
+
+  const guestToken = cookies[GUEST_COOKIE];
+  if (!guestToken) return null;
+  const guestHash = sha256(guestToken);
+  const guest = database().prepare(`
+    SELECT users.id, users.display_name, users.role, game_guest_sessions.session_code AS sessionCode
+    FROM game_guest_sessions JOIN users ON users.id = game_guest_sessions.user_id
+    WHERE game_guest_sessions.token_hash = ?
+      AND game_guest_sessions.expires_at > ?
+      AND game_guest_sessions.revoked_at IS NULL
+  `).get(guestHash, Date.now()) as Omit<Principal, "kind"> | undefined;
+  if (!guest) return null;
+  database().prepare("UPDATE game_guest_sessions SET last_seen_at = ? WHERE token_hash = ?")
+    .run(Date.now(), guestHash);
+  return { ...guest, kind: "guest" };
 }
 
 function constantTimeEqual(left: string, right: string) {
@@ -232,9 +252,61 @@ function principalControlsPlayer(roomCode: string, principal: Principal, playerI
 }
 
 function isLobbyMember(code: string, principal: Principal) {
+  if (principal.kind === "guest" && principal.sessionCode !== code) return false;
   return Boolean(database().prepare(`
     SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
   `).get(code, principal.id));
+}
+
+function guestCookie(token: string, expiresAt: number) {
+  const path = process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH || "/";
+  const maxAge = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+  return `${GUEST_COOKIE}=${encodeURIComponent(token)}; Path=${path}; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: Principal, requestedName: unknown) {
+  const lobby = database().prepare(`SELECT status FROM game_sessions WHERE code = ?`)
+    .get(room.state.code) as { status: string } | undefined;
+  if (!lobby) throw new Response("Game session not found", { status: 404 });
+  if (lobby.status === "ended") throw new Response("This game session has ended", { status: 409 });
+  const existing = database().prepare(`
+    SELECT player_id FROM game_run_player_identities
+    WHERE run_id = ? AND user_id = ?
+  `).get(room.row.id, principal.id) as { player_id: string } | undefined;
+  if (existing && room.state.players.some((player) => player.id === existing.player_id)) {
+    database().prepare(`
+      UPDATE game_run_player_identities SET last_seen_at = ? WHERE run_id = ? AND user_id = ?
+    `).run(Date.now(), room.row.id, principal.id);
+    return { playerId: existing.player_id, created: false };
+  }
+  if (room.state.phase !== "lobby") throw new Response("This game has already started", { status: 409 });
+  const name = String(requestedName ?? principal.display_name).trim().slice(0, 24);
+  if (!name) throw new Response("Player name is required", { status: 400 });
+  if (existing) {
+    database().prepare(`DELETE FROM game_run_player_identities WHERE run_id = ? AND user_id = ?`)
+      .run(room.row.id, principal.id);
+  }
+  const player = { id: randomUUID(), name, control: "phone" as const, timeline: [] };
+  room.state.players.push(player);
+  const now = Date.now();
+  database().exec("BEGIN IMMEDIATE");
+  try {
+    saveRoom(room.state);
+    database().prepare(`
+      INSERT INTO game_run_player_identities (run_id, user_id, player_id, joined_at, last_seen_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(room.row.id, principal.id, player.id, now, now);
+    database().prepare(`
+      INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+    `).run(room.state.code, principal.id, now, now);
+    database().exec("COMMIT");
+  } catch (error) {
+    database().exec("ROLLBACK");
+    throw error;
+  }
+  return { playerId: player.id, created: true };
 }
 
 function errorResponse(error: unknown) {
@@ -305,9 +377,104 @@ export async function POST(request: Request) {
       );
     }
 
+    if (action === "guestInvite") {
+      const principal = requirePrincipal(request);
+      const code = String(payload.code ?? "").trim().toUpperCase();
+      if (!/^[A-Z2-9]{6}$/.test(code)) return fail("Game code is invalid.");
+      const room = loadRoom(code);
+      if (!room || !isHost(room, principal)) return fail("Host access required.", 403);
+      if (room.state.phase !== "lobby") return fail("Guest invitations are locked after the game starts.", 409);
+      const token = randomToken();
+      const now = Date.now();
+      const expiresAt = now + GUEST_INVITE_TTL_MS;
+      database().prepare(`
+        INSERT INTO game_guest_invites
+          (token_hash, session_code, created_by, created_at, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(sha256(token), code, principal.id, now, expiresAt);
+      return Response.json({ guestInvite: token, expiresAt });
+    }
+
+    if (action === "joinGuest") {
+      const code = String(payload.code ?? "").trim().toUpperCase();
+      if (!/^[A-Z2-9]{6}$/.test(code)) return fail("Game code is invalid.");
+      const room = loadRoom(code);
+      if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
+
+      const alreadyAuthorized = currentPrincipal(request);
+      if (alreadyAuthorized?.kind === "guest" && alreadyAuthorized.sessionCode === code) {
+        const joined = joinPlayer(room, alreadyAuthorized, payload.name);
+        return Response.json(
+          { room: roomView(room.state, false), playerId: joined.playerId },
+          { status: joined.created ? 201 : 200 },
+        );
+      }
+
+      const invitation = String(payload.invite ?? "");
+      if (!/^[A-Za-z0-9_-]{32,128}$/.test(invitation)) return fail("This guest invitation is invalid.", 403);
+      const invite = database().prepare(`
+        SELECT expires_at FROM game_guest_invites
+        WHERE token_hash = ? AND session_code = ? AND expires_at > ? AND revoked_at IS NULL
+      `).get(sha256(invitation), code, Date.now()) as { expires_at: number } | undefined;
+      if (!invite) return fail("This guest invitation is invalid or has expired.", 403);
+
+      const accountPrincipal = alreadyAuthorized?.kind === "account" ? alreadyAuthorized : null;
+      if (accountPrincipal) {
+        const joined = joinPlayer(room, accountPrincipal, payload.name);
+        return Response.json(
+          { room: roomView(room.state, isHost(room, accountPrincipal)), playerId: joined.playerId },
+          { status: joined.created ? 201 : 200 },
+        );
+      }
+
+      const name = String(payload.name ?? "").trim().slice(0, 24);
+      if (!name) return fail("Player name is required.");
+      if (room.state.phase !== "lobby") return fail("This game has already started.", 409);
+      const userId = randomUUID();
+      const sessionToken = randomToken();
+      const sessionHash = sha256(sessionToken);
+      const now = Date.now();
+      const expiresAt = Math.min(invite.expires_at, now + GUEST_INVITE_TTL_MS);
+      database().exec("BEGIN IMMEDIATE");
+      try {
+        database().prepare(`INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, 'player', ?)`)
+          .run(userId, name, now);
+        database().prepare(`
+          INSERT INTO game_guest_users (user_id, session_code, created_at, expires_at)
+          VALUES (?, ?, ?, ?)
+        `).run(userId, code, now, expiresAt);
+        database().prepare(`
+          INSERT INTO game_guest_sessions
+            (token_hash, user_id, session_code, created_at, expires_at, last_seen_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(sessionHash, userId, code, now, expiresAt, now);
+        database().exec("COMMIT");
+      } catch (error) {
+        database().exec("ROLLBACK");
+        throw error;
+      }
+      const principal: Principal = { id: userId, display_name: name, role: "player", kind: "guest", sessionCode: code };
+      try {
+        const joined = joinPlayer(room, principal, name);
+        return Response.json(
+          { room: roomView(room.state, false), playerId: joined.playerId },
+          {
+            status: 201,
+            headers: { "Set-Cookie": guestCookie(sessionToken, expiresAt), "Cache-Control": "no-store" },
+          },
+        );
+      } catch (error) {
+        database().prepare("DELETE FROM users WHERE id = ?").run(userId);
+        throw error;
+      }
+    }
+
     const principal = requirePrincipal(request);
     const code = String(payload.code ?? "").trim().toUpperCase();
     if (!/^[A-Z2-9]{6}$/.test(code)) return fail("Game code is invalid.");
+    if (principal.kind === "guest" && principal.sessionCode !== code) {
+      return fail("Game session not found.", 404);
+    }
     if (action !== "join" && !isLobbyMember(code, principal)) return fail("Game session not found.", 404);
     const room = loadRoom(code);
     if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
@@ -315,48 +482,11 @@ export async function POST(request: Request) {
     const callerIsHost = isHost(room, principal);
 
     if (action === "join") {
-      const lobby = database().prepare(`SELECT status FROM game_sessions WHERE code = ?`).get(code) as { status: string } | undefined;
-      if (!lobby) return fail("Game session not found.", 404);
-      if (lobby.status === "ended") return fail("This game session has ended.", 409);
-      const existing = database().prepare(`
-        SELECT player_id FROM game_run_player_identities
-        WHERE run_id = ? AND user_id = ?
-      `).get(room.row.id, principal.id) as { player_id: string } | undefined;
-      if (existing && state.players.some((player) => player.id === existing.player_id)) {
-        database().prepare(`
-          UPDATE game_run_player_identities SET last_seen_at = ? WHERE run_id = ? AND user_id = ?
-        `).run(Date.now(), room.row.id, principal.id);
-        return Response.json({ room: roomView(state, callerIsHost), playerId: existing.player_id });
-      }
-      if (state.phase !== "lobby") return fail("This game has already started.");
-      const name = String(payload.name ?? principal.display_name).trim().slice(0, 24);
-      if (!name) return fail("Player name is required.");
-      if (existing) {
-        database().prepare(`
-          DELETE FROM game_run_player_identities WHERE run_id = ? AND user_id = ?
-        `).run(room.row.id, principal.id);
-      }
-      const player = { id: randomUUID(), name, control: "phone" as const, timeline: [] };
-      state.players.push(player);
-      const now = Date.now();
-      database().exec("BEGIN IMMEDIATE");
-      try {
-        saveRoom(state);
-        database().prepare(`
-          INSERT INTO game_run_player_identities (run_id, user_id, player_id, joined_at, last_seen_at)
-          VALUES (?, ?, ?, ?, ?)
-        `).run(room.row.id, principal.id, player.id, now, now);
-        database().prepare(`
-          INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
-        `).run(code, principal.id, now, now);
-        database().exec("COMMIT");
-      } catch (error) {
-        database().exec("ROLLBACK");
-        throw error;
-      }
-      return Response.json({ room: roomView(state, callerIsHost), playerId: player.id }, { status: 201 });
+      const joined = joinPlayer(room, principal, payload.name);
+      return Response.json(
+        { room: roomView(state, callerIsHost), playerId: joined.playerId },
+        { status: joined.created ? 201 : 200 },
+      );
     }
 
     if (action === "addPlayer") {
@@ -375,8 +505,14 @@ export async function POST(request: Request) {
       const playerId = String(payload.playerId ?? "");
       if (!state.players.some((player) => player.id === playerId)) return fail("Player not found.", 404);
       state.players = state.players.filter((player) => player.id !== playerId);
+      const identity = database().prepare(`
+        SELECT user_id FROM game_run_player_identities WHERE run_id = ? AND player_id = ?
+      `).get(room.row.id, playerId) as { user_id: string } | undefined;
       database().prepare("DELETE FROM game_run_player_identities WHERE run_id = ? AND player_id = ?")
         .run(room.row.id, playerId);
+      if (identity && database().prepare("SELECT 1 FROM game_guest_users WHERE user_id = ?").get(identity.user_id)) {
+        database().prepare("DELETE FROM users WHERE id = ?").run(identity.user_id);
+      }
       saveRoom(state);
       return Response.json({ room: roomView(state, true) });
     }

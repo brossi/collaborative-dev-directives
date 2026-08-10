@@ -262,3 +262,100 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(resumed.status, 200);
   assert.equal((await resumed.json()).room.code, sessionCode);
 });
+
+test("a host-issued capability admits an accountless guest only to its lobby", async () => {
+  const sessionCode = "GUEST2";
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+    VALUES (?, ?, 'lobby', ?, ?)
+  `).run(sessionCode, hostId, Date.now(), Date.now());
+  db.prepare(`
+    INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+    VALUES (?, ?, ?, ?)
+  `).run(sessionCode, hostId, Date.now(), Date.now());
+
+  const prepared = await gamePost(
+    { action: "prepare", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(prepared.status, 201);
+
+  const anonymousInvite = await gamePost(
+    { action: "guestInvite", code: sessionCode },
+    { Origin: origin },
+  );
+  assert.equal(anonymousInvite.status, 401);
+
+  const inviteResponse = await gamePost(
+    { action: "guestInvite", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(inviteResponse.status, 200);
+  const { guestInvite } = await inviteResponse.json();
+  assert.match(guestInvite, /^[A-Za-z0-9_-]{32,128}$/);
+  assert.equal(
+    db.prepare("SELECT 1 FROM game_guest_invites WHERE token_hash = ?").get(guestInvite),
+    undefined,
+  );
+  assert.ok(db.prepare("SELECT 1 FROM game_guest_invites WHERE token_hash = ?").get(sha256(guestInvite)));
+
+  const bareCode = await gamePost(
+    { action: "joinGuest", code: sessionCode, name: "Uninvited" },
+    { Origin: origin },
+  );
+  assert.equal(bareCode.status, 403);
+
+  const joinedResponse = await gamePost(
+    { action: "joinGuest", code: sessionCode, name: "Phone Guest", invite: guestInvite },
+    { Origin: origin },
+  );
+  assert.equal(joinedResponse.status, 201);
+  const joined = await joinedResponse.json();
+  assert.equal(joined.room.players.length, 1);
+  assert.equal(joined.room.players[0].name, "Phone Guest");
+  const setCookie = joinedResponse.headers.get("set-cookie");
+  assert.match(setCookie, /^cb_guest=/);
+  assert.match(setCookie, /HttpOnly; Secure; SameSite=Strict/);
+  assert.match(setCookie, /Path=\/game/);
+  const guestCookie = setCookie.split(";", 1)[0];
+
+  const guestView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
+    headers: { Cookie: guestCookie },
+  });
+  assert.equal(guestView.status, 200);
+  assert.equal((await guestView.json()).room.isHost, false);
+
+  const hostAction = await gamePost(
+    { action: "addPlayer", code: sessionCode, name: "Not Allowed" },
+    { Cookie: guestCookie, Origin: origin },
+  );
+  assert.equal(hostAction.status, 403);
+
+  const otherSessionCode = "OTHER2";
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
+    VALUES (?, ?, 'lobby', ?, ?)
+  `).run(otherSessionCode, hostId, Date.now(), Date.now());
+  const otherView = await fetch(`${origin}/game/api/game?code=${otherSessionCode}`, {
+    headers: { Cookie: guestCookie },
+  });
+  assert.equal(otherView.status, 404);
+  const otherJoin = await gamePost(
+    { action: "join", code: otherSessionCode, name: "Scope Escape" },
+    { Cookie: guestCookie, Origin: origin },
+  );
+  assert.equal(otherJoin.status, 404);
+
+  db.prepare("UPDATE game_guest_invites SET revoked_at = ? WHERE token_hash = ?")
+    .run(Date.now(), sha256(guestInvite));
+  const revokedJoin = await gamePost(
+    { action: "joinGuest", code: sessionCode, name: "Second Guest", invite: guestInvite },
+    { Origin: origin },
+  );
+  assert.equal(revokedJoin.status, 403);
+
+  const existingGuestStillWorks = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
+    headers: { Cookie: guestCookie },
+  });
+  assert.equal(existingGuestStillWorks.status, 200);
+});
