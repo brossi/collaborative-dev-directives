@@ -76,4 +76,3 @@ input { min-height: 2.8rem; border: 1px solid var(--line); border-radius: 0.7rem
   .join-row { grid-template-columns: 1fr; }
   .account-actions button, .join-row button { width: 100%; }
 }
-

@@ -26,12 +26,21 @@ npm run build -- --bundles app
 
 The output is `src-tauri/target/release/bundle/macos/CannaBeats Client.app`.
 
-For local server development only, override the compiled service origin when launching through the
-development command:
+## Development with live reload
+
+Start the Vite development server and the Tauri application together:
 
 ```sh
 CANNABEATS_ORIGIN=http://localhost:3002 npm run dev
 ```
+
+Vite refreshes the webview as files in `ui/` change. CSS updates are applied without restarting the
+application; HTML and JavaScript changes reload the webview. Changes in `src-tauri/` continue to
+trigger Tauri's normal native rebuild and application restart. The development server listens only
+on `127.0.0.1:1420`.
+
+Omit `CANNABEATS_ORIGIN` to use the deployed service. For local server development only, the
+environment variable overrides the service origin compiled into the native client.
 
 Non-local origins must use HTTPS. The default is `https://poc.cannabeats.social`.
 
@@ -48,4 +57,3 @@ Developer ID signing/notarization, and the Windows installer needs a Windows bui
 
 This slice stops at authenticated join/resume/lobby behavior. It does not yet contain gameplay,
 relay audio listening, Spotify, host controls, automatic updates, or production installer signing.
-

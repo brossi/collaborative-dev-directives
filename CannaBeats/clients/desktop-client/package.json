@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "tauri dev",
+    "dev:ui": "vite --config vite.config.mjs",
     "build": "tauri build"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "2.11.4"
+    "@tauri-apps/cli": "2.11.4",
+    "vite": "8.2.1"
   }
 }
-
