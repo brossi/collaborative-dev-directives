@@ -8,17 +8,16 @@ deploy_host="${CANNABEATS_DEPLOY_HOST:-vw-services}"
 remote_directory="/opt/cannabeats-poc/releases"
 remote_path="$remote_directory/CannaBeats-Host-interim-universal.dmg"
 mount_directory="$(mktemp -d /tmp/cannabeats-interim-release.XXXXXX)"
-mounted_device=""
 
 cleanup() {
-  if [[ -n "$mounted_device" ]]; then hdiutil detach "$mounted_device" >/dev/null 2>&1 || true; fi
+  hdiutil detach "$mount_directory" >/dev/null 2>&1 || true
   rmdir "$mount_directory" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 [[ -f "$dmg_path" ]] || { echo "Interim DMG not found: $dmg_path" >&2; exit 2; }
 hdiutil verify "$dmg_path" >/dev/null
-mounted_device="$(hdiutil attach -nobrowse -readonly -mountpoint "$mount_directory" "$dmg_path" | awk 'NR == 1 {print $1}')"
+hdiutil attach -nobrowse -readonly -mountpoint "$mount_directory" "$dmg_path" >/dev/null
 app_path="$mount_directory/CannaBeats Host.app"
 codesign --verify --deep --strict --verbose=2 "$app_path"
 codesign_details="$(codesign -d --verbose=4 "$app_path" 2>&1)"
