@@ -14,6 +14,7 @@ import {
 import { createHostOnboarding, renderHostOnboardingEmail } from './onboarding.mjs';
 import {
   componentReport,
+  componentReportExitCode,
   formatSessionReport,
   openOperatorDatabase,
   readSecret,
@@ -35,7 +36,7 @@ if (!['invite', 'host-onboarding', 'admin-access', 'managed-source', 'operator-s
   console.error('  node cli.mjs admin-access grant|revoke --user-id UUID');
   console.error('  node cli.mjs managed-source list|register|rotate|disable [--source-id UUID] [--name "Name"]');
   console.error('  node cli.mjs operator-summary [--since-hours 24] [--format text|json]');
-  console.error('  node cli.mjs operator-status [--format json]');
+  console.error('  node cli.mjs operator-status [--format json] [--fail-on unavailable|degraded]');
   process.exit(1);
 }
 
@@ -65,6 +66,8 @@ if (command === 'operator-summary' || command === 'operator-status') {
         relayListenToken: config.audioRelayListenToken || readSecret(process.env.AUDIO_RELAY_LISTEN_TOKEN_FILE),
       });
       console.log(JSON.stringify(report, null, 2));
+      const failOn = argument('fail-on', '');
+      if (process.argv.includes('--fail-on')) process.exitCode = componentReportExitCode(report, failOn);
     }
   } catch (error) {
     const correlationId = randomUUID();

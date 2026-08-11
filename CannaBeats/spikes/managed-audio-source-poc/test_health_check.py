@@ -6,6 +6,7 @@ from unittest import mock
 
 import health_check
 import controller
+import agent
 
 
 class HealthCheckTests(unittest.TestCase):
@@ -133,6 +134,19 @@ class ControllerReadinessTests(unittest.TestCase):
                 "spotifyAuthorization": "raw private provider error",
                 "player": "ready",
             })
+
+
+class AgentTransitionTests(unittest.TestCase):
+    def test_repeated_configuration_failures_log_once_and_recovery_logs_once(self):
+        records = []
+        with mock.patch.object(agent, "operational_log", side_effect=lambda *args, **kwargs: records.append((args, kwargs))):
+            agent.configuration_transition(False, "TimeoutError")
+            agent.configuration_transition(False, "TimeoutError")
+            agent.configuration_transition(True)
+            agent.configuration_transition(True)
+        self.assertEqual([entry[0][1] for entry in records], [
+            "configuration.unavailable", "configuration.recovered",
+        ])
 
 
 if __name__ == "__main__":

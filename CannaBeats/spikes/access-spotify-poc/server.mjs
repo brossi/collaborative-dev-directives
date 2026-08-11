@@ -24,6 +24,7 @@ import {
 import { createHostOnboarding, renderHostOnboardingEmail } from './onboarding.mjs';
 import {
   createOperationalLogger,
+  createTransitionReporter,
   errorResponse,
   requestContext,
 } from './observability.mjs';
@@ -239,6 +240,7 @@ export function createApp({
     ],
     ...(logWrite ? { write: logWrite } : {}),
   });
+  const transitions = createTransitionReporter(logger);
 
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
@@ -498,12 +500,30 @@ export function createApp({
     res.json({ ok: true, service: 'cannabeats-access' });
   });
 
-  app.get('/api/ready', (_req, res) => {
-    const database = db.prepare('SELECT 1 AS ok').get();
-    if (database.ok !== 1 || !existsSync(browserBundle)) {
-      throw new HttpError(503, 'Access service is not ready');
+  app.get('/api/ready', (req, res) => {
+    try {
+      const database = db.prepare('SELECT 1 AS ok').get();
+      if (database.ok !== 1 || !existsSync(browserBundle)) {
+        throw new HttpError(503, 'Access service is not ready');
+      }
+      transitions.report('readiness', 'healthy', {
+        event: 'service.readiness_changed',
+        message: 'Access service readiness changed',
+        status: 200,
+        reasonCode: 'ready',
+      });
+      res.json({ ready: true, service: 'cannabeats-access' });
+    } catch (error) {
+      req.suppressOperationalFailure = true;
+      transitions.report('readiness', 'unavailable', {
+        level: 'warn',
+        event: 'service.readiness_changed',
+        message: 'Access service readiness changed',
+        status: 503,
+        reasonCode: 'readiness_check_failed',
+      });
+      throw error instanceof HttpError ? error : new HttpError(503, 'Access service is not ready');
     }
-    res.json({ ready: true, service: 'cannabeats-access' });
   });
 
   app.get('/api/config', (_req, res) => {

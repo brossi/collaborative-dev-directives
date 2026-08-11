@@ -268,6 +268,17 @@ transitions rather than an interim component model.
 Gate: log-volume, transition, error-envelope, redaction, timeout, and scheduler
 failure tests pass without adding a hosted observability dependency.
 
+Local implementation checkpoint completed after P2-C. Access and game
+readiness plus managed-source configuration/polling now emit state transitions
+instead of repeated probe failures; successful polling remains silent. Service
+lifecycle records cover startup and shutdown, game context is field-allowlisted
+and sentinel-redacted, and every game error is normalized to the common safe
+JSON envelope. Backup and 15-minute component-check jobs have nested command
+and systemd timeouts. Either failure creates a durable, secret-free local alert
+with inspect/retry/clear commands. Focused log-volume, transition, envelope,
+redaction, timeout, and notifier tests pass; installing and exercising the
+units on the real host remains P2-E.
+
 ### P2-E: Real-environment rehearsal and closure
 
 Perform after P2-A through P2-D, with an early Compose validation as soon as a

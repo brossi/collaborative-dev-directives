@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -314,5 +315,17 @@ if __name__ == "__main__":
     source_token()
     threading.Thread(target=poll_loop, daemon=True).start()
     server = ThreadingHTTPServer(LISTEN_ADDRESS, Handler)
+    def shutdown(signum, _frame):
+        operational_log(
+            "info", "service.stopping", "Managed source controller is stopping",
+            reasonCode=signal.Signals(signum).name,
+        )
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
     operational_log("info", "service.started", "Managed source controller started")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()

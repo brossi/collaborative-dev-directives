@@ -164,6 +164,30 @@ test("liveness and readiness are distinct and return correlation references", as
   const readiness = await fetch(`${origin}/game/api/ready`);
   assert.equal(readiness.status, 200);
   assert.deepEqual(await readiness.json(), { ready: true, service: "cannabeats-game" });
+  assert.match(serverOutput, /"event":"service\.started"/);
+});
+
+test("managed-source polling logs one failure transition and one recovery", async () => {
+  await sourcePost({ action: "poll" });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  const outputOffset = serverOutput.length;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await sourcePost({ action: "poll" }, "invalid-managed-source-token");
+    assert.equal(response.status, 401);
+  }
+  assert.equal((await sourcePost({ action: "poll" })).status, 200);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const records = serverOutput.slice(outputOffset).split("\n").flatMap((line) => {
+    try {
+      return [JSON.parse(line)];
+    } catch {
+      return [];
+    }
+  }).filter((record) => ["dependency.unavailable", "dependency.recovered"].includes(record.event)
+    && record.route === "/api/audio-source");
+  assert.deepEqual(records.map((record) => record.event), [
+    "dependency.unavailable", "dependency.recovered",
+  ]);
 });
 
 test("unexpected game failures return only a stable safe envelope", async () => {
@@ -269,6 +293,7 @@ test("configured game origins can never receive forwarded user credentials", asy
     }
     await new Promise((resolve) => untrustedServer.close(resolve));
   }
+  assert.match(isolatedOutput, /"event":"service\.stopping"/);
 });
 
 test("an authenticated lobby owns an internal game run and preserves host authority", async () => {

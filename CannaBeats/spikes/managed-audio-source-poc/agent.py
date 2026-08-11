@@ -2,6 +2,8 @@
 import json
 import mimetypes
 import os
+import signal
+import threading
 import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,6 +16,8 @@ LISTEN_ADDRESS = ("127.0.0.1", 4781)
 APPLICATION_VERSION = os.environ.get("CANNABEATS_APP_VERSION", "development")
 CATALOG_VERSION = os.environ.get("CANNABEATS_CATALOG_VERSION", "development")
 ENVIRONMENT = os.environ.get("CANNABEATS_ENVIRONMENT", "poc")
+configuration_lock = threading.Lock()
+configuration_available = None
 
 
 def operational_log(level, event, message, **context):
@@ -27,9 +31,30 @@ def operational_log(level, event, message, **context):
         "applicationVersion": APPLICATION_VERSION,
         "catalogVersion": CATALOG_VERSION,
     }
-    if context.get("reasonCode"):
-        record["reasonCode"] = context["reasonCode"]
+    for key in ("reasonCode", "errorType"):
+        if context.get(key):
+            record[key] = context[key]
     print(json.dumps(record, separators=(",", ":")), flush=True)
+
+
+def configuration_transition(available, error_type=None):
+    global configuration_available
+    with configuration_lock:
+        previous = configuration_available
+        configuration_available = available
+    if previous == available or (previous is None and available):
+        return False
+    if available:
+        operational_log(
+            "info", "configuration.recovered", "CannaBeats configuration recovered",
+            reasonCode="access_service_recovered",
+        )
+    else:
+        operational_log(
+            "warn", "configuration.unavailable", "CannaBeats configuration is unavailable",
+            reasonCode="access_service_unavailable", errorType=error_type,
+        )
+    return True
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -80,12 +105,10 @@ class Handler(BaseHTTPRequestHandler):
                     "spotifyClientId": public["spotifyClientId"],
                     "spotifyRedirectUri": f"{APP_ORIGIN}/spotify/callback",
                 })
+                configuration_transition(True)
                 return self._send(200, "application/json", body)
-            except Exception:
-                operational_log(
-                    "warn", "configuration.unavailable", "CannaBeats configuration is unavailable",
-                    reasonCode="access_service_unavailable",
-                )
+            except Exception as error:
+                configuration_transition(False, type(error).__name__)
                 return self._send(503, "application/json", '{"error":"CannaBeats configuration unavailable"}')
         if path in ("/", "/callback"):
             file_path = STATIC_DIRECTORY / "index.html"
@@ -110,5 +133,17 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     server = ThreadingHTTPServer(LISTEN_ADDRESS, Handler)
+    def shutdown(signum, _frame):
+        operational_log(
+            "info", "service.stopping", "Managed source UI is stopping",
+            reasonCode=signal.Signals(signum).name,
+        )
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
     operational_log("info", "service.started", "Managed source UI started")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()

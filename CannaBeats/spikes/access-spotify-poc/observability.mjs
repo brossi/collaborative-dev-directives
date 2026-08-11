@@ -107,6 +107,22 @@ export function createOperationalLogger({
   };
 }
 
+export function createTransitionReporter(logger) {
+  const states = new Map();
+  return {
+    report(key, status, {
+      level = 'info', event = 'component.state_changed', message = 'Component state changed', ...context
+    } = {}) {
+      if (states.get(key) === status) return false;
+      states.set(key, status);
+      const write = typeof logger[level] === 'function' ? logger[level] : logger.info;
+      write(event, message, context);
+      return true;
+    },
+    state: (key) => states.get(key),
+  };
+}
+
 export function requestContext(logger) {
   return (req, res, next) => {
     // This is the public authority boundary. A caller may send a syntactically
@@ -142,17 +158,19 @@ export function errorResponse(req, res, error, status) {
   const code = errorCode(status);
   const unsafeMessage = status >= 500 ? 'Unexpected server error' : String(error?.message || 'Request was not accepted');
   const message = req.operationalLogger?.safeText(unsafeMessage) ?? 'Request was not accepted';
-  req.operationalLogger?.[status >= 500 ? 'error' : 'warn'](
-    'http.request_failed',
-    status >= 500 ? 'Request failed unexpectedly' : 'Request was rejected',
-    {
-      correlationId,
-      method: req.method,
-      route: req.route?.path || req.path,
-      status,
-      durationMs: requestDurationMs(req),
-      errorType: status >= 500 ? error?.constructor?.name || 'Error' : code,
-    },
-  );
+  if (!req.suppressOperationalFailure) {
+    req.operationalLogger?.[status >= 500 ? 'error' : 'warn'](
+      'http.request_failed',
+      status >= 500 ? 'Request failed unexpectedly' : 'Request was rejected',
+      {
+        correlationId,
+        method: req.method,
+        route: req.route?.path || req.path,
+        status,
+        durationMs: requestDurationMs(req),
+        errorType: status >= 500 ? error?.constructor?.name || 'Error' : code,
+      },
+    );
+  }
   return res.status(status).json({ error: message, code, correlationId });
 }

@@ -8,6 +8,7 @@ import { after, test } from 'node:test';
 import { openDatabase } from '../db.mjs';
 import {
   componentReport,
+  componentReportExitCode,
   openOperatorDatabase,
   sessionReport,
 } from '../operations/operator-report.mjs';
@@ -254,4 +255,17 @@ test('database, volume, and certificate failures remain independent safe states'
     status: 'degraded', reasonCode: 'certificate_expiring', daysRemaining: 3,
   });
   assert.doesNotMatch(JSON.stringify(report), /private|database\/path/);
+});
+
+test('scheduled component checks fail only at the configured severity threshold', () => {
+  const report = { components: {
+    access: { status: 'healthy' },
+    managedSource: { status: 'degraded' },
+    certificate: { status: 'unknown' },
+  } };
+  assert.equal(componentReportExitCode(report, 'unavailable'), 0);
+  assert.equal(componentReportExitCode(report, 'degraded'), 2);
+  report.components.access.status = 'unavailable';
+  assert.equal(componentReportExitCode(report, 'unavailable'), 2);
+  assert.throws(() => componentReportExitCode(report, 'private-severity'), /fail-on/i);
 });

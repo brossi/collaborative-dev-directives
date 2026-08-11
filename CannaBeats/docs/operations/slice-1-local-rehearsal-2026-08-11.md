@@ -65,6 +65,27 @@ Command: `node --test test/release-scripts.test.mjs test/schema-compatibility.te
   spike. The full access suite passes 54/54 after P2-C; the managed-source suite
   passes 9/9. Real certificate/relay/source-node exercise remains a P2-E gate.
 
+## Observability and scheduler completion
+
+- Access and game readiness, game managed-source/relay polling, source-agent
+  configuration, and source-controller game-API polling now record only state
+  changes. Successful high-frequency polling is silent; injected repeated
+  failures produce one unavailable record and one recovery record.
+- Game startup/shutdown lifecycle records were observed in the standalone
+  integration server. All game error responses, including a non-JSON upstream
+  response, become the stable safe JSON envelope with a correlation reference.
+- The game logger accepts only the documented HTTP and entity fields. Runtime
+  sentinel tests reject authorization, cookie, provider-payload, track, query,
+  and capability-shaped values.
+- Backup and 15-minute component-check units have command and systemd execution
+  ceilings. Injected command timeout exits `124`; either unit points to the
+  local alert template. The notifier test creates a mode-`0600` durable alert
+  containing inspect/retry/clear commands and no unit output or environment.
+- Full access suite: 60/60. Full web build/test suite: 41/41. Managed-source
+  suite: 10/10. Next production build/TypeScript, Python byte-compilation, and
+  shell syntax checks pass. Real systemd installation and alert exercise remain
+  a P2-E gate.
+
 ## Deployment-only checks still required
 
 - Validate Compose with the host's Docker Compose version and actual non-secret environment.
@@ -72,4 +93,5 @@ Command: `node --test test/release-scripts.test.mjs test/schema-compatibility.te
 - Restore that exact artifact to an isolated Compose project and compare live row counts.
 - Exercise a failed container release and rollback on the host while observing unrelated workload continuity.
 - Run authorized component checks against the real relay, certificate, database volume, and managed-source configuration/authentication/player states.
+- Install and exercise both systemd timers, force one safe component-check failure, and clear its local alert only after a successful retry.
 - Verify managed-source disk/memory and hosting-provider transfer usage; rehearse replacement/Spotify reauthorization when an approved maintenance window is available.

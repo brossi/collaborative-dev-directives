@@ -1,0 +1,11 @@
+[Unit]
+Description=Check CannaBeats component health every 15 minutes
+
+[Timer]
+OnBootSec=5m
+OnUnitInactiveSec=15m
+Persistent=true
+Unit=cannabeats-operations-check.service
+
+[Install]
+WantedBy=timers.target

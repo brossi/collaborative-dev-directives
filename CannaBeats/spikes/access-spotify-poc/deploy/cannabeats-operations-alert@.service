@@ -1,0 +1,13 @@
+[Unit]
+Description=Record a local CannaBeats operations alert for %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cannabeats-local-operations-alert %i
+TimeoutStartSec=30s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+StateDirectory=cannabeats/alerts
+StateDirectoryMode=0700

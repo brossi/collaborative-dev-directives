@@ -43,12 +43,19 @@ The backup container has no network, mounts the database volume read-only, write
 
    ```sh
    sudo install -o root -g root -m 0755 deploy/run-backup.sh /usr/local/sbin/cannabeats-backup
-   sudo install -o root -g root -m 0644 deploy/cannabeats-backup.service deploy/cannabeats-backup.timer /etc/systemd/system/
+   sudo install -o root -g root -m 0755 deploy/run-operations-check.sh /usr/local/sbin/cannabeats-operations-check
+   sudo install -o root -g root -m 0755 deploy/local-operations-alert.sh /usr/local/sbin/cannabeats-local-operations-alert
+   sudo install -o root -g root -m 0644 \
+     deploy/cannabeats-backup.service deploy/cannabeats-backup.timer \
+     deploy/cannabeats-operations-check.service deploy/cannabeats-operations-check.timer \
+     deploy/cannabeats-operations-alert@.service /etc/systemd/system/
    sudo install -o root -g root -m 0600 deploy/backup.env.example /etc/cannabeats/backup.env
    sudo systemctl daemon-reload
-   sudo systemctl enable --now cannabeats-backup.timer
+   sudo systemctl enable --now cannabeats-backup.timer cannabeats-operations-check.timer
    sudo systemctl start cannabeats-backup.service
+   sudo systemctl start cannabeats-operations-check.service
    sudo systemctl status cannabeats-backup.service --no-pager
+   sudo systemctl status cannabeats-operations-check.service --no-pager
    ```
 
 4. Verify that the destination contains a `cannabeats-YYYY-MM-DDTHHMMSSZ.cbbackup` file with mode `0600`. Creation streams encryption to a hidden same-directory file, flushes it, and atomically links the completed artifact into its final name without overwriting an existing file. The `run` command verifies the newly created backup and authenticates every recognized retained artifact before pruning. One corrupt or foreign artifact with a recognized backup filename stops all deletion. Retention refuses fewer than 2 or more than 365 copies and ignores unrelated filenames.
@@ -56,10 +63,25 @@ The backup container has no network, mounts the database volume read-only, write
 Inspect scheduling and bounded logs:
 
 ```sh
-systemctl list-timers cannabeats-backup.timer
-journalctl -u cannabeats-backup.service --since today
+systemctl list-timers cannabeats-backup.timer cannabeats-operations-check.timer
+journalctl -u cannabeats-backup.service -u cannabeats-operations-check.service --since today
+sudo find /var/lib/cannabeats/alerts -maxdepth 1 -type f -name '*.failed' -print
 docker inspect --format '{{json .HostConfig.LogConfig}}' cannabeats-access-poc cannabeats-game
 ```
+
+The backup command has a 25-minute command timeout inside a 30-minute systemd
+ceiling. Component checks run every 15 minutes with a 60-second command timeout
+inside a 90-second systemd ceiling. The component job exits nonzero only for an
+`unavailable` component; degraded optional-source state remains visible without
+paging the local scheduler.
+
+Either unit's failure starts `cannabeats-operations-alert@.service`, which
+atomically writes a mode-`0600` alert under `/var/lib/cannabeats/alerts`. The
+file contains only unit state and exact `journalctl`, retry, and clear commands;
+it never copies unit output, environment, tokens, or passphrases. Inspect the
+journal, correct the cause, rerun the named service, confirm success, and only
+then run the alert file's narrowly scoped `clear` command. This is a durable
+local notification path, not an email or hosted-monitoring promise.
 
 Application containers retain three 10 MiB `json-file` segments each. Do not treat these short-lived logs as a backup or game history.
 
@@ -206,7 +228,7 @@ Catalog builds reject malformed modules, year-pack convention errors, invalid pr
 
 An inactive relay publisher is normal without a lease. A source heartbeat with a known error is degraded rather than healthy. An offline managed source is degraded, not game-service unready, because local playback remains available. Source browser readiness becomes `unknown` when its bounded report expires; do not infer authorization or player readiness from a running Chrome process. Check provider transfer usage in the hosting control plane; the source report labels it `unknown` rather than inventing a local estimate.
 
-All HTTP responses carry `X-CannaBeats-Correlation-ID`. JSON error responses also carry a stable `code` and `correlationId`. A family tester may share that UUID; it grants no authority. Operational failures are newline-delimited JSON with release identity and allowlisted context. Successful high-frequency polling is not logged.
+All HTTP responses carry `X-CannaBeats-Correlation-ID`. Every access/game error response is a JSON envelope with a safe `error`, stable `code`, and `correlationId`, including an upstream non-JSON failure. A family tester may share that UUID; it grants no authority. Operational failures are newline-delimited JSON with release identity and strictly allowlisted context. Successful high-frequency polling is not logged. Readiness, source configuration, and polling dependencies emit their first failure/state change and one recovery event while suppressing identical repeated probes.
 
 ## Secret inventory and rotation
 

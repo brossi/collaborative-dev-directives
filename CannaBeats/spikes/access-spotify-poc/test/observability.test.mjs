@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createOperationalLogger } from '../observability.mjs';
+import { createOperationalLogger, createTransitionReporter } from '../observability.mjs';
 
 test('structured records keep only reviewed context and redact secret-shaped values', () => {
   const lines = [];
@@ -60,4 +60,29 @@ test('a logging sink failure does not escape into request work', () => {
     write: () => { throw new Error('test sink unavailable'); },
   });
   assert.doesNotThrow(() => logger.error('request.failed', 'Safe failure'));
+});
+
+test('state transitions emit once per change without poll-volume repetition', () => {
+  const lines = [];
+  const logger = createOperationalLogger({
+    service: 'access',
+    write: (_level, line) => lines.push(JSON.parse(line)),
+  });
+  const transitions = createTransitionReporter(logger);
+  transitions.report('readiness', 'healthy', {
+    event: 'service.readiness_changed', message: 'Access readiness changed', reasonCode: 'ready',
+  });
+  transitions.report('readiness', 'healthy', {
+    event: 'service.readiness_changed', message: 'Access readiness changed', reasonCode: 'ready',
+  });
+  transitions.report('readiness', 'unavailable', {
+    level: 'warn', event: 'service.readiness_changed',
+    message: 'Access readiness changed', reasonCode: 'database_unavailable',
+  });
+  transitions.report('readiness', 'unavailable', {
+    level: 'warn', event: 'service.readiness_changed',
+    message: 'Access readiness changed', reasonCode: 'database_unavailable',
+  });
+  assert.equal(lines.length, 2);
+  assert.deepEqual(lines.map((line) => line.reasonCode), ['ready', 'database_unavailable']);
 });

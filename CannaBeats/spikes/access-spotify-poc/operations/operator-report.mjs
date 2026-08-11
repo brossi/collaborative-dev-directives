@@ -346,6 +346,16 @@ export function readSecret(path) {
   return readFileSync(path, 'utf8').trim();
 }
 
+export function componentReportExitCode(report, failOn = 'unavailable') {
+  if (!['unavailable', 'degraded'].includes(failOn)) {
+    throw new Error('fail-on must be unavailable or degraded');
+  }
+  const statuses = Object.values(report?.components ?? {}).map((component) => component?.status);
+  const failed = statuses.some((status) => status === 'unavailable'
+    || (failOn === 'degraded' && status === 'degraded'));
+  return failed ? 2 : 0;
+}
+
 export function formatSessionReport(report) {
   const lines = [
     `CannaBeats sessions at ${report.generatedAt}`,

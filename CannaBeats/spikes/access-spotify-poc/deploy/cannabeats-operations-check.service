@@ -1,5 +1,5 @@
 [Unit]
-Description=Create and verify an encrypted CannaBeats application backup
+Description=Check CannaBeats component health
 Requires=docker.service
 After=docker.service
 OnFailure=cannabeats-operations-alert@%n.service
@@ -7,9 +7,9 @@ OnFailure=cannabeats-operations-alert@%n.service
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/cannabeats/backup.env
-ExecStart=/usr/local/sbin/cannabeats-backup
-TimeoutStartSec=30m
-RuntimeMaxSec=30m
+ExecStart=/usr/local/sbin/cannabeats-operations-check
+TimeoutStartSec=90s
+RuntimeMaxSec=90s
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true

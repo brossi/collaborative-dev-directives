@@ -159,6 +159,11 @@ controller. A successful refresh/API request establishes
 unknown and never expose provider responses, tokens, account details, or device
 IDs through the health report.
 
+The agent and controller emit structured startup/shutdown records. Repeated
+configuration or authenticated game-API polling failures emit only the first
+unavailable transition, followed by one recovery record when the dependency
+works again; successful high-frequency polling is not logged.
+
 The callback bridge avoids registering a loopback redirect URI and does not put
 the refresh credential on the CannaBeats server. The loopback agent also strips
 OAuth query strings from its logs.

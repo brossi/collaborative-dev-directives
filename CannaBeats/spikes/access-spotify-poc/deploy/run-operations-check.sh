@@ -2,17 +2,12 @@
 set -Eeuo pipefail
 
 compose_directory="${CANNABEATS_COMPOSE_DIR:?Set CANNABEATS_COMPOSE_DIR to the deployed CannaBeats compose directory}"
-keep="${CANNABEATS_BACKUP_KEEP:-14}"
 release_override="${CANNABEATS_RELEASE_OVERRIDE:-/var/lib/cannabeats/releases/current-compose.yaml}"
-timeout_seconds="${CANNABEATS_BACKUP_TIMEOUT_SECONDS:-1500}"
+timeout_seconds="${CANNABEATS_OPERATIONS_TIMEOUT_SECONDS:-60}"
 timeout_command="${CANNABEATS_TIMEOUT_COMMAND:-/usr/bin/timeout}"
 
-if [[ ! "$keep" =~ ^[0-9]+$ ]] || (( keep < 2 || keep > 365 )); then
-  echo "CANNABEATS_BACKUP_KEEP must be an integer between 2 and 365" >&2
-  exit 2
-fi
-if [[ ! "$timeout_seconds" =~ ^[0-9]+$ ]] || (( timeout_seconds < 60 || timeout_seconds > 7200 )); then
-  echo "CANNABEATS_BACKUP_TIMEOUT_SECONDS must be an integer between 60 and 7200" >&2
+if [[ ! "$timeout_seconds" =~ ^[0-9]+$ ]] || (( timeout_seconds < 10 || timeout_seconds > 600 )); then
+  echo "CANNABEATS_OPERATIONS_TIMEOUT_SECONDS must be an integer between 10 and 600" >&2
   exit 2
 fi
 if [[ ! -f "$compose_directory/compose.yaml" ]]; then
@@ -25,5 +20,5 @@ compose=(docker compose -f compose.yaml)
 if [[ -f "$release_override" ]]; then
   compose+=(-f "$release_override")
 fi
-exec "$timeout_command" --foreground --kill-after=30s "${timeout_seconds}s" \
-  "${compose[@]}" --profile operations run --rm backup run --keep "$keep"
+exec "$timeout_command" --foreground --kill-after=10s "${timeout_seconds}s" \
+  "${compose[@]}" exec -T app node cli.mjs operator-status --format json --fail-on unavailable

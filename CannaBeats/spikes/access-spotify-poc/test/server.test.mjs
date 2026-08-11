@@ -145,6 +145,34 @@ test('health, public config, and defensive headers are present', async () => {
   assert.equal(workerResponse.headers.get('service-worker-allowed'), '/');
 });
 
+test('repeated readiness failures emit one transition and keep a safe 503 envelope', async () => {
+  const records = [];
+  const sentinel = `private-database-failure-${randomUUID()}`;
+  const unavailable = createApp({
+    config,
+    db: { prepare: () => { throw new Error(sentinel); } },
+    logWrite: (_level, line) => records.push(JSON.parse(line)),
+  }).app;
+  const listener = unavailable.listen(0, '127.0.0.1');
+  await new Promise((resolve, reject) => {
+    listener.once('listening', resolve);
+    listener.once('error', reject);
+  });
+  try {
+    const url = `http://127.0.0.1:${listener.address().port}/api/ready`;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const response = await fetch(url);
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).code, 'dependency_unavailable');
+    }
+  } finally {
+    await new Promise((resolve) => listener.close(resolve));
+  }
+  assert.equal(records.filter((record) => record.event === 'service.readiness_changed').length, 1);
+  assert.equal(records.filter((record) => record.event === 'http.request_failed').length, 0);
+  assert.doesNotMatch(JSON.stringify(records), new RegExp(sentinel));
+});
+
 test('protected endpoints reject an anonymous caller', async () => {
   const anonymous = await fetch(`${baseUrl}/api/me`);
   assert.equal(anonymous.status, 401);
