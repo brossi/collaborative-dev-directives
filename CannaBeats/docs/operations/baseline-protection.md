@@ -1,10 +1,65 @@
 # Baseline protection runbook
 
 - Scope: CannaBeats access, game, catalog, shared SQLite data, and managed audio source
-- Status: implementation baseline; production values must be validated before first deployment
+- Status: implementation and disposable-host rehearsal baseline; production values still require first-deployment validation
 - Related plan: [Slice 1: Baseline protection](../slice-1-baseline-protection.md)
+- Rehearsal evidence: [P2-E real-environment rehearsal — 2026-08-11](slice-1-p2e-rehearsal-2026-08-11.md)
 
-This runbook deliberately operates only the CannaBeats Compose project. Release and rollback commands use `--no-deps app game`; they do not restart, replace, or migrate sibling `vw-services` workloads.
+The current PoC shares a Droplet with unrelated `vw-services` workloads, but
+the target durable deployment is a dedicated CannaBeats Droplet. This runbook
+deliberately operates only the CannaBeats Compose project during that
+transition. Release and rollback commands use `--no-deps app game`; they do not
+restart, replace, or migrate sibling workloads while the shared host remains in
+service. A recovery or rehearsal target must be a clean dedicated host rather
+than a disk clone containing the unrelated projects.
+
+The 2026-08-11 P2-E rehearsal validated this boundary on a fresh private-only
+application host and a separate fresh managed-source host. It did not clone the
+shared application Droplet or the source browser profile. That rehearsal is not
+the durable deployment: its backup destination and hosts are temporary, and
+the checked values below remain gates for the dedicated production move.
+
+Provider images may be retained only as sanitized provisioning accelerators.
+They are not application-data backups, secret recovery artifacts, or a way to
+preserve a configured managed source. Before imaging an application host,
+remove plaintext databases, site-local secrets, backup passphrases, encrypted
+backups that could be paired with an on-host passphrase, session artifacts, and
+temporary rehearsal state. Before imaging a source host, revoke its disposable
+registration and remove the entire browser profile, Spotify authorization,
+source and relay tokens, VNC password, Tailscale identity, and temporary
+network bridges. Power off the sanitized host, create and verify the provider
+image, and retain it only if path-based and literal secret checks pass. A host
+restored from such an image must receive new credentials, registration,
+tailnet identity, browser profile, and interactive Spotify authorization.
+
+Use the checked-in sanitizer before creating a provider image. It is dry-run by
+default and refuses execution unless the actual hostname matches the explicit
+expected value. Revoke the source registration through the application role
+before sanitizing the source host:
+
+```sh
+sudo tools/sanitize-rehearsal-host.sh \
+  --role application \
+  --expected-hostname APPLICATION_HOSTNAME \
+  --source-id DISPOSABLE_SOURCE_UUID
+
+sudo tools/sanitize-rehearsal-host.sh \
+  --role managed-source \
+  --expected-hostname SOURCE_HOSTNAME
+```
+
+Review both manifests, then repeat each command with `--execute`. Execution
+stops the role's services, overwrites and removes only its fixed sensitive-path
+allowlist, clears cloud/SSH identity, and runs filesystem trim. Existing SSH
+sessions survive long enough for in-session assertions, but new SSH sessions
+are intentionally unavailable after host keys and authorized keys are removed.
+Power off through the provider API, snapshot, and prove the result by launching
+a private-only disposable restore with a newly injected SSH key. DigitalOcean
+private-only restores should set `--droplet-agent=false` unless controlled
+public egress is available; otherwise its vendor monitoring-agent download can
+hold cloud-init's final stage open. Verify the clone, destroy only the clone,
+and retain the sanitized image according to the operator's image-retention
+decision.
 
 ## Recovery inventory
 

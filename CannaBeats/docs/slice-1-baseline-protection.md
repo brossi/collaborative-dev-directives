@@ -1,11 +1,12 @@
 # Slice 1: Baseline protection
 
-- Status: P1 remediation committed; P2 remediation in progress; deployment rehearsal pending
+- Status: Slice 1 complete; P2-E evidence and sanitized reusable images verified; powered-off rehearsal hosts retained pending retirement approval
 - Date: 2026-08-11
 - Parent: [CannaBeats development slices](development-slices.md#slice-1-baseline-protection)
 - Backlog: [Product backlog](product-backlog.md)
 - Operations: [Baseline protection runbook](operations/baseline-protection.md)
 - Evidence: [Local rehearsal — 2026-08-11](operations/slice-1-local-rehearsal-2026-08-11.md)
+- P2-E evidence: [Real-environment rehearsal — 2026-08-11](operations/slice-1-p2e-rehearsal-2026-08-11.md)
 
 ## Player or operator outcome
 
@@ -297,6 +298,31 @@ Docker runtime is available.
 
 Gate: all Slice 1 acceptance criteria have recorded evidence. Full Xcode is not
 required for these gates; a real Docker/host environment is required.
+
+Technical checkpoint completed on 2026-08-11 against two fresh private-only
+Ubuntu hosts. Docker/Compose rendered both definitions and built exact commit
+`b79beb3`; the catalog gate passed for 3,424 songs. A real encrypted online
+backup was copied off-host, authenticated, restored into an isolated target,
+migrated from schema 0 to 1, and matched every protected table count with clean
+integrity and foreign-key checks. A deliberately failed named release restored
+the exact prior application/game image IDs without restarting a sentinel
+workload. The checked-in backup/operations timers and local failure alert were
+exercised successfully.
+
+A fresh managed-source node was built without copying its browser profile. Its
+configuration and authenticated disposable game-API poll passed, capacity was
+healthy, and secrets were correctly owned and absent from logs. Tailscale
+private access, off-host VNC credential installation, interactive Spotify
+Premium authorization, browser-player readiness, real non-silent relay PCM,
+and a managed play/pause/resume/release lifecycle all passed. The durable
+dedicated production host and protected production backup destination remain
+deployment gates. Sanitized application and source base images were restored
+into private-only verification hosts and proved to exclude the live browser
+profile, tokens, Tailscale identity, copied application data, and secrets while
+retaining the exact candidate images and installed runtimes. The original
+rehearsal hosts are sanitized, powered off, and retained pending a separate
+retirement decision. Exact observations and provider resource IDs are in the
+[P2-E evidence record](operations/slice-1-p2e-rehearsal-2026-08-11.md).
 
 ### Deferred to Slice 2
 
