@@ -1,8 +1,8 @@
 # Slice 1 P2-E real-environment rehearsal — 2026-08-11
 
-- Status: Slice 1 gates complete; sanitized reusable images verified; powered-off rehearsal hosts retained pending operator-approved retirement
+- Status: Slice 1 closed; sanitized reusable images verified and retained; disposable rehearsal hosts destroyed
 - Candidate: `b79beb3` (`feature/slice-1-baseline-protection`)
-- Observation window: `2026-08-11T17:58:04Z` through `2026-08-11T20:13:21Z`
+- Observation window: `2026-08-11T17:58:04Z` through `2026-08-11T20:37:21Z`
 - DigitalOcean CLI context: `cannabeats-p2e1`
 - Related runbook: [Baseline protection](baseline-protection.md)
 
@@ -25,8 +25,8 @@ browser profile.
 
 | Temporary resource | Provider ID | Network exposure | State at record close |
 | --- | ---: | --- | --- |
-| `cannabeats-p2e-dedicated-20260811` | `591671238` | NYC3 VPC only, `10.108.0.4`; no public IP | Sanitized, powered off, and retained pending retirement approval |
-| `cannabeats-p2e-source-20260811` | `591679940` | NYC3 VPC only, `10.108.0.5`; previously Tailscale `100.106.119.76`; no public IP | Sanitized, logged out of Tailscale, powered off, and retained pending retirement approval |
+| `cannabeats-p2e-dedicated-20260811` | `591671238` | NYC3 VPC only, `10.108.0.4`; no public IP | Sanitized, imaged, then destroyed at Slice 1 close |
+| `cannabeats-p2e-source-20260811` | `591679940` | NYC3 VPC only, `10.108.0.5`; previously Tailscale `100.106.119.76`; no public IP | Sanitized, logged out of Tailscale, imaged, then destroyed at Slice 1 close |
 
 The application host is reachable through the existing SSH jump host. The
 source host was initially reached the same way and then enrolled in the
@@ -291,9 +291,13 @@ agent installer waits for public egress during cloud-init. A second pair
 `cloud-init status: done` while remaining private-only. All four verification
 Droplets were destroyed and verified absent.
 
-Retain provider images `240743050` and `240743052`. Original rehearsal
-Droplets `591671238` and `591679940` remain powered off; retire them only after
-a separate operator confirmation, then verify they are absent. The images are
-provisioning accelerators, not application-data backups or credential recovery
-artifacts. A private-only restore must use `--droplet-agent=false` or provide
-controlled public egress for the provider's agent installer.
+Provider images `240743050` and `240743052` remain retained. After explicit
+operator approval, original rehearsal Droplets `591671238` and `591679940`
+were destroyed and both IDs were verified absent. The pre-existing active
+Droplets `559513055` (`bracket-challenge`) and `591348986`
+(`cannabeats-audio-source-poc`) remained active with their original public and
+private addresses; no other DigitalOcean resource was targeted. The retained
+images are provisioning accelerators, not application-data backups or
+credential recovery artifacts. A private-only restore must use
+`--droplet-agent=false` or provide controlled public egress for the provider's
+agent installer.

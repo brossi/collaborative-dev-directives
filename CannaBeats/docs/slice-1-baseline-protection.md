@@ -1,6 +1,6 @@
 # Slice 1: Baseline protection
 
-- Status: Slice 1 complete; P2-E evidence and sanitized reusable images verified; powered-off rehearsal hosts retained pending retirement approval
+- Status: Slice 1 closed; P2-E evidence and sanitized reusable images verified; disposable rehearsal hosts destroyed
 - Date: 2026-08-11
 - Parent: [CannaBeats development slices](development-slices.md#slice-1-baseline-protection)
 - Backlog: [Product backlog](product-backlog.md)
@@ -320,8 +320,9 @@ deployment gates. Sanitized application and source base images were restored
 into private-only verification hosts and proved to exclude the live browser
 profile, tokens, Tailscale identity, copied application data, and secrets while
 retaining the exact candidate images and installed runtimes. The original
-rehearsal hosts are sanitized, powered off, and retained pending a separate
-retirement decision. Exact observations and provider resource IDs are in the
+rehearsal hosts were sanitized, imaged, and destroyed after operator approval;
+the verified provider images remain available for future disposable
+environments. Exact observations and provider resource IDs are in the
 [P2-E evidence record](operations/slice-1-p2e-rehearsal-2026-08-11.md).
 
 ### Deferred to Slice 2
