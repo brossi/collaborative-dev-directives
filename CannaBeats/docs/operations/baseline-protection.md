@@ -68,17 +68,35 @@ Application containers retain three 10 MiB `json-file` segments each. Do not tre
 Rehearse at least quarterly and after backup-format, schema, or deployment changes. Never target the live database path.
 
 ```sh
-mkdir -m 0700 /var/tmp/cannabeats-restore-rehearsal
+rehearsal_dir="$(mktemp -d /var/tmp/cannabeats-restore-rehearsal.XXXXXX)"
+sudo chown 1000:1000 "$rehearsal_dir"
+sudo chmod 0700 "$rehearsal_dir"
 docker compose --profile operations run --rm backup verify \
   --backup /backups/BACKUP_FILE \
   --passphrase-file /run/secrets/cannabeats/backup-passphrase
-docker compose --profile operations run --rm backup restore \
+docker compose --profile operations run --rm \
+  --volume "$rehearsal_dir:/restore" backup restore \
   --backup /backups/BACKUP_FILE \
-  --output /tmp/cannabeats-restored.sqlite \
+  --output /restore/cannabeats-poc.sqlite \
   --passphrase-file /run/secrets/cannabeats/backup-passphrase
+
+export CANNABEATS_REHEARSAL_DATA_DIR="$rehearsal_dir"
+export CANNABEATS_REHEARSAL_APP_VERSION=APPLICATION_VERSION
+export CANNABEATS_REHEARSAL_CATALOG_VERSION=CATALOG_SHA256
+export GAME_SERVICE_TOKEN_HOST_FILE=/ABSOLUTE/PATH/TO/game-service-token
+rehearsal_project="cannabeats-restore-$(date -u +%Y%m%d%H%M%S)"
+docker compose -p "$rehearsal_project" \
+  -f deploy/restore-rehearsal.compose.yaml up --build -d
+curl -fsS http://127.0.0.1:3102/api/ready
+curl -fsS http://127.0.0.1:3103/game/api/ready
+docker compose -p "$rehearsal_project" \
+  -f deploy/restore-rehearsal.compose.yaml exec app \
+  node cli.mjs operator-summary --since-hours 24
+docker compose -p "$rehearsal_project" \
+  -f deploy/restore-rehearsal.compose.yaml down
 ```
 
-Because the hardened backup container's `/tmp` is disposable, copy a rehearsal restore out only when deeper inspection is required, or invoke `operations/backup.mjs restore` on a restricted operator machine with Node 22.16 or newer. The command refuses an existing output, authenticates the envelope, compares its SHA-256 digest, then runs `PRAGMA integrity_check` and `PRAGMA foreign_key_check`.
+The standalone rehearsal definition has no fixed container names, uses ports 3102/3103 by default, and bind-mounts only the newly created rehearsal directory. It does not reference the live named volume. The restore command refuses an existing output, authenticates the envelope, compares its SHA-256 digest, then runs `PRAGMA integrity_check` and `PRAGMA foreign_key_check`.
 
 For a full disposable smoke test, mount the restored file as `/data/cannabeats-poc.sqlite` in an isolated Compose project with different loopback ports. Confirm:
 
@@ -90,6 +108,44 @@ For a full disposable smoke test, mount the restored file as `/data/cannabeats-p
 
 Record the source backup timestamp (the recovery point), application/catalog versions, backup and restore duration, table/count comparison, integrity result, omissions, and operator. Delete the disposable plaintext restore after the rehearsal using a narrowly scoped path.
 
+### Installing a rehearsed restore after data loss
+
+Only install the exact plaintext file that passed the isolated rehearsal. This procedure preserves the former volume and changes no sibling service:
+
+```sh
+cd /opt/cannabeats/CannaBeats/spikes/access-spotify-poc
+test -f "$rehearsal_dir/cannabeats-poc.sqlite"
+current=/var/lib/cannabeats/releases/current-compose.yaml
+test -f "$current"
+configured_volume="$(awk -F= '$1 == "CANNABEATS_DATA_VOLUME" { print $2 }' .env | tail -n 1)"
+old_volume="$(docker volume inspect --format '{{.Name}}' "${configured_volume:-cannabeats_poc_data}")"
+new_volume="cannabeats_restore_$(date -u +%Y%m%dT%H%M%SZ)"
+docker volume create "$new_volume"
+app_image="$(docker inspect --format '{{.Image}}' cannabeats-access-poc)"
+docker run --rm --user 0 --entrypoint node \
+  --volume "$new_volume:/target" \
+  --volume "$rehearsal_dir:/source:ro" \
+  "$app_image" -e \
+  'const fs=require("node:fs"); fs.copyFileSync("/source/cannabeats-poc.sqlite","/target/cannabeats-poc.sqlite"); fs.chownSync("/target/cannabeats-poc.sqlite",1000,1000); fs.chmodSync("/target/cannabeats-poc.sqlite",0o600)'
+
+docker compose -f compose.yaml -f "$current" stop app game
+saved_env=".env.before-restore.$(date -u +%Y%m%dT%H%M%SZ)"
+sudo cp -p .env "$saved_env"
+awk -v volume="$new_volume" '
+  BEGIN { replaced=0 }
+  /^CANNABEATS_DATA_VOLUME=/ { print "CANNABEATS_DATA_VOLUME=" volume; replaced=1; next }
+  { print }
+  END { if (!replaced) print "CANNABEATS_DATA_VOLUME=" volume }
+' .env > .env.restore-candidate
+sudo install -o root -g root -m 0600 .env.restore-candidate .env
+rm -- .env.restore-candidate
+docker compose -f compose.yaml -f "$current" up -d --no-deps app game
+curl -fsS http://127.0.0.1:3002/api/ready
+curl -fsS http://127.0.0.1:3003/game/api/ready
+```
+
+If either readiness check fails, restore the saved `.env`, start `app game` again with `current-compose.yaml`, and investigate while retaining both volumes. Delete neither `$old_volume` nor the encrypted backup until the restored service has passed the smoke test and an additional verified backup has completed.
+
 The automated fixture rehearsal for this slice uses a clean SQLite target, restores a known account, validates integrity and foreign keys, proves the encrypted file does not contain the account display name, rejects a wrong passphrase/tampering, and proves overwrite protection. Production recovery point and timings remain a deployment gate, not a claim made by local tests.
 
 ## Release and rollback
@@ -97,18 +153,19 @@ The automated fixture rehearsal for this slice uses a clean SQLite target, resto
 The release identity is an immutable Git commit or equivalent 7–80 character artifact identifier. The catalog identity is read from the checked-in manifest:
 
 ```sh
-npm --prefix ../../../web run catalog:check
-node -p "require('../../../web/data/catalog-manifest.json').catalogVersion"
-sudo CANNABEATS_COMPOSE_DIR=/opt/cannabeats/access-spotify-poc \
+cd /opt/cannabeats/CannaBeats/spikes/access-spotify-poc
+npm --prefix ../../web run catalog:check
+node -p "require('../../web/data/catalog-manifest.json').catalogVersion"
+sudo CANNABEATS_COMPOSE_DIR=/opt/cannabeats/CannaBeats/spikes/access-spotify-poc \
   deploy/release.sh APPLICATION_VERSION CATALOG_SHA256
 ```
 
-`release.sh` performs an encrypted, verified backup before deployment, validates Compose, builds the access and game images, replaces only those two containers, and requires both readiness endpoints. A failed check restores the previous recorded application containers. On success it atomically advances `current-compose.yaml` and retains the previous override.
+`release.sh` first rejects reused application identities and source/deployed catalog drift. Before the first managed release it records the exact image IDs and release environment of the running access/game containers as the bootstrap rollback target. It then performs an encrypted, verified backup, validates Compose, builds the access and game images, resolves their exact immutable image IDs, replaces only those two containers, and requires both readiness endpoints. A failed check restores the exact previous image IDs. On success it advances `current-compose.yaml`, retains the prior override, and records the used application identity permanently.
 
 Rollback only CannaBeats:
 
 ```sh
-sudo CANNABEATS_COMPOSE_DIR=/opt/cannabeats/access-spotify-poc deploy/rollback-release.sh
+sudo CANNABEATS_COMPOSE_DIR=/opt/cannabeats/CannaBeats/spikes/access-spotify-poc deploy/rollback-release.sh
 ```
 
 The rollback deploys the recorded previous images/catalog with `--no-deps app game`, checks readiness, and only then swaps the current/previous records. Current schema changes are additive; any future destructive migration requires a separate forward/rollback compatibility rehearsal before this script may be used.

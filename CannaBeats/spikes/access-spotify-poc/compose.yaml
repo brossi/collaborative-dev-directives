@@ -55,7 +55,8 @@ services:
 
   game:
     build:
-      context: ${CANNABEATS_GAME_CONTEXT:-./game}
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: web/Dockerfile
       args:
         NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
         NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
@@ -140,4 +141,4 @@ services:
 
 volumes:
   cannabeats_poc_data:
-    name: cannabeats_poc_data
+    name: ${CANNABEATS_DATA_VOLUME:-cannabeats_poc_data}

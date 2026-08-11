@@ -1,6 +1,6 @@
 # Slice 1: Baseline protection
 
-- Status: Implemented locally; deployment rehearsal pending
+- Status: P1 adversarial-audit remediation implemented locally; deployment rehearsal pending
 - Date: 2026-08-11
 - Parent: [CannaBeats development slices](development-slices.md#slice-1-baseline-protection)
 - Backlog: [Product backlog](product-backlog.md)

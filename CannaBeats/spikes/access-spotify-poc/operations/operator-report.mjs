@@ -20,19 +20,11 @@ function tableExists(db, name) {
 }
 
 function one(db, sql, ...values) {
-  try {
-    return db.prepare(sql).get(...values);
-  } catch {
-    return undefined;
-  }
+  return db.prepare(sql).get(...values);
 }
 
 function many(db, sql, ...values) {
-  try {
-    return db.prepare(sql).all(...values);
-  } catch {
-    return [];
-  }
+  return db.prepare(sql).all(...values);
 }
 
 function parsedState(serialized) {

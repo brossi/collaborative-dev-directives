@@ -3,4 +3,11 @@ data
 .env
 .git
 test
-
+secrets
+secrets/
+backups
+backups/
+releases
+releases/
+*.sqlite
+*.sqlite-*

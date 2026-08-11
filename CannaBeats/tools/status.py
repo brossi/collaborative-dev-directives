@@ -11,10 +11,9 @@ Paths are anchored to this script's location, so it works from any cwd.
 
 The rule --sync enforces: catalog/years/ + catalog/themes/ are the single
 source of truth; Resources/Catalog/ is a build product. Sync copies every
-source module in, deletes bundle files with no source counterpart, and —
-so paid resolver work is never lost — keeps a non-null URI from the old
-bundle copy when the source's is null (by title|artist|year identity),
-printing each such rescue so it can be back-filled into source.
+source module exactly and deletes bundle files with no source counterpart.
+Resolver work must be committed to source before sync; stale bundle values
+are never allowed to override a reviewed source removal.
 """
 import argparse
 import json
@@ -24,10 +23,6 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent  # CannaBeats/
 SOURCE_DIRS = [ROOT / "catalog" / "years", ROOT / "catalog" / "themes"]
 BUNDLE = ROOT / "CannaBeats" / "Resources" / "Catalog"
-
-
-def song_id(song):
-    return f"{song['title']}|{song['artist']}|{song['year']}".lower()
 
 
 def load(path):
@@ -75,29 +70,19 @@ def status():
             print(f"  {label}: {head}")
     if missing or differ or orphaned:
         print("run `python3 tools/status.py --sync` to regenerate the bundle")
+        return False
+    return True
 
 
 def sync():
     BUNDLE.mkdir(parents=True, exist_ok=True)
-    copied = rescued = deleted = unchanged = 0
+    copied = deleted = unchanged = 0
     source_names = set()
     for src_dir in SOURCE_DIRS:
         for src_path in sorted(src_dir.glob("*.json")):
             source_names.add(src_path.name)
-            module = load(src_path)
             out_path = BUNDLE / src_path.name
-            # Preserve resolver work: old bundle URI fills a null source URI.
-            if out_path.exists():
-                old = {song_id(s): s.get("uri")
-                       for s in load(out_path)["songs"] if s.get("uri")}
-                for song in module["songs"]:
-                    if not song.get("uri") and song_id(song) in old:
-                        song["uri"] = old[song_id(song)]
-                        rescued += 1
-                        print(f"  rescued URI from old bundle: {src_path.name}: "
-                              f"{song['title']} / {song['artist']} "
-                              f"(back-fill this into catalog/!)")
-            payload = (json.dumps(module, indent=2, ensure_ascii=False) + "\n").encode()
+            payload = src_path.read_bytes()
             if out_path.exists() and out_path.read_bytes() == payload:
                 unchanged += 1
                 continue
@@ -109,11 +94,7 @@ def sync():
             deleted += 1
             print(f"  deleted orphan: {stale.name}")
     print(f"sync: {copied} written, {unchanged} already current, "
-          f"{deleted} orphans removed, {rescued} URIs rescued from old bundle")
-    if rescued:
-        print("NOTE: rescued URIs exist only in the bundle — back-fill them "
-              "into catalog/ (fill_from_datasets or by hand) or the next "
-              "source edit may drop them.", file=sys.stderr)
+          f"{deleted} orphans removed")
 
 
 def main():
@@ -124,7 +105,8 @@ def main():
     if args.sync:
         sync()
     else:
-        status()
+        if not status():
+            sys.exit(1)
 
 
 if __name__ == "__main__":

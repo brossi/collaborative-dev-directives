@@ -3,6 +3,7 @@ import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
+import { trustedInternalRequest } from "../../../lib/server/internal-service";
 import { observeRoute } from "../../../lib/server/observability";
 import {
   enqueueManagedAudioCommand,
@@ -715,5 +716,5 @@ async function postGame(request: Request) {
   }
 }
 
-export const GET = observeRoute(getGame);
+export const GET = observeRoute(getGame, { acceptCorrelationId: trustedInternalRequest });
 export const POST = observeRoute(postGame);

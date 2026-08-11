@@ -1,0 +1,15 @@
+.git
+**/.git
+**/.env
+**/node_modules
+**/.next
+**/test
+**/tests
+**/secrets
+**/secrets/**
+**/backups
+**/backups/**
+**/*.sqlite
+**/*.sqlite-*
+CannaBeats/Resources/Catalog
+spikes/access-spotify-poc/data

@@ -11,7 +11,7 @@ import { openDatabase, sha256 } from "../../spikes/access-spotify-poc/db.mjs";
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "cannabeats-game-test-"));
 const databasePath = join(temporaryDirectory, "game.sqlite");
-const internalToken = "game-api-test-internal-token";
+const internalToken = "game-api-test-internal-token-value";
 const managedSourceToken = `managed-source-${randomUUID().replaceAll("-", "")}`;
 const managedSourceId = randomUUID();
 const relayListenToken = `relay-listen-${randomUUID().replaceAll("-", "")}`;
@@ -192,6 +192,83 @@ test("unexpected game failures return only a stable safe envelope", async () => 
   assert.equal(body.correlationId, response.headers.get("x-cannabeats-correlation-id"));
   assert.doesNotMatch(JSON.stringify(body), new RegExp(sentinel));
   assert.doesNotMatch(serverOutput, new RegExp(sentinel));
+});
+
+test("an internal membership check keeps the public response correlation reference", async () => {
+  const outputOffset = serverOutput.length;
+  const response = await fetch(`${origin}/game/api/audio-stream?code=MISS23`);
+  assert.equal(response.status, 401);
+  const correlationId = response.headers.get("x-cannabeats-correlation-id");
+  assert.match(correlationId, /^[0-9a-f-]{36}$/);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const records = serverOutput.slice(outputOffset).split("\n").flatMap((line) => {
+    try {
+      return [JSON.parse(line)];
+    } catch {
+      return [];
+    }
+  }).filter((record) => record.event === "http.request_failed"
+    && ["/api/audio-stream", "/api/game"].includes(record.route));
+  assert.deepEqual(new Set(records.map((record) => record.route)),
+    new Set(["/api/audio-stream", "/api/game"]));
+  assert.deepEqual(new Set(records.map((record) => record.correlationId)), new Set([correlationId]));
+});
+
+test("configured game origins can never receive forwarded user credentials", async () => {
+  const leakedRequests = [];
+  const untrustedServer = createHttpServer((request, response) => {
+    leakedRequests.push(request.headers);
+    response.writeHead(401, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ error: "untrusted" }));
+  });
+  await new Promise((resolve, reject) => {
+    untrustedServer.once("error", reject);
+    untrustedServer.listen(0, "127.0.0.1", resolve);
+  });
+  const untrustedOrigin = `http://127.0.0.1:${untrustedServer.address().port}`;
+  const isolatedPort = await availablePort();
+  const isolatedOrigin = `http://127.0.0.1:${isolatedPort}`;
+  let isolatedOutput = "";
+  const isolatedProcess = spawn(process.execPath, [".next/standalone/server.js"], {
+    cwd: new URL("..", import.meta.url),
+    env: {
+      ...process.env,
+      HOSTNAME: "127.0.0.1",
+      PORT: String(isolatedPort),
+      CANNABEATS_APP_ORIGIN: isolatedOrigin,
+      CANNABEATS_DATABASE_PATH: databasePath,
+      CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
+      CANNABEATS_PUBLIC_GAME_ORIGIN: untrustedOrigin,
+      AUDIO_RELAY_ORIGIN: relayOrigin,
+      AUDIO_RELAY_LISTEN_TOKEN_FILE: relayTokenPath,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  isolatedProcess.stdout.on("data", (chunk) => { isolatedOutput += chunk; });
+  isolatedProcess.stderr.on("data", (chunk) => { isolatedOutput += chunk; });
+  try {
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline) {
+      try {
+        const readiness = await fetch(`${isolatedOrigin}/game/api/ready`);
+        if (readiness.ok) break;
+      } catch {}
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    const sentinelCookie = `private-cookie-${randomUUID()}`;
+    const sentinelAuthorization = `private-authorization-${randomUUID()}`;
+    const response = await fetch(`${isolatedOrigin}/game/api/audio-stream?code=MISS23`, {
+      headers: { Cookie: sentinelCookie, Authorization: `Bearer ${sentinelAuthorization}` },
+    });
+    assert.equal(response.status, 401, isolatedOutput.slice(-1_000));
+    assert.equal(leakedRequests.length, 0, "configured external origin received a membership request");
+  } finally {
+    isolatedProcess.kill("SIGTERM");
+    if (isolatedProcess.exitCode === null) {
+      await new Promise((resolve) => isolatedProcess.once("exit", resolve));
+    }
+    await new Promise((resolve) => untrustedServer.close(resolve));
+  }
 });
 
 test("an authenticated lobby owns an internal game run and preserves host authority", async () => {

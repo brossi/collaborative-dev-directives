@@ -1,0 +1,64 @@
+services:
+  app:
+    build:
+      context: ..
+    image: cannabeats/access-spotify-poc:restore-rehearsal
+    restart: "no"
+    init: true
+    read_only: true
+    user: node
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${CANNABEATS_REHEARSAL_ORIGIN:-https://restore.cannabeats.invalid}
+      RP_ID: ${CANNABEATS_REHEARSAL_RP_ID:-restore.cannabeats.invalid}
+      PORT: "3002"
+      DATABASE_PATH: /data/cannabeats-poc.sqlite
+      GAME_SERVICE_INTERNAL_ORIGIN: http://game:3000
+      GAME_SERVICE_TOKEN_FILE: /run/secrets/cannabeats/game-service-token
+      AUDIO_RELAY_ORIGIN: ""
+      CANNABEATS_APP_VERSION: ${CANNABEATS_REHEARSAL_APP_VERSION:?set rehearsal application version}
+      CANNABEATS_CATALOG_VERSION: ${CANNABEATS_REHEARSAL_CATALOG_VERSION:?set rehearsal catalog version}
+      CANNABEATS_ENVIRONMENT: restore-rehearsal
+    ports:
+      - "127.0.0.1:${CANNABEATS_REHEARSAL_ACCESS_PORT:-3102}:3002"
+    volumes:
+      - ${CANNABEATS_REHEARSAL_DATA_DIR:?set an isolated rehearsal data directory}:/data
+      - ${GAME_SERVICE_TOKEN_HOST_FILE:?set game service token file}:/run/secrets/cannabeats/game-service-token:ro
+
+  game:
+    build:
+      context: ../../..
+      dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
+    image: cannabeats/game:restore-rehearsal
+    restart: "no"
+    init: true
+    read_only: true
+    user: node
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /app/.next/cache:size=64m,mode=0755,uid=1000,gid=1000
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      CANNABEATS_APP_ORIGIN: ${CANNABEATS_REHEARSAL_ORIGIN:-https://restore.cannabeats.invalid}
+      CANNABEATS_PUBLIC_GAME_ORIGIN: ${CANNABEATS_REHEARSAL_ORIGIN:-https://restore.cannabeats.invalid}/game
+      CANNABEATS_DATABASE_PATH: /data/cannabeats-poc.sqlite
+      CANNABEATS_GAME_SERVICE_TOKEN_FILE: /run/secrets/cannabeats/game-service-token
+      NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
+      CANNABEATS_APP_VERSION: ${CANNABEATS_REHEARSAL_APP_VERSION:?set rehearsal application version}
+      CANNABEATS_CATALOG_VERSION: ${CANNABEATS_REHEARSAL_CATALOG_VERSION:?set rehearsal catalog version}
+      CANNABEATS_ENVIRONMENT: restore-rehearsal
+    ports:
+      - "127.0.0.1:${CANNABEATS_REHEARSAL_GAME_PORT:-3103}:3000"
+    volumes:
+      - ${CANNABEATS_REHEARSAL_DATA_DIR:?set an isolated rehearsal data directory}:/data
+      - ${GAME_SERVICE_TOKEN_HOST_FILE:?set game service token file}:/run/secrets/cannabeats/game-service-token:ro

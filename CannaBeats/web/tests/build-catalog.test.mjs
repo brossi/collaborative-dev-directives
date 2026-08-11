@@ -82,6 +82,35 @@ test("reviewed wrong-track mappings cannot be reintroduced", async () => {
   }
 });
 
+test("a reviewed wrong-track URI stays rejected when only its year changes", async () => {
+  const root = await mkdtemp(join(tmpdir(), "cannabeats-catalog-rejected-year-"));
+  const catalogRoot = join(root, "catalog");
+  const outputDirectory = join(root, "output");
+  await mkdir(join(catalogRoot, "years"), { recursive: true });
+  await mkdir(join(catalogRoot, "themes"), { recursive: true });
+  const sourceSong = {
+    title: "Love Letters in the Sand",
+    artist: "Ted Black",
+    year: 1932,
+    uri: "spotify:track:1eqGYJJr2z2GXK1i0hD3BC",
+  };
+  await writeFile(join(catalogRoot, "years", "1932.json"), JSON.stringify({ songs: [sourceSong] }));
+  await writeFile(join(catalogRoot, "themes", "test.json"), JSON.stringify({
+    songs: [{ title: "Safe Song", artist: "Safe Artist", year: 1932, uri: "spotify:track:1234567890123456789012" }],
+  }));
+  await writeFile(join(catalogRoot, "release-overrides.json"), JSON.stringify({
+    rejectedMappings: [{ ...sourceSong, year: 1931, reason: "reviewed wrong recording" }],
+  }));
+  try {
+    await assert.rejects(
+      run(process.execPath, [SCRIPT, "--catalog-root", catalogRoot, "--output-directory", outputDirectory]),
+      (error) => /known wrong-track mapping/.test(error.stderr),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("a conflicting URI blocks a release before writing output", async () => {
   const root = await mkdtemp(join(tmpdir(), "cannabeats-catalog-gate-"));
   const catalogRoot = join(root, "catalog");
@@ -99,6 +128,39 @@ test("a conflicting URI blocks a release before writing output", async () => {
     await assert.rejects(
       run(process.execPath, [SCRIPT, "--catalog-root", catalogRoot, "--output-directory", outputDirectory]),
       (error) => /CATALOG RELEASE BLOCKED/.test(error.stderr),
+    );
+    await assert.rejects(readFile(join(outputDirectory, "catalog.json")), /ENOENT/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("one title and artist cannot map to different tracks by changing only the year", async () => {
+  const root = await mkdtemp(join(tmpdir(), "cannabeats-catalog-identity-year-"));
+  const catalogRoot = join(root, "catalog");
+  const outputDirectory = join(root, "output");
+  await mkdir(join(catalogRoot, "years"), { recursive: true });
+  await mkdir(join(catalogRoot, "themes"), { recursive: true });
+  await writeFile(join(catalogRoot, "years", "2000.json"), JSON.stringify({
+    songs: [{
+      title: "Same recording",
+      artist: "Same artist",
+      year: 2000,
+      uri: "spotify:track:1234567890123456789012",
+    }],
+  }));
+  await writeFile(join(catalogRoot, "themes", "test.json"), JSON.stringify({
+    songs: [{
+      title: "Same recording",
+      artist: "Same artist",
+      year: 1999,
+      uri: "spotify:track:abcdefghijklmnopqrstuv",
+    }],
+  }));
+  try {
+    await assert.rejects(
+      run(process.execPath, [SCRIPT, "--catalog-root", catalogRoot, "--output-directory", outputDirectory]),
+      (error) => /maps to both/.test(error.stderr),
     );
     await assert.rejects(readFile(join(outputDirectory, "catalog.json")), /ENOENT/);
   } finally {

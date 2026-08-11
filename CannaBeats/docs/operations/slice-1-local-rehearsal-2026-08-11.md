@@ -19,25 +19,27 @@ Command: `node --test test/backup.test.mjs` from `spikes/access-spotify-poc`. Re
 
 ## Release and rollback boundary
 
-A disposable command-harness rehearsal ran two named releases and one rollback. It proved that backup occurs before build, all replacement/restore calls end in `up -d --no-deps app game`, readiness is checked before release-record advancement, current/previous release metadata swaps only after successful rollback checks, and no `vw-services` target is present.
+A disposable command-harness rehearsal now covers two named releases, duplicate-identity rejection, exact image-ID recording, first-release bootstrap rollback after injected readiness failure, and explicit rollback. It proves that catalog validation and backup precede build, replacement/restore calls end in `up -d --no-deps app game`, readiness is checked before release-record advancement, and no `vw-services` target is present.
 
-Command: `npm test` from `spikes/access-spotify-poc`. Result after the final implementation: 26/26 passed. This is an orchestration rehearsal with fake Docker/readiness commands; a host-level container rehearsal remains a deployment gate because Docker is not installed in the local workspace environment.
+Command: `npm test` from `spikes/access-spotify-poc`. Result after P1 remediation: 33/33 passed. This is an orchestration rehearsal with fake Docker/readiness commands; a host-level container rehearsal remains a deployment gate because Docker is not installed in the local workspace environment.
 
 ## Catalog release
 
 - Catalog: `sha256:fcf6e2006c70f0a424823c7d4728573b3f2bc6ad5a4030fc95aeaba2af43ea2f`
 - Songs: 3,424 unique playable provider URIs
 - Source modules: 111
-- Source/deployed drift check: passed
+- Source/deployed and native-bundle drift checks: passed; drift exits nonzero
 - Conflicting-URI fixture: blocked before output
 - Reviewed wrong-track reintroduction fixture: blocked before output
+- Same title/artist mapped to different tracks through a year-only disagreement: blocked before output
 - Two incorrect mappings were removed and retained as rejected release mappings; six performer-billing variants are explicitly reviewed.
 
 ## Observability and operator surface
 
-- Access backup/operator/server suite: passed, including sentinel redaction, correlation/error envelopes, liveness/readiness distinction, read-only operator connection, conservative liveness classification, independent component states, and absence of names/device/track/provider detail.
+- Access backup/operator/server suite: passed, including fail-closed operator queries, sentinel redaction, correlation/error envelopes, liveness/readiness distinction, read-only operator connection, conservative liveness classification, independent component states, and absence of names/device/track/provider detail.
+- Game integration coverage proves authenticated same-service correlation across the audio membership hop and proves an arbitrary configured origin receives no forwarded cookie or authorization value.
 - Next production build and TypeScript: passed.
-- Web tests: 31/31 passed after updating two stale source-shape assertions to match the already-implemented guest join and managed/local playback UI and adding an unexpected-error secrecy check.
+- Web tests: 37/37 passed, including the new catalog source-of-truth, cross-year conflict, internal-correlation, and credential-forwarding regressions.
 - Web lint: passed.
 - Python source agent/controller/health checker: byte-compiled successfully.
 - Shell scripts: `bash -n` passed.

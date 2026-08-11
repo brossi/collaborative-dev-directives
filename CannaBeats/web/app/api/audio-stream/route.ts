@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { internalGameOrigin, internalServiceHeaders } from "../../../lib/server/internal-service";
 import { correlatedHeaders, observeRoute } from "../../../lib/server/observability";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ const DEFAULT_RELAY_ORIGIN = "https://cannaudio.cannabeats.social";
 const DEFAULT_TOKEN_FILE = "/run/secrets/cannabeats/audio-relay-listen-token";
 
 function forwardedHeaders(request: Request) {
-  const headers = correlatedHeaders();
+  const headers = internalServiceHeaders(correlatedHeaders());
   const cookie = request.headers.get("cookie");
   const authorization = request.headers.get("authorization");
   if (cookie) headers.set("cookie", cookie);
@@ -20,13 +21,15 @@ async function getAudioStream(request: Request) {
   const code = new URL(request.url).searchParams.get("code")?.trim().toUpperCase();
   if (!code) return Response.json({ error: "A lobby code is required." }, { status: 400 });
 
-  const publicGameOrigin = process.env.CANNABEATS_PUBLIC_GAME_ORIGIN?.trim().replace(/\/$/, "");
-  const membershipUrl = publicGameOrigin
-    ? new URL(`${publicGameOrigin}/api/game`)
-    : new URL(request.url);
-  if (!publicGameOrigin) {
-    membershipUrl.pathname = membershipUrl.pathname.replace(/\/api\/audio-stream$/, "/api/game");
+  // Membership is checked only through an explicitly loopback-only service
+  // origin. Neither a public configuration value nor a request Host header
+  // can become a credential-forwarding destination.
+  const membershipOrigin = internalGameOrigin();
+  if (!membershipOrigin) {
+    return Response.json({ error: "Game membership checking is unavailable." }, { status: 503 });
   }
+  const membershipUrl = new URL(membershipOrigin);
+  membershipUrl.pathname = `${membershipUrl.pathname.replace(/\/$/, "")}/api/game`;
   membershipUrl.search = new URLSearchParams({ code }).toString();
   const membership = await fetch(membershipUrl, {
     cache: "no-store",

@@ -68,8 +68,7 @@ function rejectedMapping(song) {
   return (releaseOverrides.rejectedMappings ?? []).find((rejected) =>
     rejected.uri === song.uri
     && normalizedText(rejected.title) === normalizedText(song.title)
-    && normalizedArtist(rejected.artist) === normalizedArtist(song.artist)
-    && rejected.year === song.year);
+    && normalizedArtist(rejected.artist) === normalizedArtist(song.artist));
 }
 
 async function modulesIn(directoryName) {
@@ -136,7 +135,10 @@ for (const sourceModule of modules) {
     }
     playableCount += 1;
     coverage[sourceModule.directoryName].playableEntries += 1;
-    const identity = `${normalizedText(song.title)}|${normalizedArtist(song.artist)}|${song.year}`;
+    // A module's year is timeline metadata, not recording identity. Requiring
+    // an explicit reviewed exception is safer than allowing a year difference
+    // to map the same credited recording to two provider tracks.
+    const identity = `${normalizedText(song.title)}|${normalizedArtist(song.artist)}`;
     const identityUri = byIdentity.get(identity);
     if (identityUri && identityUri.uri !== song.uri) {
       failures.push(`${location}: ${song.title} / ${song.artist} (${song.year}) maps to both ${identityUri.uri} and ${song.uri}`);

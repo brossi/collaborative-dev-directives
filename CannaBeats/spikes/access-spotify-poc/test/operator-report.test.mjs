@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { after, test } from 'node:test';
 import { openDatabase } from '../db.mjs';
 import {
@@ -118,6 +119,31 @@ test('the operator database connection rejects writes', () => {
   const db = openOperatorDatabase(databasePath);
   assert.throws(() => db.exec("UPDATE game_sessions SET status = 'ended'"), /read-only|readonly/i);
   db.close();
+});
+
+test('the operator summary fails closed when a required query cannot run', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'cannabeats-operator-broken-schema-'));
+  const databasePath = join(directory, 'operator.sqlite');
+  const db = new DatabaseSync(databasePath);
+  db.exec(`
+    CREATE TABLE game_sessions (
+      code TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      active_run_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    INSERT INTO game_sessions (code, status, created_at, updated_at)
+    VALUES ('FAIL23', 'lobby', 1, 1);
+  `);
+  db.close();
+  const operatorDb = openOperatorDatabase(databasePath);
+  try {
+    assert.throws(() => sessionReport(operatorDb), /game_runs|operator report/i);
+  } finally {
+    operatorDb.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('component checks distinguish readiness, capacity, relay, and source state', async () => {
