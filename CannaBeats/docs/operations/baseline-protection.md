@@ -156,11 +156,31 @@ The release identity is an immutable Git commit or equivalent 7–80 character a
 cd /opt/cannabeats/CannaBeats/spikes/access-spotify-poc
 npm --prefix ../../web run catalog:check
 node -p "require('../../web/data/catalog-manifest.json').catalogVersion"
-sudo CANNABEATS_COMPOSE_DIR=/opt/cannabeats/CannaBeats/spikes/access-spotify-poc \
+
+# Required for the first P2-managed release or adoption of P1 release records.
+# The P1 checkpoint has reviewed compatibility 0-1; TARGET is the observed value.
+schema_version="$(docker compose --profile operations run --rm --no-deps \
+  --entrypoint node backup -e '
+    const { DatabaseSync } = require("node:sqlite");
+    const db = new DatabaseSync(process.env.DATABASE_PATH, { readOnly: true });
+    process.stdout.write(String(db.prepare("PRAGMA user_version").get().user_version));
+    db.close();
+  ')"
+sudo env \
+  CANNABEATS_COMPOSE_DIR=/opt/cannabeats/CannaBeats/spikes/access-spotify-poc \
+  CANNABEATS_BOOTSTRAP_SCHEMA_MIN_VERSION=0 \
+  CANNABEATS_BOOTSTRAP_SCHEMA_MAX_VERSION=1 \
+  CANNABEATS_BOOTSTRAP_SCHEMA_TARGET_VERSION="$schema_version" \
   deploy/release.sh APPLICATION_VERSION CATALOG_SHA256
 ```
 
-`release.sh` first rejects reused application identities and source/deployed catalog drift. Before the first managed release it records the exact image IDs and release environment of the running access/game containers as the bootstrap rollback target. It then performs an encrypted, verified backup, validates Compose, builds the access and game images, resolves their exact immutable image IDs, replaces only those two containers, and requires both readiness endpoints. A failed check restores the exact previous image IDs. On success it advances `current-compose.yaml`, retains the prior override, and records the used application identity permanently.
+The bootstrap variables are required only until the atomic P2 state has been initialized. Checked-in [release.env.example](../../spikes/access-spotify-poc/deploy/release.env.example) records the reviewed P1 range but must not replace the live `PRAGMA user_version` observation.
+
+`release.sh` takes an exclusive host-operation lock before inspecting or changing release state. It rejects reused application identities and source/deployed catalog drift, then compares the live database `user_version` with the candidate's checked-in minimum, maximum, and target contract. It also proves that the current image can read the candidate's migration target before deployment, so rollback is possible after startup migrations.
+
+Before the first managed release it records the exact image IDs and release environment of the running access/game containers as the bootstrap rollback target. Existing P1 `current`, `previous`, and used-version files are adopted without losing their identities. The script then performs an encrypted verified backup, validates Compose, builds the access and game images, resolves their exact immutable image IDs, replaces only those two containers, requires both readiness endpoints, and confirms the resulting database version. A failed build, start, readiness check, schema check, or state promotion restores the exact previous images when replacement has begun.
+
+Release metadata is stored in immutable generation directories under `/var/lib/cannabeats/releases/states`. One atomic `active` symlink switch promotes the complete current/previous/used-version set; the familiar `current-compose.yaml`, `previous-compose.yaml`, and `used-application-versions` paths are stable symlinks into that active generation. An interruption therefore exposes either the entire old state or the entire new state, never a mixture. Do not edit generation files manually.
 
 Rollback only CannaBeats:
 
@@ -168,7 +188,9 @@ Rollback only CannaBeats:
 sudo CANNABEATS_COMPOSE_DIR=/opt/cannabeats/CannaBeats/spikes/access-spotify-poc deploy/rollback-release.sh
 ```
 
-The rollback deploys the recorded previous images/catalog with `--no-deps app game`, checks readiness, and only then swaps the current/previous records. Current schema changes are additive; any future destructive migration requires a separate forward/rollback compatibility rehearsal before this script may be used.
+The rollback obtains the same exclusive lock, reads the live database version, and refuses to start a previous image whose recorded range cannot read it. It deploys the recorded previous images/catalog with `--no-deps app game`, checks readiness and schema access, and only then atomically switches the current/previous state generation. No automatic down-migration is attempted. A future schema target outside the current image's readable range is rejected during forward release and requires a separately designed expand/contract migration.
+
+The operation lock is removed on ordinary success and failure. If the host or process is killed and `/var/lib/cannabeats/releases/operation.lock` remains, inspect its `owner` file and verify that the recorded PID is absent before removing the empty lock directory with `rmdir`. Never remove the lock while a release or rollback process is alive.
 
 Catalog builds reject malformed modules, year-pack convention errors, invalid provider identifiers, one identity mapped to multiple tracks, one track mapped to incompatible metadata, known reviewed wrong-track mappings, unreviewed artist variants, empty playable modules, and source/deployed drift. `catalog/release-overrides.json` is reviewed source, not a deployed hot patch. Restore a catalog by rolling back the entire named application release.
 

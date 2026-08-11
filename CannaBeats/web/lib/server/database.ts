@@ -5,6 +5,9 @@ import { DatabaseSync } from "node:sqlite";
 
 let db: DatabaseSync | undefined;
 let dbPath = "";
+export const DATABASE_SCHEMA_MIN_VERSION = 0;
+export const DATABASE_SCHEMA_MAX_VERSION = 1;
+export const DATABASE_SCHEMA_TARGET_VERSION = 1;
 
 export function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
@@ -23,7 +26,26 @@ export function database() {
   db = new DatabaseSync(configuredPath);
   dbPath = configuredPath;
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
-  db.exec(`
+  const startingVersion = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
+  if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
+    db.close();
+    db = undefined;
+    dbPath = "";
+    throw new Error(
+      `Database schema version ${startingVersion} is newer than supported version ${DATABASE_SCHEMA_MAX_VERSION}`,
+    );
+  }
+  if (startingVersion < DATABASE_SCHEMA_MIN_VERSION) {
+    db.close();
+    db = undefined;
+    dbPath = "";
+    throw new Error(
+      `Database schema version ${startingVersion} is older than supported version ${DATABASE_SCHEMA_MIN_VERSION}`,
+    );
+  }
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.exec(`
     CREATE TABLE IF NOT EXISTS game_runs (
       id TEXT PRIMARY KEY,
       session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
@@ -158,20 +180,32 @@ export function database() {
     CREATE INDEX IF NOT EXISTS managed_audio_commands_pending
       ON managed_audio_commands(source_id, completed_at, created_at);
   `);
-  const gameSessionColumns = new Set(
-    db.prepare("PRAGMA table_info(game_sessions)").all().map((column) => (column as { name: string }).name),
-  );
-  if (!gameSessionColumns.has("active_run_id")) {
-    db.exec("ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT");
-  }
-  if (!gameSessionColumns.has("audio_mode")) {
-    db.exec("ALTER TABLE game_sessions ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'managed' CHECK (audio_mode IN ('local', 'managed'))");
-  }
-  const ticketColumns = new Set(
-    db.prepare("PRAGMA table_info(desktop_web_tickets)").all().map((column) => (column as { name: string }).name),
-  );
-  if (!ticketColumns.has("session_code")) {
-    db.exec("ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)");
+    const gameSessionColumns = new Set(
+      db.prepare("PRAGMA table_info(game_sessions)").all().map((column) => (column as { name: string }).name),
+    );
+    if (!gameSessionColumns.has("active_run_id")) {
+      db.exec("ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT");
+    }
+    if (!gameSessionColumns.has("audio_mode")) {
+      db.exec("ALTER TABLE game_sessions ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'managed' CHECK (audio_mode IN ('local', 'managed'))");
+    }
+    const ticketColumns = new Set(
+      db.prepare("PRAGMA table_info(desktop_web_tickets)").all().map((column) => (column as { name: string }).name),
+    );
+    if (!ticketColumns.has("session_code")) {
+      db.exec("ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)");
+    }
+    db.exec(`PRAGMA user_version = ${DATABASE_SCHEMA_TARGET_VERSION}; COMMIT`);
+  } catch (error) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // Preserve the migration error if SQLite already rolled the transaction back.
+    }
+    db.close();
+    db = undefined;
+    dbPath = "";
+    throw error;
   }
   return db;
 }

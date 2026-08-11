@@ -5,6 +5,9 @@ import { DatabaseSync } from 'node:sqlite';
 
 const INVITATION_ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
 export const MANAGE_HOST_INVITATIONS = 'manage_host_invitations';
+export const DATABASE_SCHEMA_MIN_VERSION = 0;
+export const DATABASE_SCHEMA_MAX_VERSION = 1;
+export const DATABASE_SCHEMA_TARGET_VERSION = 1;
 
 function randomAlphabetText(length) {
   const result = [];
@@ -43,13 +46,31 @@ export function uuidToBytes(uuid) {
 export function openDatabase(databasePath) {
   mkdirSync(dirname(databasePath), { recursive: true });
   const db = new DatabaseSync(databasePath);
-  db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
-  migrate(db);
-  return db;
+  try {
+    db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
+    migrate(db);
+    return db;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
 }
 
 function migrate(db) {
-  db.exec(`
+  const startingVersion = db.prepare('PRAGMA user_version').get().user_version;
+  if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
+    throw new Error(
+      `Database schema version ${startingVersion} is newer than supported version ${DATABASE_SCHEMA_MAX_VERSION}`,
+    );
+  }
+  if (startingVersion < DATABASE_SCHEMA_MIN_VERSION) {
+    throw new Error(
+      `Database schema version ${startingVersion} is older than supported version ${DATABASE_SCHEMA_MIN_VERSION}`,
+    );
+  }
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       display_name TEXT NOT NULL,
@@ -278,10 +299,19 @@ function migrate(db) {
       expires_at INTEGER NOT NULL
     );
   `);
-  const gameSessionColumns = new Set(db.prepare('PRAGMA table_info(game_sessions)').all().map((column) => column.name));
-  if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
-  const ticketColumns = new Set(db.prepare('PRAGMA table_info(desktop_web_tickets)').all().map((column) => column.name));
-  if (!ticketColumns.has('session_code')) db.exec('ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)');
+    const gameSessionColumns = new Set(db.prepare('PRAGMA table_info(game_sessions)').all().map((column) => column.name));
+    if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
+    const ticketColumns = new Set(db.prepare('PRAGMA table_info(desktop_web_tickets)').all().map((column) => column.name));
+    if (!ticketColumns.has('session_code')) db.exec('ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)');
+    db.exec(`PRAGMA user_version = ${DATABASE_SCHEMA_TARGET_VERSION}; COMMIT`);
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // Preserve the migration error if SQLite already rolled the transaction back.
+    }
+    throw error;
+  }
 }
 
 export function purgeExpired(db, now = Date.now()) {

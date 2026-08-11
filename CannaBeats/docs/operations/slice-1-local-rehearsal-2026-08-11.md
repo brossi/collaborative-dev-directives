@@ -20,9 +20,9 @@ Command: `node --test test/backup.test.mjs` from `spikes/access-spotify-poc`. Re
 
 ## Release and rollback boundary
 
-A disposable command-harness rehearsal now covers two named releases, duplicate-identity rejection, exact image-ID recording, first-release bootstrap rollback after injected readiness failure, and explicit rollback. It proves that catalog validation and backup precede build, replacement/restore calls end in `up -d --no-deps app game`, readiness is checked before release-record advancement, and no `vw-services` target is present.
+A disposable command-harness rehearsal now covers named releases, duplicate-identity rejection, exact image-ID recording, P1 record adoption, schema compatibility in both directions, exclusive host locking, first-release bootstrap rollback, and explicit rollback. Build, container-start, readiness, forward state-promotion, and rollback state-switch failures are injected independently. The state assertions prove that an interruption exposes the complete prior current/previous/used-version generation and that no `vw-services` target is present.
 
-Command: `npm test` from `spikes/access-spotify-poc`. Result after P1 remediation: 33/33 passed. This is an orchestration rehearsal with fake Docker/readiness commands; a host-level container rehearsal remains a deployment gate because Docker is not installed in the local workspace environment.
+Command: `node --test test/release-scripts.test.mjs test/schema-compatibility.test.mjs` from `spikes/access-spotify-poc`. Result after P2-B: 21/21 passed. This is an orchestration rehearsal with fake Docker/readiness commands; a host-level container rehearsal remains a deployment gate because Docker is not installed in the local workspace environment.
 
 ## Catalog release
 
@@ -37,7 +37,7 @@ Command: `npm test` from `spikes/access-spotify-poc`. Result after P1 remediatio
 
 ## Observability and operator surface
 
-- Access backup/operator/server suite: 38/38 passed after P2-A, including streaming backup hardening, fail-closed operator queries, sentinel redaction, correlation/error envelopes, liveness/readiness distinction, read-only operator connection, conservative liveness classification, independent component states, and absence of names/device/track/provider detail.
+- Access backup/operator/server suite: 51/51 passed after P2-B, including streaming backup hardening, schema/version safety, transactional release state, fail-closed operator queries, sentinel redaction, correlation/error envelopes, liveness/readiness distinction, read-only operator connection, conservative liveness classification, independent component states, and absence of names/device/track/provider detail.
 - Game integration coverage proves authenticated same-service correlation across the audio membership hop and proves an arbitrary configured origin receives no forwarded cookie or authorization value.
 - Next production build and TypeScript: passed.
 - Web tests: 37/37 passed, including the new catalog source-of-truth, cross-year conflict, internal-correlation, and credential-forwarding regressions.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, test } from 'node:test';
@@ -23,7 +23,16 @@ function fixture() {
   writeFileSync(join(composeDirectory, 'compose.yaml'), 'services: {}\n');
   writeFileSync(join(binaries, 'docker'), `#!/bin/sh
 printf 'docker %s\\n' "$*" >> "$CANNABEATS_TEST_COMMAND_LOG"
+if [ -n "\${CANNABEATS_TEST_DOCKER_FAIL_MATCH:-}" ]; then
+  case "$*" in *"$CANNABEATS_TEST_DOCKER_FAIL_MATCH"*) exit 42 ;; esac
+fi
+if [ -n "\${CANNABEATS_TEST_DOCKER_FAIL_ONCE_MATCH:-}" ] && [ ! -e "$CANNABEATS_TEST_FAILURE_MARKER" ]; then
+  case "$*" in
+    *"$CANNABEATS_TEST_DOCKER_FAIL_ONCE_MATCH"*) touch "$CANNABEATS_TEST_FAILURE_MARKER"; exit 42 ;;
+  esac
+fi
 case "$*" in
+  *"PRAGMA user_version"*) printf '%s\\n' "\${CANNABEATS_TEST_SCHEMA_VERSION:-1}" ;;
   *"image inspect"*"cannabeats/access-spotify-poc:"*) printf 'sha256:%064d\\n' 1 ;;
   *"image inspect"*"cannabeats/game:"*) printf 'sha256:%064d\\n' 2 ;;
   *"inspect"*"{{.Image}}"*"cannabeats-access-poc"*) printf 'sha256:%064d\\n' 3 ;;
@@ -54,6 +63,10 @@ if [ "\${CANNABEATS_TEST_CURL_FAIL:-}" = 1 ]; then exit 22; fi
       CANNABEATS_COMPOSE_DIR: composeDirectory,
       CANNABEATS_RELEASE_DIR: releaseDirectory,
       CANNABEATS_TEST_COMMAND_LOG: commandLog,
+      CANNABEATS_TEST_FAILURE_MARKER: join(directory, 'docker-failure-used'),
+      CANNABEATS_BOOTSTRAP_SCHEMA_MIN_VERSION: '0',
+      CANNABEATS_BOOTSTRAP_SCHEMA_MAX_VERSION: '1',
+      CANNABEATS_BOOTSTRAP_SCHEMA_TARGET_VERSION: '0',
       CANNABEATS_WEB_DIR: resolve('../../web'),
     },
   };
@@ -70,6 +83,11 @@ test('release backs up first and operates only the CannaBeats app/game boundary'
   const build = log.findIndex((line) => line.includes('build app game'));
   assert.ok(backup >= 0 && build > backup);
   assert.ok(catalogCheck >= 0 && build > catalogCheck);
+  const schemaChecks = log.map((line, index) => [line, index])
+    .filter(([line]) => line.includes('PRAGMA user_version'))
+    .map(([, index]) => index);
+  assert.ok(schemaChecks[0] < backup);
+  assert.ok(schemaChecks.some((index) => index > build));
   for (const line of log.filter((entry) => entry.includes(' up '))) {
     assert.match(line, /up -d --no-deps app game$/);
   }
@@ -121,6 +139,180 @@ test('a failed first managed release restores the exact bootstrap images', async
   const upCommands = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up '));
   assert.match(upCommands.at(-1), /current-compose\.yaml up -d --no-deps app game$/);
   assert.throws(() => readFileSync(join(paths.releaseDirectory, 'used-application-versions')), /ENOENT/);
+});
+
+test('release rejects a database schema newer than the candidate before build or replacement', async () => {
+  const paths = fixture();
+  await assert.rejects(
+    run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], {
+      env: { ...paths.env, CANNABEATS_TEST_SCHEMA_VERSION: '2' },
+    }),
+    (error) => /schema version 2.*candidate/i.test(error.stderr),
+  );
+  const commands = readFileSync(paths.commandLog, 'utf8');
+  assert.doesNotMatch(commands, /build app game| up /);
+});
+
+test('release rejects a migration target that the current application could not roll back from', async () => {
+  const paths = fixture();
+  await assert.rejects(
+    run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], {
+      env: {
+        ...paths.env,
+        CANNABEATS_TEST_SCHEMA_VERSION: '0',
+        CANNABEATS_BOOTSTRAP_SCHEMA_MAX_VERSION: '0',
+      },
+    }),
+    (error) => /schema target 1 cannot be rolled back to current range 0-0/i.test(error.stderr),
+  );
+  assert.doesNotMatch(readFileSync(paths.commandLog, 'utf8'), /build app game| up /);
+});
+
+test('release refuses to start while another release or rollback owns the host lock', async () => {
+  const paths = fixture();
+  mkdirSync(join(paths.releaseDirectory, 'operation.lock'), { recursive: true });
+  await assert.rejects(
+    run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], { env: paths.env }),
+    (error) => /another CannaBeats release or rollback is active/i.test(error.stderr),
+  );
+  assert.equal(readFileSync(paths.commandLog, 'utf8'), '');
+  assert.equal(existsSync(join(paths.releaseDirectory, 'operation.lock')), true);
+});
+
+test('build interruption preserves the bootstrap state without recording the candidate', async () => {
+  const paths = fixture();
+  await assert.rejects(
+    run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], {
+      env: { ...paths.env, CANNABEATS_TEST_DOCKER_FAIL_MATCH: 'build app game' },
+    }),
+  );
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /bootstrap-a/);
+  assert.equal(existsSync(join(paths.releaseDirectory, 'previous-compose.yaml')), false);
+  assert.equal(existsSync(join(paths.releaseDirectory, 'used-application-versions')), false);
+});
+
+test('container-start interruption restores current images without advancing release state', async () => {
+  const paths = fixture();
+  await assert.rejects(
+    run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], {
+      env: { ...paths.env, CANNABEATS_TEST_DOCKER_FAIL_ONCE_MATCH: 'up -d --no-deps app game' },
+    }),
+    (error) => /restoring the exact previous application images/i.test(error.stderr),
+  );
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /bootstrap-a/);
+  assert.equal(existsSync(join(paths.releaseDirectory, 'used-application-versions')), false);
+  const upCommands = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up '));
+  assert.match(upCommands.at(-1), /current-compose\.yaml up -d --no-deps app game$/);
+});
+
+test('an interrupted state promotion preserves the complete prior release state', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release, ['release-a1', catalogVersion], { env: paths.env });
+  await run(release, ['release-b2', catalogVersion], { env: paths.env });
+  await assert.rejects(
+    run(release, ['release-c3', catalogVersion], {
+      env: { ...paths.env, CANNABEATS_TEST_STATE_FAIL: 'before-switch' },
+    }),
+    (error) => /injected release-state failure/i.test(error.stderr),
+  );
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /release-a1/);
+  assert.doesNotMatch(readFileSync(join(paths.releaseDirectory, 'used-application-versions'), 'utf8'), /release-c3/);
+});
+
+test('the first P2 release atomically adopts legacy P1 records and their used identities', async () => {
+  const paths = fixture();
+  mkdirSync(paths.releaseDirectory);
+  writeFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), `services:
+  app:
+    image: sha256:${'6'.repeat(64)}
+    environment:
+      CANNABEATS_APP_VERSION: "legacy-current"
+  game:
+    image: sha256:${'7'.repeat(64)}
+`);
+  writeFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), `services:
+  app:
+    image: sha256:${'8'.repeat(64)}
+    environment:
+      CANNABEATS_APP_VERSION: "legacy-previous"
+  game:
+    image: sha256:${'9'.repeat(64)}
+`);
+  writeFileSync(join(paths.releaseDirectory, 'used-application-versions'), 'legacy-current\n');
+
+  await run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], { env: paths.env });
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-a1/);
+  const previous = readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8');
+  assert.match(previous, /legacy-current/);
+  assert.match(previous, /schema-min-version: 0/);
+  assert.deepEqual(
+    readFileSync(join(paths.releaseDirectory, 'used-application-versions'), 'utf8').trim().split('\n'),
+    ['legacy-current', 'release-a1'],
+  );
+});
+
+test('the first P2 rollback can adopt and safely swap legacy P1 records', async () => {
+  const paths = fixture();
+  mkdirSync(paths.releaseDirectory);
+  writeFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), `services:
+  app:
+    image: sha256:${'6'.repeat(64)}
+    environment:
+      CANNABEATS_APP_VERSION: "legacy-current"
+  game:
+    image: sha256:${'7'.repeat(64)}
+`);
+  writeFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), `services:
+  app:
+    image: sha256:${'8'.repeat(64)}
+    environment:
+      CANNABEATS_APP_VERSION: "legacy-previous"
+  game:
+    image: sha256:${'9'.repeat(64)}
+`);
+
+  await run(resolve('deploy/rollback-release.sh'), [], { env: paths.env });
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /legacy-previous/);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /legacy-current/);
+});
+
+test('rollback rejects an incompatible previous schema before replacing containers', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release, ['release-a1', catalogVersion], { env: paths.env });
+  await run(release, ['release-b2', catalogVersion], { env: paths.env });
+  const previousPath = join(paths.releaseDirectory, 'previous-compose.yaml');
+  const incompatible = readFileSync(previousPath, 'utf8')
+    .replace('schema-max-version: 1', 'schema-max-version: 0')
+    .replace('schema-target-version: 1', 'schema-target-version: 0');
+  writeFileSync(previousPath, incompatible);
+  const upBefore = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up ')).length;
+  await assert.rejects(
+    run(resolve('deploy/rollback-release.sh'), [], { env: paths.env }),
+    (error) => /schema version 1 is not supported by previous range 0-0/i.test(error.stderr),
+  );
+  const upAfter = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up ')).length;
+  assert.equal(upAfter, upBefore);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
+});
+
+test('an interrupted rollback state switch restores current containers and preserves records', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release, ['release-a1', catalogVersion], { env: paths.env });
+  await run(release, ['release-b2', catalogVersion], { env: paths.env });
+  await assert.rejects(
+    run(resolve('deploy/rollback-release.sh'), [], {
+      env: { ...paths.env, CANNABEATS_TEST_STATE_FAIL: 'before-switch' },
+    }),
+    (error) => /injected release-state failure/i.test(error.stderr),
+  );
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /release-a1/);
+  const upCommands = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up '));
+  assert.match(upCommands.at(-1), /current-compose\.yaml up -d --no-deps app game$/);
 });
 
 test('release rejects a catalog identity that does not match the checked-in manifest', async () => {

@@ -211,6 +211,9 @@ format and atomic publication behavior.
 
 ### P2-B: Transactional release and migration safety
 
+Status: implemented and locally verified on 2026-08-11; real Docker failure and
+rollback rehearsal remains in P2-E.
+
 Implement after P2-A so migration and interruption tests have a dependable
 recovery point.
 
