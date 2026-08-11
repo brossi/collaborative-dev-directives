@@ -119,6 +119,7 @@ services:
     environment:
       DATABASE_PATH: /data/cannabeats-poc.sqlite
       CANNABEATS_BACKUP_DIRECTORY: /backups
+      CANNABEATS_BACKUP_SCRATCH_DIRECTORY: /scratch
       CANNABEATS_BACKUP_PASSPHRASE_FILE: /run/secrets/cannabeats/backup-passphrase
       CANNABEATS_BACKUP_KEEP: ${CANNABEATS_BACKUP_KEEP:-14}
       CANNABEATS_APP_VERSION: ${CANNABEATS_APP_VERSION:-development}
@@ -127,8 +128,7 @@ services:
       - cannabeats_poc_data:/data:ro
       - ${CANNABEATS_BACKUP_DIR:-./backups}:/backups
       - ${BACKUP_PASSPHRASE_HOST_FILE:-./secrets/backup-passphrase}:/run/secrets/cannabeats/backup-passphrase:ro
-    tmpfs:
-      - /tmp:size=64m,mode=1777
+      - /scratch
     entrypoint: ["node", "operations/backup.mjs"]
     command: ["help"]
     mem_limit: 512m

@@ -1,6 +1,6 @@
 # Slice 1: Baseline protection
 
-- Status: P1 adversarial-audit remediation implemented locally; deployment rehearsal pending
+- Status: P1 remediation committed; P2 remediation in progress; deployment rehearsal pending
 - Date: 2026-08-11
 - Parent: [CannaBeats development slices](development-slices.md#slice-1-baseline-protection)
 - Backlog: [Product backlog](product-backlog.md)
@@ -179,6 +179,108 @@ If durable deployment/catalog version metadata cannot be recorded outside the ap
 - Exercise log-volume behavior under normal polling to confirm successful polls do not flood bounded storage.
 - Perform backup/restore and deployment/catalog rollback rehearsals in a disposable target and record their evidence in the runbook.
 - Run the existing access, game API, security, catalog, and tooling suites before deployment.
+
+## Adversarial-audit P2 remediation plan
+
+Commit `f3bfc94` is the clean P1 checkpoint. The remaining P2 findings are part of
+Slice 1 unless explicitly assigned to Slice 2 below. They will be implemented as
+five independently reviewable, test-first increments in dependency order.
+
+### P2-A: Backup integrity and scale
+
+Status: implemented and locally verified on 2026-08-11; real-container and
+off-host rehearsal remains in P2-E.
+
+Implement first because every release and migration safeguard depends on a
+trustworthy recovery artifact.
+
+- Exercise the SQLite online backup while a WAL-mode writer remains open and
+  commits during the backup.
+- Stream snapshot encryption and decryption without buffering or base64-encoding
+  the complete database, and keep working data off the bounded container tmpfs.
+- Publish a completed backup atomically only after its contents are flushed; a
+  failed create leaves neither a final artifact nor a misleading partial backup.
+- Authenticate every recognized retention candidate before deleting any older
+  artifact; one corrupt or foreign candidate stops the entire prune operation.
+- Preserve verification and restore support for the version-1 envelope so
+  existing recovery artifacts do not become unreadable.
+
+Gate: concurrent-write, interrupted-publication, corrupt-retention, large-file,
+legacy-format, verify, and restore tests pass. The runbook describes the new
+format and atomic publication behavior.
+
+### P2-B: Transactional release and migration safety
+
+Implement after P2-A so migration and interruption tests have a dependable
+recovery point.
+
+- Define the supported SQLite `user_version` range for each application release
+  and reject a forward deploy or rollback that cannot read the target database.
+- Serialize release and rollback operations with a host lock.
+- Replace release records atomically and make interruption at build, start,
+  readiness, record promotion, and rollback recover to an unambiguous state.
+- Keep application/catalog identity and exact image IDs consistent across all
+  current, previous, and bootstrap records.
+
+Gate: compatibility-matrix, concurrent-release, and transition fault-injection
+tests pass before another schema-bearing release is attempted.
+
+### P2-C: Truthful component health and managed-source recovery
+
+Implement after release safety because the resulting checks become deployment
+and rollback evidence.
+
+- Validate the component being reported instead of treating a process response
+  or source heartbeat alone as health.
+- Include known source errors, configuration validity, authentication readiness,
+  capacity, and bounded dependency timeouts in safe component states.
+- Make managed-source provisioning reproducible, including the VNC password-file
+  installation contract and Spotify reauthorization prerequisites.
+- Preserve `unknown` when a check cannot establish a fact.
+
+Gate: injected access, database/volume, relay, certificate, managed-source,
+configuration, and timeout failures produce the documented independent states.
+
+### P2-D: Observability and scheduler completion
+
+Implement after health semantics stabilize so logging records meaningful state
+transitions rather than an interim component model.
+
+- Suppress successful polling and repeated dependency-failure floods while
+  emitting startup, shutdown, readiness, and dependency state transitions.
+- Close remaining error-envelope inconsistencies and enforce the game logger's
+  structured-field allowlist with sentinel redaction tests.
+- Give scheduled backup and operational checks explicit timeouts and an
+  actionable local failure-notification path.
+
+Gate: log-volume, transition, error-envelope, redaction, timeout, and scheduler
+failure tests pass without adding a hosted observability dependency.
+
+### P2-E: Real-environment rehearsal and closure
+
+Perform after P2-A through P2-D, with an early Compose validation as soon as a
+Docker runtime is available.
+
+- Validate the production and isolated-restore Compose definitions using the
+  host's Docker Compose version and non-secret environment.
+- Create a real encrypted off-host backup, restore it into the isolated target,
+  and record duration, size, recovery point, integrity, and row-count evidence.
+- Inject a failed deployment and demonstrate exact-image and schema-compatible
+  rollback without restarting unrelated workloads.
+- Exercise the real relay, certificate, database-volume, and managed-source
+  diagnostics and record capacity observations.
+- Update the runbook and rehearsal record with measured results and remaining
+  environmental limitations.
+
+Gate: all Slice 1 acceptance criteria have recorded evidence. Full Xcode is not
+required for these gates; a real Docker/host environment is required.
+
+### Deferred to Slice 2
+
+Stable action identifiers, durable significant-game and managed-audio event
+history, per-listener audio profiling, and richer chronological reconstruction
+remain Slice 2 work. P2 remediation must not pull those schemas or telemetry into
+the thin Slice 1 foundation.
 
 ## Deployment and rollback plan
 

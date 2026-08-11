@@ -1,8 +1,27 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  createCipheriv,
+  createHash,
+  randomBytes,
+  randomUUID,
+  scryptSync,
+} from 'node:crypto';
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+  writeSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { after, test } from 'node:test';
 import {
@@ -73,6 +92,40 @@ function fixture() {
   return { directory, databasePath, backupPath, restoredPath, passphraseFile, userId, runId };
 }
 
+function legacyEnvelope(snapshot, metadata, secret) {
+  const salt = randomBytes(16);
+  const iv = randomBytes(12);
+  const kdf = { name: 'scrypt', N: 16_384, r: 8, p: 1, keyLength: 32 };
+  const header = Buffer.from(JSON.stringify({
+    format: 'cannabeats-sqlite-backup',
+    formatVersion: 1,
+    createdAt: metadata.createdAt,
+    applicationVersion: metadata.applicationVersion,
+    catalogVersion: metadata.catalogVersion,
+    database: {
+      bytes: snapshot.byteLength,
+      sha256: createHash('sha256').update(snapshot).digest('hex'),
+      userVersion: metadata.userVersion,
+      tables: metadata.tables,
+    },
+    crypto: {
+      cipher: 'aes-256-gcm',
+      kdf,
+      salt: salt.toString('base64'),
+      iv: iv.toString('base64'),
+    },
+  }));
+  const key = scryptSync(secret, salt, kdf.keyLength, { ...kdf, maxmem: 64 * 1024 * 1024 });
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  cipher.setAAD(header);
+  const ciphertext = Buffer.concat([cipher.update(snapshot), cipher.final()]);
+  return {
+    header: header.toString('base64'),
+    ciphertext: ciphertext.toString('base64'),
+    authenticationTag: cipher.getAuthTag().toString('base64'),
+  };
+}
+
 test('an encrypted online backup restores a consistent SQLite database', async () => {
   const paths = fixture();
   const created = await createBackup({
@@ -112,6 +165,118 @@ test('an encrypted online backup restores a consistent SQLite database', async (
   db.close();
 });
 
+test('online backup remains consistent while a WAL writer stays open and commits', async () => {
+  const paths = fixture();
+  const writer = new DatabaseSync(paths.databasePath);
+  writer.exec(`
+    PRAGMA journal_mode = WAL;
+    CREATE TABLE backup_activity (
+      id INTEGER PRIMARY KEY,
+      marker TEXT NOT NULL,
+      padding BLOB NOT NULL
+    );
+    BEGIN;
+  `);
+  const insert = writer.prepare('INSERT INTO backup_activity (marker, padding) VALUES (?, randomblob(8192))');
+  for (let index = 0; index < 1_024; index += 1) insert.run(`before-${index}`);
+  writer.exec('COMMIT');
+
+  let concurrentWrites = 0;
+  const writesFinished = new Promise((finish) => {
+    const write = () => {
+      insert.run(`during-${concurrentWrites}`);
+      concurrentWrites += 1;
+      if (concurrentWrites === 5) finish();
+      else setTimeout(write, 2);
+    };
+    setImmediate(write);
+  });
+  try {
+    const backupFinished = createBackup({
+      databasePath: paths.databasePath,
+      outputPath: paths.backupPath,
+      passphraseFile: paths.passphraseFile,
+    });
+    await Promise.all([backupFinished, writesFinished]);
+  } finally {
+    writer.close();
+  }
+  assert.ok(concurrentWrites > 0, 'the writer should commit while the backup is running');
+
+  restoreBackup({
+    backupPath: paths.backupPath,
+    outputPath: paths.restoredPath,
+    passphraseFile: paths.passphraseFile,
+  });
+  const restored = new DatabaseSync(paths.restoredPath, { readOnly: true });
+  assert.ok(restored.prepare('SELECT COUNT(*) AS count FROM backup_activity').get().count >= 1_024);
+  assert.equal(restored.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
+  restored.close();
+});
+
+test('a failed atomic publication leaves no final or partial backup artifact', async () => {
+  const paths = fixture();
+  await assert.rejects(createBackup({
+    databasePath: paths.databasePath,
+    outputPath: paths.backupPath,
+    passphraseFile: paths.passphraseFile,
+    beforePublish() {
+      throw new Error('injected publication failure');
+    },
+  }), /injected publication failure/);
+  assert.equal(existsSync(paths.backupPath), false);
+  assert.deepEqual(readdirSync(join(paths.directory, 'backups')), []);
+});
+
+test('atomic publication never overwrites a target created by a racing process', async () => {
+  const paths = fixture();
+  await assert.rejects(createBackup({
+    databasePath: paths.databasePath,
+    outputPath: paths.backupPath,
+    passphraseFile: paths.passphraseFile,
+    beforePublish() {
+      writeFileSync(paths.backupPath, 'racing artifact', { flag: 'wx' });
+    },
+  }), /EEXIST/);
+  assert.equal(readFileSync(paths.backupPath, 'utf8'), 'racing artifact');
+  assert.deepEqual(readdirSync(join(paths.directory, 'backups')), [basename(paths.backupPath)]);
+});
+
+test('new backups stream databases larger than the former tmpfs limit', async () => {
+  const paths = fixture();
+  const writer = new DatabaseSync(paths.databasePath);
+  writer.exec('CREATE TABLE large_backup_payload (payload BLOB NOT NULL)');
+  writer.prepare('INSERT INTO large_backup_payload (payload) VALUES (zeroblob(?))')
+    .run(66 * 1024 * 1024);
+  writer.close();
+
+  await createBackup({
+    databasePath: paths.databasePath,
+    outputPath: paths.backupPath,
+    passphraseFile: paths.passphraseFile,
+  });
+  assert.ok(statSync(paths.backupPath).size > 64 * 1024 * 1024);
+  const backup = openSync(paths.backupPath, 'r');
+  const prefix = Buffer.alloc(18);
+  readSync(backup, prefix, 0, prefix.byteLength, 0);
+  closeSync(backup);
+  assert.equal(prefix.toString('utf8'), 'CANNABEATS-BACKUP\n');
+
+  restoreBackup({
+    backupPath: paths.backupPath,
+    outputPath: paths.restoredPath,
+    passphraseFile: paths.passphraseFile,
+  });
+  const restored = new DatabaseSync(paths.restoredPath, { readOnly: true });
+  assert.equal(restored.prepare('SELECT length(payload) AS bytes FROM large_backup_payload').get().bytes,
+    66 * 1024 * 1024);
+  restored.close();
+
+  const compose = readFileSync(resolve('compose.yaml'), 'utf8');
+  const backupService = compose.split('\n  backup:')[1].split('\nvolumes:')[0];
+  assert.doesNotMatch(backupService, /\n    tmpfs:/);
+});
+
 test('wrong credentials and tampering fail authentication', async () => {
   const paths = fixture();
   await createBackup({
@@ -126,9 +291,13 @@ test('wrong credentials and tampering fail authentication', async () => {
     passphraseFile: wrongPassphrase,
   }));
 
-  const envelope = JSON.parse(readFileSync(paths.backupPath, 'utf8'));
-  envelope.ciphertext = `${envelope.ciphertext.slice(0, -4)}AAAA`;
-  writeFileSync(paths.backupPath, JSON.stringify(envelope));
+  const artifact = openSync(paths.backupPath, 'r+');
+  const tamperPosition = Math.floor(statSync(paths.backupPath).size / 2);
+  const byte = Buffer.alloc(1);
+  readSync(artifact, byte, 0, 1, tamperPosition);
+  byte[0] ^= 1;
+  writeSync(artifact, byte, 0, 1, tamperPosition);
+  closeSync(artifact);
   assert.throws(() => verifyBackup({
     backupPath: paths.backupPath,
     passphraseFile: paths.passphraseFile,
@@ -156,17 +325,67 @@ test('restore and create refuse to overwrite material', async () => {
   }), /Refusing to overwrite/);
 });
 
-test('retention removes only recognized backup artifacts beyond the keep count', () => {
+test('retention authenticates every candidate before removing recognized older backups', async () => {
   const directory = mkdtempSync(join(root, 'retention-'));
+  const paths = fixture();
   for (let day = 1; day <= 4; day += 1) {
-    writeFileSync(join(directory, `cannabeats-2026-08-0${day}T120000Z.cbbackup`), String(day));
+    await createBackup({
+      databasePath: paths.databasePath,
+      outputPath: join(directory, `cannabeats-2026-08-0${day}T120000Z.cbbackup`),
+      passphraseFile: paths.passphraseFile,
+      now: new Date(`2026-08-0${day}T12:00:00Z`),
+    });
   }
+  const corrupt = join(directory, 'cannabeats-2026-08-01T110000Z.cbbackup');
+  writeFileSync(corrupt, 'not an authenticated CannaBeats backup');
   writeFileSync(join(directory, 'keep-me.txt'), 'not a backup');
-  const result = pruneBackups({ directory, keep: 2 });
+
+  assert.throws(() => pruneBackups({
+    directory,
+    keep: 2,
+    passphraseFile: paths.passphraseFile,
+  }));
+  assert.equal(readdirSync(directory).filter((name) => name.endsWith('.cbbackup')).length, 5);
+
+  rmSync(corrupt);
+  const result = pruneBackups({ directory, keep: 2, passphraseFile: paths.passphraseFile });
   assert.equal(result.removed.length, 2);
   assert.equal(readFileSync(join(directory, 'keep-me.txt'), 'utf8'), 'not a backup');
   assert.deepEqual(result.kept, [
     'cannabeats-2026-08-04T120000Z.cbbackup',
     'cannabeats-2026-08-03T120000Z.cbbackup',
   ]);
+});
+
+test('version-1 JSON envelopes remain verifiable and restorable', () => {
+  const paths = fixture();
+  const snapshot = readFileSync(paths.databasePath);
+  const db = new DatabaseSync(paths.databasePath, { readOnly: true });
+  const metadata = {
+    createdAt: '2026-08-11T12:00:00.000Z',
+    applicationVersion: 'legacy-app',
+    catalogVersion: 'legacy-catalog',
+    userVersion: db.prepare('PRAGMA user_version').get().user_version,
+    tables: db.prepare(`
+      SELECT name FROM sqlite_schema
+      WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+      ORDER BY name
+    `).all().map((row) => row.name),
+  };
+  db.close();
+  const secret = readFileSync(paths.passphraseFile, 'utf8').trimEnd();
+  mkdirSync(join(paths.directory, 'backups'));
+  writeFileSync(paths.backupPath, `${JSON.stringify(legacyEnvelope(snapshot, metadata, secret))}\n`);
+
+  const verified = verifyBackup({
+    backupPath: paths.backupPath,
+    passphraseFile: paths.passphraseFile,
+  });
+  assert.equal(verified.formatVersion, 1);
+  const restored = restoreBackup({
+    backupPath: paths.backupPath,
+    outputPath: paths.restoredPath,
+    passphraseFile: paths.passphraseFile,
+  });
+  assert.equal(restored.applicationVersion, 'legacy-app');
 });

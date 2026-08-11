@@ -20,7 +20,7 @@ This runbook deliberately operates only the CannaBeats Compose project. Release 
 | Managed Spotify authorization | Chrome profile on the dedicated source node | Intentionally excluded from backups and snapshots; authorize interactively on replacement |
 | TLS private material | Caddy-managed host state | Let Caddy reacquire after DNS/config recovery; do not copy it into application backups |
 
-SQLite WAL state is included safely because the backup command uses SQLite's online backup API rather than copying database files. The encrypted envelope records the application version, catalog version, database digest, schema version, and table list. It contains no application secret files or managed browser profile.
+SQLite WAL state is included safely because the backup command uses SQLite's online backup API while writers may remain connected rather than copying database files. New artifacts use the streaming version-2 binary envelope; the authenticated header records the application version, catalog version, database digest, schema version, and table list. Verification and restore retain read compatibility with version-1 JSON envelopes. Neither format contains application secret files or the managed browser profile.
 
 Before the first durable deployment, replace the PoC defaults and record the checked values in the private operator record:
 
@@ -35,7 +35,7 @@ Before the first durable deployment, replace the PoC defaults and record the che
 
 ## Backup installation and operation
 
-The backup container has no network, mounts the database volume read-only, and writes only to the configured backup directory. Use a destination that survives loss of the application host, such as a separately mounted protected volume or encrypted off-host filesystem. A directory on the root disk is acceptable only for a local rehearsal.
+The backup container has no network, mounts the database volume read-only, writes encrypted artifacts to the configured backup directory, and uses a container-scoped anonymous `/scratch` volume for the temporary plaintext SQLite snapshot. The scratch volume is not the bounded `/tmp` tmpfs and is removed with the one-shot container. Use a backup destination that survives loss of the application host, such as a separately mounted protected volume or encrypted off-host filesystem. A directory on the root disk is acceptable only for a local rehearsal.
 
 1. Create a random passphrase without writing it to shell history and install it as `backup-passphrase` in the site-local secret directory. It must be at least 20 bytes. Keep an independent recovery copy in the operator password manager. The host directory is root-owned mode `0700`; individually mounted container secret files are root-owned mode `0444` inside that non-traversable directory so the unprivileged container account can read only its explicitly mounted files.
 2. Set `CANNABEATS_BACKUP_DIR` in the site `.env` to the mounted recovery destination. Create that directory mode `0700` and owned by the container's numeric node UID/GID (1000 in the checked-in image) so the network-disabled backup container can write it.
@@ -51,7 +51,7 @@ The backup container has no network, mounts the database volume read-only, and w
    sudo systemctl status cannabeats-backup.service --no-pager
    ```
 
-4. Verify that the destination contains a `cannabeats-YYYY-MM-DDTHHMMSSZ.cbbackup` file with mode `0600`. The `run` command verifies the newly created backup before pruning recognized older backup files. Retention refuses fewer than 2 or more than 365 copies and ignores unrelated files.
+4. Verify that the destination contains a `cannabeats-YYYY-MM-DDTHHMMSSZ.cbbackup` file with mode `0600`. Creation streams encryption to a hidden same-directory file, flushes it, and atomically links the completed artifact into its final name without overwriting an existing file. The `run` command verifies the newly created backup and authenticates every recognized retained artifact before pruning. One corrupt or foreign artifact with a recognized backup filename stops all deletion. Retention refuses fewer than 2 or more than 365 copies and ignores unrelated filenames.
 
 Inspect scheduling and bounded logs:
 

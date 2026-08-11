@@ -8,14 +8,15 @@ This evidence covers the disposable local implementation gate. It does not asser
 | --- | --- |
 | Recovery point in authenticated backup manifest | `2026-08-11T12:00:00.000Z` |
 | Application/catalog fixture identity | `git-test` / `catalog-test` |
-| Clean-target backup/create/verify/restore test | Passed in 148.879 ms on the local development machine |
+| Clean-target backup/create/verify/restore test | Passed locally for streaming version 2 and legacy version 1 |
 | Restored protected state | Account, administrative capability, desktop authorization, lobby, active game run, and managed-source registration |
 | Database verification | SHA-256 matched; SQLite integrity check `ok`; foreign-key check empty; authenticated schema/table manifest matched restored database |
 | Confidentiality checks | Account display name absent from encrypted backup serialization; wrong passphrase and modified ciphertext rejected |
-| Safety checks | Existing backup and restore targets rejected; retention touched only recognized backup filenames |
+| Safety checks | Existing targets rejected; interrupted publication left no artifact; retention authenticated every recognized candidate before deleting any |
+| Online/scale checks | WAL writer committed during backup; a 66 MiB database exceeded the former tmpfs limit and restored exactly |
 | Intentional omissions | Secret files, host installer artifact, Caddy state, and managed Spotify browser profile |
 
-Command: `node --test test/backup.test.mjs` from `spikes/access-spotify-poc`. Result: 4/4 passed, 455.187 ms total suite duration.
+Command: `node --test test/backup.test.mjs` from `spikes/access-spotify-poc`. Result after P2-A: 9/9 passed, including concurrent-write, atomic-publication/no-overwrite, large-file, corrupt-retention, tamper, and legacy-format coverage.
 
 ## Release and rollback boundary
 
@@ -36,7 +37,7 @@ Command: `npm test` from `spikes/access-spotify-poc`. Result after P1 remediatio
 
 ## Observability and operator surface
 
-- Access backup/operator/server suite: passed, including fail-closed operator queries, sentinel redaction, correlation/error envelopes, liveness/readiness distinction, read-only operator connection, conservative liveness classification, independent component states, and absence of names/device/track/provider detail.
+- Access backup/operator/server suite: 38/38 passed after P2-A, including streaming backup hardening, fail-closed operator queries, sentinel redaction, correlation/error envelopes, liveness/readiness distinction, read-only operator connection, conservative liveness classification, independent component states, and absence of names/device/track/provider detail.
 - Game integration coverage proves authenticated same-service correlation across the audio membership hop and proves an arbitrary configured origin receives no forwarded cookie or authorization value.
 - Next production build and TypeScript: passed.
 - Web tests: 37/37 passed, including the new catalog source-of-truth, cross-year conflict, internal-correlation, and credential-forwarding regressions.
