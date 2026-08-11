@@ -9,6 +9,20 @@ export const DATABASE_SCHEMA_MIN_VERSION = 0;
 export const DATABASE_SCHEMA_MAX_VERSION = 2;
 export const DATABASE_SCHEMA_TARGET_VERSION = 1;
 
+function assertSchemaEnvironment() {
+  const contract = {
+    CANNABEATS_SCHEMA_MIN_VERSION: DATABASE_SCHEMA_MIN_VERSION,
+    CANNABEATS_SCHEMA_MAX_VERSION: DATABASE_SCHEMA_MAX_VERSION,
+    CANNABEATS_SCHEMA_TARGET_VERSION: DATABASE_SCHEMA_TARGET_VERSION,
+  };
+  for (const [name, compiled] of Object.entries(contract)) {
+    const configured = process.env[name];
+    if (configured !== undefined && configured !== String(compiled)) {
+      throw new Error(`${name}=${configured} does not match compiled schema contract ${compiled}`);
+    }
+  }
+}
+
 function randomAlphabetText(length) {
   const result = [];
   const limit = 256 - (256 % INVITATION_ALPHABET.length);
@@ -44,6 +58,7 @@ export function uuidToBytes(uuid) {
 }
 
 export function openDatabase(databasePath) {
+  assertSchemaEnvironment();
   mkdirSync(dirname(databasePath), { recursive: true });
   const db = new DatabaseSync(databasePath);
   try {

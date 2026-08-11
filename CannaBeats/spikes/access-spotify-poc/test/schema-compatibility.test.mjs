@@ -86,3 +86,23 @@ test('access, game, Compose, and release tooling declare one schema compatibilit
     assert.equal(compose.match(new RegExp(`${name}: "${version}"`, 'g'))?.length, 3);
   }
 });
+
+test('runtime services reject deployment metadata that differs from their compiled schema contract', async () => {
+  const previous = process.env.CANNABEATS_SCHEMA_TARGET_VERSION;
+  process.env.CANNABEATS_SCHEMA_TARGET_VERSION = '2';
+  try {
+    assert.throws(
+      () => openDatabase(join(root, 'access-contract-drift.sqlite')),
+      /does not match compiled schema contract 1/i,
+    );
+    process.env.CANNABEATS_DATABASE_PATH = join(root, 'game-contract-drift.sqlite');
+    const { database: gameDatabase } = await import('../../../web/lib/server/database.ts');
+    assert.throws(
+      () => gameDatabase(),
+      /does not match compiled schema contract 1/i,
+    );
+  } finally {
+    if (previous === undefined) delete process.env.CANNABEATS_SCHEMA_TARGET_VERSION;
+    else process.env.CANNABEATS_SCHEMA_TARGET_VERSION = previous;
+  }
+});

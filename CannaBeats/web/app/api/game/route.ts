@@ -3,6 +3,12 @@ import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
+import {
+  GameStateBusyError,
+  StaleGameStateError,
+  isDatabaseBusy,
+  saveGameRunState,
+} from "../../../lib/server/game-state";
 import { trustedInternalRequest } from "../../../lib/server/internal-service";
 import { observeRoute } from "../../../lib/server/observability";
 import {
@@ -201,21 +207,24 @@ function loadRoom(code: string) {
 }
 
 function saveRoom(state: RoomState) {
-  const db = database();
-  db.prepare(`
-    UPDATE game_runs SET state = ?, updated_at = ?
-    WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
-  `)
-    .run(JSON.stringify(state), Date.now(), state.code);
-  const saved = db.prepare(`
-    SELECT revision FROM game_runs
-    WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
-  `).get(state.code) as { revision: number } | undefined;
-  if (!saved) throw new Error("The game run disappeared while it was being saved.");
-  state.revision = saved.revision;
+  saveGameRunState(database(), state);
 }
 
-const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function immediateTransaction<T>(work: () => T) {
+  const db = database();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = work();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+const UUID_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function requiredActionId(payload: Record<string, unknown>) {
   const actionId = String(payload.actionId ?? "").toLowerCase();
@@ -236,7 +245,7 @@ function requestFingerprint(values: Record<string, unknown>) {
 function requiredActionContext(payload: Record<string, unknown>) {
   const expectedRunId = String(payload.expectedRunId ?? "").toLowerCase();
   const expectedRevision = payload.expectedRevision;
-  if (!ACTION_ID.test(expectedRunId)
+  if (!UUID_ID.test(expectedRunId)
       || typeof expectedRevision !== "number"
       || !Number.isSafeInteger(expectedRevision)
       || expectedRevision < 0) {
@@ -469,6 +478,12 @@ function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: P
 
 function errorResponse(error: unknown) {
   if (error instanceof GameRequestError) return fail(error.message, error.status, error.code);
+  if (error instanceof StaleGameStateError) {
+    return fail("The game changed before this action was saved.", 409, "stale_action");
+  }
+  if (error instanceof GameStateBusyError || isDatabaseBusy(error)) {
+    return fail("The game is temporarily busy. Retry the same action.", 503, "database_busy");
+  }
   if (error instanceof Response) return fail(
     error.status === 401 ? "Sign in required." : "Request was not accepted.",
     error.status,
@@ -715,15 +730,17 @@ async function postGame(request: Request) {
       const playerId = String(payload.playerId ?? "");
       if (!state.players.some((player) => player.id === playerId)) return fail("Player not found.", 404);
       state.players = state.players.filter((player) => player.id !== playerId);
-      const identity = database().prepare(`
-        SELECT user_id FROM game_run_player_identities WHERE run_id = ? AND player_id = ?
-      `).get(room.row.id, playerId) as { user_id: string } | undefined;
-      database().prepare("DELETE FROM game_run_player_identities WHERE run_id = ? AND player_id = ?")
-        .run(room.row.id, playerId);
-      if (identity && database().prepare("SELECT 1 FROM game_guest_users WHERE user_id = ?").get(identity.user_id)) {
-        database().prepare("DELETE FROM users WHERE id = ?").run(identity.user_id);
-      }
-      saveRoom(state);
+      immediateTransaction(() => {
+        const identity = database().prepare(`
+          SELECT user_id FROM game_run_player_identities WHERE run_id = ? AND player_id = ?
+        `).get(room.row.id, playerId) as { user_id: string } | undefined;
+        database().prepare("DELETE FROM game_run_player_identities WHERE run_id = ? AND player_id = ?")
+          .run(room.row.id, playerId);
+        if (identity && database().prepare("SELECT 1 FROM game_guest_users WHERE user_id = ?").get(identity.user_id)) {
+          database().prepare("DELETE FROM users WHERE id = ?").run(identity.user_id);
+        }
+        saveRoom(state);
+      });
       return Response.json({ room: roomView(state, true) });
     }
 
@@ -750,13 +767,15 @@ async function postGame(request: Request) {
       state.round = 1;
       state.retractionUsed = false;
       state.phase = "ready";
-      database().prepare(`
-        UPDATE game_guest_invites SET revoked_at = ?
-        WHERE session_code = ? AND revoked_at IS NULL
-      `).run(Date.now(), code);
-      database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
-        .run(Date.now(), code);
-      saveRoom(state);
+      immediateTransaction(() => {
+        database().prepare(`
+          UPDATE game_guest_invites SET revoked_at = ?
+          WHERE session_code = ? AND revoked_at IS NULL
+        `).run(Date.now(), code);
+        database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
+          .run(Date.now(), code);
+        saveRoom(state);
+      });
       return Response.json({ room: roomView(state, true) });
     }
 
@@ -869,7 +888,6 @@ async function postGame(request: Request) {
       if (state.phase !== "revealed") return fail("Reveal this round first.", 409);
       if (state.winnerId) {
         state.phase = "finished";
-        database().prepare("UPDATE game_runs SET ended_at = ? WHERE id = ?").run(Date.now(), room.row.id);
       } else {
         state.activePlayerIndex = (state.activePlayerIndex + 1) % state.players.length;
         state.activePlayerId = state.players[state.activePlayerIndex].id;
@@ -880,7 +898,12 @@ async function postGame(request: Request) {
         state.round += 1;
         state.phase = "playing";
       }
-      saveRoom(state);
+      immediateTransaction(() => {
+        if (state.phase === "finished") {
+          database().prepare("UPDATE game_runs SET ended_at = ? WHERE id = ?").run(Date.now(), room.row.id);
+        }
+        saveRoom(state);
+      });
       if (state.phase === "finished") {
         releaseManagedAudioLease(code);
       } else if (managedAudioView(code).mode === "managed") {

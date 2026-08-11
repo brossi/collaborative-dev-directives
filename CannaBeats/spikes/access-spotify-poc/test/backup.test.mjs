@@ -31,6 +31,7 @@ import {
   verifyBackup,
 } from '../operations/backup.mjs';
 import { openDatabase } from '../db.mjs';
+import { database as gameDatabase } from '../../../web/lib/server/database.ts';
 
 const root = mkdtempSync(join(tmpdir(), 'cannabeats-backup-test-'));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -58,38 +59,27 @@ function fixture() {
     INSERT INTO game_sessions (code, host_user_id, status, created_at, updated_at)
     VALUES ('BKP234', ?, 'playing', ?, ?)
   `).run(userId, Date.now(), Date.now());
-  db.exec(`
-    CREATE TABLE game_runs (
-      id TEXT PRIMARY KEY,
-      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
-      state TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      ended_at INTEGER
-    );
-    CREATE TABLE managed_audio_sources (
-      id TEXT PRIMARY KEY,
-      display_name TEXT NOT NULL,
-      token_hash TEXT NOT NULL UNIQUE,
-      enabled INTEGER NOT NULL,
-      created_at INTEGER NOT NULL,
-      last_seen_at INTEGER,
-      device_id TEXT,
-      last_error TEXT
-    );
-  `);
   const runId = randomUUID();
-  db.prepare(`
+  const receiptId = randomUUID();
+  db.close();
+  process.env.CANNABEATS_DATABASE_PATH = databasePath;
+  const gameDb = gameDatabase();
+  gameDb.prepare(`
     INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
     VALUES (?, 'BKP234', '{"phase":"playing","round":2}', ?, ?)
   `).run(runId, Date.now(), Date.now());
-  db.prepare('UPDATE game_sessions SET active_run_id = ? WHERE code = ?').run(runId, 'BKP234');
-  db.prepare(`
+  gameDb.prepare('UPDATE game_sessions SET active_run_id = ? WHERE code = ?').run(runId, 'BKP234');
+  gameDb.prepare(`
+    INSERT INTO game_action_receipts
+      (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
+    VALUES (?, ?, ?, 'place', 'backup-fingerprint', ?)
+  `).run(runId, userId, receiptId, Date.now());
+  gameDb.prepare(`
     INSERT INTO managed_audio_sources (id, display_name, token_hash, enabled, created_at)
     VALUES (?, 'Backup Test Source', 'test-source-token-hash', 1, ?)
   `).run(randomUUID(), Date.now());
-  db.close();
-  return { directory, databasePath, backupPath, restoredPath, passphraseFile, userId, runId };
+  gameDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  return { directory, databasePath, backupPath, restoredPath, passphraseFile, userId, runId, receiptId };
 }
 
 function legacyEnvelope(snapshot, metadata, secret) {
@@ -161,7 +151,14 @@ test('an encrypted online backup restores a consistent SQLite database', async (
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM desktop_sessions').get().count, 1);
   assert.equal(db.prepare('SELECT active_run_id FROM game_sessions WHERE code = ?').get('BKP234').active_run_id,
     paths.runId);
+  assert.equal(db.prepare('SELECT actor_id FROM game_action_receipts WHERE action_id = ?')
+    .get(paths.receiptId).actor_id, paths.userId);
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM sqlite_schema
+    WHERE type = 'trigger' AND name IN ('game_runs_advance_revision', 'game_sessions_advance_run_generation')
+  `).get().count, 2);
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM managed_audio_sources').get().count, 1);
+  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   db.close();
 });
 

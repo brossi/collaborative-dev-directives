@@ -8,6 +8,7 @@ import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "
 import {
   commitJoinResult,
   commitRoomSnapshot,
+  GameApiError,
   requestGame,
   RETRYABLE_ACTIONS,
   type RoomSnapshotCursor,
@@ -445,7 +446,18 @@ export default function Home() {
       }
       return true;
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Something went wrong.");
+      if (reason instanceof GameApiError
+          && reason.actionId
+          && (reason.code === "action_outcome_unknown" || reason.code === "invalid_response")) {
+        try {
+          await refresh(session);
+          setError("The action result was uncertain, so the current game was refreshed. Confirm its state before retrying.");
+        } catch {
+          setError("The action result is uncertain and the current game could not be refreshed. Reconnect before retrying.");
+        }
+      } else {
+        setError(reason instanceof Error ? reason.message : "Something went wrong.");
+      }
       return false;
     } finally {
       setBusy(false);

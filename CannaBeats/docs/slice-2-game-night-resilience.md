@@ -205,6 +205,106 @@ complete.
 - Final local evidence: access/release/backup `65/65`, web/client/API `51/51`,
   production Next.js build, TypeScript, ESLint, and diff checks pass.
 
+#### Adversarial P2 remediation order — local remediation complete
+
+1. Make every room writer compare the authoritative database revision, preserve
+   related database effects in the same transaction, and map SQLite contention
+   to a stable retryable outcome. Prove stale independent connections cannot
+   erase an accepted action.
+2. Expand the schema/recovery evidence through populated legacy receipt
+   migration, backup/restore, bridge promotion failure, and exact-image
+   rollback/re-forward matrices.
+3. Add deterministic authorization, pre-reveal privacy, and transaction fault
+   injection at the receipt boundary.
+4. Close the action/fingerprint matrix, UUID privacy enforcement, pending-intent
+   recovery, and the remaining detailed-plan assignments before extending the
+   same boundary through S2-B playback actions.
+
+P2 begins with item 1 because later action and playback receipts are not
+trustworthy if another application writer can silently overwrite their state.
+
+##### P2 item 1 — independent writer safety (closed)
+
+- Every room save now compares the revision that was actually loaded. The
+  trigger-owned database revision advances only the winning update; a stale
+  writer receives `stale_action` rather than replacing newer serialized state.
+- A save owns a short `BEGIN IMMEDIATE` transaction when its caller does not
+  already own one. Player removal, game start, and game completion include
+  their related identity/session/run writes in that same transaction.
+- SQLite lock exhaustion is normalized to `database_busy` with HTTP 503, so a
+  protected client reuses its existing bounded retry and identical action ID.
+- Executable evidence opens two independent connections against one WAL
+  database: the first state wins, the stale connection is rejected without
+  data loss, and an externally held write lock produces the typed busy result.
+- Two independently running standalone application processes now submit the
+  same protected public-API action against one WAL database. Exactly one
+  mutation and receipt are committed and both callers converge on the accepted
+  authoritative room.
+- A database trigger injects failure after the room update but before receipt
+  insertion; both effects roll back and the same action ID remains usable.
+  Separate failure injections prove player removal, game start, and game
+  completion do not retain partial identity, invitation, session, or run data.
+- The production busy-timeout path remains five seconds by default and accepts
+  a validated test override. A real held writer lock therefore proves the 503
+  `database_busy` response promptly without slowing the suite.
+
+##### P2 item 2 — schema and recovery evidence (closed locally)
+
+- The game initializer now proves that losing the fresh-database startup race
+  to access rolls back cleanly and succeeds on retry after access creates its
+  base tables.
+- Populated legacy receipts execute the actor-foreign-key rebuild path. Their
+  pseudonymous actor survives user deletion, run deletion still cascades, the
+  index and primary key survive, and `foreign_key_check` remains clean. An
+  orphaned legacy row forces the copy to fail and proves the old table, row,
+  columns, and schema version all roll back together.
+- Encrypted online backup/restore now carries a real receipt plus the revision
+  and run-generation triggers, then verifies referential integrity after
+  restore.
+- Release tests model a real 1-to-2 schema observation followed by failure to
+  publish release state. The bridge remains current, schema 2 makes it the
+  rollback floor, and rollback to the prior Slice 1 range is rejected before
+  containers change.
+- Both runtime services reject release metadata that disagrees with their
+  compiled schema constants, preventing a record from claiming target 2 while
+  the image still targets 1.
+- Bridge tests execute the Slice 1 insert and state-update forms for both an
+  existing run and a run created after rollback; database revision and lobby
+  generation remain monotonic when the current bridge resumes.
+
+An actual Slice 1 image boot against a copied bridge-expanded database remains
+an operator rehearsal gate immediately before schema promotion. It does not
+block target-1 bridge development and must not be described as automated local
+evidence until that rehearsal is recorded.
+
+##### P2 item 3 — authorization, privacy, and fault injection (closed)
+
+- Unauthorized actors cannot create a receipt or change state before the
+  intended actor submits the action. Actor-scoped replay remains inaccessible
+  to another participant.
+- Public-API checks prove a player snapshot before reveal contains neither the
+  current song nor its provider URI.
+- Database-trigger fault injection covers the state/receipt seam and the
+  identity, invitation, session, and run side effects of multi-row mutations.
+  Every forced failure leaves the complete pre-action state intact.
+
+##### P2 item 4 — identity and uncertain outcomes (closed for S2-A scope)
+
+- Protected action IDs are UUIDv4 and meaningful fingerprint changes fail with
+  `action_id_conflict` for placement, retraction, and reveal. Run identity
+  remains a separately validated UUID contract.
+- An exhausted transport or gateway retry returns
+  `action_outcome_unknown` with the original action ID. The browser performs an
+  authoritative refresh before another intent is allowed, preventing a new ID
+  from being guessed while the first action may already have committed.
+- Incomplete successful responses retain their typed `invalid_response`
+  classification and action identity; they use the same refresh-before-retry
+  reconciliation path.
+
+Final local evidence for the adversarial remediation is access/release/backup
+`67/67` and web/client/API `55/55`, including the production Next.js build and
+TypeScript compilation. ESLint and whitespace validation also pass.
+
 ### S2-B: Complete transition and playback idempotency
 
 - Extend the receipt boundary through advance, skip, start/begin as required by

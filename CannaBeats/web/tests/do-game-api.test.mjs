@@ -43,6 +43,8 @@ db.prepare(`
 
 let processHandle;
 let origin;
+let secondaryProcessHandle;
+let secondaryOrigin;
 let relayOrigin;
 let relayServer;
 let serverOutput = "";
@@ -60,16 +62,50 @@ async function availablePort() {
   return port;
 }
 
-async function waitForHealth() {
+async function waitForHealth(targetOrigin) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${origin}/game/api/ready`);
+      const response = await fetch(`${targetOrigin}/game/api/ready`);
       if (response.ok) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`The DigitalOcean game build did not start in time. ${serverOutput.slice(-2_000)}`);
+}
+
+async function startGameProcess(targetOrigin, port) {
+  const child = spawn(
+    process.execPath,
+    [".next/standalone/server.js"],
+    {
+      cwd: new URL("..", import.meta.url),
+      env: {
+        ...process.env,
+        HOSTNAME: "127.0.0.1",
+        PORT: String(port),
+        CANNABEATS_APP_ORIGIN: targetOrigin,
+        CANNABEATS_DATABASE_PATH: databasePath,
+        CANNABEATS_DATABASE_BUSY_TIMEOUT_MS: "25",
+        CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
+        CANNABEATS_PUBLIC_GAME_ORIGIN: `${targetOrigin}/game`,
+        AUDIO_RELAY_ORIGIN: relayOrigin,
+        AUDIO_RELAY_LISTEN_TOKEN_FILE: relayTokenPath,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  child.stdout.on("data", (chunk) => { serverOutput += chunk; });
+  child.stderr.on("data", (chunk) => { serverOutput += chunk; });
+  await waitForHealth(targetOrigin);
+  return child;
+}
+
+async function stopGameProcess(child) {
+  child?.kill("SIGTERM");
+  if (child && child.exitCode === null) {
+    await new Promise((resolve) => child.once("exit", resolve));
+  }
 }
 
 before(async () => {
@@ -95,28 +131,10 @@ before(async () => {
   relayOrigin = `http://127.0.0.1:${relayServer.address().port}`;
   const port = await availablePort();
   origin = `http://127.0.0.1:${port}`;
-  processHandle = spawn(
-    process.execPath,
-    [".next/standalone/server.js"],
-    {
-      cwd: new URL("..", import.meta.url),
-      env: {
-        ...process.env,
-        HOSTNAME: "127.0.0.1",
-        PORT: String(port),
-        CANNABEATS_APP_ORIGIN: origin,
-        CANNABEATS_DATABASE_PATH: databasePath,
-        CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
-        CANNABEATS_PUBLIC_GAME_ORIGIN: `${origin}/game`,
-        AUDIO_RELAY_ORIGIN: relayOrigin,
-        AUDIO_RELAY_LISTEN_TOKEN_FILE: relayTokenPath,
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  processHandle.stdout.on("data", (chunk) => { serverOutput += chunk; });
-  processHandle.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForHealth();
+  processHandle = await startGameProcess(origin, port);
+  const secondaryPort = await availablePort();
+  secondaryOrigin = `http://127.0.0.1:${secondaryPort}`;
+  secondaryProcessHandle = await startGameProcess(secondaryOrigin, secondaryPort);
   await sourcePost({ action: "poll" }, "source-schema-initializer-token-value");
   db.prepare(`
     INSERT INTO managed_audio_sources
@@ -126,17 +144,15 @@ before(async () => {
 });
 
 after(async () => {
-  processHandle?.kill("SIGTERM");
-  if (processHandle && processHandle.exitCode === null) {
-    await new Promise((resolve) => processHandle.once("exit", resolve));
-  }
+  await stopGameProcess(secondaryProcessHandle);
+  await stopGameProcess(processHandle);
   if (relayServer) await new Promise((resolve) => relayServer.close(resolve));
   db.close();
   rmSync(temporaryDirectory, { recursive: true, force: true });
 });
 
-async function gamePost(body, headers = {}) {
-  return fetch(`${origin}/game/api/game`, {
+async function gamePost(body, headers = {}, targetOrigin = origin) {
+  return fetch(`${targetOrigin}/game/api/game`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
@@ -488,6 +504,16 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const playingRoom = (await begun.json()).room;
   assert.equal(playingRoom.runId, readyRoom.runId);
   assert.equal(playingRoom.revision, readyRoom.revision + 1);
+  const playerBeforeReveal = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
+    headers: { Authorization: `Bearer ${playerToken}` },
+  });
+  assert.equal(playerBeforeReveal.status, 200);
+  const playerBeforeRevealPayload = await playerBeforeReveal.json();
+  assert.equal(playerBeforeRevealPayload.room.currentSong, null);
+  assert.doesNotMatch(
+    JSON.stringify(playerBeforeRevealPayload),
+    new RegExp(playingRoom.currentSong.uri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+  );
   const playPoll = await sourcePost({ action: "poll", deviceId: "test-device" });
   assert.equal(playPoll.status, 200);
   const playWork = await playPoll.json();
@@ -549,6 +575,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const placementHeaders = activePlayer.control === "host"
     ? { Cookie: `cb_session=${hostCookie}`, Origin: origin }
     : { Authorization: `Bearer ${playerToken}` };
+  const secondaryPlacementHeaders = activePlayer.control === "host"
+    ? { Cookie: `cb_session=${hostCookie}`, Origin: secondaryOrigin }
+    : placementHeaders;
   const missingPlacementId = await gamePost(
     {
       action: "place", code: sessionCode, playerId: activePlayer.id, index: 0,
@@ -558,6 +587,16 @@ test("an authenticated lobby owns an internal game run and preserves host author
   );
   assert.equal(missingPlacementId.status, 400);
   assert.equal((await missingPlacementId.json()).code, "action_id_required");
+  const nonV4PlacementId = await gamePost(
+    {
+      action: "place", actionId: "00010203-0405-1607-8809-0a0b0c0d0e0f",
+      code: sessionCode, playerId: activePlayer.id, index: 0,
+      expectedRunId: playingRoom.runId, expectedRevision: playingRoom.revision,
+    },
+    placementHeaders,
+  );
+  assert.equal(nonV4PlacementId.status, 400);
+  assert.equal((await nonV4PlacementId.json()).code, "action_id_required");
 
   for (const staleContext of [
     { expectedRunId: randomUUID(), expectedRevision: playingRoom.revision },
@@ -579,9 +618,61 @@ test("an authenticated lobby owns an internal game run and preserves host author
     action: "place", actionId: placementActionId, code: sessionCode, playerId: activePlayer.id, index: 0,
     expectedRunId: playingRoom.runId, expectedRevision: playingRoom.revision,
   };
+  const otherActorHeaders = activePlayer.control === "host"
+    ? { Authorization: `Bearer ${playerToken}` }
+    : { Cookie: `cb_session=${hostCookie}`, Origin: origin };
+  const stateBeforeInjectedFailure = db.prepare(`
+    SELECT state, revision FROM game_runs WHERE id = ?
+  `).get(playingRoom.runId);
+  const unauthorizedPlacement = await gamePost(placementRequest, otherActorHeaders);
+  assert.equal(unauthorizedPlacement.status, 409);
+  assert.deepEqual(
+    db.prepare("SELECT state, revision FROM game_runs WHERE id = ?").get(playingRoom.runId),
+    stateBeforeInjectedFailure,
+  );
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
+  `).get(placementActionId).count, 0);
+  db.exec(`
+    CREATE TRIGGER inject_action_receipt_failure
+    BEFORE INSERT ON game_action_receipts
+    BEGIN
+      SELECT RAISE(ABORT, 'injected action receipt failure');
+    END;
+  `);
+  try {
+    const failedReceipt = await gamePost(placementRequest, placementHeaders);
+    assert.equal(failedReceipt.status, 500);
+  } finally {
+    db.exec("DROP TRIGGER inject_action_receipt_failure");
+  }
+  assert.deepEqual(
+    db.prepare("SELECT state, revision FROM game_runs WHERE id = ?").get(playingRoom.runId),
+    stateBeforeInjectedFailure,
+  );
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
+  `).get(placementActionId).count, 0);
+
+  db.exec("BEGIN IMMEDIATE");
+  const lockStartedAt = Date.now();
+  let busyPlacement;
+  try {
+    busyPlacement = await gamePost(placementRequest, secondaryPlacementHeaders, secondaryOrigin);
+  } finally {
+    db.exec("ROLLBACK");
+  }
+  assert.equal(busyPlacement.status, 503);
+  assert.equal((await busyPlacement.json()).code, "database_busy");
+  assert.ok(Date.now() - lockStartedAt < 1_000, "test lock timeout should remain short");
+  assert.deepEqual(
+    db.prepare("SELECT state, revision FROM game_runs WHERE id = ?").get(playingRoom.runId),
+    stateBeforeInjectedFailure,
+  );
+
   const concurrentPlacements = await Promise.all([
     gamePost(placementRequest, placementHeaders),
-    gamePost(placementRequest, placementHeaders),
+    gamePost(placementRequest, secondaryPlacementHeaders, secondaryOrigin),
   ]);
   assert.deepEqual(concurrentPlacements.map((response) => response.status), [200, 200]);
   const concurrentPlacementPayloads = await Promise.all(
@@ -596,9 +687,6 @@ test("an authenticated lobby owns an internal game run and preserves host author
     assert.equal(payload.action.id, placementActionId);
     assert.equal(payload.action.accepted, true);
   }
-  const otherActorHeaders = activePlayer.control === "host"
-    ? { Authorization: `Bearer ${playerToken}` }
-    : { Cookie: `cb_session=${hostCookie}`, Origin: origin };
   const crossActorReuse = await gamePost(placementRequest, otherActorHeaders);
   assert.equal(crossActorReuse.status, 409);
   const placementConflict = await gamePost(
@@ -631,6 +719,12 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(replayedRetractionPayload.room.phase, "playing");
   assert.equal(replayedRetractionPayload.room.retractionUsed, true);
   assert.equal(replayedRetractionPayload.action.replayed, true);
+  const conflictingRetraction = await gamePost(
+    { ...retractRequest, playerId: randomUUID() },
+    placementHeaders,
+  );
+  assert.equal(conflictingRetraction.status, 409);
+  assert.equal((await conflictingRetraction.json()).code, "action_id_conflict");
 
   const finalPlacementActionId = randomUUID();
   const finalPlacement = await gamePost(
@@ -674,6 +768,12 @@ test("an authenticated lobby owns an internal game run and preserves host author
     replayedRevealPayload.room.players.find((player) => player.id === activePlayer.id).timeline.length,
     activeTimelineLength,
   );
+  const conflictingReveal = await gamePost(
+    { ...revealRequest, expectedRevision: revealRequest.expectedRevision + 1 },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(conflictingReveal.status, 409);
+  assert.equal((await conflictingReveal.json()).code, "action_id_conflict");
 
   const resumed = await gamePost(
     { action: "prepare", code: sessionCode },
@@ -848,12 +948,69 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
   });
   assert.equal(existingGuestStillWorks.status, 200);
 
+  const guestIdentity = db.prepare(`
+    SELECT user_id FROM game_run_player_identities WHERE player_id = ?
+  `).get(joined.playerId);
+  db.exec(`
+    CREATE TRIGGER inject_remove_player_save_failure
+    BEFORE UPDATE OF state ON game_runs
+    WHEN OLD.session_code = '${sessionCode}'
+    BEGIN
+      SELECT RAISE(ABORT, 'injected remove-player save failure');
+    END;
+  `);
+  try {
+    const failedRemoval = await gamePost(
+      { action: "removePlayer", code: sessionCode, playerId: joined.playerId },
+      { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    );
+    assert.equal(failedRemoval.status, 500);
+  } finally {
+    db.exec("DROP TRIGGER inject_remove_player_save_failure");
+  }
+  assert.ok(db.prepare("SELECT 1 FROM users WHERE id = ?").get(guestIdentity.user_id));
+  assert.ok(db.prepare(`
+    SELECT 1 FROM game_run_player_identities WHERE player_id = ? AND user_id = ?
+  `).get(joined.playerId, guestIdentity.user_id));
+  assert.equal(JSON.parse(db.prepare(`
+    SELECT state FROM game_runs WHERE session_code = ?
+  `).get(sessionCode).state).players.some((player) => player.id === joined.playerId), true);
+
   const secondInviteResponse = await gamePost(
     { action: "guestInvite", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(secondInviteResponse.status, 200);
   const secondInvite = (await secondInviteResponse.json()).guestInvite;
+  const localAudio = await gamePost(
+    { action: "audioSelect", code: sessionCode, mode: "local" },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(localAudio.status, 200);
+  db.exec(`
+    CREATE TRIGGER inject_start_save_failure
+    BEFORE UPDATE OF state ON game_runs
+    WHEN OLD.session_code = '${sessionCode}'
+    BEGIN
+      SELECT RAISE(ABORT, 'injected start save failure');
+    END;
+  `);
+  try {
+    const failedStart = await gamePost(
+      { action: "start", code: sessionCode },
+      { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    );
+    assert.equal(failedStart.status, 500);
+  } finally {
+    db.exec("DROP TRIGGER inject_start_save_failure");
+  }
+  assert.equal(db.prepare("SELECT status FROM game_sessions WHERE code = ?").get(sessionCode).status, "lobby");
+  assert.equal(db.prepare(`
+    SELECT revoked_at FROM game_guest_invites WHERE token_hash = ?
+  `).get(sha256(secondInvite)).revoked_at, null);
+  assert.equal(JSON.parse(db.prepare(`
+    SELECT state FROM game_runs WHERE session_code = ?
+  `).get(sessionCode).state).phase, "lobby");
   const started = await gamePost(
     { action: "start", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
@@ -872,4 +1029,37 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
     headers: { Cookie: guestCookie },
   });
   assert.equal(admittedGuestAfterStart.status, 200);
+
+  const finishingRun = db.prepare(`
+    SELECT id, state FROM game_runs WHERE session_code = ?
+  `).get(sessionCode);
+  const finishingState = JSON.parse(finishingRun.state);
+  finishingState.phase = "revealed";
+  finishingState.winnerId = joined.playerId;
+  db.prepare("UPDATE game_runs SET state = ?, updated_at = ? WHERE id = ?")
+    .run(JSON.stringify(finishingState), Date.now(), finishingRun.id);
+  const beforeFailedFinish = db.prepare(`
+    SELECT state, revision, ended_at FROM game_runs WHERE id = ?
+  `).get(finishingRun.id);
+  db.exec(`
+    CREATE TRIGGER inject_finish_save_failure
+    BEFORE UPDATE OF state ON game_runs
+    WHEN OLD.session_code = '${sessionCode}'
+    BEGIN
+      SELECT RAISE(ABORT, 'injected finish save failure');
+    END;
+  `);
+  try {
+    const failedFinish = await gamePost(
+      { action: "advance", code: sessionCode },
+      { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    );
+    assert.equal(failedFinish.status, 500);
+  } finally {
+    db.exec("DROP TRIGGER inject_finish_save_failure");
+  }
+  assert.deepEqual(
+    db.prepare("SELECT state, revision, ended_at FROM game_runs WHERE id = ?").get(finishingRun.id),
+    beforeFailedFinish,
+  );
 });

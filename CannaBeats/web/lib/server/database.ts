@@ -8,6 +8,31 @@ let dbPath = "";
 export const DATABASE_SCHEMA_MIN_VERSION = 0;
 export const DATABASE_SCHEMA_MAX_VERSION = 2;
 export const DATABASE_SCHEMA_TARGET_VERSION = 1;
+const DEFAULT_DATABASE_BUSY_TIMEOUT_MS = 5_000;
+
+function assertSchemaEnvironment() {
+  const contract = {
+    CANNABEATS_SCHEMA_MIN_VERSION: DATABASE_SCHEMA_MIN_VERSION,
+    CANNABEATS_SCHEMA_MAX_VERSION: DATABASE_SCHEMA_MAX_VERSION,
+    CANNABEATS_SCHEMA_TARGET_VERSION: DATABASE_SCHEMA_TARGET_VERSION,
+  };
+  for (const [name, compiled] of Object.entries(contract)) {
+    const configured = process.env[name];
+    if (configured !== undefined && configured !== String(compiled)) {
+      throw new Error(`${name}=${configured} does not match compiled schema contract ${compiled}`);
+    }
+  }
+}
+
+function databaseBusyTimeoutMs() {
+  const configured = process.env.CANNABEATS_DATABASE_BUSY_TIMEOUT_MS;
+  if (configured === undefined) return DEFAULT_DATABASE_BUSY_TIMEOUT_MS;
+  const parsed = Number(configured);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 60_000) {
+    throw new Error("CANNABEATS_DATABASE_BUSY_TIMEOUT_MS must be an integer from 1 through 60000.");
+  }
+  return parsed;
+}
 
 export function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
@@ -18,6 +43,7 @@ export function randomToken() {
 }
 
 export function database() {
+  assertSchemaEnvironment();
   const configuredPath = process.env.CANNABEATS_DATABASE_PATH
     ?? resolve(process.cwd(), ".data/cannabeats.sqlite");
   if (db && dbPath === configuredPath) return db;
@@ -25,7 +51,11 @@ export function database() {
   mkdirSync(dirname(configuredPath), { recursive: true });
   db = new DatabaseSync(configuredPath);
   dbPath = configuredPath;
-  db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
+  db.exec(`
+    PRAGMA foreign_keys = ON;
+    PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = ${databaseBusyTimeoutMs()};
+  `);
   const startingVersion = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
   if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
     db.close();

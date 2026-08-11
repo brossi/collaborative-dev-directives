@@ -32,7 +32,16 @@ if [ -n "\${CANNABEATS_TEST_DOCKER_FAIL_ONCE_MATCH:-}" ] && [ ! -e "$CANNABEATS_
   esac
 fi
 case "$*" in
-  *"PRAGMA user_version"*) printf '%s\\n' "\${CANNABEATS_TEST_SCHEMA_VERSION:-1}" ;;
+  *"PRAGMA user_version"*)
+    if [ -n "\${CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE:-}" ] && [ -s "$CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE" ]; then
+      schema_version="$(sed -n '1p' "$CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE")"
+      sed '1d' "$CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE" > "$CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE.next"
+      mv "$CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE.next" "$CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE"
+      printf '%s\\n' "$schema_version"
+    else
+      printf '%s\\n' "\${CANNABEATS_TEST_SCHEMA_VERSION:-1}"
+    fi
+    ;;
   *"image inspect"*"cannabeats/access-spotify-poc:"*) printf 'sha256:%064d\\n' 1 ;;
   *"image inspect"*"cannabeats/game:"*) printf 'sha256:%064d\\n' 2 ;;
   *"inspect"*"{{.Image}}"*"cannabeats-access-poc"*) printf 'sha256:%064d\\n' 3 ;;
@@ -44,6 +53,12 @@ case "$*" in
 esac
 `);
   writeFileSync(join(binaries, 'npm'), '#!/bin/sh\nprintf \'npm %s\\n\' "$*" >> "$CANNABEATS_TEST_COMMAND_LOG"\n');
+  writeFileSync(join(binaries, 'node'), `#!/bin/sh
+if [ -n "\${CANNABEATS_TEST_NODE_FAIL_MATCH:-}" ]; then
+  case "$*" in *"$CANNABEATS_TEST_NODE_FAIL_MATCH"*) exit 42 ;; esac
+fi
+exec "${process.execPath}" "$@"
+`);
   writeFileSync(join(binaries, 'curl'), `#!/bin/sh
 printf 'curl %s\\n' "$*" >> "$CANNABEATS_TEST_COMMAND_LOG"
 if [ "\${CANNABEATS_TEST_CURL_FAIL:-}" = 1 ]; then exit 22; fi
@@ -52,8 +67,10 @@ if [ "\${CANNABEATS_TEST_CURL_FAIL:-}" = 1 ]; then exit 22; fi
   chmodSync(join(binaries, 'docker'), 0o755);
   chmodSync(join(binaries, 'curl'), 0o755);
   chmodSync(join(binaries, 'npm'), 0o755);
+  chmodSync(join(binaries, 'node'), 0o755);
   chmodSync(join(binaries, 'sleep'), 0o755);
   return {
+    directory,
     composeDirectory,
     releaseDirectory,
     commandLog,
@@ -64,12 +81,36 @@ if [ "\${CANNABEATS_TEST_CURL_FAIL:-}" = 1 ]; then exit 22; fi
       CANNABEATS_RELEASE_DIR: releaseDirectory,
       CANNABEATS_TEST_COMMAND_LOG: commandLog,
       CANNABEATS_TEST_FAILURE_MARKER: join(directory, 'docker-failure-used'),
+      CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE: join(directory, 'schema-sequence'),
       CANNABEATS_BOOTSTRAP_SCHEMA_MIN_VERSION: '0',
       CANNABEATS_BOOTSTRAP_SCHEMA_MAX_VERSION: '1',
       CANNABEATS_BOOTSTRAP_SCHEMA_TARGET_VERSION: '0',
       CANNABEATS_WEB_DIR: resolve('../../web'),
     },
   };
+}
+
+function promotionRelease(paths) {
+  const project = join(paths.directory, 'promotion-project');
+  const deploy = join(project, 'deploy');
+  const operations = join(project, 'operations');
+  mkdirSync(deploy, { recursive: true });
+  mkdirSync(operations, { recursive: true });
+  for (const file of ['release.sh', 'release-common.sh']) {
+    writeFileSync(join(deploy, file), readFileSync(resolve('deploy', file)));
+  }
+  writeFileSync(join(deploy, 'schema-compatibility.env'), [
+    'CANNABEATS_SCHEMA_MIN_VERSION=0',
+    'CANNABEATS_SCHEMA_MAX_VERSION=2',
+    'CANNABEATS_SCHEMA_TARGET_VERSION=2',
+    '',
+  ].join('\n'));
+  writeFileSync(
+    join(operations, 'release-state.mjs'),
+    readFileSync(resolve('operations/release-state.mjs')),
+  );
+  chmodSync(join(deploy, 'release.sh'), 0o755);
+  return join(deploy, 'release.sh');
 }
 
 test('release backs up first and operates only the CannaBeats app/game boundary', async () => {
@@ -161,6 +202,40 @@ test('release preserves a newer supported schema instead of requiring a downgrad
     env: { ...paths.env, CANNABEATS_TEST_SCHEMA_VERSION: '2' },
   });
   assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
+});
+
+test('a failed schema promotion leaves the bridge as rollback floor and blocks the Slice 1 image', async () => {
+  const paths = fixture();
+  const bridgeRelease = resolve('deploy/release.sh');
+  await run(bridgeRelease, ['bridge-a1', catalogVersion], { env: paths.env });
+
+  writeFileSync(paths.env.CANNABEATS_TEST_SCHEMA_SEQUENCE_FILE, '1\n2\n');
+  await assert.rejects(
+    run(promotionRelease(paths), ['promote-b2', catalogVersion], {
+      env: { ...paths.env, CANNABEATS_TEST_NODE_FAIL_MATCH: 'release-state.mjs promote' },
+    }),
+    (error) => /restoring the exact previous application images/i.test(error.stderr),
+  );
+
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /bridge-a1/);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /bootstrap-a/);
+  assert.doesNotMatch(
+    readFileSync(join(paths.releaseDirectory, 'used-application-versions'), 'utf8'),
+    /promote-b2/,
+  );
+  const beforeRollback = readFileSync(paths.commandLog, 'utf8')
+    .split('\n').filter((line) => line.includes(' up ')).length;
+
+  await assert.rejects(
+    run(resolve('deploy/rollback-release.sh'), [], {
+      env: { ...paths.env, CANNABEATS_TEST_SCHEMA_VERSION: '2' },
+    }),
+    (error) => /schema version 2 is not supported by previous range 0-1/i.test(error.stderr),
+  );
+  const afterRollback = readFileSync(paths.commandLog, 'utf8')
+    .split('\n').filter((line) => line.includes(' up ')).length;
+  assert.equal(afterRollback, beforeRollback);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /bridge-a1/);
 });
 
 test('release rejects a migration target that the current application could not roll back from', async () => {

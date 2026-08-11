@@ -97,7 +97,9 @@ test("retryable requests have a bounded timeout for every attempt", async () => 
       },
       timeoutMs: 5,
     }),
-    /timed out|abort/i,
+    (error) => error instanceof GameApiError
+      && error.code === "action_outcome_unknown"
+      && error.actionId === "00010203-0405-4607-8809-0a0b0c0d0e0f",
   );
   assert.equal(attempts, 2);
 });
@@ -147,6 +149,31 @@ test("a transient gateway response retries with the same action ID", async () =>
   assert.equal(payload.action.replayed, true);
 });
 
+test("an exhausted transient retry retains the uncertain action identity for reconciliation", async () => {
+  const bodies = [];
+  await assert.rejects(
+    requestGame("/game/api/game", {
+      action: "place",
+      code: room.code,
+      expectedRunId: room.runId,
+      expectedRevision: room.revision - 1,
+      playerId: "player-1",
+      index: 0,
+    }, {
+      cryptoSource: fallbackCrypto,
+      fetchImpl: async (_input, init) => {
+        bodies.push(init.body);
+        return Response.json({ error: "Temporarily unavailable." }, { status: 503 });
+      },
+    }),
+    (error) => error instanceof GameApiError
+      && error.code === "action_outcome_unknown"
+      && error.actionId === JSON.parse(bodies[0]).actionId,
+  );
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[0], bodies[1]);
+});
+
 test("retryable actions reject incomplete or mismatched successful responses", async () => {
   const invalidPayloads = [
     null,
@@ -184,7 +211,8 @@ test("retryable actions reject incomplete or mismatched successful responses", a
       }),
       (error) => error instanceof GameApiError
         && error.status === 502
-        && error.code === "invalid_response",
+        && error.code === "invalid_response"
+        && error.actionId === "00010203-0405-4607-8809-0a0b0c0d0e0f",
     );
     assert.equal(attempts, 2);
   }

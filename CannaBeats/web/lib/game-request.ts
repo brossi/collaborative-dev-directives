@@ -42,18 +42,21 @@ export class GameApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly correlationId?: string;
+  readonly actionId?: string;
 
   constructor(
     message: string,
     status: number,
     code: string,
     correlationId?: string,
+    actionId?: string,
   ) {
     super(message);
     this.name = "GameApiError";
     this.status = status;
     this.code = code;
     this.correlationId = correlationId;
+    this.actionId = actionId;
   }
 }
 
@@ -283,13 +286,21 @@ export async function requestGame(
               502,
               "invalid_response",
               payload.correlationId,
+              requestedActionId,
             );
           }
         }
         return payload;
       }
-      if (retryable && attempt + 1 < attempts && TRANSIENT_GATEWAY_STATUSES.has(response.status)) {
-        continue;
+      if (retryable && TRANSIENT_GATEWAY_STATUSES.has(response.status)) {
+        if (attempt + 1 < attempts) continue;
+        throw new GameApiError(
+          "The action result could not be confirmed. Refresh the game before retrying.",
+          response.status,
+          "action_outcome_unknown",
+          payload.correlationId,
+          requestedActionId,
+        );
       }
       throw new GameApiError(
         payload.error ?? "Something went wrong.",
@@ -298,7 +309,16 @@ export async function requestGame(
         payload.correlationId,
       );
     } catch (error) {
-      if (error instanceof GameApiError || !retryable || attempt + 1 >= attempts) throw error;
+      if (error instanceof GameApiError || !retryable) throw error;
+      if (attempt + 1 >= attempts) {
+        throw new GameApiError(
+          "The action result could not be confirmed. Refresh the game before retrying.",
+          502,
+          "action_outcome_unknown",
+          undefined,
+          requestedActionId,
+        );
+      }
     } finally {
       clearTimeout(timeout);
     }
