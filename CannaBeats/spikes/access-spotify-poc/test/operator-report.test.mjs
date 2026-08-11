@@ -160,6 +160,16 @@ test('component checks distinguish readiness, capacity, relay, and source state'
     now,
     fetchImpl: async (url, options) => {
       calls.push({ url: String(url), authorization: options.headers?.authorization });
+      if (String(url).endsWith('/stream.pcm')) {
+        return new Response(new Uint8Array([0, 1]), {
+          headers: {
+            'Content-Type': 'audio/L16;rate=48000;channels=2',
+            'X-Audio-Rate': '48000',
+            'X-Audio-Channels': '2',
+            'X-Audio-Encoding': 's16le',
+          },
+        });
+      }
       return Response.json({ ready: true });
     },
   });
@@ -167,9 +177,81 @@ test('component checks distinguish readiness, capacity, relay, and source state'
   assert.equal(report.components.access.status, 'healthy');
   assert.equal(report.components.game.status, 'healthy');
   assert.equal(report.components.database.status, 'healthy');
-  assert.equal(report.components.managedSource.status, 'healthy');
+  assert.equal(report.components.relay.status, 'healthy');
+  assert.equal(report.components.managedSource.status, 'degraded');
+  assert.equal(report.components.managedSource.reasonCode, 'source_reported_error');
   assert.equal(report.components.certificate.status, 'unknown');
   assert.ok(calls.some((call) => call.url === 'http://relay.test/stream.pcm'
     && call.authorization === 'Bearer private-relay-token'));
   assert.doesNotMatch(JSON.stringify(report), /private-relay-token/);
+  assert.doesNotMatch(JSON.stringify(report), /raw private source error/);
+});
+
+test('component checks reject successful responses with invalid contracts', async () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare('UPDATE managed_audio_sources SET last_error = NULL').run();
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const report = await componentReport({
+    db,
+    databasePath,
+    accessOrigin: 'http://access.test',
+    gameOrigin: 'http://game.test',
+    relayOrigin: 'http://relay.test',
+    relayListenToken: 'private-relay-token',
+    now,
+    fetchImpl: async (url) => String(url).endsWith('/stream.pcm')
+      ? Response.json({ ready: true })
+      : Response.json({ ready: false }),
+  });
+  db.close();
+  assert.deepEqual(report.components.access, {
+    status: 'degraded', reasonCode: 'readiness_contract_invalid',
+  });
+  assert.deepEqual(report.components.game, {
+    status: 'degraded', reasonCode: 'readiness_contract_invalid',
+  });
+  assert.deepEqual(report.components.relay, {
+    status: 'degraded', reasonCode: 'stream_contract_invalid',
+  });
+  assert.equal(report.components.managedSource.status, 'healthy');
+});
+
+test('component dependency checks use a bounded timeout and report it safely', async () => {
+  const { databasePath, now } = fixture();
+  const db = openOperatorDatabase(databasePath);
+  const report = await componentReport({
+    db,
+    databasePath,
+    accessOrigin: 'http://access.test',
+    now,
+    dependencyTimeoutMs: 5,
+    fetchImpl: async (_url, options) => new Promise((resolve, reject) => {
+      options.signal.addEventListener('abort', () => reject(
+        Object.assign(new Error('private dependency detail'), { name: 'AbortError' }),
+      ));
+    }),
+  });
+  db.close();
+  assert.deepEqual(report.components.access, { status: 'unavailable', reasonCode: 'timeout' });
+  assert.doesNotMatch(JSON.stringify(report), /private dependency detail/);
+});
+
+test('database, volume, and certificate failures remain independent safe states', async () => {
+  const report = await componentReport({
+    db: { prepare: () => { throw new Error('private database detail'); } },
+    databasePath: '/private/database/path.sqlite',
+    accessOrigin: 'https://access.test',
+    fetchImpl: async () => Response.json({ ready: true }),
+    statfsImpl: () => { throw new Error('private volume detail'); },
+    certificateCheck: async () => ({ status: 'degraded', reasonCode: 'certificate_expiring', daysRemaining: 3 }),
+  });
+  assert.deepEqual(report.components.database, { status: 'unavailable', reasonCode: 'read_failed' });
+  assert.deepEqual(report.components.databaseVolume, { status: 'unknown', reasonCode: 'capacity_unavailable' });
+  assert.deepEqual(report.components.managedSource, { status: 'unknown', reasonCode: 'source_state_unavailable' });
+  assert.deepEqual(report.components.certificate, {
+    status: 'degraded', reasonCode: 'certificate_expiring', daysRemaining: 3,
+  });
+  assert.doesNotMatch(JSON.stringify(report), /private|database\/path/);
 });

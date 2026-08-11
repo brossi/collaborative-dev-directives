@@ -119,7 +119,27 @@ network connection. SSH/Tailscale remains the primary authentication and
 encryption layer. Never publish port 5900 or replace `-localhost` in the VNC
 unit.
 
+The runtime installer deliberately leaves `cannabeats-vnc` disabled until its
+password file exists. Create a temporary x11vnc password file interactively
+(`x11vnc -storepasswd` writes `$HOME/.vnc/passwd` by default), transfer it only
+over the private operator session if it was created elsewhere, then install it:
+
+```bash
+sudo /opt/cannabeats-managed-source/install-vnc-password.sh "$HOME/.vnc/passwd"
+rm -f -- "$HOME/.vnc/passwd"
+```
+
+The installer atomically places the file at the service path with owner
+`cannabeats-source` and mode `0400`, then enables the loopback-only VNC unit.
+
 ## Spotify setup
+
+Before authorization, confirm that `/opt/cannabeats-managed-source/health_check.py`
+reports `configuration_valid` and `authenticated_poll_succeeded`. The access
+service must publish a non-empty Spotify client ID and its HTTPS callback must
+remain registered with the browser-PKCE application. Have the dedicated
+Premium account and an operator device with working Tailscale/SSH and a VNC
+client available; no old Chrome profile or refresh credential is restored.
 
 1. Connect through the VNC tunnel and select **Connect Spotify** in Chrome.
 2. Sign in to the dedicated Premium account and approve the existing CannaBeats
@@ -131,6 +151,13 @@ unit.
    autoplay, select **Resume** once in the private session.
 5. Play a test track and confirm activity on the virtual monitor before
    starting the relay publisher.
+
+The browser reports only allowlisted readiness categories to the loopback
+controller. A successful refresh/API request establishes
+`spotify_authorized`; the Web Playback SDK `ready` event establishes
+`player_ready`. Missing, failed, stale, or not-yet-run checks remain degraded or
+unknown and never expose provider responses, tokens, account details, or device
+IDs through the health report.
 
 The callback bridge avoids registering a loopback redirect URI and does not put
 the refresh credential on the CannaBeats server. The loopback agent also strips
@@ -209,7 +236,8 @@ negotiates and reports that source-defined format to listeners.
 ## Rebuild notes
 
 `infra/install-runtime.sh` installs the graphical and audio runtime and copies
-the systemd units when run from this directory as root. The `btaudio-learning`
+the systemd units when run from this directory as root. It does not start VNC
+until the separate password installation contract above is completed. The `btaudio-learning`
 package is a separate spike dependency and must be installed into
 `/opt/btaudio-venv`; its source is not duplicated here. The relay ingest token
 must be transferred out of band to

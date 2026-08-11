@@ -45,11 +45,31 @@ Command: `node --test test/release-scripts.test.mjs test/schema-compatibility.te
 - Python source agent/controller/health checker: byte-compiled successfully.
 - Shell scripts: `bash -n` passed.
 
+## Truthful health and managed-source recovery
+
+- Operator diagnostics reject readiness JSON whose `ready` value is not true
+  and authenticated relay responses without the documented PCM headers.
+- A fresh managed-source heartbeat no longer hides a stored source error.
+  Database read failure, volume-capacity failure, certificate degradation,
+  relay failure, access/game contract failure, and dependency timeout are
+  injected as independent secret-free states.
+- The source checker validates the access service's public Spotify
+  configuration and the controller's authenticated game-API poll separately
+  from Chrome's allowlisted Spotify authorization and SDK player-readiness
+  reports. Missing or stale browser evidence remains `unknown`.
+- The runtime does not enable VNC before a password exists. A dedicated
+  password installer atomically installs a prepared x11vnc file as
+  `cannabeats-source` mode `0400` and then enables only the loopback unit.
+- Focused commands: `node --test test/operator-report.test.mjs` from the access
+  spike and `python3 -m unittest -v test_health_check.py` from the managed-source
+  spike. The full access suite passes 54/54 after P2-C; the managed-source suite
+  passes 9/9. Real certificate/relay/source-node exercise remains a P2-E gate.
+
 ## Deployment-only checks still required
 
 - Validate Compose with the host's Docker Compose version and actual non-secret environment.
 - Produce a real encrypted backup into the separately mounted/off-host destination and record its wall-clock duration and size.
 - Restore that exact artifact to an isolated Compose project and compare live row counts.
 - Exercise a failed container release and rollback on the host while observing unrelated workload continuity.
-- Run authorized component checks against the real relay, certificate, database volume, and managed-source heartbeat.
+- Run authorized component checks against the real relay, certificate, database volume, and managed-source configuration/authentication/player states.
 - Verify managed-source disk/memory and hosting-provider transfer usage; rehearse replacement/Spotify reauthorization when an approved maintenance window is available.

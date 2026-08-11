@@ -200,11 +200,11 @@ Catalog builds reject malformed modules, year-pack convention errors, invalid pr
 | --- | --- | --- |
 | Public liveness | `curl -fsS https://ORIGIN/api/health` and `/game/api/health` | Process can answer; no topology or version detail |
 | Deployment readiness | `curl -fsS http://127.0.0.1:3002/api/ready` and port 3003 `/game/api/ready` | Required config/catalog and bounded database query succeeded |
-| Authorized component status | `docker compose exec app node cli.mjs operator-status` | Access, game, database integrity/volume, relay, source heartbeat, and certificate are independently classified |
+| Authorized component status | `docker compose exec app node cli.mjs operator-status` | Access/game readiness contracts, database integrity/volume, authenticated relay stream contract, source heartbeat/error, and certificate are independently classified |
 | Authorized session summary | `docker compose exec app node cli.mjs operator-summary --since-hours 24` | Current/recent snapshots, counts, safe presence facts, audio lease/command state, and conservative liveness; no writes or names |
-| Source-node capacity | `sudo /opt/cannabeats-managed-source/health_check.py` | Core services, loopback endpoints, relay publisher state, disk, and memory; transfer usage remains an explicit provider check |
+| Source-node readiness/capacity | `sudo /opt/cannabeats-managed-source/health_check.py` | Core services, public configuration validity, authenticated game-API polling, browser-reported Spotify authorization/player readiness, relay publisher state, disk, and memory; transfer usage remains an explicit provider check |
 
-An inactive relay publisher is normal without a lease. An offline managed source is degraded, not game-service unready, because local playback remains available. Check provider transfer usage in the hosting control plane; the source report labels it `unknown` rather than inventing a local estimate.
+An inactive relay publisher is normal without a lease. A source heartbeat with a known error is degraded rather than healthy. An offline managed source is degraded, not game-service unready, because local playback remains available. Source browser readiness becomes `unknown` when its bounded report expires; do not infer authorization or player readiness from a running Chrome process. Check provider transfer usage in the hosting control plane; the source report labels it `unknown` rather than inventing a local estimate.
 
 All HTTP responses carry `X-CannaBeats-Correlation-ID`. JSON error responses also carry a stable `code` and `correlationId`. A family tester may share that UUID; it grants no authority. Operational failures are newline-delimited JSON with release identity and allowlisted context. Successful high-frequency polling is not logged.
 
@@ -233,11 +233,11 @@ Do not image, snapshot, copy, or broadly back up `/var/lib/cannabeats-source/chr
 
 1. Disable the lost source with `managed-source disable --source-id UUID`. Revoke its tailnet and provider access. If compromise is possible, rotate the relay ingest token and revoke the Spotify authorization.
 2. Provision a fresh Ubuntu 24.04 node from `infra/cloud-init.yaml`; keep public SSH temporary and restricted to the operator IP. Leave provider backups/snapshots disabled.
-3. Copy the named release of `spikes/managed-audio-source-poc`, run `sudo infra/install-runtime.sh`, and install the separately built `btaudio-learning` runtime at `/opt/btaudio-venv`.
+3. Copy the named release of `spikes/managed-audio-source-poc`, run `sudo infra/install-runtime.sh`, and install the separately built `btaudio-learning` runtime at `/opt/btaudio-venv`. The runtime installer leaves VNC disabled: create a temporary password file interactively with `x11vnc -storepasswd`, run `sudo /opt/cannabeats-managed-source/install-vnc-password.sh "$HOME/.vnc/passwd"`, then delete the temporary copy.
 4. Register a new source with `node cli.mjs managed-source register --name NAME`. Transfer the once-shown source token and relay ingest token out of band. Install them with the owners and modes described in the source README.
 5. Copy `source.env.example` to `/etc/cannabeats-managed-source/source.env`, record the same application/catalog release identity, and restart the source agent/controller.
 6. Join Tailscale, verify private SSH from the operator device, then remove the temporary public SSH firewall exception.
-7. Run `health_check.py`. Forward loopback VNC over SSH, connect Spotify using the dedicated Premium account, approve the configured browser-PKCE application, verify the account, and start the browser player.
+7. Run `health_check.py` and require `configuration_valid` plus `authenticated_poll_succeeded`; Spotify authorization and player readiness should still be degraded or unknown. Forward loopback VNC over SSH, connect Spotify using the dedicated Premium account, approve the configured browser-PKCE application, verify the account, and start the browser player. Run the check again and require `spotify_authorized` plus `player_ready` before exercising a lease.
 8. Exercise one lease through play, pause, resume, and release. Confirm game status, source heartbeat, SDK state, non-silent relay PCM, and that the relay publisher stops on release.
 9. Destroy the lost node only after access is revoked and replacement verification succeeds. Never transfer the old Chrome profile as a shortcut.
 

@@ -244,6 +244,15 @@ and rollback evidence.
 Gate: injected access, database/volume, relay, certificate, managed-source,
 configuration, and timeout failures produce the documented independent states.
 
+Local implementation checkpoint completed after P2-B. Readiness and relay
+responses are contract-validated, source errors override fresh heartbeats,
+database/volume/certificate failures remain independent, and all dependency
+checks are bounded. The source node now distinguishes public configuration,
+authenticated game-API polling, Spotify authorization, player readiness,
+service/capacity, and stale/unknown browser evidence. VNC cannot be enabled by
+the runtime installer before a separately installed mode-`0400` password file
+exists. Focused injected-failure tests pass; real-node evidence remains P2-E.
+
 ### P2-D: Observability and scheduler completion
 
 Implement after health semantics stabilize so logging records meaningful state

@@ -10,11 +10,29 @@ const state = {
   deviceId: null,
   managedLeaseId: null,
   managedCommandId: null,
+  readiness: {
+    spotifyAuthorization: 'unknown',
+    player: 'not_ready',
+  },
 };
 const byId = (id) => document.getElementById(id);
 
 function log(value) {
   byId('status').textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function reportReadiness() {
+  await fetch('http://127.0.0.1:4782/readiness', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(state.readiness),
+  });
+}
+
+function setReadiness(name, value) {
+  if (state.readiness[name] === value) return;
+  state.readiness[name] = value;
+  void reportReadiness().catch(() => {});
 }
 
 function base64url(bytes) {
@@ -76,6 +94,7 @@ async function handleCallback() {
   if (!response.ok) throw new Error(`Spotify token exchange failed (${response.status})`);
   const token = await response.json();
   localStorage.setItem(REFRESH_KEY, token.refresh_token);
+  setReadiness('spotifyAuthorization', 'authorized');
   state.accessToken = token.access_token;
   state.expiresAt = Date.now() + token.expires_in * 1000;
   sessionStorage.removeItem(VERIFIER_KEY);
@@ -99,12 +118,18 @@ async function accessToken() {
   });
   const token = await response.json();
   if (!response.ok) {
-    if (token.error === 'invalid_grant') localStorage.removeItem(REFRESH_KEY);
+    if (token.error === 'invalid_grant') {
+      localStorage.removeItem(REFRESH_KEY);
+      setReadiness('spotifyAuthorization', 'not_authorized');
+    } else {
+      setReadiness('spotifyAuthorization', 'error');
+    }
     throw new Error(`Spotify refresh failed: ${token.error || response.status}`);
   }
   if (token.refresh_token) localStorage.setItem(REFRESH_KEY, token.refresh_token);
   state.accessToken = token.access_token;
   state.expiresAt = Date.now() + token.expires_in * 1000;
+  setReadiness('spotifyAuthorization', 'authorized');
   render();
   return state.accessToken;
 }
@@ -131,6 +156,7 @@ function loadSdk() {
 
 async function startPlayer() {
   log('Starting Spotify browser player…');
+  setReadiness('player', 'not_ready');
   await loadSdk();
   state.player?.disconnect();
   const player = new Spotify.Player({
@@ -141,16 +167,34 @@ async function startPlayer() {
   state.player = player;
   player.addListener('ready', ({ device_id: deviceId }) => {
     state.deviceId = deviceId;
+    setReadiness('player', 'ready');
     log({ ready: true, deviceId, note: 'Managed browser player is ready.' });
     render();
   });
-  player.addListener('initialization_error', ({ message }) => log(`Initialization error: ${message}`));
-  player.addListener('authentication_error', ({ message }) => log(`Authentication error: ${message}`));
-  player.addListener('account_error', ({ message }) => log(`Account error: ${message}`));
-  player.addListener('playback_error', ({ message }) => log(`Playback error: ${message}`));
+  player.addListener('not_ready', () => {
+    state.deviceId = null;
+    setReadiness('player', 'not_ready');
+    render();
+  });
+  player.addListener('initialization_error', ({ message }) => {
+    setReadiness('player', 'error'); log(`Initialization error: ${message}`);
+  });
+  player.addListener('authentication_error', ({ message }) => {
+    setReadiness('spotifyAuthorization', 'error'); setReadiness('player', 'error');
+    log(`Authentication error: ${message}`);
+  });
+  player.addListener('account_error', ({ message }) => {
+    setReadiness('player', 'error'); log(`Account error: ${message}`);
+  });
+  player.addListener('playback_error', ({ message }) => {
+    setReadiness('player', 'error'); log(`Playback error: ${message}`);
+  });
   player.addListener('autoplay_failed', () => log('Autoplay was blocked. Press Resume once in this private session.'));
   await player.activateElement();
-  if (!await player.connect()) throw new Error('Spotify browser player could not connect');
+  if (!await player.connect()) {
+    setReadiness('player', 'error');
+    throw new Error('Spotify browser player could not connect');
+  }
   render();
 }
 
@@ -246,9 +290,13 @@ async function pollManagedController() {
 }
 
 byId('connect').addEventListener('click', () => connect().catch((error) => log(error.message)));
-byId('verify').addEventListener('click', () => spotifyApi('/me').then((profile) => log({
-  displayName: profile.display_name, product: profile.product, country: profile.country,
-})).catch((error) => log(error.message)));
+byId('verify').addEventListener('click', () => spotifyApi('/me').then((profile) => {
+  setReadiness('spotifyAuthorization', 'authorized');
+  log({ displayName: profile.display_name, product: profile.product, country: profile.country });
+}).catch((error) => {
+  setReadiness('spotifyAuthorization', 'error');
+  log(error.message);
+}));
 byId('start-player').addEventListener('click', () => startPlayer().catch((error) => log(error.message)));
 byId('play').addEventListener('click', async () => {
   try {
@@ -270,6 +318,8 @@ byId('disconnect').addEventListener('click', () => {
   state.expiresAt = 0;
   state.player = null;
   state.deviceId = null;
+  setReadiness('spotifyAuthorization', 'not_authorized');
+  setReadiness('player', 'not_ready');
   log('Spotify authorization removed from this browser profile.');
   render();
 });
@@ -277,7 +327,18 @@ byId('disconnect').addEventListener('click', () => {
 async function initialize() {
   state.config = await fetch('/config').then((response) => response.json());
   await handleCallback();
+  if (localStorage.getItem(REFRESH_KEY)) {
+    try {
+      await spotifyApi('/me');
+      setReadiness('spotifyAuthorization', 'authorized');
+    } catch {
+      setReadiness('spotifyAuthorization', 'error');
+    }
+  } else {
+    setReadiness('spotifyAuthorization', 'not_authorized');
+  }
   render();
+  await reportReadiness().catch(() => {});
   let polling = false;
   const poll = async () => {
     if (polling) return;
@@ -287,6 +348,7 @@ async function initialize() {
   };
   await poll();
   setInterval(() => { void poll(); }, 750);
+  setInterval(() => { void reportReadiness().catch(() => {}); }, 5_000);
 }
 
 initialize().catch((error) => log(error.message));

@@ -22,6 +22,7 @@ LISTEN_ADDRESS = ("127.0.0.1", 4782)
 BROWSER_ORIGIN = "http://127.0.0.1:4781"
 POLL_SECONDS = 1.0
 FAIL_CLOSED_SECONDS = 25.0
+BROWSER_REPORT_STALE_SECONDS = 15.0
 CORRELATION_HEADER = "X-CannaBeats-Correlation-ID"
 APPLICATION_VERSION = os.environ.get("CANNABEATS_APP_VERSION", "development")
 CATALOG_VERSION = os.environ.get("CANNABEATS_CATALOG_VERSION", "development")
@@ -34,6 +35,7 @@ state = {
     "relayActive": None,
     "lastError": None,
     "lastSuccessfulPoll": 0.0,
+    "browserReport": None,
 }
 device_id = None
 
@@ -67,6 +69,69 @@ def source_token():
     if len(token) < 32:
         raise RuntimeError("Managed source token is missing or invalid")
     return token
+
+
+def record_browser_readiness(payload):
+    if not isinstance(payload, dict):
+        raise ValueError("Browser readiness payload is invalid")
+    authorization = payload.get("spotifyAuthorization")
+    player = payload.get("player")
+    if authorization not in {"authorized", "not_authorized", "error", "unknown"}:
+        raise ValueError("Spotify authorization state is invalid")
+    if player not in {"ready", "not_ready", "error", "unknown"}:
+        raise ValueError("Player readiness state is invalid")
+    with lock:
+        state["browserReport"] = {
+            "spotifyAuthorization": authorization,
+            "player": player,
+            "reportedAt": time.monotonic(),
+        }
+
+
+def public_state():
+    with lock:
+        public = dict(state)
+    last_poll = public.pop("lastSuccessfulPoll", 0.0)
+    browser = public.pop("browserReport", None)
+    if public.get("lastError") is not None:
+        public["gameApi"] = {"status": "unavailable", "reasonCode": "game_api_unavailable"}
+    elif last_poll > 0 and time.monotonic() - last_poll <= FAIL_CLOSED_SECONDS:
+        public["gameApi"] = {"status": "healthy", "reasonCode": "authenticated_poll_succeeded"}
+    elif last_poll > 0:
+        public["gameApi"] = {"status": "unavailable", "reasonCode": "game_api_unavailable"}
+    else:
+        public["gameApi"] = {"status": "unknown", "reasonCode": "awaiting_first_poll"}
+
+    if not browser:
+        unknown_reason = "browser_not_reported"
+    elif time.monotonic() - browser["reportedAt"] > BROWSER_REPORT_STALE_SECONDS:
+        unknown_reason = "browser_report_stale"
+    else:
+        unknown_reason = None
+    if unknown_reason:
+        public["browserReadiness"] = {
+            "spotifyAuthorization": {"status": "unknown", "reasonCode": unknown_reason},
+            "player": {"status": "unknown", "reasonCode": unknown_reason},
+        }
+        return public
+
+    authorization_states = {
+        "authorized": {"status": "healthy", "reasonCode": "spotify_authorized"},
+        "not_authorized": {"status": "degraded", "reasonCode": "spotify_not_authorized"},
+        "error": {"status": "degraded", "reasonCode": "spotify_authorization_error"},
+        "unknown": {"status": "unknown", "reasonCode": "browser_not_reported"},
+    }
+    player_states = {
+        "ready": {"status": "healthy", "reasonCode": "player_ready"},
+        "not_ready": {"status": "degraded", "reasonCode": "player_not_ready"},
+        "error": {"status": "degraded", "reasonCode": "player_error"},
+        "unknown": {"status": "unknown", "reasonCode": "browser_not_reported"},
+    }
+    public["browserReadiness"] = {
+        "spotifyAuthorization": authorization_states[browser["spotifyAuthorization"]],
+        "player": player_states[browser["player"]],
+    }
+    return public
 
 
 def api_call(payload, requested_correlation_id=None):
@@ -189,22 +254,22 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if self.path != "/state":
             return self._send(404, {"error": "Not found"})
-        with lock:
-            public = dict(state)
-        public.pop("lastSuccessfulPoll", None)
-        self._send(200, public)
+        self._send(200, public_state())
 
     def do_POST(self):
         global device_id
         if not self._origin_allowed():
             return self._send(403, {"error": "Origin not accepted"})
-        if self.path != "/complete":
+        if self.path not in {"/complete", "/readiness"}:
             return self._send(404, {"error": "Not found"})
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 4096:
                 raise ValueError("Request size is invalid")
             payload = json.loads(self.rfile.read(length))
+            if self.path == "/readiness":
+                record_browser_readiness(payload)
+                return self._send(200, {"ok": True})
             command_id = str(payload.get("commandId", ""))
             with lock:
                 expected = state["command"] and state["command"].get("id")

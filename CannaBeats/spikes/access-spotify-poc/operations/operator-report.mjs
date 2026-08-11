@@ -184,16 +184,44 @@ export function sessionReport(db, {
   };
 }
 
-async function fetchHealth(fetchImpl, url, timeoutMs, headers) {
+async function readinessContract(response) {
+  if (!response.headers.get('content-type')?.toLowerCase().includes('application/json')) return false;
+  const body = await response.text();
+  if (body.length > 2_048) return false;
+  try {
+    return JSON.parse(body)?.ready === true;
+  } catch {
+    return false;
+  }
+}
+
+function relayContract(response) {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+  const encoding = response.headers.get('x-audio-encoding')?.toLowerCase();
+  const rate = Number(response.headers.get('x-audio-rate'));
+  const channels = Number(response.headers.get('x-audio-channels'));
+  return (contentType.startsWith('audio/l16') || contentType.startsWith('application/octet-stream'))
+    && encoding === 's16le'
+    && Number.isInteger(rate) && rate >= 8_000 && rate <= 192_000
+    && Number.isInteger(channels) && channels >= 1 && channels <= 2;
+}
+
+async function fetchHealth(fetchImpl, url, timeoutMs, headers, validate, invalidReasonCode) {
   if (!url) return { status: 'unknown', reasonCode: 'origin_not_configured' };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetchImpl(url, { cache: 'no-store', signal: controller.signal, headers });
-    await response.body?.cancel();
-    return response.ok
-      ? { status: 'healthy', reasonCode: 'ready' }
-      : { status: response.status === 503 ? 'degraded' : 'unavailable', reasonCode: `http_${response.status}` };
+    if (!response.ok) {
+      await response.body?.cancel();
+      return { status: response.status === 503 ? 'degraded' : 'unavailable', reasonCode: `http_${response.status}` };
+    }
+    if (validate && !await validate(response)) {
+      await response.body?.cancel().catch(() => {});
+      return { status: 'degraded', reasonCode: invalidReasonCode };
+    }
+    await response.body?.cancel().catch(() => {});
+    return { status: 'healthy', reasonCode: 'ready' };
   } catch (error) {
     return { status: 'unavailable', reasonCode: error?.name === 'AbortError' ? 'timeout' : 'connection_failed' };
   } finally {
@@ -239,7 +267,13 @@ export async function componentReport({
   relayListenToken,
   fetchImpl = fetch,
   now = Date.now(),
+  dependencyTimeoutMs = 3_000,
+  statfsImpl = statfsSync,
+  certificateCheck = certificateHealth,
 }) {
+  if (!Number.isFinite(dependencyTimeoutMs) || dependencyTimeoutMs < 1 || dependencyTimeoutMs > 30_000) {
+    throw new Error('dependencyTimeoutMs must be between 1 and 30000');
+  }
   let database = { status: 'healthy', reasonCode: 'readable' };
   try {
     const result = db.prepare('PRAGMA integrity_check').get();
@@ -249,7 +283,7 @@ export async function componentReport({
   }
   let volume = { status: 'unknown', reasonCode: 'capacity_unavailable' };
   try {
-    const stats = statfsSync(dirname(databasePath), { bigint: true });
+    const stats = statfsImpl(dirname(databasePath), { bigint: true });
     const total = stats.blocks * stats.bsize;
     const available = stats.bavail * stats.bsize;
     const percentAvailable = total > 0n ? Number((available * 10_000n) / total) / 100 : 0;
@@ -259,31 +293,50 @@ export async function componentReport({
       percentAvailable,
     };
   } catch {}
-  const source = tableExists(db, 'managed_audio_sources') ? one(db, `
-    SELECT COUNT(*) AS enabled,
-           SUM(CASE WHEN enabled = 1 AND last_seen_at > ? THEN 1 ELSE 0 END) AS online
-    FROM managed_audio_sources WHERE enabled = 1
-  `, now - SOURCE_ONLINE_MS) : undefined;
+  let source;
+  try {
+    source = tableExists(db, 'managed_audio_sources') ? one(db, `
+      SELECT COUNT(*) AS enabled,
+             SUM(CASE WHEN enabled = 1 AND last_seen_at > ? THEN 1 ELSE 0 END) AS online,
+             SUM(CASE WHEN enabled = 1
+                       AND last_error IS NOT NULL AND TRIM(last_error) <> '' THEN 1 ELSE 0 END) AS reporting_errors
+      FROM managed_audio_sources WHERE enabled = 1
+    `, now - SOURCE_ONLINE_MS) : undefined;
+  } catch {}
   const managedSource = !source
     ? { status: 'unknown', reasonCode: 'source_state_unavailable' }
-    : Number(source.online) > 0
+    : Number(source.reporting_errors) > 0
+      ? {
+        status: 'degraded', reasonCode: 'source_reported_error',
+        enabled: Number(source.enabled), online: Number(source.online),
+      }
+      : Number(source.online) > 0
       ? { status: 'healthy', reasonCode: 'source_online', enabled: Number(source.enabled), online: Number(source.online) }
       : { status: 'degraded', reasonCode: 'source_offline', enabled: Number(source.enabled), online: 0 };
 
   const relayHeaders = relayListenToken ? { authorization: `Bearer ${relayListenToken}` } : undefined;
   const relay = relayOrigin && relayListenToken
-    ? await fetchHealth(fetchImpl, new URL('/stream.pcm', relayOrigin), 3_000, relayHeaders)
+    ? await fetchHealth(
+      fetchImpl, new URL('/stream.pcm', relayOrigin), dependencyTimeoutMs,
+      relayHeaders, relayContract, 'stream_contract_invalid',
+    )
     : { status: 'unknown', reasonCode: 'relay_not_configured' };
   return {
     checkedAt: new Date(now).toISOString(),
     components: {
-      access: await fetchHealth(fetchImpl, accessOrigin ? new URL('/api/ready', accessOrigin) : '', 3_000),
-      game: await fetchHealth(fetchImpl, gameOrigin ? new URL('/game/api/ready', gameOrigin) : '', 3_000),
+      access: await fetchHealth(
+        fetchImpl, accessOrigin ? new URL('/api/ready', accessOrigin) : '', dependencyTimeoutMs,
+        undefined, readinessContract, 'readiness_contract_invalid',
+      ),
+      game: await fetchHealth(
+        fetchImpl, gameOrigin ? new URL('/game/api/ready', gameOrigin) : '', dependencyTimeoutMs,
+        undefined, readinessContract, 'readiness_contract_invalid',
+      ),
       database,
       databaseVolume: volume,
       relay,
       managedSource,
-      certificate: await certificateHealth(accessOrigin),
+      certificate: await certificateCheck(accessOrigin, dependencyTimeoutMs),
     },
   };
 }
