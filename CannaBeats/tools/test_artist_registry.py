@@ -24,7 +24,8 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from harvest_artist_ids import (REGISTRY, REVIEWED, apply_resolver_ids, collect,
-                                decide, lookup_labels, registry_row)
+                                collect_shows, decide, lookup_labels,
+                                registry_row, show_labels)
 
 
 def binding(label, qid, name, spotify=None, mbid=None, type_label=None,
@@ -116,6 +117,80 @@ class CollectFoldsWikidatasRepeatedRows(unittest.TestCase):
     def test_a_real_name_is_left_alone(self):
         items = collect([binding("Celine Dion", "Q5105", "Céline Dion", "4S9EykWX")])
         self.assertEqual(items["Celine Dion"][0]["name"], "Céline Dion")
+
+
+def show_binding(label, qid, name, type_label=None, article=None):
+    row = {"label": {"value": label},
+           "item": {"value": f"http://www.wikidata.org/entity/{qid}"},
+           "itemLabel": {"value": name}}
+    if type_label:
+        row["typeLabel"] = {"value": type_label}
+    if article:
+        row["article"] = {"value": "https://en.wikipedia.org/wiki/" + article}
+    return row
+
+
+class ShowLabelsTryTheDisambiguatedTitleToo(unittest.TestCase):
+    """A work's plain title is rarely its article title. Measured 2026-08-10:
+    the musicals are all filed under "X (musical)" — Hamilton is Q19320959 at
+    `Hamilton (musical)`, and the bare label "Hamilton" returns only films and
+    a nature reserve. Both routes are needed, for opposite reasons: the
+    qualified title finds the musical, and the bare label finds `Encanto`,
+    whose article carries no qualifier at all.
+    """
+
+    def test_the_bare_title_leads(self):
+        self.assertEqual(show_labels("Encanto")[0], "Encanto")
+
+    def test_the_qualified_variants_follow(self):
+        labels = show_labels("Hamilton")
+        self.assertIn("Hamilton (musical)", labels)
+        self.assertIn("Hamilton (film)", labels)
+
+    def test_punctuation_is_carried_into_every_variant(self):
+        # "Fiorello" does not find "Fiorello!" — Wikidata matching is exact.
+        self.assertTrue(all(label.startswith("Mamma Mia!")
+                            for label in show_labels("Mamma Mia!")))
+
+    def test_no_duplicates_and_nothing_for_an_empty_title(self):
+        self.assertEqual(len(show_labels("Cats")), len(set(show_labels("Cats"))))
+        self.assertEqual(show_labels(""), [])
+
+
+class CollectShowsKeepsTheTypeThatTellsThemApart(unittest.TestCase):
+    """"Titanic" is a 1997 film AND a 1997 musical, and the credit says
+    "Original Broadway Cast", so the P31 type is the whole decision. Losing it
+    would make the row unreviewable."""
+
+    def test_the_type_and_title_ride_along(self):
+        items = collect_shows([show_binding("Hamilton (musical)", "Q19320959",
+                                            "Hamilton", "dramatico-musical work",
+                                            "Hamilton_(musical)")])
+        item = items["Hamilton (musical)"][0]
+        self.assertEqual(item["wikidata"], "Q19320959")
+        self.assertEqual(item["types"], ["dramatico-musical work"])
+        self.assertEqual(item["article"], "Hamilton (musical)")
+
+    def test_one_work_with_two_types_is_one_candidate(self):
+        rows = [show_binding("Encanto", "Q103372692", "Encanto", "animated film"),
+                show_binding("Encanto", "Q103372692", "Encanto", "film")]
+        items = collect_shows(rows)["Encanto"]
+        self.assertEqual(len(items), 1)
+        self.assertEqual(sorted(items[0]["types"]), ["animated film", "film"])
+
+    def test_distinct_works_under_one_title_stay_distinct(self):
+        rows = [show_binding("Titanic", "Q44578", "Titanic", "film"),
+                show_binding("Titanic", "Q1416989", "Titanic",
+                             "dramatico-musical work")]
+        self.assertEqual(len(collect_shows(rows)["Titanic"]), 2)
+
+    def test_a_work_carries_no_artist_identifiers(self):
+        # A work is not a performer. Reusing spotify_artist_id/musicbrainz_
+        # artist_id here would put a non-artist into an artist join.
+        item = collect_shows([show_binding("Cats (musical)", "Q337097", "Cats",
+                                           "dramatico-musical work")])["Cats (musical)"][0]
+        self.assertNotIn("spotify_artist_id", item)
+        self.assertNotIn("musicbrainz_artist_id", item)
 
 
 class TheArticleTitleIsKeptBesideTheLabel(unittest.TestCase):

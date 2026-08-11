@@ -98,7 +98,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from _common import CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED
+from _common import CREDIT_FEAT, CREDIT_FEAT_X, CREDIT_JOINED, show_title
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 REGISTRY = HERE / "mappings" / "artist-registry.jsonl"
@@ -146,6 +146,80 @@ def article_title(url: str) -> str:
     if not url:
         return ""
     return urllib.parse.unquote(url.rsplit("/", 1)[-1]).replace("_", " ")
+
+
+# A cast recording has no ARTIST entity, so the 32 of them in the catalog all
+# harvested to `none`. The entity they have is the WORK. Verified 2026-08-10:
+# musicals are P31 "dramatico-musical work" (Q58483083), NOT "musical"
+# (Q2743), and they live at a disambiguated article title — "Hamilton" as a
+# bare label returns three films and a nature reserve, while
+# "Hamilton (musical)" is Q19320959. So both routes run here too, and for
+# opposite reasons: the qualified title finds the musicals, the bare label
+# finds "Encanto", whose article carries no qualifier.
+# Direct P31 values, not a wdt:P279* subclass walk. The walk timed out the
+# endpoint twice (HTTP 504, even at 24 labels per query) because an unbound
+# ?item makes it a full scan. These are the types actually observed on the
+# catalog's works, so the explicit list costs nothing and always returns.
+SHOW_CLASSES = ("Q58483083",   # dramatico-musical work — how musicals are typed
+                "Q11424",      # film
+                "Q202866",     # animated film
+                "Q29168811",   # animated feature film
+                "Q24862",      # short film
+                "Q506240",     # television film
+                "Q5398426",    # television series
+                "Q1259759")    # miniseries
+SHOW_QUALIFIERS = ("", " (musical)", " (film)", " (TV series)")
+
+SHOW_QUERY = """SELECT ?label ?item ?itemLabel ?typeLabel ?article WHERE {
+  VALUES ?label { %%s }
+  { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ;
+             schema:name ?label . }
+  UNION
+  { ?item rdfs:label ?label . ?item wdt:P31 ?class . VALUES ?class { %s } }
+  OPTIONAL { ?item wdt:P31 ?type }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}""" % " ".join("wd:" + qid for qid in SHOW_CLASSES)
+
+
+def show_labels(title: str) -> list:
+    """Article/label variants to try for one work title, bare form first."""
+    if not title:
+        return []
+    seen, labels = set(), []
+    for candidate in (title + qualifier for qualifier in SHOW_QUALIFIERS):
+        if candidate.lower() not in seen:
+            seen.add(candidate.lower())
+            labels.append(candidate)
+    return labels
+
+
+def collect_shows(bindings) -> dict:
+    """{label: [work candidate]} — same folding as collect(), no artist IDs.
+
+    A work is not a performer, so it carries no Spotify or MusicBrainz ARTIST
+    id; putting one here would feed a non-artist into an artist join. The P31
+    type is what makes the row reviewable: "Titanic" is both a 1997 film and a
+    1997 musical, and the credit saying "Original Broadway Cast" is the only
+    thing that picks between them.
+    """
+    merged = collections.defaultdict(dict)
+    for row in bindings:
+        label = row["label"]["value"]
+        qid = row["item"]["value"].rsplit("/", 1)[-1]
+        name = row.get("itemLabel", {}).get("value", "")
+        item = merged[label].setdefault(qid, {
+            "wikidata": qid,
+            "name": label if name == qid else name,
+            "types": [],
+            "article": "",
+        })
+        kind = row.get("typeLabel", {}).get("value")
+        if kind and kind not in item["types"]:
+            item["types"].append(kind)
+        item["article"] = item["article"] or article_title(
+            row.get("article", {}).get("value", ""))
+    return {label: list(items.values()) for label, items in merged.items()}
 
 
 def sparql_literal(text: str) -> str:
@@ -289,9 +363,9 @@ def catalog_credits(root: pathlib.Path):
     return counts
 
 
-def run_query(labels) -> list:
+def run_query(labels, query=None) -> list:
     body = urllib.parse.urlencode({
-        "query": QUERY % " ".join(sparql_literal(t) for t in labels),
+        "query": (query or QUERY) % " ".join(sparql_literal(t) for t in labels),
         "format": "json",
     }).encode()
     request = urllib.request.Request(ENDPOINT, data=body, headers=UA)
@@ -351,6 +425,66 @@ def rederive_rows(rows) -> int:
     return changed
 
 
+def show_targets(rows) -> list:
+    """Rows whose credit names a WORK and that found no artist entity.
+
+    Restricted to rows with no `wikidata`, because a credit that resolved to a
+    real performer is not a cast recording no matter how it is spelled — the
+    artist answer stands and a work would only muddy it.
+    """
+    return [row for row in rows
+            if show_title(row["credit"]) and not row["wikidata"]
+            and row.get("source") not in REVIEWED]
+
+
+def harvest_shows(path: pathlib.Path, chunk_size: int) -> None:
+    """Fill `work_candidates` on cast-recording rows. Never decides."""
+    rows = read_rows(path)
+    if not rows:
+        sys.exit(f"nothing to harvest: {path} is missing or empty")
+    targets = show_targets(rows)
+    print(f"{len(targets)} cast credit(s) name a work", file=sys.stderr)
+    if not targets:
+        return
+
+    labels = sorted({label for row in targets
+                     for label in show_labels(show_title(row["credit"]))})
+    chunks = [labels[i:i + chunk_size] for i in range(0, len(labels), chunk_size)]
+    print(f"{len(labels)} distinct titles in {len(chunks)} queries", file=sys.stderr)
+
+    candidates, queried = {}, set()
+    for index, chunk in enumerate(chunks, 1):
+        try:
+            bindings = run_query(chunk, SHOW_QUERY)
+        except urllib.error.HTTPError as error:
+            print(f"  HTTP {error.code} on chunk {index}; "
+                  f"Retry-After={error.headers.get('Retry-After')!r} — stopping "
+                  f"with progress saved", file=sys.stderr)
+            break
+        except Exception as error:
+            print(f"  {type(error).__name__} on chunk {index}: {error}", file=sys.stderr)
+            break
+        for label, items in collect_shows(bindings).items():
+            candidates.setdefault(label, []).extend(items)
+        queried.update(chunk)
+        print(f"  chunk {index}/{len(chunks)}: {len(bindings)} bindings", file=sys.stderr)
+        time.sleep(PACE)
+
+    filled = 0
+    for row in targets:
+        wanted = show_labels(show_title(row["credit"]))
+        if not all(label in queried for label in wanted):
+            continue  # its chunk never ran; a re-run picks it up
+        found = {label: candidates[label] for label in wanted if label in candidates}
+        if found and row.get("work_candidates") != found:
+            row["work_candidates"] = found
+            filled += 1
+    write_rows(path, rows)
+    without = sum(1 for row in targets if not row.get("work_candidates"))
+    print(f"\nwork candidates on {filled} row(s) -> {path}; "
+          f"{without} cast credit(s) still have none", file=sys.stderr)
+
+
 def rederive(path: pathlib.Path) -> None:
     """Replay decide() over stored candidates — no network. Use after any
     change to the label or decision rules."""
@@ -374,10 +508,16 @@ def main() -> None:
     parser.add_argument("--chunk", type=int, default=200, help="labels per SPARQL query")
     parser.add_argument("--rederive", action="store_true",
                         help="recompute from stored candidates; no network")
+    parser.add_argument("--shows", action="store_true",
+                        help="fill work candidates on cast-recording credits")
     args = parser.parse_args()
 
     if args.rederive:
         rederive(args.out)
+        return
+
+    if args.shows:
+        harvest_shows(args.out, args.chunk)
         return
 
     existing = read_rows(args.out)

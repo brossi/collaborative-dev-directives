@@ -148,6 +148,53 @@ def lead_credit(credit: str) -> str:
     return CREDIT_JOINED.split(trimmed)[0].strip()
 
 
+# A cast recording credits no performer, so it has no Wikidata ARTIST entity —
+# all 32 in the catalog harvested to `none`. The entity it does have is the
+# WORK, and the credit string is the only place the work's name appears: the
+# song records carry title/artist/year/genres/uri and nothing else.
+#
+# Both rules are anchored on "cast" as a standalone word, because the failure
+# mode is not a near miss. "Original Broadway Cast of Nine" cut to "Nine"
+# resolves to the number; "Casting Crowns" is a band, not a cast.
+CAST_OF = re.compile(r"\bcast\s+of\s+(?P<work>.+)$", re.I)
+CAST_SUFFIX = re.compile(r"^(?P<work>.+?)\s+(?:original\s+)?cast$", re.I)
+# Words that describe WHICH cast rather than which work. "Original Broadway
+# Cast" with no show after it would otherwise yield the work "Original
+# Broadway". Used only to test whether anything real is left, never to rewrite
+# a title: "The Rocky Horror Picture Show" keeps its "The".
+CAST_QUALIFIER = re.compile(
+    r"\b(?:original|broadway|london|west\s+end|revival|touring|studio|new)\b", re.I)
+
+
+def show_title(credit: str) -> str:
+    """The work a cast credit names, as originally spelled, or "".
+
+    "Original Broadway Cast of Hamilton" -> "Hamilton"; "Encanto Cast" ->
+    "Encanto"; "Aretha Franklin" -> "". Punctuation and leading articles are
+    kept because Wikidata label matching is exact — "Fiorello" does not find
+    "Fiorello!" and "Lion King" does not find "The Lion King".
+
+    Returns "" for anything that does not clearly name a work, including
+    "Original Broadway Cast" with nothing after it. A caller must treat "" as
+    "no work named" and not as a lookup key.
+    """
+    trimmed = CREDIT_FEAT.sub("", credit).strip()
+    # Rightmost "cast of" wins: a performer may be billed ahead of the cast, as
+    # in "John Lloyd Young, Original Broadway Cast of Jersey Boys".
+    match = None
+    for match in CAST_OF.finditer(trimmed):
+        pass
+    if match is None:
+        match = CAST_SUFFIX.match(trimmed)
+    if match is None:
+        return ""
+    work = match.group("work").strip()
+    # Nothing but cast-descriptors left means the credit never named a work.
+    if not CAST_QUALIFIER.sub("", work).strip(" .-"):
+        return ""
+    return work
+
+
 def playlist_id(arg: str) -> str:
     """Extract the playlist ID from a Spotify URL/URI, or pass a bare ID through."""
     match = PLAYLIST_ID.search(arg)
