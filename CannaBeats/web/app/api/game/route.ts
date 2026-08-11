@@ -31,6 +31,21 @@ type Principal = {
   sessionCode?: string;
 };
 
+type ActionReceiptRow = {
+  action: string;
+  request_fingerprint: string;
+};
+
+class GameRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status = 400,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
+
 const SESSION_COOKIE = "cb_session";
 const DESKTOP_WEB_COOKIE = "cb_desktop_web";
 const GUEST_COOKIE = "cb_guest";
@@ -134,8 +149,11 @@ function mutationOriginAccepted(request: Request) {
   return Boolean(supplied && constantTimeEqual(expected, supplied));
 }
 
-function fail(message: string, status = 400) {
-  return Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
+function fail(message: string, status = 400, code?: string) {
+  return Response.json(
+    { error: message, ...(code ? { code } : {}) },
+    { status, headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 function newRoomState(code: string, rules: unknown): RoomState {
@@ -179,6 +197,85 @@ function saveRoom(state: RoomState) {
     WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
   `)
     .run(JSON.stringify(state), Date.now(), state.code);
+}
+
+const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function requiredActionId(payload: Record<string, unknown>) {
+  const actionId = String(payload.actionId ?? "").toLowerCase();
+  if (!ACTION_ID.test(actionId)) {
+    throw new GameRequestError(
+      "A valid action ID is required.",
+      400,
+      "action_id_required",
+    );
+  }
+  return actionId;
+}
+
+function requestFingerprint(values: Record<string, unknown>) {
+  return sha256(JSON.stringify(values));
+}
+
+function mutateRoomOnce({
+  code,
+  principal,
+  action,
+  actionId,
+  fingerprint,
+  mutate,
+}: {
+  code: string;
+  principal: Principal;
+  action: string;
+  actionId: string;
+  fingerprint: string;
+  mutate: (room: NonNullable<ReturnType<typeof loadRoom>>) => void;
+}) {
+  const db = database();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const current = loadRoom(code);
+    if (!current) throw new GameRequestError("The game is not available.", 409);
+    const receipt = db.prepare(`
+      SELECT action, request_fingerprint FROM game_action_receipts
+      WHERE run_id = ? AND actor_id = ? AND action_id = ?
+    `).get(current.row.id, principal.id, actionId) as ActionReceiptRow | undefined;
+    if (receipt) {
+      if (receipt.action !== action || receipt.request_fingerprint !== fingerprint) {
+        throw new GameRequestError(
+          "This action ID was already used for another request.",
+          409,
+          "action_id_conflict",
+        );
+      }
+      db.exec("COMMIT");
+      return {
+        room: roomView(current.state, isHost(current, principal)),
+        action: { id: actionId, accepted: true, replayed: true },
+      };
+    }
+
+    mutate(current);
+    saveRoom(current.state);
+    db.prepare(`
+      INSERT INTO game_action_receipts
+        (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(current.row.id, principal.id, actionId, action, fingerprint, Date.now());
+    db.exec("COMMIT");
+    return {
+      room: roomView(current.state, isHost(current, principal)),
+      action: { id: actionId, accepted: true, replayed: false },
+    };
+  } catch (error) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // Preserve the action error if SQLite already closed the transaction.
+    }
+    throw error;
+  }
 }
 
 function pickSong(state: RoomState): Song {
@@ -320,6 +417,7 @@ function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: P
 }
 
 function errorResponse(error: unknown) {
+  if (error instanceof GameRequestError) return fail(error.message, error.status, error.code);
   if (error instanceof Response) return fail(
     error.status === 401 ? "Sign in required." : "Request was not accepted.",
     error.status,
@@ -621,52 +719,86 @@ async function postGame(request: Request) {
     }
 
     if (action === "place") {
+      const actionId = requiredActionId(payload);
       const playerId = String(payload.playerId ?? "");
       const index = Number(payload.index);
-      const player = state.players[state.activePlayerIndex];
-      const hostIsPlacing = player?.control === "host" && callerIsHost;
-      const activePlayerIsPlacing = player?.control === "phone"
-        && playerId === state.activePlayerId
-        && principalControlsPlayer(code, principal, playerId);
-      if (state.phase !== "playing" || !player || (!hostIsPlacing && !activePlayerIsPlacing)) {
-        return fail("It is not this player’s turn.", 409);
-      }
-      if (!Number.isInteger(index) || index < 0 || index > player.timeline.length) {
-        return fail("Choose a valid timeline position.");
-      }
-      state.placement = index;
-      state.phase = "placed";
-      saveRoom(state);
-      return Response.json({ room: roomView(state, callerIsHost) });
+      const fingerprint = requestFingerprint({ action, playerId, index });
+      return Response.json(mutateRoomOnce({
+        code,
+        principal,
+        action,
+        actionId,
+        fingerprint,
+        mutate(current) {
+          const currentState = current.state;
+          const player = currentState.players[currentState.activePlayerIndex];
+          const hostIsPlacing = player?.control === "host" && isHost(current, principal);
+          const activePlayerIsPlacing = player?.control === "phone"
+            && playerId === currentState.activePlayerId
+            && principalControlsPlayer(code, principal, playerId);
+          if (currentState.phase !== "playing" || !player || (!hostIsPlacing && !activePlayerIsPlacing)) {
+            throw new GameRequestError("It is not this player’s turn.", 409);
+          }
+          if (!Number.isInteger(index) || index < 0 || index > player.timeline.length) {
+            throw new GameRequestError("Choose a valid timeline position.");
+          }
+          currentState.placement = index;
+          currentState.phase = "placed";
+        },
+      }));
     }
 
     if (action === "retract") {
+      const actionId = requiredActionId(payload);
       const playerId = String(payload.playerId ?? "");
-      const player = state.players[state.activePlayerIndex];
-      const hostIsRetracting = player?.control === "host" && callerIsHost;
-      const activePlayerIsRetracting = player?.control === "phone"
-        && playerId === state.activePlayerId
-        && principalControlsPlayer(code, principal, playerId);
-      if (state.phase !== "placed" || (!hostIsRetracting && !activePlayerIsRetracting)) {
-        return fail("There is no placement to retract.", 409);
-      }
-      if (!state.rules.allowRetraction) return fail("Retractions are disabled for this game.", 409);
-      if (state.retractionUsed) return fail("This round’s retraction has already been used.", 409);
-      state.placement = null;
-      state.retractionUsed = true;
-      state.phase = "playing";
-      saveRoom(state);
-      return Response.json({ room: roomView(state, callerIsHost) });
+      const fingerprint = requestFingerprint({ action, playerId });
+      return Response.json(mutateRoomOnce({
+        code,
+        principal,
+        action,
+        actionId,
+        fingerprint,
+        mutate(current) {
+          const currentState = current.state;
+          const player = currentState.players[currentState.activePlayerIndex];
+          const hostIsRetracting = player?.control === "host" && isHost(current, principal);
+          const activePlayerIsRetracting = player?.control === "phone"
+            && playerId === currentState.activePlayerId
+            && principalControlsPlayer(code, principal, playerId);
+          if (currentState.phase !== "placed" || (!hostIsRetracting && !activePlayerIsRetracting)) {
+            throw new GameRequestError("There is no placement to retract.", 409);
+          }
+          if (!currentState.rules.allowRetraction) {
+            throw new GameRequestError("Retractions are disabled for this game.", 409);
+          }
+          if (currentState.retractionUsed) {
+            throw new GameRequestError("This round’s retraction has already been used.", 409);
+          }
+          currentState.placement = null;
+          currentState.retractionUsed = true;
+          currentState.phase = "playing";
+        },
+      }));
     }
 
     if (action === "reveal") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "placed" || !state.currentSong || state.placement === null) {
-        return fail("Wait for the active player to lock a placement.", 409);
-      }
-      revealPlacement(state);
-      saveRoom(state);
-      return Response.json({ room: roomView(state, true) });
+      const actionId = requiredActionId(payload);
+      const fingerprint = requestFingerprint({ action });
+      return Response.json(mutateRoomOnce({
+        code,
+        principal,
+        action,
+        actionId,
+        fingerprint,
+        mutate(current) {
+          if (!isHost(current, principal)) throw new GameRequestError("Host access required.", 403);
+          const currentState = current.state;
+          if (currentState.phase !== "placed" || !currentState.currentSong || currentState.placement === null) {
+            throw new GameRequestError("Wait for the active player to lock a placement.", 409);
+          }
+          revealPlacement(currentState);
+        },
+      }));
     }
 
     if (action === "advance") {

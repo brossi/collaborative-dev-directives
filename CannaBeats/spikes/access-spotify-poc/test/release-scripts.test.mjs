@@ -145,9 +145,9 @@ test('release rejects a database schema newer than the candidate before build or
   const paths = fixture();
   await assert.rejects(
     run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], {
-      env: { ...paths.env, CANNABEATS_TEST_SCHEMA_VERSION: '2' },
+      env: { ...paths.env, CANNABEATS_TEST_SCHEMA_VERSION: '3' },
     }),
-    (error) => /schema version 2.*candidate/i.test(error.stderr),
+    (error) => /schema version 3.*candidate/i.test(error.stderr),
   );
   const commands = readFileSync(paths.commandLog, 'utf8');
   assert.doesNotMatch(commands, /build app game| up /);
@@ -285,7 +285,7 @@ test('rollback rejects an incompatible previous schema before replacing containe
   await run(release, ['release-b2', catalogVersion], { env: paths.env });
   const previousPath = join(paths.releaseDirectory, 'previous-compose.yaml');
   const incompatible = readFileSync(previousPath, 'utf8')
-    .replace('schema-max-version: 1', 'schema-max-version: 0')
+    .replace('schema-max-version: 2', 'schema-max-version: 0')
     .replace('schema-target-version: 1', 'schema-target-version: 0');
   writeFileSync(previousPath, incompatible);
   const upBefore = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up ')).length;

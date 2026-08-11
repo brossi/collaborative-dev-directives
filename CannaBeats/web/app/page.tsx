@@ -9,13 +9,38 @@ import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-p
 import { useManagedAudioStream, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 
+const RETRYABLE_ACTIONS = new Set(["place", "retract", "reveal"]);
+
 async function gameRequest(body: Record<string, unknown>) {
-  const response = await fetch(cannabeatsPath("/api/game"), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string; hostToken?: string; playerId?: string; joinOrigin?: string; guestInvite?: string; expiresAt?: number };
+  const action = String(body.action ?? "");
+  const requestBody = RETRYABLE_ACTIONS.has(action) && !body.actionId
+    ? { ...body, actionId: crypto.randomUUID() }
+    : body;
+  let response: Response | undefined;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetch(cannabeatsPath("/api/game"), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      break;
+    } catch (error) {
+      if (attempt === 1 || !RETRYABLE_ACTIONS.has(action)) throw error;
+    }
+  }
+  if (!response) throw new Error("The game request did not complete.");
+  const payload = await response.json() as {
+    room?: RoomView;
+    audio?: AudioControlView;
+    action?: { id: string; accepted: boolean; replayed: boolean };
+    error?: string;
+    hostToken?: string;
+    playerId?: string;
+    joinOrigin?: string;
+    guestInvite?: string;
+    expiresAt?: number;
+  };
   if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
   return payload;
 }

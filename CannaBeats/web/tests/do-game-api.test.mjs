@@ -542,37 +542,104 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const placementHeaders = activePlayer.control === "host"
     ? { Cookie: `cb_session=${hostCookie}`, Origin: origin }
     : { Authorization: `Bearer ${playerToken}` };
-  const submitted = await gamePost(
+  const missingPlacementId = await gamePost(
     { action: "place", code: sessionCode, playerId: activePlayer.id, index: 0 },
     placementHeaders,
   );
-  assert.equal(submitted.status, 200);
-  const lockedRoom = (await submitted.json()).room;
-  assert.equal(lockedRoom.phase, "placed");
+  assert.equal(missingPlacementId.status, 400);
+  assert.equal((await missingPlacementId.json()).code, "action_id_required");
 
+  const placementActionId = randomUUID();
+  const placementRequest = {
+    action: "place", actionId: placementActionId, code: sessionCode, playerId: activePlayer.id, index: 0,
+  };
+  const concurrentPlacements = await Promise.all([
+    gamePost(placementRequest, placementHeaders),
+    gamePost(placementRequest, placementHeaders),
+  ]);
+  assert.deepEqual(concurrentPlacements.map((response) => response.status), [200, 200]);
+  const concurrentPlacementPayloads = await Promise.all(
+    concurrentPlacements.map((response) => response.json()),
+  );
+  assert.deepEqual(
+    concurrentPlacementPayloads.map((payload) => payload.action.replayed).sort(),
+    [false, true],
+  );
+  for (const payload of concurrentPlacementPayloads) {
+    assert.equal(payload.room.phase, "placed");
+    assert.equal(payload.action.id, placementActionId);
+    assert.equal(payload.action.accepted, true);
+  }
+  const otherActorHeaders = activePlayer.control === "host"
+    ? { Authorization: `Bearer ${playerToken}` }
+    : { Cookie: `cb_session=${hostCookie}`, Origin: origin };
+  const crossActorReuse = await gamePost(placementRequest, otherActorHeaders);
+  assert.equal(crossActorReuse.status, 409);
+  const placementConflict = await gamePost(
+    { ...placementRequest, index: 1 },
+    placementHeaders,
+  );
+  assert.equal(placementConflict.status, 409);
+  assert.equal((await placementConflict.json()).code, "action_id_conflict");
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
+  `).get(placementActionId).count, 1);
+
+  const retractActionId = randomUUID();
+  const retractRequest = {
+    action: "retract", actionId: retractActionId, code: sessionCode, playerId: activePlayer.id,
+  };
   const retracted = await gamePost(
-    { action: "retract", code: sessionCode, playerId: activePlayer.id },
+    retractRequest,
     placementHeaders,
   );
   assert.equal(retracted.status, 200);
-  assert.equal((await retracted.json()).room.phase, "playing");
+  const retractedPayload = await retracted.json();
+  assert.equal(retractedPayload.room.phase, "playing");
+  assert.equal(retractedPayload.action.replayed, false);
+  const replayedRetraction = await gamePost(retractRequest, placementHeaders);
+  assert.equal(replayedRetraction.status, 200);
+  const replayedRetractionPayload = await replayedRetraction.json();
+  assert.equal(replayedRetractionPayload.room.phase, "playing");
+  assert.equal(replayedRetractionPayload.room.retractionUsed, true);
+  assert.equal(replayedRetractionPayload.action.replayed, true);
 
+  const finalPlacementActionId = randomUUID();
   const finalPlacement = await gamePost(
-    { action: "place", code: sessionCode, playerId: activePlayer.id, index: 0 },
+    {
+      action: "place", actionId: finalPlacementActionId, code: sessionCode,
+      playerId: activePlayer.id, index: 0,
+    },
     placementHeaders,
   );
   assert.equal(finalPlacement.status, 200);
   assert.equal((await finalPlacement.json()).room.phase, "placed");
 
+  const revealActionId = randomUUID();
+  const revealRequest = { action: "reveal", actionId: revealActionId, code: sessionCode };
   const revealed = await gamePost(
-    { action: "reveal", code: sessionCode },
+    revealRequest,
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(revealed.status, 200);
-  const answeredRoom = (await revealed.json()).room;
+  const revealedPayload = await revealed.json();
+  const answeredRoom = revealedPayload.room;
   assert.equal(answeredRoom.phase, "revealed");
   assert.ok(answeredRoom.currentSong);
   assert.equal(typeof answeredRoom.result.correct, "boolean");
+  const activeTimelineLength = answeredRoom.players
+    .find((player) => player.id === activePlayer.id).timeline.length;
+  const replayedReveal = await gamePost(
+    revealRequest,
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(replayedReveal.status, 200);
+  const replayedRevealPayload = await replayedReveal.json();
+  assert.equal(replayedRevealPayload.action.replayed, true);
+  assert.equal(
+    replayedRevealPayload.room.players.find((player) => player.id === activePlayer.id).timeline.length,
+    activeTimelineLength,
+  );
 
   const resumed = await gamePost(
     { action: "prepare", code: sessionCode },

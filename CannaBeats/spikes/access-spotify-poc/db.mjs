@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 const INVITATION_ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
 export const MANAGE_HOST_INVITATIONS = 'manage_host_invitations';
 export const DATABASE_SCHEMA_MIN_VERSION = 0;
-export const DATABASE_SCHEMA_MAX_VERSION = 1;
+export const DATABASE_SCHEMA_MAX_VERSION = 2;
 export const DATABASE_SCHEMA_TARGET_VERSION = 1;
 
 function randomAlphabetText(length) {
@@ -303,7 +303,8 @@ function migrate(db) {
     if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
     const ticketColumns = new Set(db.prepare('PRAGMA table_info(desktop_web_tickets)').all().map((column) => column.name));
     if (!ticketColumns.has('session_code')) db.exec('ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)');
-    db.exec(`PRAGMA user_version = ${DATABASE_SCHEMA_TARGET_VERSION}; COMMIT`);
+    const resultingVersion = Math.max(startingVersion, DATABASE_SCHEMA_TARGET_VERSION);
+    db.exec(`PRAGMA user_version = ${resultingVersion}; COMMIT`);
   } catch (error) {
     try {
       db.exec('ROLLBACK');

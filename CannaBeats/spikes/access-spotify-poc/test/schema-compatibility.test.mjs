@@ -24,24 +24,38 @@ test('database initialization migrates schema version zero to the current versio
   db.close();
 });
 
-test('database initialization rejects a newer schema before changing its structure', () => {
+test('the expand bridge reads schema two without lowering its version', () => {
+  const databasePath = join(root, 'bridge-v2.sqlite');
+  const versionTwo = new DatabaseSync(databasePath);
+  versionTwo.exec('PRAGMA user_version = 2');
+  versionTwo.close();
+
+  const bridged = openDatabase(databasePath);
+  assert.equal(bridged.prepare('PRAGMA user_version').get().user_version, 2);
+  assert.equal(bridged.prepare(`
+    SELECT COUNT(*) AS count FROM sqlite_schema WHERE type = 'table' AND name = 'users'
+  `).get().count, 1);
+  bridged.close();
+});
+
+test('database initialization rejects versions newer than the bridge before changing structure', () => {
   const databasePath = join(root, 'newer.sqlite');
   const future = new DatabaseSync(databasePath);
-  future.exec('PRAGMA user_version = 2');
+  future.exec('PRAGMA user_version = 3');
   future.close();
 
   let unexpectedlyOpened;
   try {
     assert.throws(
       () => { unexpectedlyOpened = openDatabase(databasePath); },
-      /schema version 2 is newer than supported version 1/i,
+      /schema version 3 is newer than supported version 2/i,
     );
   } finally {
     unexpectedlyOpened?.close();
   }
 
   const inspected = new DatabaseSync(databasePath, { readOnly: true });
-  assert.equal(inspected.prepare('PRAGMA user_version').get().user_version, 2);
+  assert.equal(inspected.prepare('PRAGMA user_version').get().user_version, 3);
   assert.equal(inspected.prepare(`
     SELECT COUNT(*) AS count FROM sqlite_schema WHERE type = 'table' AND name = 'users'
   `).get().count, 0);
@@ -61,8 +75,11 @@ test('access, game, Compose, and release tooling declare one schema compatibilit
 
   const gameDatabase = readFileSync(resolve('../../web/lib/server/database.ts'), 'utf8');
   assert.match(gameDatabase, /DATABASE_SCHEMA_MIN_VERSION = 0/);
-  assert.match(gameDatabase, /DATABASE_SCHEMA_MAX_VERSION = 1/);
+  assert.match(gameDatabase, /DATABASE_SCHEMA_MAX_VERSION = 2/);
   assert.match(gameDatabase, /DATABASE_SCHEMA_TARGET_VERSION = 1/);
+  assert.match(gameDatabase, /Math\.max\(startingVersion, DATABASE_SCHEMA_TARGET_VERSION\)/);
+  assert.match(gameDatabase, /CREATE TABLE IF NOT EXISTS game_action_receipts/);
+  assert.match(gameDatabase, /run_id TEXT NOT NULL REFERENCES game_runs\(id\) ON DELETE CASCADE/);
 
   const compose = readFileSync('compose.yaml', 'utf8');
   for (const [name, version] of Object.entries(contract)) {

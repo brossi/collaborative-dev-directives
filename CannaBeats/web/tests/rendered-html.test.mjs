@@ -64,6 +64,18 @@ test("lobby game sessions survive reloads and transient connection gaps", async 
   assert.match(playLan, /"--persist-to", persistentState/);
 });
 
+test("retryable player intents keep one stable action ID across a network retry", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /const RETRYABLE_ACTIONS = new Set/);
+  for (const action of ["place", "retract", "reveal"]) {
+    assert.match(page, new RegExp(`"${action}"`));
+  }
+  assert.match(page, /actionId: crypto\.randomUUID\(\)/);
+  assert.match(page, /body: JSON\.stringify\(requestBody\)/);
+  assert.match(page, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
+});
+
 test("the player game view prioritizes the timeline", async () => {
   const [page, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
@@ -121,7 +133,7 @@ test("either side of a matching year is accepted", async () => {
 
   assert.match(route, /previous\.year <= state\.currentSong\.year/);
   assert.match(route, /state\.currentSong\.year <= next\.year/);
-  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(state\)/);
+  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(currentState\)/);
 });
 
 test("the host displays the answer after the retraction window closes", async () => {
@@ -131,8 +143,8 @@ test("the host displays the answer after the retraction window closes", async ()
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(route, /if \(action === "place"\)[\s\S]*state\.phase = "placed"/);
-  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(state\)/);
+  assert.match(route, /if \(action === "place"\)[\s\S]*currentState\.phase = "placed"/);
+  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(currentState\)/);
   assert.match(route, /function revealPlacement[\s\S]*state\.phase = "revealed"/);
   assert.match(page, /room\.phase === "placed"[\s\S]*Reveal answer/);
   assert.match(page, /room\.phase === "revealed" && room\.currentSong/);

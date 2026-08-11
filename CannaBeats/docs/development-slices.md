@@ -212,6 +212,8 @@ Boundaries:
 
 **Outcome:** A short network interruption, refresh, duplicate command, or managed-source interruption does not corrupt or ambiguously advance a game.
 
+Working plan: [Slice 2: Game-night resilience](slice-2-game-night-resilience.md)
+
 Candidate scope:
 
 - Add stable action identifiers and idempotent handling for placement, retraction, reveal, advance, skip, and playback commands

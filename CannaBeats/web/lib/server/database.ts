@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 let db: DatabaseSync | undefined;
 let dbPath = "";
 export const DATABASE_SCHEMA_MIN_VERSION = 0;
-export const DATABASE_SCHEMA_MAX_VERSION = 1;
+export const DATABASE_SCHEMA_MAX_VERSION = 2;
 export const DATABASE_SCHEMA_TARGET_VERSION = 1;
 
 export function sha256(value: string) {
@@ -55,6 +55,18 @@ export function database() {
       ended_at INTEGER
     );
     CREATE INDEX IF NOT EXISTS game_runs_session_code ON game_runs(session_code);
+
+    CREATE TABLE IF NOT EXISTS game_action_receipts (
+      run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
+      actor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      action_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      request_fingerprint TEXT NOT NULL,
+      accepted_at INTEGER NOT NULL,
+      PRIMARY KEY (run_id, actor_id, action_id)
+    );
+    CREATE INDEX IF NOT EXISTS game_action_receipts_accepted_at
+      ON game_action_receipts(accepted_at);
 
     CREATE TABLE IF NOT EXISTS game_run_player_identities (
       run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
@@ -195,7 +207,8 @@ export function database() {
     if (!ticketColumns.has("session_code")) {
       db.exec("ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)");
     }
-    db.exec(`PRAGMA user_version = ${DATABASE_SCHEMA_TARGET_VERSION}; COMMIT`);
+    const resultingVersion = Math.max(startingVersion, DATABASE_SCHEMA_TARGET_VERSION);
+    db.exec(`PRAGMA user_version = ${resultingVersion}; COMMIT`);
   } catch (error) {
     try {
       db.exec("ROLLBACK");
