@@ -54,6 +54,10 @@ pre-reveal answers, or persistent device fingerprints.
 
 - Every retryable game or playback intent carries a client-generated UUID in
   `actionId`. One user intent keeps the same ID across automatic retries.
+- Each intent also carries the opaque run ID and monotonic state revision the
+  client acted on. An unrecorded intent for another run or revision fails with
+  `stale_action`; an already accepted intent is resolved through its receipt
+  before the revision check.
 - Identity is scoped by run and authenticated actor. IDs grant no authority:
   session and lobby membership are established before receipt lookup. A new
   action still passes its current role, turn, and phase checks; an identical
@@ -152,6 +156,54 @@ unchanged; the bridge remains rollback-compatible with Slice 1.
 Advance, skip, and managed playback remain in the next S2-A/S2-B checkpoint;
 schema promotion to target version 2 remains deferred until the expand bridge
 is a recorded known-good release.
+
+#### Adversarial P1 remediation — 2026-08-11
+
+- Bound protected intents to an authoritative run and monotonic state revision,
+  preventing delayed or previously rejected requests from becoming valid in a
+  later round.
+- Moved the complete response—including body consumption—inside a two-attempt,
+  per-attempt timeout boundary. Identical serialized bodies and action IDs are
+  retained across transport, body-read, timeout, and reviewed gateway retries;
+  stable API errors are preserved without retry.
+- Added UUIDv4 generation using `crypto.getRandomValues` when secure-context
+  `crypto.randomUUID` is unavailable, preserving the supported HTTP LAN player
+  path.
+- Decoupled receipt actor identity from live user-row retention. Guest expiry
+  leaves the run's pseudonymous receipt trail intact, while run deletion still
+  cascades receipt deletion.
+- Made release validation expect `max(pre-deployment schema, candidate target)`,
+  matching the migrators' no-downgrade contract.
+- Local evidence: access/release/backup `65/65`, web/client/API `47/47`,
+  production Next.js build, TypeScript compilation, and ESLint pass.
+
+The audit's P1 findings are remediated locally. The broader schema promotion,
+independent-process contention, deterministic privacy/fault-injection, action
+matrix, and other P2 evidence remain before this foundation is considered
+complete.
+
+#### Follow-on P1 remediation — 2026-08-11
+
+- Moved the authoritative game revision into an additive `game_runs.revision`
+  column. A database trigger advances it for every state update, including an
+  update made by the exact Slice 1 rollback image; the bridge backfills an
+  existing valid JSON revision without promoting `user_version`.
+- Retryable 2xx responses now fail closed unless they contain a fully validated
+  room for the requested run and a matching accepted action result. The same
+  runtime room contract also guards poll, prepare, join, and transition
+  responses before they reach React. An invalid first retryable response is
+  retried with the identical serialized request; the final failure is the typed
+  `invalid_response` error.
+- Room snapshots are reconciled by server-issued run generation, per-run
+  revision, and request sequence. A late poll cannot replace a newer revision,
+  an older run generation, or an intentionally cleared room.
+- Regression evidence covers a rejected action replayed after a Slice 1-style
+  state write, populated Slice 1 revision backfill and trigger advancement,
+  incomplete/mismatched successful responses, out-of-order snapshots,
+  misrouted lobby responses, and join envelopes that would otherwise persist an
+  invalid player session.
+- Final local evidence: access/release/backup `65/65`, web/client/API `51/51`,
+  production Next.js build, TypeScript, ESLint, and diff checks pass.
 
 ### S2-B: Complete transition and playback idempotency
 

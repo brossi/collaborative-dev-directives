@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { after, before, test } from "node:test";
-import { openDatabase, sha256 } from "../../spikes/access-spotify-poc/db.mjs";
+import { openDatabase, purgeExpired, sha256 } from "../../spikes/access-spotify-poc/db.mjs";
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "cannabeats-game-test-"));
 const databasePath = join(temporaryDirectory, "game.sqlite");
@@ -321,11 +321,15 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(created.room.code, sessionCode);
   assert.equal(created.room.phase, "lobby");
   assert.equal(created.room.isHost, true);
+  assert.match(created.room.runId, /^[0-9a-f-]{36}$/);
+  assert.equal(created.room.runGeneration, 1);
+  assert.equal(created.room.revision, 0);
   assert.equal(created.audio.selection, "managed");
   assert.equal(created.audio.mode, "managed");
   assert.equal(created.audio.sourceOnline, true);
   const lobby = db.prepare("SELECT active_run_id FROM game_sessions WHERE code = ?").get(sessionCode);
   assert.match(lobby.active_run_id, /^[0-9a-f-]{36}$/);
+  assert.equal(created.room.runId, lobby.active_run_id);
   assert.equal(db.prepare("SELECT session_code FROM game_runs WHERE id = ?").get(lobby.active_run_id).session_code, sessionCode);
   assert.equal(db.prepare("SELECT 1 FROM rooms WHERE code = ?").get(sessionCode), undefined);
 
@@ -481,6 +485,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(begun.status, 200);
+  const playingRoom = (await begun.json()).room;
+  assert.equal(playingRoom.runId, readyRoom.runId);
+  assert.equal(playingRoom.revision, readyRoom.revision + 1);
   const playPoll = await sourcePost({ action: "poll", deviceId: "test-device" });
   assert.equal(playPoll.status, 200);
   const playWork = await playPoll.json();
@@ -543,15 +550,34 @@ test("an authenticated lobby owns an internal game run and preserves host author
     ? { Cookie: `cb_session=${hostCookie}`, Origin: origin }
     : { Authorization: `Bearer ${playerToken}` };
   const missingPlacementId = await gamePost(
-    { action: "place", code: sessionCode, playerId: activePlayer.id, index: 0 },
+    {
+      action: "place", code: sessionCode, playerId: activePlayer.id, index: 0,
+      expectedRunId: playingRoom.runId, expectedRevision: playingRoom.revision,
+    },
     placementHeaders,
   );
   assert.equal(missingPlacementId.status, 400);
   assert.equal((await missingPlacementId.json()).code, "action_id_required");
 
+  for (const staleContext of [
+    { expectedRunId: randomUUID(), expectedRevision: playingRoom.revision },
+    { expectedRunId: playingRoom.runId, expectedRevision: playingRoom.revision - 1 },
+  ]) {
+    const stalePlacement = await gamePost(
+      {
+        action: "place", actionId: randomUUID(), code: sessionCode,
+        playerId: activePlayer.id, index: 0, ...staleContext,
+      },
+      placementHeaders,
+    );
+    assert.equal(stalePlacement.status, 409);
+    assert.equal((await stalePlacement.json()).code, "stale_action");
+  }
+
   const placementActionId = randomUUID();
   const placementRequest = {
     action: "place", actionId: placementActionId, code: sessionCode, playerId: activePlayer.id, index: 0,
+    expectedRunId: playingRoom.runId, expectedRevision: playingRoom.revision,
   };
   const concurrentPlacements = await Promise.all([
     gamePost(placementRequest, placementHeaders),
@@ -588,6 +614,8 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const retractActionId = randomUUID();
   const retractRequest = {
     action: "retract", actionId: retractActionId, code: sessionCode, playerId: activePlayer.id,
+    expectedRunId: concurrentPlacementPayloads[0].room.runId,
+    expectedRevision: concurrentPlacementPayloads[0].room.revision,
   };
   const retracted = await gamePost(
     retractRequest,
@@ -609,14 +637,20 @@ test("an authenticated lobby owns an internal game run and preserves host author
     {
       action: "place", actionId: finalPlacementActionId, code: sessionCode,
       playerId: activePlayer.id, index: 0,
+      expectedRunId: replayedRetractionPayload.room.runId,
+      expectedRevision: replayedRetractionPayload.room.revision,
     },
     placementHeaders,
   );
   assert.equal(finalPlacement.status, 200);
-  assert.equal((await finalPlacement.json()).room.phase, "placed");
+  const finalPlacementRoom = (await finalPlacement.json()).room;
+  assert.equal(finalPlacementRoom.phase, "placed");
 
   const revealActionId = randomUUID();
-  const revealRequest = { action: "reveal", actionId: revealActionId, code: sessionCode };
+  const revealRequest = {
+    action: "reveal", actionId: revealActionId, code: sessionCode,
+    expectedRunId: finalPlacementRoom.runId, expectedRevision: finalPlacementRoom.revision,
+  };
   const revealed = await gamePost(
     revealRequest,
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
@@ -655,6 +689,61 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(released.status, 200);
   assert.equal((await released.json()).audio.mode, "local");
   assert.equal((await (await sourcePost({ action: "poll", deviceId: "test-device" })).json()).lease, null);
+
+  const delayedPlacement = {
+    action: "place",
+    actionId: randomUUID(),
+    code: sessionCode,
+    playerId: activePlayer.id,
+    index: 0,
+    expectedRunId: answeredRoom.runId,
+    expectedRevision: answeredRoom.revision,
+  };
+  const rejectedBeforeRollback = await gamePost(delayedPlacement, placementHeaders);
+  assert.equal(rejectedBeforeRollback.status, 409);
+  const sliceOneState = JSON.parse(db.prepare("SELECT state FROM game_runs WHERE id = ?")
+    .get(answeredRoom.runId).state);
+  sliceOneState.phase = "playing";
+  sliceOneState.placement = null;
+  db.prepare("UPDATE game_runs SET state = ?, updated_at = ? WHERE id = ?")
+    .run(JSON.stringify(sliceOneState), Date.now(), answeredRoom.runId);
+  const replayedAfterRollbackWrite = await gamePost(delayedPlacement, placementHeaders);
+  assert.equal(replayedAfterRollbackWrite.status, 409);
+  assert.equal((await replayedAfterRollbackWrite.json()).code, "stale_action");
+
+  const expiredGuestId = randomUUID();
+  const retainedReceiptId = randomUUID();
+  db.prepare("INSERT INTO users (id, display_name, role, created_at) VALUES (?, 'Expired Guest', 'player', ?)")
+    .run(expiredGuestId, Date.now() - 10_000);
+  db.prepare(`
+    INSERT INTO game_guest_users (user_id, session_code, created_at, expires_at)
+    VALUES (?, ?, ?, ?)
+  `).run(expiredGuestId, sessionCode, Date.now() - 10_000, Date.now() - 1);
+  db.prepare(`
+    INSERT INTO game_action_receipts
+      (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
+    VALUES (?, ?, ?, 'place', 'retention-fingerprint', ?)
+  `).run(playingRoom.runId, expiredGuestId, retainedReceiptId, Date.now() - 5_000);
+
+  purgeExpired(db, Date.now());
+  assert.equal(db.prepare("SELECT 1 FROM users WHERE id = ?").get(expiredGuestId), undefined);
+  assert.equal(db.prepare("SELECT actor_id FROM game_action_receipts WHERE action_id = ?")
+    .get(retainedReceiptId).actor_id, expiredGuestId);
+
+  const disposableRunId = randomUUID();
+  const disposableReceiptId = randomUUID();
+  db.prepare(`
+    INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
+    VALUES (?, ?, '{}', ?, ?)
+  `).run(disposableRunId, sessionCode, Date.now(), Date.now());
+  db.prepare(`
+    INSERT INTO game_action_receipts
+      (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
+    VALUES (?, ?, ?, 'reveal', 'run-cascade-fingerprint', ?)
+  `).run(disposableRunId, hostId, disposableReceiptId, Date.now());
+  db.prepare("DELETE FROM game_runs WHERE id = ?").run(disposableRunId);
+  assert.equal(db.prepare("SELECT 1 FROM game_action_receipts WHERE action_id = ?")
+    .get(disposableReceiptId), undefined);
 });
 
 test("a host-issued capability admits an accountless guest only to its lobby", async () => {

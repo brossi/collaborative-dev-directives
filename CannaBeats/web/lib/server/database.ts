@@ -50,6 +50,7 @@ export function database() {
       id TEXT PRIMARY KEY,
       session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
       state TEXT NOT NULL,
+      revision INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       ended_at INTEGER
@@ -58,7 +59,7 @@ export function database() {
 
     CREATE TABLE IF NOT EXISTS game_action_receipts (
       run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
-      actor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      actor_id TEXT NOT NULL,
       action_id TEXT NOT NULL,
       action TEXT NOT NULL,
       request_fingerprint TEXT NOT NULL,
@@ -192,6 +193,27 @@ export function database() {
     CREATE INDEX IF NOT EXISTS managed_audio_commands_pending
       ON managed_audio_commands(source_id, completed_at, created_at);
   `);
+    const gameRunColumns = new Set(
+      db.prepare("PRAGMA table_info(game_runs)").all().map((column) => (column as { name: string }).name),
+    );
+    if (!gameRunColumns.has("revision")) {
+      db.exec(`
+        ALTER TABLE game_runs ADD COLUMN revision INTEGER NOT NULL DEFAULT 0;
+        UPDATE game_runs
+        SET revision = CAST(json_extract(state, '$.revision') AS INTEGER)
+        WHERE json_valid(state)
+          AND json_type(state, '$.revision') = 'integer'
+          AND json_extract(state, '$.revision') >= 0;
+      `);
+    }
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS game_runs_advance_revision
+      AFTER UPDATE OF state ON game_runs
+      FOR EACH ROW
+      BEGIN
+        UPDATE game_runs SET revision = OLD.revision + 1 WHERE id = OLD.id;
+      END;
+    `);
     const gameSessionColumns = new Set(
       db.prepare("PRAGMA table_info(game_sessions)").all().map((column) => (column as { name: string }).name),
     );
@@ -201,11 +223,51 @@ export function database() {
     if (!gameSessionColumns.has("audio_mode")) {
       db.exec("ALTER TABLE game_sessions ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'managed' CHECK (audio_mode IN ('local', 'managed'))");
     }
+    if (!gameSessionColumns.has("run_generation")) {
+      db.exec(`
+        ALTER TABLE game_sessions ADD COLUMN run_generation INTEGER NOT NULL DEFAULT 0;
+        UPDATE game_sessions SET run_generation = 1 WHERE active_run_id IS NOT NULL;
+      `);
+    }
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS game_sessions_advance_run_generation
+      AFTER UPDATE OF active_run_id ON game_sessions
+      FOR EACH ROW
+      WHEN NEW.active_run_id IS NOT OLD.active_run_id
+      BEGIN
+        UPDATE game_sessions SET run_generation = OLD.run_generation + 1 WHERE code = OLD.code;
+      END;
+    `);
     const ticketColumns = new Set(
       db.prepare("PRAGMA table_info(desktop_web_tickets)").all().map((column) => (column as { name: string }).name),
     );
     if (!ticketColumns.has("session_code")) {
       db.exec("ALTER TABLE desktop_web_tickets ADD COLUMN session_code TEXT REFERENCES game_sessions(code)");
+    }
+    const receiptForeignKeys = db.prepare("PRAGMA foreign_key_list(game_action_receipts)").all() as Array<{
+      from: string;
+      table: string;
+    }>;
+    if (receiptForeignKeys.some((foreignKey) => foreignKey.from === "actor_id" && foreignKey.table === "users")) {
+      db.exec(`
+        CREATE TABLE game_action_receipts_run_scoped (
+          run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
+          actor_id TEXT NOT NULL,
+          action_id TEXT NOT NULL,
+          action TEXT NOT NULL,
+          request_fingerprint TEXT NOT NULL,
+          accepted_at INTEGER NOT NULL,
+          PRIMARY KEY (run_id, actor_id, action_id)
+        );
+        INSERT INTO game_action_receipts_run_scoped
+          (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
+        SELECT run_id, actor_id, action_id, action, request_fingerprint, accepted_at
+        FROM game_action_receipts;
+        DROP TABLE game_action_receipts;
+        ALTER TABLE game_action_receipts_run_scoped RENAME TO game_action_receipts;
+        CREATE INDEX game_action_receipts_accepted_at
+          ON game_action_receipts(accepted_at);
+      `);
     }
     const resultingVersion = Math.max(startingVersion, DATABASE_SCHEMA_TARGET_VERSION);
     db.exec(`PRAGMA user_version = ${resultingVersion}; COMMIT`);

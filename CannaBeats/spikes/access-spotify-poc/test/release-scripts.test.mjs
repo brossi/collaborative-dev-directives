@@ -153,6 +153,16 @@ test('release rejects a database schema newer than the candidate before build or
   assert.doesNotMatch(commands, /build app game| up /);
 });
 
+test('release preserves a newer supported schema instead of requiring a downgrade to target', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release, ['release-a1', catalogVersion], { env: paths.env });
+  await run(release, ['release-b2', catalogVersion], {
+    env: { ...paths.env, CANNABEATS_TEST_SCHEMA_VERSION: '2' },
+  });
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
+});
+
 test('release rejects a migration target that the current application could not roll back from', async () => {
   const paths = fixture();
   await assert.rejects(

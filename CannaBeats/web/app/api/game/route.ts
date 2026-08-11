@@ -21,6 +21,8 @@ type RunRow = {
   session_code: string;
   host_user_id: string;
   state: string;
+  revision: number;
+  run_generation: number;
 };
 
 type Principal = {
@@ -156,8 +158,11 @@ function fail(message: string, status = 400, code?: string) {
   );
 }
 
-function newRoomState(code: string, rules: unknown): RoomState {
+function newRoomState(runId: string, code: string, rules: unknown): RoomState {
   return {
+    runId,
+    runGeneration: 0,
+    revision: 0,
     code,
     phase: "lobby",
     players: [],
@@ -176,12 +181,16 @@ function newRoomState(code: string, rules: unknown): RoomState {
 
 function loadRoom(code: string) {
   const row = database().prepare(`
-    SELECT game_runs.id, game_runs.session_code, game_sessions.host_user_id, game_runs.state
+    SELECT game_runs.id, game_runs.session_code, game_sessions.host_user_id,
+      game_runs.state, game_runs.revision, game_sessions.run_generation
     FROM game_sessions JOIN game_runs ON game_runs.id = game_sessions.active_run_id
     WHERE game_sessions.code = ?
   `).get(code) as RunRow | undefined;
   if (!row) return null;
   const state = JSON.parse(row.state) as RoomState & { inputMode?: unknown };
+  state.runId = row.id;
+  state.runGeneration = row.run_generation;
+  state.revision = row.revision;
   for (const player of state.players) {
     player.control = normalizePlayerControl(player.control, state.inputMode);
   }
@@ -192,11 +201,18 @@ function loadRoom(code: string) {
 }
 
 function saveRoom(state: RoomState) {
-  database().prepare(`
+  const db = database();
+  db.prepare(`
     UPDATE game_runs SET state = ?, updated_at = ?
     WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
   `)
     .run(JSON.stringify(state), Date.now(), state.code);
+  const saved = db.prepare(`
+    SELECT revision FROM game_runs
+    WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
+  `).get(state.code) as { revision: number } | undefined;
+  if (!saved) throw new Error("The game run disappeared while it was being saved.");
+  state.revision = saved.revision;
 }
 
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -217,12 +233,30 @@ function requestFingerprint(values: Record<string, unknown>) {
   return sha256(JSON.stringify(values));
 }
 
+function requiredActionContext(payload: Record<string, unknown>) {
+  const expectedRunId = String(payload.expectedRunId ?? "").toLowerCase();
+  const expectedRevision = payload.expectedRevision;
+  if (!ACTION_ID.test(expectedRunId)
+      || typeof expectedRevision !== "number"
+      || !Number.isSafeInteger(expectedRevision)
+      || expectedRevision < 0) {
+    throw new GameRequestError(
+      "Current game context is required.",
+      400,
+      "action_context_required",
+    );
+  }
+  return { expectedRunId, expectedRevision };
+}
+
 function mutateRoomOnce({
   code,
   principal,
   action,
   actionId,
   fingerprint,
+  expectedRunId,
+  expectedRevision,
   mutate,
 }: {
   code: string;
@@ -230,6 +264,8 @@ function mutateRoomOnce({
   action: string;
   actionId: string;
   fingerprint: string;
+  expectedRunId: string;
+  expectedRevision: number;
   mutate: (room: NonNullable<ReturnType<typeof loadRoom>>) => void;
 }) {
   const db = database();
@@ -237,6 +273,13 @@ function mutateRoomOnce({
   try {
     const current = loadRoom(code);
     if (!current) throw new GameRequestError("The game is not available.", 409);
+    if (current.row.id !== expectedRunId) {
+      throw new GameRequestError(
+        "The game changed before this action arrived.",
+        409,
+        "stale_action",
+      );
+    }
     const receipt = db.prepare(`
       SELECT action, request_fingerprint FROM game_action_receipts
       WHERE run_id = ? AND actor_id = ? AND action_id = ?
@@ -254,6 +297,14 @@ function mutateRoomOnce({
         room: roomView(current.state, isHost(current, principal)),
         action: { id: actionId, accepted: true, replayed: true },
       };
+    }
+
+    if (current.state.revision !== expectedRevision) {
+      throw new GameRequestError(
+        "The game changed before this action arrived.",
+        409,
+        "stale_action",
+      );
     }
 
     mutate(current);
@@ -469,7 +520,7 @@ async function postGame(request: Request) {
         created: false,
       });
       const runId = randomUUID();
-      const state = newRoomState(code, payload.rules);
+      const state = newRoomState(runId, code, payload.rules);
       const now = Date.now();
       database().exec("BEGIN IMMEDIATE");
       try {
@@ -480,6 +531,9 @@ async function postGame(request: Request) {
         database().prepare(`
           UPDATE game_sessions SET active_run_id = ?, updated_at = ? WHERE code = ?
         `).run(runId, now, code);
+        state.runGeneration = (database().prepare(`
+          SELECT run_generation FROM game_sessions WHERE code = ?
+        `).get(code) as { run_generation: number }).run_generation;
         database().exec("COMMIT");
       } catch (error) {
         database().exec("ROLLBACK");
@@ -720,15 +774,18 @@ async function postGame(request: Request) {
 
     if (action === "place") {
       const actionId = requiredActionId(payload);
+      const { expectedRunId, expectedRevision } = requiredActionContext(payload);
       const playerId = String(payload.playerId ?? "");
       const index = Number(payload.index);
-      const fingerprint = requestFingerprint({ action, playerId, index });
+      const fingerprint = requestFingerprint({ action, expectedRunId, expectedRevision, playerId, index });
       return Response.json(mutateRoomOnce({
         code,
         principal,
         action,
         actionId,
         fingerprint,
+        expectedRunId,
+        expectedRevision,
         mutate(current) {
           const currentState = current.state;
           const player = currentState.players[currentState.activePlayerIndex];
@@ -750,14 +807,17 @@ async function postGame(request: Request) {
 
     if (action === "retract") {
       const actionId = requiredActionId(payload);
+      const { expectedRunId, expectedRevision } = requiredActionContext(payload);
       const playerId = String(payload.playerId ?? "");
-      const fingerprint = requestFingerprint({ action, playerId });
+      const fingerprint = requestFingerprint({ action, expectedRunId, expectedRevision, playerId });
       return Response.json(mutateRoomOnce({
         code,
         principal,
         action,
         actionId,
         fingerprint,
+        expectedRunId,
+        expectedRevision,
         mutate(current) {
           const currentState = current.state;
           const player = currentState.players[currentState.activePlayerIndex];
@@ -783,13 +843,16 @@ async function postGame(request: Request) {
 
     if (action === "reveal") {
       const actionId = requiredActionId(payload);
-      const fingerprint = requestFingerprint({ action });
+      const { expectedRunId, expectedRevision } = requiredActionContext(payload);
+      const fingerprint = requestFingerprint({ action, expectedRunId, expectedRevision });
       return Response.json(mutateRoomOnce({
         code,
         principal,
         action,
         actionId,
         fingerprint,
+        expectedRunId,
+        expectedRevision,
         mutate(current) {
           if (!isHost(current, principal)) throw new GameRequestError("Host access required.", 403);
           const currentState = current.state;

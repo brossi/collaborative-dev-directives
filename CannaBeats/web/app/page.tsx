@@ -5,44 +5,19 @@ import QRCode from "qrcode";
 import type { AudioControlView, Player, RoomView } from "../lib/game";
 import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
 import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
+import {
+  commitJoinResult,
+  commitRoomSnapshot,
+  requestGame,
+  RETRYABLE_ACTIONS,
+  type RoomSnapshotCursor,
+} from "../lib/game-request";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 import { useManagedAudioStream, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 
-const RETRYABLE_ACTIONS = new Set(["place", "retract", "reveal"]);
-
 async function gameRequest(body: Record<string, unknown>) {
-  const action = String(body.action ?? "");
-  const requestBody = RETRYABLE_ACTIONS.has(action) && !body.actionId
-    ? { ...body, actionId: crypto.randomUUID() }
-    : body;
-  let response: Response | undefined;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      response = await fetch(cannabeatsPath("/api/game"), {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-      break;
-    } catch (error) {
-      if (attempt === 1 || !RETRYABLE_ACTIONS.has(action)) throw error;
-    }
-  }
-  if (!response) throw new Error("The game request did not complete.");
-  const payload = await response.json() as {
-    room?: RoomView;
-    audio?: AudioControlView;
-    action?: { id: string; accepted: boolean; replayed: boolean };
-    error?: string;
-    hostToken?: string;
-    playerId?: string;
-    joinOrigin?: string;
-    guestInvite?: string;
-    expiresAt?: number;
-  };
-  if (!response.ok) throw new Error(payload.error ?? "Something went wrong.");
-  return payload;
+  return requestGame(cannabeatsPath("/api/game"), body);
 }
 
 function normalizeNumberDisplay(input: HTMLInputElement, value: number) {
@@ -285,6 +260,8 @@ function HostScoreboard({ players, activePlayerId, lockedPlacement, artworkByUri
 
 export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
+  const roomSequence = useRef(0);
+  const roomCursor = useRef<RoomSnapshotCursor>({ room: null, sequence: 0 });
   const [audio, setAudio] = useState<AudioControlView>({ selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" });
   const [session, setSession] = useState<GameSession | null>(null);
   const [name, setName] = useState("");
@@ -302,17 +279,29 @@ export default function Home() {
   const trackArtwork = spotify.trackArtwork;
   const hostRules = room?.isHost ? JSON.stringify(room.rules) : "";
 
+  const beginRoomRequest = useCallback(() => {
+    roomSequence.current += 1;
+    return roomSequence.current;
+  }, []);
+
+  const applyRoomSnapshot = useCallback((incoming: RoomView, sequence: number, expectedCode: string) => {
+    const reconciled = commitRoomSnapshot(roomCursor.current, incoming, sequence, expectedCode, setRoom);
+    roomCursor.current = reconciled;
+    return reconciled.room;
+  }, []);
+
   const refresh = useCallback(async (current: GameSession) => {
+    const sequence = beginRoomRequest();
     const params = new URLSearchParams({ code: current.code });
     if (current.hostToken) params.set("hostToken", current.hostToken);
     const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, { cache: "no-store" });
     const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string };
     if (!response.ok) throw new Error(payload.error ?? "Unable to refresh the room.");
     if (!payload.room) throw new Error("The room response was incomplete.");
-    setRoom(payload.room);
+    const acceptedRoom = applyRoomSnapshot(payload.room, sequence, current.code);
     if (payload.audio) setAudio(payload.audio);
-    return payload.room;
-  }, []);
+    return acceptedRoom;
+  }, [applyRoomSnapshot, beginRoomRequest]);
 
   useEffect(() => {
     const sharedCode = new URLSearchParams(window.location.search).get("session")?.trim().toUpperCase();
@@ -330,10 +319,10 @@ export default function Home() {
         window.history.replaceState({}, "", cannabeatsPath("/"));
         void refresh(launched)
           .catch(async () => {
+            const sequence = beginRoomRequest();
             const payload = await gameRequest({ action: "prepare", code: sharedCode });
             if (!payload.room) throw new Error("The game response was incomplete.");
-            setRoom(payload.room);
-            return payload.room;
+            return applyRoomSnapshot(payload.room, sequence, sharedCode);
           })
           .catch((reason: Error) => setError(reason.message));
         return;
@@ -348,7 +337,7 @@ export default function Home() {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [refresh]);
+  }, [applyRoomSnapshot, beginRoomRequest, refresh]);
 
   useEffect(() => {
     if (!session) return;
@@ -440,13 +429,18 @@ export default function Home() {
     setBusy(true);
     setError("");
     try {
-      const payload = await gameRequest({ ...body, code: session.code });
+      const action = String(body.action ?? "");
+      const actionContext = RETRYABLE_ACTIONS.has(action) && room
+        ? { expectedRunId: room.runId, expectedRevision: room.revision }
+        : {};
+      const sequence = beginRoomRequest();
+      const payload = await gameRequest({ ...body, ...actionContext, code: session.code });
       if (payload.audio) setAudio(payload.audio);
       if (payload.room) {
-        setRoom(payload.room);
+        const acceptedRoom = applyRoomSnapshot(payload.room, sequence, session.code);
         const managed = (payload.audio ?? audio).selection === "managed";
-        if (!managed && playNewSong && payload.room.phase === "playing" && payload.room.currentSong?.uri) {
-          await spotify.play(payload.room.currentSong.uri);
+        if (!managed && playNewSong && acceptedRoom?.phase === "playing" && acceptedRoom.currentSong?.uri) {
+          await spotify.play(acceptedRoom.currentSong.uri);
         }
       }
       return true;
@@ -479,14 +473,20 @@ export default function Home() {
     setBusy(true);
     setError("");
     try {
+      const sequence = beginRoomRequest();
       const code = roomCode.trim().toUpperCase();
       const chosenName = name.trim();
       const payload = await gameRequest({ action: "join", code, name: chosenName });
-      const next = { code, playerId: payload.playerId! };
-      localStorage.setItem(PLAYER_NAME_KEY, chosenName);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
-      setSession(next);
-      setRoom(payload.room!);
+      commitJoinResult(
+        payload,
+        (joinedRoom) => applyRoomSnapshot(joinedRoom, sequence, code),
+        (playerId) => {
+          const next = { code, playerId };
+          localStorage.setItem(PLAYER_NAME_KEY, chosenName);
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+          setSession(next);
+        },
+      );
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to join the room.");
     } finally {
@@ -505,6 +505,8 @@ export default function Home() {
     }
     sessionStorage.removeItem(SESSION_KEY);
     setSession(null);
+    roomSequence.current += 1;
+    roomCursor.current = { room: null, sequence: roomSequence.current };
     setRoom(null);
     setAudio({ selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" });
     setSelection(null);

@@ -64,16 +64,12 @@ test("lobby game sessions survive reloads and transient connection gaps", async 
   assert.match(playLan, /"--persist-to", persistentState/);
 });
 
-test("retryable player intents keep one stable action ID across a network retry", async () => {
+test("retryable player intents carry authoritative game context", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /const RETRYABLE_ACTIONS = new Set/);
-  for (const action of ["place", "retract", "reveal"]) {
-    assert.match(page, new RegExp(`"${action}"`));
-  }
-  assert.match(page, /actionId: crypto\.randomUUID\(\)/);
-  assert.match(page, /body: JSON\.stringify\(requestBody\)/);
-  assert.match(page, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
+  assert.match(page, /requestGame\(cannabeatsPath\("\/api\/game"\), body\)/);
+  assert.match(page, /expectedRunId: room\.runId/);
+  assert.match(page, /expectedRevision: room\.revision/);
 });
 
 test("the player game view prioritizes the timeline", async () => {
@@ -314,7 +310,7 @@ test("the host uses blind in-browser Spotify playback", async () => {
   assert.doesNotMatch(page, /Open in Spotify/);
   assert.match(page, /aria-label={`\$\{playbackLabel\} mystery song`}/);
   assert.match(page, /managedPlaybackActive \? "Pause" : "Resume"/);
-  assert.match(page, /spotify\.play\(payload\.room\.currentSong\.uri\)/);
+  assert.match(page, /spotify\.play\(acceptedRoom\.currentSong\.uri\)/);
   assert.match(player, /https:\/\/sdk\.scdn\.co\/spotify-player\.js/);
   assert.match(player, /enableMediaSession: false/);
   assert.match(player, /\/v1\/me\/player\/play\?device_id=/);

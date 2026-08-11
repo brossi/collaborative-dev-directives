@@ -228,8 +228,12 @@ for endpoint in http://127.0.0.1:3002/api/ready http://127.0.0.1:3003/game/api/r
 done
 
 deployed_database_schema="$(database_schema_version "$candidate")"
-if [[ "$deployed_database_schema" != "$candidate_schema_target" ]]; then
-  echo "Candidate readiness reported schema $deployed_database_schema; expected target $candidate_schema_target" >&2
+expected_deployed_schema="$candidate_schema_target"
+if (( current_database_schema > expected_deployed_schema )); then
+  expected_deployed_schema="$current_database_schema"
+fi
+if [[ "$deployed_database_schema" != "$expected_deployed_schema" ]]; then
+  echo "Candidate readiness reported schema $deployed_database_schema; expected non-downgraded schema $expected_deployed_schema" >&2
   false
 fi
 

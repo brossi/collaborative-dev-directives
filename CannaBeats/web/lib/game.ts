@@ -34,6 +34,9 @@ export type PlacementResult = {
 };
 
 export type RoomState = {
+  runId: string;
+  runGeneration: number;
+  revision: number;
   code: string;
   phase: Phase;
   players: Player[];
