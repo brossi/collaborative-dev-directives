@@ -1,9 +1,11 @@
 # Slice 1: Baseline protection
 
-- Status: Ready for implementation
+- Status: Implemented locally; deployment rehearsal pending
 - Date: 2026-08-11
 - Parent: [CannaBeats development slices](development-slices.md#slice-1-baseline-protection)
 - Backlog: [Product backlog](product-backlog.md)
+- Operations: [Baseline protection runbook](operations/baseline-protection.md)
+- Evidence: [Local rehearsal — 2026-08-11](operations/slice-1-local-rehearsal-2026-08-11.md)
 
 ## Player or operator outcome
 

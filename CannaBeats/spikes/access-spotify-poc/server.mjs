@@ -22,6 +22,11 @@ import {
   writeAuditEvent,
 } from './db.mjs';
 import { createHostOnboarding, renderHostOnboardingEmail } from './onboarding.mjs';
+import {
+  createOperationalLogger,
+  errorResponse,
+  requestContext,
+} from './observability.mjs';
 
 const moduleDirectory = fileURLToPath(new URL('.', import.meta.url));
 const SESSION_COOKIE = 'cb_session';
@@ -112,6 +117,9 @@ export function readConfig(overrides = {}) {
     hostReleasePath: overrides.hostReleasePath ?? process.env.HOST_RELEASE_PATH ?? '',
     hostReleaseName: overrides.hostReleaseName ?? process.env.HOST_RELEASE_NAME ?? 'CannaBeats-Host-universal.dmg',
     hostReleaseChannel,
+    environment: overrides.environment ?? process.env.CANNABEATS_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
+    applicationVersion: overrides.applicationVersion ?? process.env.CANNABEATS_APP_VERSION ?? 'development',
+    catalogVersion: overrides.catalogVersion ?? process.env.CANNABEATS_CATALOG_VERSION ?? 'development',
     sessionTtlDays: overrides.sessionTtlDays ?? integerEnvironment('SESSION_TTL_DAYS', 30, 1, 365),
     trustProxy: overrides.trustProxy ?? process.env.TRUST_PROXY ?? 'loopback',
   };
@@ -213,14 +221,28 @@ export function createApp({
   config = readConfig(),
   db = openDatabase(config.databasePath),
   gameServiceFetch = fetch,
+  logWrite,
 } = {}) {
   const app = express();
   const browserBundle = resolve(moduleDirectory, 'node_modules/@simplewebauthn/browser/dist/bundle/index.umd.min.js');
   const publicDirectory = resolve(moduleDirectory, 'public');
   const privateDirectory = resolve(moduleDirectory, 'private');
+  const logger = createOperationalLogger({
+    service: 'access',
+    environment: config.environment,
+    applicationVersion: config.applicationVersion,
+    catalogVersion: config.catalogVersion,
+    secrets: [
+      config.audioRelayIngestToken,
+      config.audioRelayListenToken,
+      config.gameServiceToken,
+    ],
+    ...(logWrite ? { write: logWrite } : {}),
+  });
 
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
+  app.use(requestContext(logger));
   app.use((req, res, next) => {
     res.set({
       'Content-Security-Policy': [
@@ -473,8 +495,15 @@ export function createApp({
   const adminInvitationLimiter = createRateLimiter({ limit: 20, windowMs: 10 * 60 * 1000 });
 
   app.get('/api/health', (_req, res) => {
+    res.json({ ok: true, service: 'cannabeats-access' });
+  });
+
+  app.get('/api/ready', (_req, res) => {
     const database = db.prepare('SELECT 1 AS ok').get();
-    res.json({ ok: database.ok === 1, spotifyConfigured: Boolean(config.spotifyClientId) });
+    if (database.ok !== 1 || !existsSync(browserBundle)) {
+      throw new HttpError(503, 'Access service is not ready');
+    }
+    res.json({ ready: true, service: 'cannabeats-access' });
   });
 
   app.get('/api/config', (_req, res) => {
@@ -1349,21 +1378,20 @@ export function createApp({
 
   app.use((error, req, res, _next) => {
     const status = error instanceof HttpError ? error.status : 500;
-    if (status >= 500) console.error(req.method, req.path, error);
-    res.status(status).json({ error: status >= 500 ? 'Unexpected server error' : error.message });
+    errorResponse(req, res, error, status);
   });
 
-  return { app, db, config };
+  return { app, db, config, logger };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const config = readConfig();
-  const { app, db } = createApp({ config });
+  const { app, db, logger } = createApp({ config });
   const server = app.listen(config.port, '0.0.0.0', () => {
-    console.log(`CannaBeats auth PoC listening on port ${config.port} for ${config.origin}`);
+    logger.info('service.started', 'Access service started');
   });
   function shutdown(signal) {
-    console.log(`Received ${signal}; shutting down`);
+    logger.info('service.stopping', 'Access service is stopping', { reasonCode: signal });
     server.close(() => {
       db.close();
       process.exit(0);

@@ -59,6 +59,12 @@ chmod 0700 /var/lib/cannabeats-source
 chmod 0700 /var/lib/cannabeats-relay
 chmod 0700 /var/lib/cannabeats-controller
 install -d -o root -g root -m 0755 /etc/cannabeats-managed-source
+install -d -o root -g root -m 0755 /opt/cannabeats-managed-source/source-ui
+install -o root -g root -m 0755 agent.py controller.py health_check.py /opt/cannabeats-managed-source/
+install -o root -g root -m 0644 source-ui/index.html source-ui/app.js source-ui/styles.css \
+  /opt/cannabeats-managed-source/source-ui/
+install -o root -g root -m 0644 infra/source.env.example \
+  /etc/cannabeats-managed-source/source.env.example
 
 if [[ ! -e /swapfile ]]; then
   fallocate -l 2G /swapfile
@@ -90,3 +96,4 @@ systemctl enable --now \
 
 echo "Runtime installed. Enroll Tailscale with:"
 echo "  tailscale up --ssh --hostname=cannabeats-audio-source-poc"
+echo "Copy /etc/cannabeats-managed-source/source.env.example to source.env and set release identity."

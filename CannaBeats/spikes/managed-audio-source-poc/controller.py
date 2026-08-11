@@ -6,6 +6,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -21,6 +22,10 @@ LISTEN_ADDRESS = ("127.0.0.1", 4782)
 BROWSER_ORIGIN = "http://127.0.0.1:4781"
 POLL_SECONDS = 1.0
 FAIL_CLOSED_SECONDS = 25.0
+CORRELATION_HEADER = "X-CannaBeats-Correlation-ID"
+APPLICATION_VERSION = os.environ.get("CANNABEATS_APP_VERSION", "development")
+CATALOG_VERSION = os.environ.get("CANNABEATS_CATALOG_VERSION", "development")
+ENVIRONMENT = os.environ.get("CANNABEATS_ENVIRONMENT", "poc")
 
 lock = threading.Lock()
 state = {
@@ -33,6 +38,30 @@ state = {
 device_id = None
 
 
+def correlation_id(value=None):
+    try:
+        return str(uuid.UUID(str(value))) if value else str(uuid.uuid4())
+    except (ValueError, TypeError, AttributeError):
+        return str(uuid.uuid4())
+
+
+def operational_log(level, event, message, **context):
+    record = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "level": level,
+        "service": "managed-source-controller",
+        "environment": ENVIRONMENT,
+        "event": event,
+        "message": message,
+        "applicationVersion": APPLICATION_VERSION,
+        "catalogVersion": CATALOG_VERSION,
+    }
+    for key in ("correlationId", "status", "reasonCode", "errorType"):
+        if context.get(key) is not None:
+            record[key] = context[key]
+    print(json.dumps(record, separators=(",", ":")), flush=True)
+
+
 def source_token():
     token = TOKEN_PATH.read_text(encoding="utf-8").strip()
     if len(token) < 32:
@@ -40,7 +69,8 @@ def source_token():
     return token
 
 
-def api_call(payload):
+def api_call(payload, requested_correlation_id=None):
+    request_correlation_id = correlation_id(requested_correlation_id)
     request = urllib.request.Request(
         API_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -48,14 +78,16 @@ def api_call(payload):
             "Authorization": f"Bearer {source_token()}",
             "Content-Type": "application/json",
             "User-Agent": "CannaBeatsManagedSource/0.2",
+            CORRELATION_HEADER: request_correlation_id,
         },
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=10) as response:
-        return json.load(response)
+        response_correlation_id = correlation_id(response.headers.get(CORRELATION_HEADER))
+        return json.load(response), response_correlation_id
 
 
-def set_relay(active):
+def set_relay(active, request_correlation_id=None):
     with lock:
         if state["relayActive"] == active:
             return
@@ -67,27 +99,47 @@ def set_relay(active):
     )
     with lock:
         state["relayActive"] = active
+    operational_log(
+        "info", "relay.state_changed", "Relay publisher state changed",
+        correlationId=request_correlation_id,
+        reasonCode="relay_started" if active else "relay_stopped",
+    )
 
 
 def poll_loop():
     global device_id
     while True:
         try:
-            payload = api_call({"action": "poll", "deviceId": device_id})
+            payload, request_correlation_id = api_call({"action": "poll", "deviceId": device_id})
             lease = payload.get("lease")
             command = payload.get("command")
-            set_relay(bool(lease))
+            if command:
+                command["correlationId"] = request_correlation_id
+            set_relay(bool(lease), request_correlation_id)
             with lock:
+                recovered = state["lastError"] is not None
                 state.update({
                     "lease": lease,
                     "command": command,
                     "lastError": None,
                     "lastSuccessfulPoll": time.monotonic(),
                 })
+            if recovered:
+                operational_log(
+                    "info", "game_api.recovered", "Managed source polling recovered",
+                    correlationId=request_correlation_id,
+                )
         except Exception as error:
             with lock:
-                state["lastError"] = str(error)[:500]
+                first_failure = state["lastError"] is None
+                state["lastError"] = "game_api_unavailable"
                 stale = time.monotonic() - state["lastSuccessfulPoll"] > FAIL_CLOSED_SECONDS
+            if first_failure:
+                operational_log(
+                    "warn", "game_api.poll_failed", "Managed source polling failed",
+                    reasonCode="game_api_unavailable",
+                    errorType=type(error).__name__,
+                )
             if stale:
                 try:
                     set_relay(False)
@@ -111,6 +163,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store")
+        if getattr(self, "send_correlation_id", None):
+            self.send_header(CORRELATION_HEADER, self.send_correlation_id)
         if self.headers.get("Origin") == BROWSER_ORIGIN:
             self.send_header("Access-Control-Allow-Origin", BROWSER_ORIGIN)
             self.send_header("Vary", "Origin")
@@ -154,36 +208,46 @@ class Handler(BaseHTTPRequestHandler):
             command_id = str(payload.get("commandId", ""))
             with lock:
                 expected = state["command"] and state["command"].get("id")
+                command_correlation_id = state["command"] and state["command"].get("correlationId")
             if not expected or command_id != expected:
                 return self._send(409, {"error": "Command is no longer pending"})
             reported_device = payload.get("deviceId")
             if isinstance(reported_device, str) and len(reported_device) <= 200:
                 device_id = reported_device
-            result = api_call({
+            result, response_correlation_id = api_call({
                 "action": "complete",
                 "commandId": command_id,
                 "ok": payload.get("ok") is True,
                 "playbackStatus": payload.get("playbackStatus"),
-                "error": str(payload.get("error", ""))[:500] or None,
+                # Browser/player details stay on the source machine. The game API
+                # receives only a stable operational category.
+                "error": None if payload.get("ok") is True else "managed_playback_failed",
                 "deviceId": device_id,
-            })
+            }, command_correlation_id)
             with lock:
                 state["command"] = None
+            self.send_correlation_id = response_correlation_id
             self._send(200, result)
         except (ValueError, json.JSONDecodeError):
             self._send(400, {"error": "A valid JSON result is required"})
         except urllib.error.HTTPError as error:
             self._send(502, {"error": f"Game API rejected completion ({error.code})"})
         except Exception as error:
-            self._send(502, {"error": str(error)[:500]})
+            operational_log(
+                "warn", "command.completion_failed", "Managed command completion failed",
+                correlationId=locals().get("command_correlation_id"),
+                reasonCode="game_api_unavailable",
+                errorType=type(error).__name__,
+            )
+            self._send(502, {"error": "Game API completion unavailable"})
 
     def log_message(self, format, *args):
-        print(f"{self.client_address[0]} {self.command} {self.path}", flush=True)
+        return
 
 
 if __name__ == "__main__":
     source_token()
     threading.Thread(target=poll_loop, daemon=True).start()
     server = ThreadingHTTPServer(LISTEN_ADDRESS, Handler)
-    print(f"Managed source controller listening on http://{LISTEN_ADDRESS[0]}:{LISTEN_ADDRESS[1]}", flush=True)
+    operational_log("info", "service.started", "Managed source controller started")
     server.serve_forever()

@@ -30,6 +30,9 @@ services:
       TRUST_PROXY: loopback
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       INVITATION_TTL_HOURS: ${INVITATION_TTL_HOURS:-168}
+      CANNABEATS_APP_VERSION: ${CANNABEATS_APP_VERSION:-development}
+      CANNABEATS_CATALOG_VERSION: ${CANNABEATS_CATALOG_VERSION:-development}
+      CANNABEATS_ENVIRONMENT: ${CANNABEATS_ENVIRONMENT:-poc}
       HOST_RELEASE_PATH: /releases/CannaBeats-Host-interim-universal.dmg
       HOST_RELEASE_NAME: CannaBeats-Host-0.5-interim-universal.dmg
       HOST_RELEASE_CHANNEL: interim
@@ -37,7 +40,9 @@ services:
       - "127.0.0.1:3002:3002"
     volumes:
       - cannabeats_poc_data:/data
-      - ${AUDIO_RELAY_SECRET_DIR:-./secrets}:/run/secrets/cannabeats:ro
+      - ${AUDIO_RELAY_INGEST_TOKEN_HOST_FILE:-./secrets/audio-relay-ingest-token}:${AUDIO_RELAY_INGEST_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-ingest-token}:ro
+      - ${AUDIO_RELAY_LISTEN_TOKEN_HOST_FILE:-./secrets/audio-relay-listen-token}:${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}:ro
+      - ${GAME_SERVICE_TOKEN_HOST_FILE:-./secrets/game-service-token}:${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}:ro
       - ${HOST_RELEASE_DIR:-./releases}:/releases:ro
     mem_limit: 512m
     cpus: 0.75
@@ -78,16 +83,20 @@ services:
       AUDIO_RELAY_ORIGIN: ${AUDIO_RELAY_ORIGIN:-https://cannaudio.cannabeats.social}
       AUDIO_RELAY_LISTEN_TOKEN_FILE: ${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}
       NEXT_PUBLIC_CANNABEATS_BASE_PATH: /game
+      CANNABEATS_APP_VERSION: ${CANNABEATS_APP_VERSION:-development}
+      CANNABEATS_CATALOG_VERSION: ${CANNABEATS_CATALOG_VERSION:-development}
+      CANNABEATS_ENVIRONMENT: ${CANNABEATS_ENVIRONMENT:-poc}
     ports:
       - "127.0.0.1:3003:3000"
     volumes:
       - cannabeats_poc_data:/data
-      - ${AUDIO_RELAY_SECRET_DIR:-./secrets}:/run/secrets/cannabeats:ro
+      - ${AUDIO_RELAY_LISTEN_TOKEN_HOST_FILE:-./secrets/audio-relay-listen-token}:${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}:ro
+      - ${GAME_SERVICE_TOKEN_HOST_FILE:-./secrets/game-service-token}:${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}:ro
     mem_limit: 768m
     cpus: 1.0
     pids_limit: 192
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/game/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/game/api/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 3s
       retries: 6
@@ -97,6 +106,37 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+
+  backup:
+    profiles: ["operations"]
+    build:
+      context: .
+    image: cannabeats/access-spotify-poc:local
+    user: node
+    read_only: true
+    network_mode: none
+    environment:
+      DATABASE_PATH: /data/cannabeats-poc.sqlite
+      CANNABEATS_BACKUP_DIRECTORY: /backups
+      CANNABEATS_BACKUP_PASSPHRASE_FILE: /run/secrets/cannabeats/backup-passphrase
+      CANNABEATS_BACKUP_KEEP: ${CANNABEATS_BACKUP_KEEP:-14}
+      CANNABEATS_APP_VERSION: ${CANNABEATS_APP_VERSION:-development}
+      CANNABEATS_CATALOG_VERSION: ${CANNABEATS_CATALOG_VERSION:-development}
+    volumes:
+      - cannabeats_poc_data:/data:ro
+      - ${CANNABEATS_BACKUP_DIR:-./backups}:/backups
+      - ${BACKUP_PASSPHRASE_HOST_FILE:-./secrets/backup-passphrase}:/run/secrets/cannabeats/backup-passphrase:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    entrypoint: ["node", "operations/backup.mjs"]
+    command: ["help"]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 64
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   cannabeats_poc_data:

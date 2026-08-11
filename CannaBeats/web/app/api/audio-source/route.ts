@@ -3,6 +3,7 @@ import {
   completeManagedAudioCommand,
   pollManagedAudioSource,
 } from "../../../lib/server/managed-audio";
+import { observeRoute } from "../../../lib/server/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ function response(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-export async function POST(request: Request) {
+async function postAudioSource(request: Request) {
   const source = authenticateManagedAudioSource(request.headers.get("authorization"));
   if (!source) return response({ error: "Managed source authentication required." }, 401);
 
@@ -52,3 +53,11 @@ export async function POST(request: Request) {
 
   return response({ error: "Unknown managed source action." }, 400);
 }
+
+// The authenticated source controller is an internal hop and may continue the
+// correlation reference generated for its command. Public routes never do.
+export const POST = observeRoute(postAudioSource, {
+  acceptCorrelationId: (request) => Boolean(
+    authenticateManagedAudioSource(request.headers.get("authorization")),
+  ),
+});

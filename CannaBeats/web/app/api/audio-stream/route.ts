@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { correlatedHeaders, observeRoute } from "../../../lib/server/observability";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -7,7 +8,7 @@ const DEFAULT_RELAY_ORIGIN = "https://cannaudio.cannabeats.social";
 const DEFAULT_TOKEN_FILE = "/run/secrets/cannabeats/audio-relay-listen-token";
 
 function forwardedHeaders(request: Request) {
-  const headers = new Headers();
+  const headers = correlatedHeaders();
   const cookie = request.headers.get("cookie");
   const authorization = request.headers.get("authorization");
   if (cookie) headers.set("cookie", cookie);
@@ -15,7 +16,7 @@ function forwardedHeaders(request: Request) {
   return headers;
 }
 
-export async function GET(request: Request) {
+async function getAudioStream(request: Request) {
   const code = new URL(request.url).searchParams.get("code")?.trim().toUpperCase();
   if (!code) return Response.json({ error: "A lobby code is required." }, { status: 400 });
 
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
   try {
     upstream = await fetch(new URL("/stream.pcm", relayOrigin), {
       cache: "no-store",
-      headers: { authorization: `Bearer ${listenToken}` },
+      headers: correlatedHeaders({ authorization: `Bearer ${listenToken}` }),
       signal: request.signal,
     });
   } catch {
@@ -88,3 +89,5 @@ export async function GET(request: Request) {
   }
   return new Response(upstream.body, { status: 200, headers });
 }
+
+export const GET = observeRoute(getAudioStream);

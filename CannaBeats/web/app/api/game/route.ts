@@ -3,6 +3,7 @@ import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
+import { observeRoute } from "../../../lib/server/observability";
 import {
   enqueueManagedAudioCommand,
   managedAudioView,
@@ -322,10 +323,10 @@ function errorResponse(error: unknown) {
     error.status === 401 ? "Sign in required." : "Request was not accepted.",
     error.status,
   );
-  return fail(error instanceof Error ? error.message : "Unexpected error", 500);
+  return fail("Unexpected server error", 500);
 }
 
-export async function GET(request: Request) {
+async function getGame(request: Request) {
   try {
     const principal = requirePrincipal(request);
     const url = new URL(request.url);
@@ -347,7 +348,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function postGame(request: Request) {
   try {
     if (!mutationOriginAccepted(request)) return fail("Request origin was not accepted.", 403);
     const payload = (await request.json()) as Record<string, unknown>;
@@ -713,3 +714,6 @@ export async function POST(request: Request) {
     return errorResponse(error);
   }
 }
+
+export const GET = observeRoute(getGame);
+export const POST = observeRoute(postGame);

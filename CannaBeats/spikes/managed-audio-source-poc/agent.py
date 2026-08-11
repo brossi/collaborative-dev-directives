@@ -2,6 +2,7 @@
 import json
 import mimetypes
 import os
+import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -10,6 +11,25 @@ from urllib.parse import urlsplit
 APP_ORIGIN = os.environ.get("CANNABEATS_APP_ORIGIN", "https://poc.cannabeats.social").rstrip("/")
 STATIC_DIRECTORY = Path(__file__).resolve().parent / "source-ui"
 LISTEN_ADDRESS = ("127.0.0.1", 4781)
+APPLICATION_VERSION = os.environ.get("CANNABEATS_APP_VERSION", "development")
+CATALOG_VERSION = os.environ.get("CANNABEATS_CATALOG_VERSION", "development")
+ENVIRONMENT = os.environ.get("CANNABEATS_ENVIRONMENT", "poc")
+
+
+def operational_log(level, event, message, **context):
+    record = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "level": level,
+        "service": "managed-source-agent",
+        "environment": ENVIRONMENT,
+        "event": event,
+        "message": message,
+        "applicationVersion": APPLICATION_VERSION,
+        "catalogVersion": CATALOG_VERSION,
+    }
+    if context.get("reasonCode"):
+        record["reasonCode"] = context["reasonCode"]
+    print(json.dumps(record, separators=(",", ":")), flush=True)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -62,6 +82,10 @@ class Handler(BaseHTTPRequestHandler):
                 })
                 return self._send(200, "application/json", body)
             except Exception:
+                operational_log(
+                    "warn", "configuration.unavailable", "CannaBeats configuration is unavailable",
+                    reasonCode="access_service_unavailable",
+                )
                 return self._send(503, "application/json", '{"error":"CannaBeats configuration unavailable"}')
         if path in ("/", "/callback"):
             file_path = STATIC_DIRECTORY / "index.html"
@@ -81,11 +105,10 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         # OAuth callbacks contain a one-time authorization code. Never include
         # query strings in service logs.
-        path = urlsplit(self.path).path
-        print(f'{self.client_address[0]} {self.command} {path}', flush=True)
+        return
 
 
 if __name__ == "__main__":
     server = ThreadingHTTPServer(LISTEN_ADDRESS, Handler)
-    print(f"Managed source UI listening on http://{LISTEN_ADDRESS[0]}:{LISTEN_ADDRESS[1]}", flush=True)
+    operational_log("info", "service.started", "Managed source UI started")
     server.serve_forever()

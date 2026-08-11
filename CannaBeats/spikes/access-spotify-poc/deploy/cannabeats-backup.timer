@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the CannaBeats encrypted backup each day
+
+[Timer]
+OnCalendar=*-*-* 03:25:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=cannabeats-backup.service
+
+[Install]
+WantedBy=timers.target

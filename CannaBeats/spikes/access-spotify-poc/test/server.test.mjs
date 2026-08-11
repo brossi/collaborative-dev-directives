@@ -36,6 +36,9 @@ const config = readConfig({
   hostReleasePath,
   hostReleaseName: 'CannaBeats-Host-universal.dmg',
   hostReleaseChannel: 'interim',
+  environment: 'test',
+  applicationVersion: 'app-test',
+  catalogVersion: 'catalog-test',
 });
 const db = openDatabase(databasePath);
 const gameRooms = new Map();
@@ -55,7 +58,13 @@ async function gameServiceFetch(_url, options) {
   }
   return Response.json({ room, created: false });
 }
-const { app } = createApp({ config, db, gameServiceFetch });
+const operationalLogs = [];
+const { app } = createApp({
+  config,
+  db,
+  gameServiceFetch,
+  logWrite: (_level, line) => operationalLogs.push(JSON.parse(line)),
+});
 let server;
 let baseUrl;
 
@@ -104,13 +113,22 @@ async function signedHostPost(path, agentId, privateKey, body = {}) {
 }
 
 test('health, public config, and defensive headers are present', async () => {
-  const response = await fetch(`${baseUrl}/api/health`);
+  const suppliedCorrelation = randomUUID();
+  const response = await fetch(`${baseUrl}/api/health`, {
+    headers: { 'X-CannaBeats-Correlation-ID': suppliedCorrelation },
+  });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, spotifyConfigured: true });
+  assert.deepEqual(await response.json(), { ok: true, service: 'cannabeats-access' });
+  assert.match(response.headers.get('x-cannabeats-correlation-id'), /^[0-9a-f-]{36}$/);
+  assert.notEqual(response.headers.get('x-cannabeats-correlation-id'), suppliedCorrelation);
   assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.match(response.headers.get('content-security-policy'), /frame-src https:\/\/sdk\.scdn\.co/);
   assert.equal(response.headers.get('x-frame-options'), 'DENY');
   assert.equal(response.headers.get('cache-control'), 'no-store');
+
+  const ready = await fetch(`${baseUrl}/api/ready`);
+  assert.equal(ready.status, 200);
+  assert.deepEqual(await ready.json(), { ready: true, service: 'cannabeats-access' });
 
   const configResponse = await fetch(`${baseUrl}/api/config`);
   assert.deepEqual(await configResponse.json(), {
@@ -128,7 +146,13 @@ test('health, public config, and defensive headers are present', async () => {
 });
 
 test('protected endpoints reject an anonymous caller', async () => {
-  assert.equal((await fetch(`${baseUrl}/api/me`)).status, 401);
+  const anonymous = await fetch(`${baseUrl}/api/me`);
+  assert.equal(anonymous.status, 401);
+  const error = await anonymous.json();
+  assert.equal(error.code, 'authentication_required');
+  assert.equal(error.correlationId, anonymous.headers.get('x-cannabeats-correlation-id'));
+  assert.ok(operationalLogs.some((entry) => entry.correlationId === error.correlationId
+    && entry.event === 'http.request_failed'));
   assert.equal((await post('/api/host/prove')).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/passkeys`)).status, 401);
 });

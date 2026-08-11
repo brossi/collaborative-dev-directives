@@ -1,4 +1,5 @@
 import { database, randomToken, sha256 } from "../../lib/server/database";
+import { observeRoute } from "../../lib/server/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 const DESKTOP_WEB_COOKIE = "cb_desktop_web";
 const DESKTOP_WEB_SESSION_MS = 12 * 60 * 60 * 1000;
 
-export function GET(request: Request) {
+function getDesktopLaunch(request: Request) {
   const url = new URL(request.url);
   const ticket = url.searchParams.get("ticket") ?? "";
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(ticket)) {
@@ -55,3 +56,5 @@ export function GET(request: Request) {
     },
   });
 }
+
+export const GET = observeRoute(getDesktopLaunch);

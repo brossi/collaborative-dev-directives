@@ -34,6 +34,21 @@ type LeaseRow = {
 export const MANAGED_SOURCE_ONLINE_MS = 15_000;
 export const MANAGED_LEASE_TTL_MS = 90_000;
 
+const MANAGED_ERROR_CATEGORIES = new Set([
+  "authentication_required",
+  "browser_unavailable",
+  "device_unavailable",
+  "game_api_unavailable",
+  "managed_playback_failed",
+  "relay_unavailable",
+  "spotify_unavailable",
+]);
+
+function managedErrorCategory(value: string | null) {
+  const category = String(value ?? "").trim().toLowerCase();
+  return MANAGED_ERROR_CATEGORIES.has(category) ? category : "managed_playback_failed";
+}
+
 function cleanupExpiredLeases(now = Date.now()) {
   database().prepare("DELETE FROM managed_audio_leases WHERE expires_at <= ?").run(now);
 }
@@ -256,7 +271,9 @@ export function completeManagedAudioCommand(
     WHERE id = ? AND source_id = ? AND completed_at IS NULL
   `).get(commandId, sourceId) as { id: string; lease_id: string } | undefined;
   if (!command) return false;
-  const message = ok ? null : (error || "Managed playback command failed.").slice(0, 500);
+  // The source may receive detailed browser/Spotify errors. Persist only a stable,
+  // operator-safe category so tokens, URIs, or account details cannot reach SQLite.
+  const message = ok ? null : managedErrorCategory(error);
   const status = ok ? playbackStatus : "error";
   const now = Date.now();
   database().exec("BEGIN IMMEDIATE");

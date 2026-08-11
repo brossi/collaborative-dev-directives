@@ -46,6 +46,7 @@ let origin;
 let relayOrigin;
 let relayServer;
 let serverOutput = "";
+const relayCorrelationIds = [];
 
 async function availablePort() {
   const server = createServer();
@@ -63,7 +64,7 @@ async function waitForHealth() {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${origin}/game/api/health`);
+      const response = await fetch(`${origin}/game/api/ready`);
       if (response.ok) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -78,6 +79,7 @@ before(async () => {
       response.writeHead(401).end();
       return;
     }
+    relayCorrelationIds.push(request.headers["x-cannabeats-correlation-id"]);
     response.writeHead(200, {
       "Content-Type": "audio/L16;rate=48000;channels=2",
       "X-Audio-Rate": "48000",
@@ -141,13 +143,56 @@ async function gamePost(body, headers = {}) {
   });
 }
 
-async function sourcePost(body, token = managedSourceToken) {
+async function sourcePost(body, token = managedSourceToken, suppliedCorrelationId) {
   return fetch(`${origin}/game/api/audio-source`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(suppliedCorrelationId ? { "X-CannaBeats-Correlation-ID": suppliedCorrelationId } : {}),
+    },
     body: JSON.stringify(body),
   });
 }
+
+test("liveness and readiness are distinct and return correlation references", async () => {
+  const health = await fetch(`${origin}/game/api/health`);
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), { ok: true, service: "cannabeats-game" });
+  assert.match(health.headers.get("x-cannabeats-correlation-id"), /^[0-9a-f-]{36}$/);
+
+  const readiness = await fetch(`${origin}/game/api/ready`);
+  assert.equal(readiness.status, 200);
+  assert.deepEqual(await readiness.json(), { ready: true, service: "cannabeats-game" });
+});
+
+test("unexpected game failures return only a stable safe envelope", async () => {
+  const sessionCode = "ERR234";
+  const runId = randomUUID();
+  const sentinel = `private-provider-payload-${randomUUID()}`;
+  db.prepare(`
+    INSERT INTO game_sessions (code, host_user_id, status, active_run_id, created_at, updated_at)
+    VALUES (?, ?, 'playing', ?, ?, ?)
+  `).run(sessionCode, hostId, runId, Date.now(), Date.now());
+  db.prepare(`
+    INSERT INTO game_session_members (session_code, user_id, joined_at, last_seen_at)
+    VALUES (?, ?, ?, ?)
+  `).run(sessionCode, hostId, Date.now(), Date.now());
+  db.prepare(`
+    INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(runId, sessionCode, `{${sentinel}`, Date.now(), Date.now());
+  const response = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
+    headers: { Cookie: `cb_session=${hostCookie}` },
+  });
+  assert.equal(response.status, 500);
+  const body = await response.json();
+  assert.equal(body.error, "Unexpected server error");
+  assert.equal(body.code, "unexpected_server_error");
+  assert.equal(body.correlationId, response.headers.get("x-cannabeats-correlation-id"));
+  assert.doesNotMatch(JSON.stringify(body), new RegExp(sentinel));
+  assert.doesNotMatch(serverOutput, new RegExp(sentinel));
+});
 
 test("an authenticated lobby owns an internal game run and preserves host authority", async () => {
   const sessionCode = "TEST23";
@@ -184,6 +229,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
 
   const anonymous = await fetch(`${origin}/game/api/game?code=${sessionCode}`);
   assert.equal(anonymous.status, 401);
+  const anonymousBody = await anonymous.json();
+  assert.equal(anonymousBody.code, "authentication_required");
+  assert.equal(anonymousBody.correlationId, anonymous.headers.get("x-cannabeats-correlation-id"));
 
   const anonymousAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`);
   assert.equal(anonymousAudio.status, 401);
@@ -195,6 +243,7 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(hostAudio.headers.get("x-audio-rate"), "48000");
   assert.equal(hostAudio.headers.get("x-audio-channels"), "2");
   assert.equal(hostAudio.headers.get("x-audio-encoding"), "s16le");
+  assert.equal(relayCorrelationIds.at(-1), hostAudio.headers.get("x-cannabeats-correlation-id"));
   assert.deepEqual(new Uint8Array(await hostAudio.arrayBuffer()), new Uint8Array([0, 0, 0, 0, 1, 0, 1, 0]));
 
   const hostView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
@@ -273,10 +322,22 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(themed.status, 200);
   assert.equal((await themed.json()).room.rules.catalogScope, "broadway-tv-movies");
 
-  const unauthenticatedSource = await sourcePost({ action: "poll" }, "not-a-real-source-token-value-000000");
+  const untrustedCorrelation = randomUUID();
+  const unauthenticatedSource = await sourcePost(
+    { action: "poll" },
+    "not-a-real-source-token-value-000000",
+    untrustedCorrelation,
+  );
   assert.equal(unauthenticatedSource.status, 401);
-  const sourceHeartbeat = await sourcePost({ action: "poll", deviceId: "test-device" });
+  assert.notEqual(unauthenticatedSource.headers.get("x-cannabeats-correlation-id"), untrustedCorrelation);
+  const trustedCorrelation = randomUUID();
+  const sourceHeartbeat = await sourcePost(
+    { action: "poll", deviceId: "test-device" },
+    managedSourceToken,
+    trustedCorrelation,
+  );
   assert.equal(sourceHeartbeat.status, 200);
+  assert.equal(sourceHeartbeat.headers.get("x-cannabeats-correlation-id"), trustedCorrelation);
   assert.equal((await sourceHeartbeat.json()).lease.sessionCode, sessionCode);
   const localSource = await gamePost(
     { action: "audioSelect", code: sessionCode, mode: "local" },
@@ -350,11 +411,16 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const pauseComplete = await sourcePost({
     action: "complete",
     commandId: pauseWork.command.id,
-    ok: true,
-    playbackStatus: "paused",
+    ok: false,
+    playbackStatus: "error",
+    error: `Bearer ${relayListenToken} spotify:track:preRevealPrivateId test-device`,
     deviceId: "test-device",
   });
   assert.equal(pauseComplete.status, 200);
+  const failedCommand = db.prepare("SELECT error FROM managed_audio_commands WHERE id = ?")
+    .get(pauseWork.command.id);
+  assert.equal(failedCommand.error, "managed_playback_failed");
+  assert.ok(!JSON.stringify(failedCommand).includes(relayListenToken));
   const hostResumed = await gamePost(
     { action: "audioControl", code: sessionCode, command: "resume" },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },

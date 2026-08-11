@@ -11,6 +11,7 @@ WorkingDirectory=/opt/cannabeats-managed-source
 Environment=PYTHONUNBUFFERED=1
 Environment=CANNABEATS_AUDIO_SOURCE_API=https://poc.cannabeats.social/game/api/audio-source
 Environment=CANNABEATS_AUDIO_SOURCE_TOKEN_FILE=/etc/cannabeats-managed-source/source-token
+EnvironmentFile=-/etc/cannabeats-managed-source/source.env
 ExecStart=/usr/bin/python3 /opt/cannabeats-managed-source/controller.py
 Restart=on-failure
 RestartSec=3

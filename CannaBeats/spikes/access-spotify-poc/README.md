@@ -116,6 +116,10 @@ game-scoped, expiring capabilities enforced by the relay itself.
 
 ## Operational commands
 
+Backup, restore, release/rollback, component diagnostics, secret rotation, and
+managed-source replacement are documented in the
+[baseline protection runbook](../../docs/operations/baseline-protection.md).
+
 The browser invitation generator is available at `/admin/host-invitations` to
 signed-in accounts with the `manage_host_invitations` capability. The account
 page shows its link only to those users, and both the HTML route and API enforce
@@ -164,6 +168,7 @@ Inspect health without exposing the application port publicly:
 
 ```sh
 curl --fail http://127.0.0.1:3002/api/health
+curl --fail http://127.0.0.1:3002/api/ready
 docker inspect --format '{{.State.Health.Status}}' cannabeats-access-poc
 ```
 

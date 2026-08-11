@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "sha256:fcf6e2006c70f0a424823c7d4728573b3f2bc6ad5a4030fc95aeaba2af43ea2f",
+  "sourceVersion": "sha256:f3f2407c79847bab34c6617d8f90c228558ce63e5caaed7ecae068c45da38845",
+  "songCount": 3424,
+  "moduleCount": 111,
+  "acceptedChartThemeDifferences": 9,
+  "rejectedKnownWrongMappings": 2,
+  "coverage": {
+    "years": {
+      "sourceEntries": 3213,
+      "playableEntries": 3139,
+      "percentPlayable": 97.7
+    },
+    "themes": {
+      "sourceEntries": 403,
+      "playableEntries": 391,
+      "percentPlayable": 97.02
+    }
+  },
+  "sourceDirectories": [
+    "years",
+    "themes"
+  ]
+}

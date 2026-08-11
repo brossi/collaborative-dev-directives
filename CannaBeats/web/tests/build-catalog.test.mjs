@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
@@ -8,6 +11,7 @@ const run = promisify(execFile);
 
 const SCRIPT = fileFrom("../scripts/build-catalog.mjs");
 const OUTPUT = fileFrom("../data/catalog.json");
+const MANIFEST = fileFrom("../data/catalog-manifest.json");
 const SOURCE_ROOT = new URL("../../catalog/", import.meta.url);
 
 function fileFrom(relative) {
@@ -34,6 +38,73 @@ async function build() {
   await run(process.execPath, [SCRIPT]);
   return JSON.parse(await readFile(OUTPUT, "utf8"));
 }
+
+test("the release manifest identifies the exact built catalog and source", async () => {
+  await build();
+  const catalog = await readFile(OUTPUT, "utf8");
+  const manifest = JSON.parse(await readFile(MANIFEST, "utf8"));
+  assert.equal(manifest.catalogVersion,
+    `sha256:${createHash("sha256").update(catalog).digest("hex")}`);
+  assert.equal(manifest.songCount, JSON.parse(catalog).length);
+  assert.match(manifest.sourceVersion, /^sha256:[0-9a-f]{64}$/);
+  assert.ok(manifest.coverage.years.percentPlayable > 0);
+  assert.ok(manifest.coverage.themes.percentPlayable > 0);
+  assert.equal(manifest.rejectedKnownWrongMappings, 2);
+  await run(process.execPath, [SCRIPT, "--check"]);
+});
+
+test("reviewed wrong-track mappings cannot be reintroduced", async () => {
+  const root = await mkdtemp(join(tmpdir(), "cannabeats-catalog-rejected-"));
+  const catalogRoot = join(root, "catalog");
+  const outputDirectory = join(root, "output");
+  await mkdir(join(catalogRoot, "years"), { recursive: true });
+  await mkdir(join(catalogRoot, "themes"), { recursive: true });
+  const song = {
+    title: "Love Letters in the Sand",
+    artist: "Ted Black",
+    year: 1931,
+    uri: "spotify:track:1eqGYJJr2z2GXK1i0hD3BC",
+  };
+  await writeFile(join(catalogRoot, "years", "1931.json"), JSON.stringify({ songs: [song] }));
+  await writeFile(join(catalogRoot, "themes", "test.json"), JSON.stringify({
+    songs: [{ title: "Safe Song", artist: "Safe Artist", year: 1931, uri: "spotify:track:1234567890123456789012" }],
+  }));
+  await writeFile(join(catalogRoot, "release-overrides.json"), JSON.stringify({
+    rejectedMappings: [{ ...song, reason: "reviewed wrong recording" }],
+  }));
+  try {
+    await assert.rejects(
+      run(process.execPath, [SCRIPT, "--catalog-root", catalogRoot, "--output-directory", outputDirectory]),
+      (error) => /known wrong-track mapping/.test(error.stderr),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a conflicting URI blocks a release before writing output", async () => {
+  const root = await mkdtemp(join(tmpdir(), "cannabeats-catalog-gate-"));
+  const catalogRoot = join(root, "catalog");
+  const outputDirectory = join(root, "output");
+  await mkdir(join(catalogRoot, "years"), { recursive: true });
+  await mkdir(join(catalogRoot, "themes"), { recursive: true });
+  const uri = "spotify:track:1234567890123456789012";
+  await writeFile(join(catalogRoot, "years", "2000.json"), JSON.stringify({
+    songs: [{ title: "First recording", artist: "First artist", year: 2000, uri }],
+  }));
+  await writeFile(join(catalogRoot, "years", "2001.json"), JSON.stringify({
+    songs: [{ title: "Different recording", artist: "Different artist", year: 2001, uri }],
+  }));
+  try {
+    await assert.rejects(
+      run(process.execPath, [SCRIPT, "--catalog-root", catalogRoot, "--output-directory", outputDirectory]),
+      (error) => /CATALOG RELEASE BLOCKED/.test(error.stderr),
+    );
+    await assert.rejects(readFile(join(outputDirectory, "catalog.json")), /ENOENT/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("the built catalogue includes songs that exist only in catalog/themes", async () => {
   const built = await build();

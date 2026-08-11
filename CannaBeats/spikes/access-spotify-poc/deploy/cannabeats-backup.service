@@ -1,0 +1,13 @@
+[Unit]
+Description=Create and verify an encrypted CannaBeats application backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/cannabeats/backup.env
+ExecStart=/usr/local/sbin/cannabeats-backup
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict

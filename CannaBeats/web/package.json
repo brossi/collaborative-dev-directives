@@ -7,6 +7,7 @@
   },
   "scripts": {
     "catalog": "node scripts/build-catalog.mjs",
+    "catalog:check": "node scripts/build-catalog.mjs --check",
     "predev": "npm run catalog",
     "dev": "next dev",
     "predev:lan": "npm run catalog",

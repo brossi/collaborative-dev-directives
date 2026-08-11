@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.16"
   },
   "scripts": {
     "start": "node server.mjs",
     "dev": "NODE_ENV=development node --watch server.mjs",
     "invite": "node cli.mjs invite",
     "host-onboarding": "node cli.mjs host-onboarding",
+    "backup": "node operations/backup.mjs create",
+    "backup:verify": "node operations/backup.mjs verify",
+    "restore": "node operations/backup.mjs restore",
     "test": "node --test"
   },
   "dependencies": {

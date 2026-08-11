@@ -10,6 +10,7 @@ Group=cannabeats-source
 WorkingDirectory=/opt/cannabeats-managed-source
 Environment=PYTHONUNBUFFERED=1
 Environment=CANNABEATS_APP_ORIGIN=https://poc.cannabeats.social
+EnvironmentFile=-/etc/cannabeats-managed-source/source.env
 ExecStart=/usr/bin/python3 /opt/cannabeats-managed-source/agent.py
 Restart=on-failure
 RestartSec=3

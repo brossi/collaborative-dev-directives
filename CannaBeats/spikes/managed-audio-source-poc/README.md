@@ -26,9 +26,11 @@ This is an isolation boundary, not a new home for the CannaBeats application.
 
 - Dedicated DigitalOcean Droplet; do not colocate with `vw-services`.
 - No public application or remote-desktop ports.
-- Initial public SSH is restricted to an operator IP by both the DigitalOcean
-  firewall and UFW. It is removed only after private SSH has been verified from
-  an operator device on the tailnet.
+- Initial public SSH is restricted to an operator IP by the DigitalOcean
+  firewall. Cloud-init temporarily permits the SSH service through UFW so the
+  provider rule is the source filter. Remove that UFW rule and the provider
+  exception only after private SSH is verified from an operator device on the
+  tailnet.
 - DigitalOcean backups and snapshots remain disabled because the node will
   contain a persistent Spotify authorization.
 - Start with `s-1vcpu-2gb`; resize only if measured browser or capture load
@@ -217,3 +219,11 @@ snapshot. The source device token belongs at
 `/etc/cannabeats-managed-source/source-token`, owned by
 `cannabeats-controller` with mode `0400`; register only its SHA-256 hash in
 `managed_audio_sources`.
+
+The complete loss/replacement sequence, secret rotation order, health checks,
+and Spotify reauthorization acceptance test are maintained in the
+[baseline protection runbook](../../docs/operations/baseline-protection.md).
+Run `/opt/cannabeats-managed-source/health_check.py` after provisioning and
+before returning a replacement source to service. The report intentionally
+marks provider transfer usage `unknown`; inspect that quota in the hosting
+provider control plane.

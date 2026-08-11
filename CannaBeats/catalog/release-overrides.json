@@ -1,0 +1,50 @@
+{
+  "acceptedArtistVariants": {
+    "spotify:track:51H2y6YrNNXcy3dfc3qSbA": {
+      "title": "When Doves Cry",
+      "artists": ["Prince", "Prince & The Revolution"],
+      "reason": "Source modules use solo and soundtrack billing for the same recording."
+    },
+    "spotify:track:3u9fHuAtjMY1RW2mZfO4Cf": {
+      "title": "Gangsta's Paradise",
+      "artists": ["Coolio featuring L.V.", "Coolio"],
+      "reason": "The film module uses shortened performer billing for the same recording."
+    },
+    "spotify:track:5Cp75TUMrHF6c8xbhdligS": {
+      "title": "Golden",
+      "artists": ["HUNTR/X: EJAE, Audrey Nuna & REI AMI", "HUNTR/X"],
+      "reason": "The film module uses the fictional group name while the chart module includes the vocalists."
+    },
+    "spotify:track:7Kpqjspw4Y7HrvItIRcBiW": {
+      "title": "Jai Ho",
+      "artists": ["A.R. Rahman", "A.R. Rahman, Sukhwinder Singh"],
+      "reason": "The theme modules use composer-only and composer-plus-vocalist billing."
+    },
+    "spotify:track:45aBsnKRWUzhwbcqOJLwfe": {
+      "title": "This Is Me",
+      "artists": ["Keala Settle & The Greatest Showman Ensemble", "Keala Settle"],
+      "reason": "The Oscar module uses lead-performer billing for the same recording."
+    },
+    "spotify:track:6B9tR2OEurD4FsZM5btj3X": {
+      "title": "TSOP (The Sound of Philadelphia)",
+      "artists": ["MFSB featuring The Three Degrees", "MFSB"],
+      "reason": "The television module uses shortened performer billing for the same recording."
+    }
+  },
+  "rejectedMappings": [
+    {
+      "uri": "spotify:track:1eqGYJJr2z2GXK1i0hD3BC",
+      "title": "Love Letters in the Sand",
+      "artist": "Ted Black",
+      "year": 1931,
+      "reason": "Spotify resolves this URI to Pat Boone's later recording, not the Ted Black recording."
+    },
+    {
+      "uri": "spotify:track:1ATq1R2bLeKXOSti9kzj5f",
+      "title": "Say It Isn't So",
+      "artist": "George Olsen",
+      "year": 1932,
+      "reason": "Spotify resolves this URI to Daryl Hall & John Oates, not the George Olsen recording."
+    }
+  ]
+}

@@ -28,7 +28,7 @@ test("QR players get a focused name entry page", async () => {
   const join = await readFile(new URL("../app/join/[code]/join-room.tsx", import.meta.url), "utf8");
 
   assert.match(join, /What should we call you\?/);
-  assert.match(join, /action: "join"/);
+  assert.match(join, /action: invitation \? "joinGuest" : "join"/);
   assert.match(join, /sessionStorage\.setItem\(SESSION_KEY/);
   assert.match(join, /window\.location\.replace\(cannabeatsPath\("\/"\)\)/);
   assert.doesNotMatch(join, /Host a game/);
@@ -300,7 +300,8 @@ test("the host uses blind in-browser Spotify playback", async () => {
   ]);
 
   assert.doesNotMatch(page, /Open in Spotify/);
-  assert.match(page, /Pause mystery song/);
+  assert.match(page, /aria-label={`\$\{playbackLabel\} mystery song`}/);
+  assert.match(page, /managedPlaybackActive \? "Pause" : "Resume"/);
   assert.match(page, /spotify\.play\(payload\.room\.currentSong\.uri\)/);
   assert.match(player, /https:\/\/sdk\.scdn\.co\/spotify-player\.js/);
   assert.match(player, /enableMediaSession: false/);
@@ -308,5 +309,6 @@ test("the host uses blind in-browser Spotify playback", async () => {
   assert.match(player, /\/v1\/me\/player\/pause\?device_id=/);
   assert.match(player, /keepalive: true/);
   assert.match(player, /addEventListener\("pagehide", handlePageExit\)/);
-  assert.match(page, /if \(room\?\.isHost\) void spotify\.stop\(\)/);
+  assert.match(page, /if \(room\?\.isHost\) \{/);
+  assert.match(page, /else \{\s+void spotify\.stop\(\)/);
 });
