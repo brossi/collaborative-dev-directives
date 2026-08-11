@@ -205,7 +205,7 @@ complete.
 - Final local evidence: access/release/backup `65/65`, web/client/API `51/51`,
   production Next.js build, TypeScript, ESLint, and diff checks pass.
 
-#### Adversarial P2 remediation order — local remediation complete
+#### Adversarial P2 remediation checkpoint
 
 1. Make every room writer compare the authoritative database revision, preserve
    related database effects in the same transaction, and map SQLite contention
@@ -301,9 +301,47 @@ evidence until that rehearsal is recorded.
   classification and action identity; they use the same refresh-before-retry
   reconciliation path.
 
-Final local evidence for the adversarial remediation is access/release/backup
-`67/67` and web/client/API `55/55`, including the production Next.js build and
-TypeScript compilation. ESLint and whitespace validation also pass.
+The checkpoint evidence was access/release/backup `67/67` and web/client/API
+`55/55`, including the production Next.js build and TypeScript compilation.
+ESLint and whitespace validation also passed. A follow-on audit then found the
+additional P1 concurrency and uncertain-outcome failures below; the checkpoint
+must not be treated as the end of P2 remediation.
+
+#### Follow-on concurrency P1 remediation — 2026-08-11
+
+- Both database initializers now acquire `BEGIN IMMEDIATE` before reading or
+  validating `user_version`. A concurrent promotion can no longer occur between
+  the read and write and be lowered by the bridge initializer. Cross-process
+  regressions reproduce the original access and game races and prove version 2
+  remains version 2.
+- The game database singleton is published only after initialization succeeds.
+  PRAGMA, lock-acquisition, version, or migration failures close and discard the
+  local handle, so a later call retries initialization instead of returning an
+  unmigrated connection that can satisfy a shallow readiness query.
+- Room-state compare-and-swap now binds the persisted `runId` as well as lobby,
+  active-run identity, and expected revision. A stale state loaded from an old
+  run cannot overwrite a replacement run that happens to have the same
+  revision.
+- Prepare acquires the lobby write transaction before deciding whether a run
+  exists. Concurrent prepare requests from independent application processes
+  serialize and converge on one run: one returns created and the other returns
+  the same existing run.
+- Successful room-producing transition responses now pass the shared runtime
+  room and lobby contract before reaching React. A malformed HTTP 200 response
+  is a typed `invalid_response`, not a successful transition.
+- An uncertain protected action carries the complete immutable original request
+  back to the caller. The client resolves it only by replaying that exact action
+  identity and payload; if the outcome remains uncertain, controls remain
+  blocked instead of allowing a new intent to race a delayed original request.
+  Refreshes used during definitive rejection recovery are bounded by timeout.
+
+These fixes were added behind regressions that failed against the checkpoint.
+Final local evidence is access/release/backup `69/69` and web/client/API
+`58/58`, including the production Next.js build and TypeScript compilation.
+ESLint and whitespace validation pass. The audited P1 findings are closed
+locally; remaining P2 work includes stale join-identity cleanup, durable release
+state after rename, additional relational/privacy response hardening, explicit
+busy-versus-unknown outcome classification, and S2-B audio response ordering.
 
 ### S2-B: Complete transition and playback idempotency
 

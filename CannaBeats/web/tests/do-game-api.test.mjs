@@ -86,7 +86,7 @@ async function startGameProcess(targetOrigin, port) {
         PORT: String(port),
         CANNABEATS_APP_ORIGIN: targetOrigin,
         CANNABEATS_DATABASE_PATH: databasePath,
-        CANNABEATS_DATABASE_BUSY_TIMEOUT_MS: "25",
+        CANNABEATS_DATABASE_BUSY_TIMEOUT_MS: "250",
         CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
         CANNABEATS_PUBLIC_GAME_ORIGIN: `${targetOrigin}/game`,
         AUDIO_RELAY_ORIGIN: relayOrigin,
@@ -328,12 +328,26 @@ test("an authenticated lobby owns an internal game run and preserves host author
   });
   assert.equal(beforePreparation.status, 409);
 
-  const createdResponse = await gamePost(
-    { action: "prepare", code: sessionCode },
-    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
-  );
-  assert.equal(createdResponse.status, 201);
-  const created = await createdResponse.json();
+  db.exec("BEGIN IMMEDIATE");
+  const concurrentPreparation = Promise.all([
+    gamePost(
+      { action: "prepare", code: sessionCode },
+      { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    ),
+    gamePost(
+      { action: "prepare", code: sessionCode },
+      { Cookie: `cb_session=${hostCookie}`, Origin: secondaryOrigin },
+      secondaryOrigin,
+    ),
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  db.exec("ROLLBACK");
+  const createdResponses = await concurrentPreparation;
+  assert.deepEqual(createdResponses.map((response) => response.status).sort(), [200, 201]);
+  const createdPayloads = await Promise.all(createdResponses.map((response) => response.json()));
+  assert.equal(new Set(createdPayloads.map((payload) => payload.room.runId)).size, 1);
+  assert.deepEqual(createdPayloads.map((payload) => payload.created).sort(), [false, true]);
+  const created = createdPayloads[0];
   assert.equal(created.room.code, sessionCode);
   assert.equal(created.room.phase, "lobby");
   assert.equal(created.room.isHost, true);
@@ -347,6 +361,8 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.match(lobby.active_run_id, /^[0-9a-f-]{36}$/);
   assert.equal(created.room.runId, lobby.active_run_id);
   assert.equal(db.prepare("SELECT session_code FROM game_runs WHERE id = ?").get(lobby.active_run_id).session_code, sessionCode);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM game_runs WHERE session_code = ?").get(sessionCode).count, 1);
+  assert.equal(db.prepare("SELECT run_generation FROM game_sessions WHERE code = ?").get(sessionCode).run_generation, 1);
   assert.equal(db.prepare("SELECT 1 FROM rooms WHERE code = ?").get(sessionCode), undefined);
 
   const anonymous = await fetch(`${origin}/game/api/game?code=${sessionCode}`);

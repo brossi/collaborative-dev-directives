@@ -21,6 +21,8 @@ async function gameRequest(body: Record<string, unknown>) {
   return requestGame(cannabeatsPath("/api/game"), body);
 }
 
+const ROOM_REFRESH_TIMEOUT_MS = 8_000;
+
 function normalizeNumberDisplay(input: HTMLInputElement, value: number) {
   input.value = String(value);
 }
@@ -295,13 +297,22 @@ export default function Home() {
     const sequence = beginRoomRequest();
     const params = new URLSearchParams({ code: current.code });
     if (current.hostToken) params.set("hostToken", current.hostToken);
-    const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, { cache: "no-store" });
-    const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string };
-    if (!response.ok) throw new Error(payload.error ?? "Unable to refresh the room.");
-    if (!payload.room) throw new Error("The room response was incomplete.");
-    const acceptedRoom = applyRoomSnapshot(payload.room, sequence, current.code);
-    if (payload.audio) setAudio(payload.audio);
-    return acceptedRoom;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), ROOM_REFRESH_TIMEOUT_MS);
+    try {
+      const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Unable to refresh the room.");
+      if (!payload.room) throw new Error("The room response was incomplete.");
+      const acceptedRoom = applyRoomSnapshot(payload.room, sequence, current.code);
+      if (payload.audio) setAudio(payload.audio);
+      return acceptedRoom;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }, [applyRoomSnapshot, beginRoomRequest]);
 
   useEffect(() => {
@@ -429,6 +440,16 @@ export default function Home() {
     if (!session) return false;
     setBusy(true);
     setError("");
+    let keepBlocked = false;
+    const applyActionResult = async (payload: Awaited<ReturnType<typeof gameRequest>>, sequence: number) => {
+      if (payload.audio) setAudio(payload.audio);
+      if (!payload.room) return;
+      const acceptedRoom = applyRoomSnapshot(payload.room, sequence, session.code);
+      const managed = (payload.audio ?? audio).selection === "managed";
+      if (!managed && playNewSong && acceptedRoom?.phase === "playing" && acceptedRoom.currentSong?.uri) {
+        await spotify.play(acceptedRoom.currentSong.uri);
+      }
+    };
     try {
       const action = String(body.action ?? "");
       const actionContext = RETRYABLE_ACTIONS.has(action) && room
@@ -436,31 +457,43 @@ export default function Home() {
         : {};
       const sequence = beginRoomRequest();
       const payload = await gameRequest({ ...body, ...actionContext, code: session.code });
-      if (payload.audio) setAudio(payload.audio);
-      if (payload.room) {
-        const acceptedRoom = applyRoomSnapshot(payload.room, sequence, session.code);
-        const managed = (payload.audio ?? audio).selection === "managed";
-        if (!managed && playNewSong && acceptedRoom?.phase === "playing" && acceptedRoom.currentSong?.uri) {
-          await spotify.play(acceptedRoom.currentSong.uri);
-        }
-      }
+      await applyActionResult(payload, sequence);
       return true;
     } catch (reason) {
-      if (reason instanceof GameApiError
-          && reason.actionId
-          && (reason.code === "action_outcome_unknown" || reason.code === "invalid_response")) {
+      if (reason instanceof GameApiError && reason.pendingRequest) {
+        try {
+          const sequence = beginRoomRequest();
+          const resolved = await gameRequest(reason.pendingRequest);
+          await applyActionResult(resolved, sequence);
+          setError("The delayed action was confirmed against the current game.");
+          return true;
+        } catch (resolutionReason) {
+          if (resolutionReason instanceof GameApiError && resolutionReason.pendingRequest) {
+            keepBlocked = true;
+            setError("This action is still pending. Reconnect or reload before attempting another move.");
+          } else {
+            try {
+              await refresh(session);
+            } catch {
+              // A definitive rejection is safe to unblock even when refresh remains unavailable.
+            }
+            setError(resolutionReason instanceof Error ? resolutionReason.message : "The delayed action was rejected.");
+          }
+        }
+      } else if (reason instanceof GameApiError && reason.code === "invalid_response") {
         try {
           await refresh(session);
-          setError("The action result was uncertain, so the current game was refreshed. Confirm its state before retrying.");
+          setError("The transition response was incomplete, so the current game was refreshed.");
         } catch {
-          setError("The action result is uncertain and the current game could not be refreshed. Reconnect before retrying.");
+          keepBlocked = true;
+          setError("The transition result is uncertain and the current game could not be refreshed. Reload before retrying.");
         }
       } else {
         setError(reason instanceof Error ? reason.message : "Something went wrong.");
       }
       return false;
     } finally {
-      setBusy(false);
+      if (!keepBlocked) setBusy(false);
     }
   }
 

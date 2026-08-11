@@ -2,6 +2,11 @@ import type { AudioControlView, Player, RoomView, Song } from "./game";
 import type { GameRules } from "./rules";
 
 export const RETRYABLE_ACTIONS = new Set(["place", "retract", "reveal"]);
+const ROOM_RESPONSE_ACTIONS = new Set([
+  "prepare", "join", "audioAcquire", "audioSelect", "audioRelease", "audioControl",
+  "addPlayer", "removePlayer", "rules", "start", "begin", "place", "retract",
+  "reveal", "advance", "skip",
+]);
 
 const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_TIMEOUT_MS = 8_000;
@@ -43,6 +48,7 @@ export class GameApiError extends Error {
   readonly code: string;
   readonly correlationId?: string;
   readonly actionId?: string;
+  readonly pendingRequest?: Readonly<Record<string, unknown>>;
 
   constructor(
     message: string,
@@ -50,6 +56,7 @@ export class GameApiError extends Error {
     code: string,
     correlationId?: string,
     actionId?: string,
+    pendingRequest?: Readonly<Record<string, unknown>>,
   ) {
     super(message);
     this.name = "GameApiError";
@@ -57,6 +64,7 @@ export class GameApiError extends Error {
     this.code = code;
     this.correlationId = correlationId;
     this.actionId = actionId;
+    this.pendingRequest = pendingRequest;
   }
 }
 
@@ -245,6 +253,7 @@ export async function requestGame(
   const requestBody = retryable && !body.actionId
     ? { ...body, actionId: actionUuid(options.cryptoSource) }
     : body;
+  const retainedRequest = retryable ? Object.freeze({ ...requestBody }) : undefined;
   const serializedBody = JSON.stringify(requestBody);
   const requestedActionId = retryable ? String(requestBody.actionId ?? "").toLowerCase() : "";
   const requestedRunId = retryable ? String(requestBody.expectedRunId ?? "").toLowerCase() : "";
@@ -287,8 +296,17 @@ export async function requestGame(
               "invalid_response",
               payload.correlationId,
               requestedActionId,
+              retainedRequest,
             );
           }
+        } else if (ROOM_RESPONSE_ACTIONS.has(action)
+            && (!validRoomViewShape(payload.room) || payload.room.code !== String(body.code ?? "").trim().toUpperCase())) {
+          throw new GameApiError(
+            "The game returned an incomplete transition result.",
+            502,
+            "invalid_response",
+            payload.correlationId,
+          );
         }
         return payload;
       }
@@ -300,6 +318,7 @@ export async function requestGame(
           "action_outcome_unknown",
           payload.correlationId,
           requestedActionId,
+          retainedRequest,
         );
       }
       throw new GameApiError(
@@ -317,6 +336,7 @@ export async function requestGame(
           "action_outcome_unknown",
           undefined,
           requestedActionId,
+          retainedRequest,
         );
       }
     } finally {

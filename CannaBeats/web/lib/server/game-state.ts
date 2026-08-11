@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 type PersistedGameState = {
+  runId: string;
   code: string;
   revision: number;
   [key: string]: unknown;
@@ -34,14 +35,18 @@ export function saveGameRunState<T extends PersistedGameState>(db: DatabaseSync,
     if (ownsTransaction) db.exec("BEGIN IMMEDIATE");
     const saved = db.prepare(`
       UPDATE game_runs SET state = ?, updated_at = ?
-      WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
+      WHERE id = ?
+        AND session_code = ?
+        AND id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
         AND revision = ?
-    `).run(JSON.stringify(state), Date.now(), state.code, expectedRevision);
+    `).run(JSON.stringify(state), Date.now(), state.runId, state.code, state.code, expectedRevision);
     if (saved.changes !== 1) throw new StaleGameStateError();
     const row = db.prepare(`
       SELECT revision FROM game_runs
-      WHERE id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
-    `).get(state.code) as { revision: number } | undefined;
+      WHERE id = ?
+        AND session_code = ?
+        AND id = (SELECT active_run_id FROM game_sessions WHERE code = ?)
+    `).get(state.runId, state.code, state.code) as { revision: number } | undefined;
     if (!row) throw new StaleGameStateError();
     state.revision = row.revision;
     if (ownsTransaction) db.exec("COMMIT");

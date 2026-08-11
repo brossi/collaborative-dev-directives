@@ -48,33 +48,29 @@ export function database() {
     ?? resolve(process.cwd(), ".data/cannabeats.sqlite");
   if (db && dbPath === configuredPath) return db;
   db?.close();
+  db = undefined;
+  dbPath = "";
   mkdirSync(dirname(configuredPath), { recursive: true });
   db = new DatabaseSync(configuredPath);
   dbPath = configuredPath;
-  db.exec(`
-    PRAGMA foreign_keys = ON;
-    PRAGMA journal_mode = WAL;
-    PRAGMA busy_timeout = ${databaseBusyTimeoutMs()};
-  `);
-  const startingVersion = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
-  if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
-    db.close();
-    db = undefined;
-    dbPath = "";
-    throw new Error(
-      `Database schema version ${startingVersion} is newer than supported version ${DATABASE_SCHEMA_MAX_VERSION}`,
-    );
-  }
-  if (startingVersion < DATABASE_SCHEMA_MIN_VERSION) {
-    db.close();
-    db = undefined;
-    dbPath = "";
-    throw new Error(
-      `Database schema version ${startingVersion} is older than supported version ${DATABASE_SCHEMA_MIN_VERSION}`,
-    );
-  }
-  db.exec("BEGIN IMMEDIATE");
   try {
+    db.exec(`
+      PRAGMA foreign_keys = ON;
+      PRAGMA journal_mode = WAL;
+      PRAGMA busy_timeout = ${databaseBusyTimeoutMs()};
+    `);
+    db.exec("BEGIN IMMEDIATE");
+    const startingVersion = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
+    if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
+      throw new Error(
+        `Database schema version ${startingVersion} is newer than supported version ${DATABASE_SCHEMA_MAX_VERSION}`,
+      );
+    }
+    if (startingVersion < DATABASE_SCHEMA_MIN_VERSION) {
+      throw new Error(
+        `Database schema version ${startingVersion} is older than supported version ${DATABASE_SCHEMA_MIN_VERSION}`,
+      );
+    }
     db.exec(`
     CREATE TABLE IF NOT EXISTS game_runs (
       id TEXT PRIMARY KEY,

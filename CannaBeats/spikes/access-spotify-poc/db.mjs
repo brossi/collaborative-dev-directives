@@ -72,19 +72,19 @@ export function openDatabase(databasePath) {
 }
 
 function migrate(db) {
-  const startingVersion = db.prepare('PRAGMA user_version').get().user_version;
-  if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
-    throw new Error(
-      `Database schema version ${startingVersion} is newer than supported version ${DATABASE_SCHEMA_MAX_VERSION}`,
-    );
-  }
-  if (startingVersion < DATABASE_SCHEMA_MIN_VERSION) {
-    throw new Error(
-      `Database schema version ${startingVersion} is older than supported version ${DATABASE_SCHEMA_MIN_VERSION}`,
-    );
-  }
   db.exec('BEGIN IMMEDIATE');
   try {
+    const startingVersion = db.prepare('PRAGMA user_version').get().user_version;
+    if (startingVersion > DATABASE_SCHEMA_MAX_VERSION) {
+      throw new Error(
+        `Database schema version ${startingVersion} is newer than supported version ${DATABASE_SCHEMA_MAX_VERSION}`,
+      );
+    }
+    if (startingVersion < DATABASE_SCHEMA_MIN_VERSION) {
+      throw new Error(
+        `Database schema version ${startingVersion} is older than supported version ${DATABASE_SCHEMA_MIN_VERSION}`,
+      );
+    }
     db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,

@@ -70,6 +70,10 @@ test("retryable player intents carry authoritative game context", async () => {
   assert.match(page, /requestGame\(cannabeatsPath\("\/api\/game"\), body\)/);
   assert.match(page, /expectedRunId: room\.runId/);
   assert.match(page, /expectedRevision: room\.revision/);
+  assert.match(page, /reason\.pendingRequest/);
+  assert.match(page, /gameRequest\(reason\.pendingRequest\)/);
+  assert.match(page, /keepBlocked = true/);
+  assert.match(page, /if \(!keepBlocked\) setBusy\(false\)/);
 });
 
 test("the player game view prioritizes the timeline", async () => {

@@ -168,10 +168,64 @@ test("an exhausted transient retry retains the uncertain action identity for rec
     }),
     (error) => error instanceof GameApiError
       && error.code === "action_outcome_unknown"
-      && error.actionId === JSON.parse(bodies[0]).actionId,
+      && error.actionId === JSON.parse(bodies[0]).actionId
+      && JSON.stringify(error.pendingRequest) === bodies[0],
   );
   assert.equal(bodies.length, 2);
   assert.equal(bodies[0], bodies[1]);
+});
+
+test("an uncertain action can be resolved only by replaying its complete original intent", async () => {
+  let pendingError;
+  const sentBodies = [];
+  try {
+    await requestGame("/game/api/game", {
+      action: "place",
+      code: room.code,
+      expectedRunId: room.runId,
+      expectedRevision: room.revision - 1,
+      playerId: "player-1",
+      index: 0,
+    }, {
+      cryptoSource: fallbackCrypto,
+      fetchImpl: (_input, init) => {
+        sentBodies.push(init.body);
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+        });
+      },
+      timeoutMs: 5,
+    });
+  } catch (error) {
+    pendingError = error;
+  }
+  assert.ok(pendingError instanceof GameApiError);
+  assert.ok(pendingError.pendingRequest);
+
+  const resolved = await requestGame("/game/api/game", pendingError.pendingRequest, {
+    fetchImpl: async (_input, init) => {
+      sentBodies.push(init.body);
+      return Response.json({
+        room,
+        action: { id: pendingError.actionId, accepted: true, replayed: true },
+      });
+    },
+  });
+  assert.equal(resolved.action.replayed, true);
+  assert.equal(new Set(sentBodies).size, 1);
+});
+
+test("state-changing transition responses require an authoritative room", async () => {
+  for (const action of ["addPlayer", "removePlayer", "rules", "audioSelect", "start", "begin", "advance", "skip"]) {
+    await assert.rejects(
+      requestGame("/game/api/game", { action, code: room.code }, {
+        fetchImpl: async () => Response.json({}),
+      }),
+      (error) => error instanceof GameApiError
+        && error.code === "invalid_response"
+        && error.actionId === undefined,
+    );
+  }
 });
 
 test("retryable actions reject incomplete or mismatched successful responses", async () => {

@@ -93,6 +93,19 @@ test("the bridge gives Slice 1 state writers a monotonic database revision", () 
   bridged.prepare("UPDATE game_runs SET state = ?, updated_at = ? WHERE id = 'run-2'")
     .run(JSON.stringify(oldCreatedState), now + 3);
   assert.equal(bridged.prepare("SELECT revision FROM game_runs WHERE id = 'run-2'").get().revision, 1);
+  const runTwoBeforeStaleSave = bridged.prepare("SELECT state, revision FROM game_runs WHERE id = 'run-2'").get();
+  const staleRunOneState = {
+    ...JSON.parse(bridged.prepare("SELECT state FROM game_runs WHERE id = 'run-1'").get().state),
+    runId: "run-1",
+    code: "ROLL23",
+    revision: runTwoBeforeStaleSave.revision,
+    writer: "stale-cross-run",
+  };
+  assert.throws(() => saveGameRunState(bridged, staleRunOneState), StaleGameStateError);
+  assert.deepEqual(
+    bridged.prepare("SELECT state, revision FROM game_runs WHERE id = 'run-2'").get(),
+    runTwoBeforeStaleSave,
+  );
   assert.equal(database().prepare("SELECT revision FROM game_runs WHERE id = 'run-2'").get().revision, 1);
 });
 
@@ -113,6 +126,31 @@ test("the game initializer retries cleanly after access creates a fresh database
   assert.equal(retried.prepare("PRAGMA user_version").get().user_version, 1);
   assert.equal(retried.prepare(`
     SELECT COUNT(*) AS count FROM sqlite_schema WHERE type = 'table' AND name = 'game_action_receipts'
+  `).get().count, 1);
+});
+
+test("a writer-lock timeout never publishes an unmigrated game database handle", () => {
+  const databasePath = join(root, "initializer-lock-timeout.sqlite");
+  openDatabase(databasePath).close();
+  const blocker = new DatabaseSync(databasePath);
+  blocker.exec("PRAGMA journal_mode = WAL; BEGIN IMMEDIATE");
+  process.env.CANNABEATS_DATABASE_PATH = databasePath;
+  process.env.CANNABEATS_DATABASE_BUSY_TIMEOUT_MS = "1";
+  try {
+    assert.throws(() => database(), /database is locked/i);
+  } finally {
+    blocker.exec("ROLLBACK");
+    blocker.close();
+    delete process.env.CANNABEATS_DATABASE_BUSY_TIMEOUT_MS;
+  }
+
+  const retried = database();
+  assert.equal(retried.prepare(`
+    SELECT COUNT(*) AS count FROM sqlite_schema WHERE type = 'table' AND name = 'game_runs'
+  `).get().count, 1);
+  assert.equal(retried.prepare(`
+    SELECT COUNT(*) AS count FROM sqlite_schema
+    WHERE type = 'trigger' AND name = 'game_runs_advance_revision'
   `).get().count, 1);
 });
 

@@ -523,37 +523,46 @@ async function postGame(request: Request) {
       const principal = requirePrincipal(request);
       const code = String(payload.code ?? "").trim().toUpperCase();
       if (!/^[A-Z2-9]{6}$/.test(code)) return fail("Game code is invalid.");
-      const lobby = database().prepare(`
-        SELECT host_user_id, active_run_id, status FROM game_sessions WHERE code = ?
-      `).get(code) as { host_user_id: string; active_run_id: string | null; status: string } | undefined;
-      if (!lobby || lobby.host_user_id !== principal.id) return fail("Host access required.", 403);
-      if (lobby.status === "ended") return fail("This lobby has ended.", 409);
-      const existing = loadRoom(code);
-      if (existing) return Response.json({
-        room: roomView(existing.state, true),
-        audio: selectedAudioView(code, principal.id),
-        created: false,
-      });
-      const runId = randomUUID();
-      const state = newRoomState(runId, code, payload.rules);
-      const now = Date.now();
+      let state: RoomState;
+      let created = false;
       database().exec("BEGIN IMMEDIATE");
       try {
-        database().prepare(`
-          INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?)
-        `).run(runId, code, JSON.stringify(state), now, now);
-        database().prepare(`
-          UPDATE game_sessions SET active_run_id = ?, updated_at = ? WHERE code = ?
-        `).run(runId, now, code);
-        state.runGeneration = (database().prepare(`
-          SELECT run_generation FROM game_sessions WHERE code = ?
-        `).get(code) as { run_generation: number }).run_generation;
+        const lobby = database().prepare(`
+          SELECT host_user_id, active_run_id, status FROM game_sessions WHERE code = ?
+        `).get(code) as { host_user_id: string; active_run_id: string | null; status: string } | undefined;
+        if (!lobby || lobby.host_user_id !== principal.id) {
+          throw new GameRequestError("Host access required.", 403);
+        }
+        if (lobby.status === "ended") throw new GameRequestError("This lobby has ended.", 409);
+        const existing = loadRoom(code);
+        if (existing) {
+          state = existing.state;
+        } else {
+          const runId = randomUUID();
+          state = newRoomState(runId, code, payload.rules);
+          const now = Date.now();
+          database().prepare(`
+            INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(runId, code, JSON.stringify(state), now, now);
+          database().prepare(`
+            UPDATE game_sessions SET active_run_id = ?, updated_at = ? WHERE code = ?
+          `).run(runId, now, code);
+          state.runGeneration = (database().prepare(`
+            SELECT run_generation FROM game_sessions WHERE code = ?
+          `).get(code) as { run_generation: number }).run_generation;
+          created = true;
+        }
         database().exec("COMMIT");
       } catch (error) {
         database().exec("ROLLBACK");
         throw error;
       }
+      if (!created) return Response.json({
+        room: roomView(state, true),
+        audio: selectedAudioView(code, principal.id),
+        created: false,
+      });
       const joinOrigin = process.env.CANNABEATS_PUBLIC_GAME_ORIGIN
         ?? `${new URL(request.url).origin}${process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? ""}`;
       return Response.json(

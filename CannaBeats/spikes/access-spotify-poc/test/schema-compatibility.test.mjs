@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -13,6 +14,39 @@ import {
 
 const root = mkdtempSync(join(tmpdir(), 'cannabeats-schema-test-'));
 after(() => rmSync(root, { recursive: true, force: true }));
+
+async function launchBlockedInitializer(kind, databasePath) {
+  const modulePath = kind === 'access'
+    ? resolve('db.mjs')
+    : resolve('../../web/lib/server/database.ts');
+  const source = kind === 'access'
+    ? `const module = await import(process.argv[1]); process.stdout.write('starting\\n'); module.openDatabase(process.argv[2]).close();`
+    : `const module = await import(process.argv[1]); process.stdout.write('starting\\n'); module.database().close();`;
+  const child = spawn(process.execPath, ['--input-type=module', '--eval', source, modulePath, databasePath], {
+    env: {
+      ...process.env,
+      CANNABEATS_DATABASE_PATH: databasePath,
+      CANNABEATS_DATABASE_BUSY_TIMEOUT_MS: '5000',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (chunk) => { stdout += chunk; });
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  const done = new Promise((resolveDone, rejectDone) => {
+    child.once('error', rejectDone);
+    child.once('exit', (code) => {
+      if (code === 0) resolveDone();
+      else rejectDone(new Error(`Initializer failed with ${code}: ${stderr}`));
+    });
+  });
+  while (!stdout.includes('starting') && child.exitCode === null) {
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 5));
+  }
+  if (child.exitCode !== null) throw new Error(`Initializer exited before blocking: ${stderr}`);
+  return { done };
+}
 
 test('database initialization migrates schema version zero to the current version atomically', () => {
   const databasePath = join(root, 'migrate.sqlite');
@@ -37,6 +71,25 @@ test('the expand bridge reads schema two without lowering its version', () => {
   `).get().count, 1);
   bridged.close();
 });
+
+for (const service of ['access', 'game']) {
+  test(`${service} reads the schema version only after owning the migration lock`, async () => {
+    const databasePath = join(root, `${service}-version-race.sqlite`);
+    const initial = openDatabase(databasePath);
+    initial.close();
+    const promoter = new DatabaseSync(databasePath);
+    promoter.exec('PRAGMA journal_mode = WAL; BEGIN IMMEDIATE');
+    const initializing = await launchBlockedInitializer(service, databasePath);
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+    promoter.exec('PRAGMA user_version = 2; COMMIT');
+    promoter.close();
+    await initializing.done;
+
+    const inspected = new DatabaseSync(databasePath, { readOnly: true });
+    assert.equal(inspected.prepare('PRAGMA user_version').get().user_version, 2);
+    inspected.close();
+  });
+}
 
 test('database initialization rejects versions newer than the bridge before changing structure', () => {
   const databasePath = join(root, 'newer.sqlite');
