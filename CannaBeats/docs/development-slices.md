@@ -2,12 +2,13 @@
 
 **Status:** Working document; not yet scheduled; not published
 **Purpose:** Group the validated product backlog into coherent development slices that maximize useful delivery while respecting dependencies and avoiding premature platform work.
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-11
 
 ## Relationship to other project artifacts
 
 - [Product backlog](product-backlog.md) records unresolved product and technical opportunities without implying priority.
 - [ADR 0001](architecture/0001-lobby-orchestrates-game-runs.md) defines the accepted lobby/game-run lifecycle and ownership boundaries.
+- [Slice 1 plan](slice-1-baseline-protection.md) turns the first recommended slice into implementation checkpoints and acceptance criteria, including the thin observability foundation.
 - This document groups backlog work by shared implementation seams and describes an efficient delivery shape. It does not replace feature-level acceptance criteria or implementation plans.
 
 Before starting a slice, confirm its current scope against playtest evidence and create a focused issue or design note with exact acceptance criteria. Completing a slice does not require implementing every future idea in its associated workstream.
@@ -175,7 +176,9 @@ The workstreams above describe ownership and affinity. The slices below describe
 
 ### Slice 1: Baseline protection
 
-**Outcome:** Existing accounts, authorizations, catalog state, deployment, and managed audio service can be recovered without reconstructing them from memory.
+**Outcome:** Existing accounts, authorizations, catalog state, deployment, and managed audio service can be recovered without reconstructing them from memory, and an operator can distinguish failures without manually inspecting SQLite or uncorrelated container output.
+
+**Implementation plan:** [Slice 1: Baseline protection](slice-1-baseline-protection.md)
 
 Candidate scope:
 
@@ -203,6 +206,7 @@ Boundaries:
 - Do not add enterprise orchestration or broad monitoring platforms without evidence they simplify this environment.
 - Do not snapshot or broadly distribute the managed Spotify browser profile.
 - Do not build the long-term analytics dashboard or persistent player-statistics model in this slice.
+- Keep operational logs short-lived. Durable game/audio events, action idempotency, and per-listener profiling belong to Slice 2.
 
 ### Slice 2: Game-night resilience
 

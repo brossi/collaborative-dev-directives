@@ -2,7 +2,7 @@
 
 **Status:** Working document; unprioritized; not published
 **Purpose:** Preserve product and technical ideas as a starting point for future discovery and implementation planning.
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-11
 
 ## How to use this document
 
@@ -574,6 +574,19 @@ Use these measurements to evaluate adaptive jitter buffering or gentle drift cor
 Define and test the supported matrix across the native macOS application, installed macOS PWA, ordinary desktop browsers, iPhone and iPad home-screen web apps, phone browsers, and any shared or group-display layout. Cover autoplay permission, suspended audio contexts, backgrounding and wake, passkey behavior, browser-storage separation, stale service-worker assets, minimum compatible client versions, and an understandable refresh/update path.
 
 Treat the eventual Windows desktop client as a separate validated target rather than assuming macOS packaging and audio behavior transfer directly.
+
+### Thin observability foundation
+
+Give each service a small, consistent operational contract before adding detailed gameplay or audio telemetry:
+
+- Emit newline-delimited structured logs with timestamp, severity, service, environment, stable event or error code, and safe request context.
+- Generate a correlation identifier at the public boundary, return it with the response, and propagate it through trusted service-to-service calls.
+- Return user-safe errors with a stable code and correlation reference while preserving useful, redacted server-side context.
+- Define and test centralized redaction that excludes credentials, authorization and cookie values, invitation and pairing capabilities, private device identifiers, request bodies, query strings, provider payloads, and pre-reveal track metadata.
+- Separate public liveness from dependency readiness and from authorized component diagnostics. An unavailable optional managed source must be reported as degraded rather than making the game application appear dead.
+- Keep operational logs bounded and short-lived; record the deployed application/catalog versions so an error can be associated with the running release.
+
+This foundation is not the durable game history. Stable client action identifiers, significant game and managed-audio lifecycle events, and per-listener audio profiling remain separate work with their own privacy, retention, and performance requirements.
 
 ### Operational continuity and recoverable deployment
 
