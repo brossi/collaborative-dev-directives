@@ -91,6 +91,16 @@ for (const service of ['access', 'game']) {
   });
 }
 
+test('both migrators acquire the write lock before their schema-version read', () => {
+  for (const sourcePath of ['db.mjs', '../../web/lib/server/database.ts']) {
+    const source = readFileSync(resolve(sourcePath), 'utf8');
+    const lock = source.indexOf('BEGIN IMMEDIATE');
+    const versionRead = source.indexOf('PRAGMA user_version');
+    assert.ok(lock >= 0, `${sourcePath} must acquire a migration lock`);
+    assert.ok(versionRead > lock, `${sourcePath} must read user_version only after the migration lock`);
+  }
+});
+
 test('database initialization rejects versions newer than the bridge before changing structure', () => {
   const databasePath = join(root, 'newer.sqlite');
   const future = new DatabaseSync(databasePath);

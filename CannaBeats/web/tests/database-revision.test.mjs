@@ -35,7 +35,7 @@ test("the bridge gives Slice 1 state writers a monotonic database revision", () 
       ended_at INTEGER
     )
   `);
-  const state = { runId: "run-1", revision: 7, code: "ROLL23", phase: "revealed" };
+  const state = { runId: "run-1", runGeneration: 1, revision: 7, code: "ROLL23", phase: "revealed" };
   sliceOne.prepare(`
     INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
     VALUES ('run-1', 'ROLL23', ?, ?, ?)
@@ -81,7 +81,7 @@ test("the bridge gives Slice 1 state writers a monotonic database revision", () 
     independent.close();
   }
 
-  const oldCreatedState = { runId: "run-2", code: "ROLL23", phase: "lobby" };
+  const oldCreatedState = { runId: "run-2", runGeneration: 2, code: "ROLL23", phase: "lobby" };
   bridged.prepare(`
     INSERT INTO game_runs (id, session_code, state, created_at, updated_at)
     VALUES ('run-2', 'ROLL23', ?, ?, ?)
@@ -105,6 +105,21 @@ test("the bridge gives Slice 1 state writers a monotonic database revision", () 
   assert.deepEqual(
     bridged.prepare("SELECT state, revision FROM game_runs WHERE id = 'run-2'").get(),
     runTwoBeforeStaleSave,
+  );
+  const runOneBeforeReactivation = bridged.prepare("SELECT state, revision FROM game_runs WHERE id = 'run-1'").get();
+  const staleRunOneGeneration = {
+    ...JSON.parse(runOneBeforeReactivation.state),
+    runId: "run-1",
+    runGeneration: 1,
+    revision: runOneBeforeReactivation.revision,
+    writer: "stale-reactivation",
+  };
+  bridged.prepare("UPDATE game_sessions SET active_run_id = 'run-1' WHERE code = 'ROLL23'").run();
+  assert.equal(bridged.prepare("SELECT run_generation FROM game_sessions WHERE code = 'ROLL23'").get().run_generation, 3);
+  assert.throws(() => saveGameRunState(bridged, staleRunOneGeneration), StaleGameStateError);
+  assert.deepEqual(
+    bridged.prepare("SELECT state, revision FROM game_runs WHERE id = 'run-1'").get(),
+    runOneBeforeReactivation,
   );
   assert.equal(database().prepare("SELECT revision FROM game_runs WHERE id = 'run-2'").get().revision, 1);
 });

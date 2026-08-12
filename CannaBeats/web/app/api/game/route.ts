@@ -1,6 +1,11 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import catalog from "../../../data/catalog.json";
-import { normalizePlayerControl, type RoomState, type RoomView, type Song } from "../../../lib/game";
+import { normalizePlayerControl, type AudioControlView, type RoomState, type RoomView, type Song } from "../../../lib/game";
+import {
+  AUDIO_RESPONSE_ACTIONS,
+  isRunBoundMutationAction,
+  type RunBoundMutationAction,
+} from "../../../lib/game-action-contract.ts";
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
 import {
@@ -210,19 +215,6 @@ function saveRoom(state: RoomState) {
   saveGameRunState(database(), state);
 }
 
-function immediateTransaction<T>(work: () => T) {
-  const db = database();
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const result = work();
-    db.exec("COMMIT");
-    return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
-}
-
 const UUID_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -244,8 +236,12 @@ function requestFingerprint(values: Record<string, unknown>) {
 
 function requiredActionContext(payload: Record<string, unknown>) {
   const expectedRunId = String(payload.expectedRunId ?? "").toLowerCase();
+  const expectedRunGeneration = payload.expectedRunGeneration;
   const expectedRevision = payload.expectedRevision;
   if (!UUID_ID.test(expectedRunId)
+      || typeof expectedRunGeneration !== "number"
+      || !Number.isSafeInteger(expectedRunGeneration)
+      || expectedRunGeneration < 0
       || typeof expectedRevision !== "number"
       || !Number.isSafeInteger(expectedRevision)
       || expectedRevision < 0) {
@@ -255,7 +251,7 @@ function requiredActionContext(payload: Record<string, unknown>) {
       "action_context_required",
     );
   }
-  return { expectedRunId, expectedRevision };
+  return { expectedRunId, expectedRunGeneration, expectedRevision };
 }
 
 function mutateRoomOnce({
@@ -265,24 +261,42 @@ function mutateRoomOnce({
   actionId,
   fingerprint,
   expectedRunId,
+  expectedRunGeneration,
   expectedRevision,
   mutate,
+  replay,
 }: {
   code: string;
   principal: Principal;
-  action: string;
+  action: RunBoundMutationAction;
   actionId: string;
   fingerprint: string;
   expectedRunId: string;
+  expectedRunGeneration: number;
   expectedRevision: number;
-  mutate: (room: NonNullable<ReturnType<typeof loadRoom>>) => void;
+  mutate: (room: NonNullable<ReturnType<typeof loadRoom>>) => {
+    audio?: AudioControlView;
+    saveRoom?: boolean;
+    status?: number;
+  } | void;
+  replay?: (room: NonNullable<ReturnType<typeof loadRoom>>) => { audio?: AudioControlView };
 }) {
   const db = database();
   db.exec("BEGIN IMMEDIATE");
   try {
+    if (!isLobbyMember(code, principal)) {
+      throw new GameRequestError("Game session not found.", 404);
+    }
     const current = loadRoom(code);
     if (!current) throw new GameRequestError("The game is not available.", 409);
     if (current.row.id !== expectedRunId) {
+      throw new GameRequestError(
+        "The game changed before this action arrived.",
+        409,
+        "stale_action",
+      );
+    }
+    if (current.state.runGeneration !== expectedRunGeneration) {
       throw new GameRequestError(
         "The game changed before this action arrived.",
         409,
@@ -301,10 +315,15 @@ function mutateRoomOnce({
           "action_id_conflict",
         );
       }
+      const replayed = replay?.(current) ?? {};
       db.exec("COMMIT");
       return {
-        room: roomView(current.state, isHost(current, principal)),
-        action: { id: actionId, accepted: true, replayed: true },
+        payload: {
+          room: roomView(current.state, isHost(current, principal)),
+          ...replayed,
+          action: { id: actionId, accepted: true, replayed: true },
+        },
+        status: 200,
       };
     }
 
@@ -316,8 +335,8 @@ function mutateRoomOnce({
       );
     }
 
-    mutate(current);
-    saveRoom(current.state);
+    const result = mutate(current) ?? {};
+    if (result.saveRoom !== false) saveRoom(current.state);
     db.prepare(`
       INSERT INTO game_action_receipts
         (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
@@ -325,8 +344,12 @@ function mutateRoomOnce({
     `).run(current.row.id, principal.id, actionId, action, fingerprint, Date.now());
     db.exec("COMMIT");
     return {
-      room: roomView(current.state, isHost(current, principal)),
-      action: { id: actionId, accepted: true, replayed: false },
+      payload: {
+        room: roomView(current.state, isHost(current, principal)),
+        ...(result.audio ? { audio: result.audio } : {}),
+        action: { id: actionId, accepted: true, replayed: false },
+      },
+      status: result.status ?? 200,
     };
   } catch (error) {
     try {
@@ -449,15 +472,15 @@ function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: P
   if (room.state.phase !== "lobby") throw new Response("This game has already started", { status: 409 });
   const name = String(requestedName ?? principal.display_name).trim().slice(0, 24);
   if (!name) throw new Response("Player name is required", { status: 400 });
-  if (existing) {
-    database().prepare(`DELETE FROM game_run_player_identities WHERE run_id = ? AND user_id = ?`)
-      .run(room.row.id, principal.id);
-  }
   const player = { id: randomUUID(), name, control: "phone" as const, timeline: [] };
   room.state.players.push(player);
   const now = Date.now();
   database().exec("BEGIN IMMEDIATE");
   try {
+    if (existing) {
+      database().prepare(`DELETE FROM game_run_player_identities WHERE run_id = ? AND user_id = ?`)
+        .run(room.row.id, principal.id);
+    }
     saveRoom(room.state);
     database().prepare(`
       INSERT INTO game_run_player_identities (run_id, user_id, player_id, joined_at, last_seen_at)
@@ -474,6 +497,221 @@ function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: P
     throw error;
   }
   return { playerId: player.id, created: true };
+}
+
+function executeRunBoundMutation(
+  action: RunBoundMutationAction,
+  payload: Record<string, unknown>,
+  code: string,
+  principal: Principal,
+) {
+  const actionId = requiredActionId(payload);
+  const { expectedRunId, expectedRunGeneration, expectedRevision } = requiredActionContext(payload);
+  const fingerprintPayload = { ...payload };
+  delete fingerprintPayload.actionId;
+  delete fingerprintPayload.hostToken;
+  const outcome = mutateRoomOnce({
+    code,
+    principal,
+    action,
+    actionId,
+    fingerprint: requestFingerprint(fingerprintPayload),
+    expectedRunId,
+    expectedRunGeneration,
+    expectedRevision,
+    replay() {
+      return AUDIO_RESPONSE_ACTIONS.has(action)
+        ? { audio: selectedAudioView(code) }
+        : {};
+    },
+    mutate(current) {
+      const state = current.state;
+      const callerIsHost = isHost(current, principal);
+      switch (action) {
+        case "audioAcquire": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase === "finished") throw new GameRequestError("This game has finished.", 409);
+          const acquired = selectAudioSource(code, principal.id, "managed");
+          const audio = (state.phase === "playing" || state.phase === "placed") && state.currentSong?.uri
+            ? enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri)
+            : acquired;
+          return { saveRoom: false, audio };
+        }
+        case "audioSelect": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase === "finished") throw new GameRequestError("This game has finished.", 409);
+          const selection = String(payload.mode ?? "");
+          if (selection !== "managed" && selection !== "local") {
+            throw new GameRequestError("Audio source is invalid.");
+          }
+          return { saveRoom: false, audio: selectAudioSource(code, principal.id, selection) };
+        }
+        case "audioRelease": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          return { saveRoom: false, audio: releaseManagedAudioLease(code) };
+        }
+        case "audioControl": {
+          if (state.phase !== "playing" && state.phase !== "placed") {
+            throw new GameRequestError("Playback controls are not active for this round.", 409);
+          }
+          const command = String(payload.command ?? "");
+          if (command !== "pause" && command !== "resume") {
+            throw new GameRequestError("Playback command is invalid.");
+          }
+          if (managedAudioView(code).mode !== "managed") {
+            throw new GameRequestError("This game does not own the managed audio source.", 409);
+          }
+          return { saveRoom: false, audio: enqueueManagedAudioCommand(code, principal.id, command) };
+        }
+        case "addPlayer": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "lobby") throw new GameRequestError("Players are locked after the game starts.", 409);
+          const name = String(payload.name ?? "").trim().slice(0, 24);
+          if (!name) throw new GameRequestError("Player name is required.");
+          state.players.push({ id: randomUUID(), name, control: "host", timeline: [] });
+          return { status: 201 };
+        }
+        case "removePlayer": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "lobby") throw new GameRequestError("Players are locked after the game starts.", 409);
+          const playerId = String(payload.playerId ?? "");
+          if (!state.players.some((player) => player.id === playerId)) {
+            throw new GameRequestError("Player not found.", 404);
+          }
+          state.players = state.players.filter((player) => player.id !== playerId);
+          const identity = database().prepare(`
+            SELECT user_id FROM game_run_player_identities WHERE run_id = ? AND player_id = ?
+          `).get(current.row.id, playerId) as { user_id: string } | undefined;
+          database().prepare("DELETE FROM game_run_player_identities WHERE run_id = ? AND player_id = ?")
+            .run(current.row.id, playerId);
+          if (identity && database().prepare("SELECT 1 FROM game_guest_users WHERE user_id = ?").get(identity.user_id)) {
+            database().prepare("DELETE FROM users WHERE id = ?").run(identity.user_id);
+          }
+          return {};
+        }
+        case "rules":
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "lobby") throw new GameRequestError("Rules are locked after the game starts.", 409);
+          state.rules = normalizeRules(payload.rules);
+          return {};
+        case "start": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "lobby") throw new GameRequestError("The game has already started.");
+          if (!state.players.length) throw new GameRequestError("At least one player is required.");
+          const audio = selectedAudioView(code, principal.id);
+          if (audio.selection === "managed" && (audio.mode !== "managed" || !audio.sourceOnline)) {
+            throw new GameRequestError("The managed audio source is offline.", 409);
+          }
+          for (const player of state.players) player.timeline = [pickSong(state)];
+          state.activePlayerIndex = Math.floor(Math.random() * state.players.length);
+          state.activePlayerId = state.players[state.activePlayerIndex].id;
+          state.currentSong = pickSong(state);
+          state.round = 1;
+          state.retractionUsed = false;
+          state.phase = "ready";
+          database().prepare(`
+            UPDATE game_guest_invites SET revoked_at = ?
+            WHERE session_code = ? AND revoked_at IS NULL
+          `).run(Date.now(), code);
+          database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
+            .run(Date.now(), code);
+          return {};
+        }
+        case "begin": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "ready" || !state.currentSong) {
+            throw new GameRequestError("The first round is not ready.", 409);
+          }
+          state.phase = "playing";
+          const audio = selectedAudioView(code, principal.id);
+          if (audio.mode === "managed") {
+            enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+          }
+          return { audio: managedAudioView(code) };
+        }
+        case "place": {
+          const playerId = String(payload.playerId ?? "");
+          const index = Number(payload.index);
+          const player = state.players[state.activePlayerIndex];
+          const hostIsPlacing = player?.control === "host" && callerIsHost;
+          const activePlayerIsPlacing = player?.control === "phone"
+            && playerId === state.activePlayerId
+            && principalControlsPlayer(code, principal, playerId);
+          if (state.phase !== "playing" || !player || (!hostIsPlacing && !activePlayerIsPlacing)) {
+            throw new GameRequestError("It is not this player’s turn.", 409);
+          }
+          if (!Number.isInteger(index) || index < 0 || index > player.timeline.length) {
+            throw new GameRequestError("Choose a valid timeline position.");
+          }
+          state.placement = index;
+          state.phase = "placed";
+          return {};
+        }
+        case "retract": {
+          const playerId = String(payload.playerId ?? "");
+          const player = state.players[state.activePlayerIndex];
+          const hostIsRetracting = player?.control === "host" && callerIsHost;
+          const activePlayerIsRetracting = player?.control === "phone"
+            && playerId === state.activePlayerId
+            && principalControlsPlayer(code, principal, playerId);
+          if (state.phase !== "placed" || (!hostIsRetracting && !activePlayerIsRetracting)) {
+            throw new GameRequestError("There is no placement to retract.", 409);
+          }
+          if (!state.rules.allowRetraction) throw new GameRequestError("Retractions are disabled for this game.", 409);
+          if (state.retractionUsed) throw new GameRequestError("This round’s retraction has already been used.", 409);
+          state.placement = null;
+          state.retractionUsed = true;
+          state.phase = "playing";
+          return {};
+        }
+        case "reveal":
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "placed" || !state.currentSong || state.placement === null) {
+            throw new GameRequestError("Wait for the active player to lock a placement.", 409);
+          }
+          revealPlacement(state);
+          return {};
+        case "advance": {
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "revealed") throw new GameRequestError("Reveal this round first.", 409);
+          if (state.winnerId) {
+            state.phase = "finished";
+            database().prepare("UPDATE game_runs SET ended_at = ? WHERE id = ?").run(Date.now(), current.row.id);
+            releaseManagedAudioLease(code);
+          } else {
+            state.activePlayerIndex = (state.activePlayerIndex + 1) % state.players.length;
+            state.activePlayerId = state.players[state.activePlayerIndex].id;
+            state.currentSong = pickSong(state);
+            state.placement = null;
+            state.retractionUsed = false;
+            state.result = null;
+            state.round += 1;
+            state.phase = "playing";
+            if (managedAudioView(code).mode === "managed") {
+              enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+            }
+          }
+          return { audio: managedAudioView(code) };
+        }
+        case "skip":
+          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
+          if (state.phase !== "playing" && state.phase !== "placed") {
+            throw new GameRequestError("There is no active song to skip.", 409);
+          }
+          state.currentSong = pickSong(state);
+          state.placement = null;
+          state.retractionUsed = false;
+          state.result = null;
+          state.phase = "playing";
+          state.round += 1;
+          if (managedAudioView(code).mode === "managed") {
+            enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+          }
+          return { audio: managedAudioView(code) };
+      }
+    },
+  });
+  return Response.json(outcome.payload, { status: outcome.status });
 }
 
 function errorResponse(error: unknown) {
@@ -670,271 +908,19 @@ async function postGame(request: Request) {
       return fail("Game session not found.", 404);
     }
     if (action !== "join" && !isLobbyMember(code, principal)) return fail("Game session not found.", 404);
-    const room = loadRoom(code);
-    if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
-    const state = room.state;
-    const callerIsHost = isHost(room, principal);
-
-    if (action === "audioAcquire") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase === "finished") return fail("This game has finished.", 409);
-      const acquired = selectAudioSource(code, principal.id, "managed");
-      const audio = (state.phase === "playing" || state.phase === "placed") && state.currentSong?.uri
-        ? enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri)
-        : acquired;
-      return Response.json({ room: roomView(state, true), audio });
-    }
-
-    if (action === "audioSelect") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase === "finished") return fail("This game has finished.", 409);
-      const selection = String(payload.mode ?? "");
-      if (selection !== "managed" && selection !== "local") return fail("Audio source is invalid.");
-      const audio = selectAudioSource(code, principal.id, selection);
-      return Response.json({ room: roomView(state, true), audio });
-    }
-
-    if (action === "audioRelease") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      releaseManagedAudioLease(code);
-      return Response.json({ room: roomView(state, true), audio: selectedAudioView(code) });
-    }
-
-    if (action === "audioControl") {
-      if (state.phase !== "playing" && state.phase !== "placed") {
-        return fail("Playback controls are not active for this round.", 409);
-      }
-      const command = String(payload.command ?? "");
-      if (command !== "pause" && command !== "resume") return fail("Playback command is invalid.");
-      if (managedAudioView(code).mode !== "managed") {
-        return fail("This game does not own the managed audio source.", 409);
-      }
-      return Response.json({
-        room: roomView(state, callerIsHost),
-        audio: enqueueManagedAudioCommand(code, principal.id, command),
-      });
-    }
 
     if (action === "join") {
+      const room = loadRoom(code);
+      if (!room) return fail("The host has not prepared a game for this lobby yet.", 409);
       const joined = joinPlayer(room, principal, payload.name);
       return Response.json(
-        { room: roomView(state, callerIsHost), playerId: joined.playerId },
+        { room: roomView(room.state, isHost(room, principal)), playerId: joined.playerId },
         { status: joined.created ? 201 : 200 },
       );
     }
 
-    if (action === "addPlayer") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "lobby") return fail("Players are locked after the game starts.", 409);
-      const name = String(payload.name ?? "").trim().slice(0, 24);
-      if (!name) return fail("Player name is required.");
-      state.players.push({ id: randomUUID(), name, control: "host", timeline: [] });
-      saveRoom(state);
-      return Response.json({ room: roomView(state, true) }, { status: 201 });
-    }
-
-    if (action === "removePlayer") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "lobby") return fail("Players are locked after the game starts.", 409);
-      const playerId = String(payload.playerId ?? "");
-      if (!state.players.some((player) => player.id === playerId)) return fail("Player not found.", 404);
-      state.players = state.players.filter((player) => player.id !== playerId);
-      immediateTransaction(() => {
-        const identity = database().prepare(`
-          SELECT user_id FROM game_run_player_identities WHERE run_id = ? AND player_id = ?
-        `).get(room.row.id, playerId) as { user_id: string } | undefined;
-        database().prepare("DELETE FROM game_run_player_identities WHERE run_id = ? AND player_id = ?")
-          .run(room.row.id, playerId);
-        if (identity && database().prepare("SELECT 1 FROM game_guest_users WHERE user_id = ?").get(identity.user_id)) {
-          database().prepare("DELETE FROM users WHERE id = ?").run(identity.user_id);
-        }
-        saveRoom(state);
-      });
-      return Response.json({ room: roomView(state, true) });
-    }
-
-    if (action === "rules") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "lobby") return fail("Rules are locked after the game starts.", 409);
-      state.rules = normalizeRules(payload.rules);
-      saveRoom(state);
-      return Response.json({ room: roomView(state, true) });
-    }
-
-    if (action === "start") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "lobby") return fail("The game has already started.");
-      if (!state.players.length) return fail("At least one player is required.");
-      const audio = selectedAudioView(code, principal.id);
-      if (audio.selection === "managed" && (audio.mode !== "managed" || !audio.sourceOnline)) {
-        return fail("The managed audio source is offline.", 409);
-      }
-      for (const player of state.players) player.timeline = [pickSong(state)];
-      state.activePlayerIndex = Math.floor(Math.random() * state.players.length);
-      state.activePlayerId = state.players[state.activePlayerIndex].id;
-      state.currentSong = pickSong(state);
-      state.round = 1;
-      state.retractionUsed = false;
-      state.phase = "ready";
-      immediateTransaction(() => {
-        database().prepare(`
-          UPDATE game_guest_invites SET revoked_at = ?
-          WHERE session_code = ? AND revoked_at IS NULL
-        `).run(Date.now(), code);
-        database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
-          .run(Date.now(), code);
-        saveRoom(state);
-      });
-      return Response.json({ room: roomView(state, true) });
-    }
-
-    if (action === "begin") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "ready" || !state.currentSong) return fail("The first round is not ready.", 409);
-      state.phase = "playing";
-      saveRoom(state);
-      const audio = selectedAudioView(code, principal.id);
-      if (audio.mode === "managed") {
-        enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
-      }
-      return Response.json({ room: roomView(state, true), audio: managedAudioView(code) });
-    }
-
-    if (action === "place") {
-      const actionId = requiredActionId(payload);
-      const { expectedRunId, expectedRevision } = requiredActionContext(payload);
-      const playerId = String(payload.playerId ?? "");
-      const index = Number(payload.index);
-      const fingerprint = requestFingerprint({ action, expectedRunId, expectedRevision, playerId, index });
-      return Response.json(mutateRoomOnce({
-        code,
-        principal,
-        action,
-        actionId,
-        fingerprint,
-        expectedRunId,
-        expectedRevision,
-        mutate(current) {
-          const currentState = current.state;
-          const player = currentState.players[currentState.activePlayerIndex];
-          const hostIsPlacing = player?.control === "host" && isHost(current, principal);
-          const activePlayerIsPlacing = player?.control === "phone"
-            && playerId === currentState.activePlayerId
-            && principalControlsPlayer(code, principal, playerId);
-          if (currentState.phase !== "playing" || !player || (!hostIsPlacing && !activePlayerIsPlacing)) {
-            throw new GameRequestError("It is not this player’s turn.", 409);
-          }
-          if (!Number.isInteger(index) || index < 0 || index > player.timeline.length) {
-            throw new GameRequestError("Choose a valid timeline position.");
-          }
-          currentState.placement = index;
-          currentState.phase = "placed";
-        },
-      }));
-    }
-
-    if (action === "retract") {
-      const actionId = requiredActionId(payload);
-      const { expectedRunId, expectedRevision } = requiredActionContext(payload);
-      const playerId = String(payload.playerId ?? "");
-      const fingerprint = requestFingerprint({ action, expectedRunId, expectedRevision, playerId });
-      return Response.json(mutateRoomOnce({
-        code,
-        principal,
-        action,
-        actionId,
-        fingerprint,
-        expectedRunId,
-        expectedRevision,
-        mutate(current) {
-          const currentState = current.state;
-          const player = currentState.players[currentState.activePlayerIndex];
-          const hostIsRetracting = player?.control === "host" && isHost(current, principal);
-          const activePlayerIsRetracting = player?.control === "phone"
-            && playerId === currentState.activePlayerId
-            && principalControlsPlayer(code, principal, playerId);
-          if (currentState.phase !== "placed" || (!hostIsRetracting && !activePlayerIsRetracting)) {
-            throw new GameRequestError("There is no placement to retract.", 409);
-          }
-          if (!currentState.rules.allowRetraction) {
-            throw new GameRequestError("Retractions are disabled for this game.", 409);
-          }
-          if (currentState.retractionUsed) {
-            throw new GameRequestError("This round’s retraction has already been used.", 409);
-          }
-          currentState.placement = null;
-          currentState.retractionUsed = true;
-          currentState.phase = "playing";
-        },
-      }));
-    }
-
-    if (action === "reveal") {
-      const actionId = requiredActionId(payload);
-      const { expectedRunId, expectedRevision } = requiredActionContext(payload);
-      const fingerprint = requestFingerprint({ action, expectedRunId, expectedRevision });
-      return Response.json(mutateRoomOnce({
-        code,
-        principal,
-        action,
-        actionId,
-        fingerprint,
-        expectedRunId,
-        expectedRevision,
-        mutate(current) {
-          if (!isHost(current, principal)) throw new GameRequestError("Host access required.", 403);
-          const currentState = current.state;
-          if (currentState.phase !== "placed" || !currentState.currentSong || currentState.placement === null) {
-            throw new GameRequestError("Wait for the active player to lock a placement.", 409);
-          }
-          revealPlacement(currentState);
-        },
-      }));
-    }
-
-    if (action === "advance") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "revealed") return fail("Reveal this round first.", 409);
-      if (state.winnerId) {
-        state.phase = "finished";
-      } else {
-        state.activePlayerIndex = (state.activePlayerIndex + 1) % state.players.length;
-        state.activePlayerId = state.players[state.activePlayerIndex].id;
-        state.currentSong = pickSong(state);
-        state.placement = null;
-        state.retractionUsed = false;
-        state.result = null;
-        state.round += 1;
-        state.phase = "playing";
-      }
-      immediateTransaction(() => {
-        if (state.phase === "finished") {
-          database().prepare("UPDATE game_runs SET ended_at = ? WHERE id = ?").run(Date.now(), room.row.id);
-        }
-        saveRoom(state);
-      });
-      if (state.phase === "finished") {
-        releaseManagedAudioLease(code);
-      } else if (managedAudioView(code).mode === "managed") {
-        enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong?.uri);
-      }
-      return Response.json({ room: roomView(state, true), audio: managedAudioView(code) });
-    }
-
-    if (action === "skip") {
-      if (!callerIsHost) return fail("Host access required.", 403);
-      if (state.phase !== "playing" && state.phase !== "placed") return fail("There is no active song to skip.", 409);
-      state.currentSong = pickSong(state);
-      state.placement = null;
-      state.retractionUsed = false;
-      state.result = null;
-      state.phase = "playing";
-      state.round += 1;
-      saveRoom(state);
-      if (managedAudioView(code).mode === "managed") {
-        enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
-      }
-      return Response.json({ room: roomView(state, true), audio: managedAudioView(code) });
+    if (isRunBoundMutationAction(action)) {
+      return executeRunBoundMutation(action, payload, code, principal);
     }
 
     return fail("Unknown action.");

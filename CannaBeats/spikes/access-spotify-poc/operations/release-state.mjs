@@ -90,11 +90,43 @@ function switchActive(releaseDirectory, state) {
   if (process.env.CANNABEATS_TEST_STATE_FAIL === 'before-switch') {
     throw new Error('Injected release-state failure before-switch');
   }
+  const activeLink = join(releaseDirectory, 'active');
+  const previousTarget = lstatExists(activeLink) ? readlinkSync(activeLink) : undefined;
   const temporaryLink = join(releaseDirectory, `.active-${randomBytes(8).toString('hex')}`);
   symlinkSync(`states/${state.name}`, temporaryLink);
+  let switched = false;
   try {
-    renameSync(temporaryLink, join(releaseDirectory, 'active'));
+    renameSync(temporaryLink, activeLink);
+    switched = true;
+    if (process.env.CANNABEATS_TEST_STATE_FAIL === 'after-rename') {
+      throw new Error('Injected release-state failure after-rename');
+    }
     syncPath(releaseDirectory);
+  } catch (error) {
+    if (switched && previousTarget) {
+      const recoveryLink = join(releaseDirectory, `.active-recovery-${randomBytes(8).toString('hex')}`);
+      try {
+        symlinkSync(previousTarget, recoveryLink);
+        renameSync(recoveryLink, activeLink);
+        syncPath(releaseDirectory);
+        switched = false;
+      } catch (recoveryError) {
+        error.releaseStateActivated = true;
+        error.cause = recoveryError;
+      } finally {
+        rmSync(recoveryLink, { force: true });
+      }
+    } else if (switched) {
+      try {
+        rmSync(activeLink, { force: true });
+        syncPath(releaseDirectory);
+        switched = false;
+      } catch (recoveryError) {
+        error.releaseStateActivated = true;
+        error.cause = recoveryError;
+      }
+    }
+    throw error;
   } finally {
     rmSync(temporaryLink, { force: true });
   }
@@ -146,8 +178,13 @@ export function adoptLegacyState({ releaseDirectory, currentSource, previousSour
     previous: existsSync(previous) ? previous : undefined,
     usedContents: existsSync(used) ? readFileSync(used, 'utf8') : undefined,
   });
-  switchActive(directory, state);
-  ensureLinks(directory);
+  try {
+    switchActive(directory, state);
+    ensureLinks(directory);
+  } catch (error) {
+    if (!error.releaseStateActivated) rmSync(state.directory, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 export function promoteState({ releaseDirectory, candidate, applicationVersion }) {
@@ -169,7 +206,7 @@ export function promoteState({ releaseDirectory, candidate, applicationVersion }
   try {
     switchActive(directory, state);
   } catch (error) {
-    rmSync(state.directory, { recursive: true, force: true });
+    if (!error.releaseStateActivated) rmSync(state.directory, { recursive: true, force: true });
     throw error;
   }
 }
@@ -189,7 +226,7 @@ export function rollbackState({ releaseDirectory }) {
   try {
     switchActive(directory, state);
   } catch (error) {
-    rmSync(state.directory, { recursive: true, force: true });
+    if (!error.releaseStateActivated) rmSync(state.directory, { recursive: true, force: true });
     throw error;
   }
 }

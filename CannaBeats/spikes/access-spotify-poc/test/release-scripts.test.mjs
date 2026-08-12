@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, test } from 'node:test';
 import { promisify } from 'node:util';
+import { adoptLegacyState, bootstrapState } from '../operations/release-state.mjs';
 
 const run = promisify(execFile);
 const root = mkdtempSync(join(tmpdir(), 'cannabeats-release-test-'));
@@ -304,6 +305,60 @@ test('an interrupted state promotion preserves the complete prior release state'
   assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
   assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /release-a1/);
   assert.doesNotMatch(readFileSync(join(paths.releaseDirectory, 'used-application-versions'), 'utf8'), /release-c3/);
+});
+
+test('a failure after the active-link rename restores durable prior release state', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release, ['release-a1', catalogVersion], { env: paths.env });
+  await run(release, ['release-b2', catalogVersion], { env: paths.env });
+  await assert.rejects(
+    run(release, ['release-c3', catalogVersion], {
+      env: { ...paths.env, CANNABEATS_TEST_STATE_FAIL: 'after-rename' },
+    }),
+    (error) => /injected release-state failure after-rename/i.test(error.stderr),
+  );
+  assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /release-a1/);
+  assert.doesNotMatch(readFileSync(join(paths.releaseDirectory, 'used-application-versions'), 'utf8'), /release-c3/);
+});
+
+test('bootstrap and legacy adoption roll back completely when their first active switch fails', () => {
+  for (const operation of ['bootstrap', 'adopt']) {
+    const directory = mkdtempSync(join(root, `${operation}-atomic-`));
+    const candidate = join(directory, 'candidate.yaml');
+    writeFileSync(candidate, 'services: {}\n');
+    process.env.CANNABEATS_TEST_STATE_FAIL = 'after-rename';
+    try {
+      assert.throws(
+        () => operation === 'bootstrap'
+          ? bootstrapState({ releaseDirectory: directory, candidate })
+          : adoptLegacyState({ releaseDirectory: directory, currentSource: candidate }),
+        /after-rename/,
+      );
+    } finally {
+      delete process.env.CANNABEATS_TEST_STATE_FAIL;
+    }
+    assert.equal(existsSync(join(directory, 'active')), false, `${operation} left an active link`);
+    assert.deepEqual(readdirSync(join(directory, 'states')), [], `${operation} leaked a candidate state`);
+    assert.equal(existsSync(join(directory, 'current-compose.yaml')), false);
+  }
+});
+
+test('legacy adoption cleans up a state created before an interrupted switch', () => {
+  const directory = mkdtempSync(join(root, 'adopt-before-switch-'));
+  const candidate = join(directory, 'candidate.yaml');
+  writeFileSync(candidate, 'services: {}\n');
+  process.env.CANNABEATS_TEST_STATE_FAIL = 'before-switch';
+  try {
+    assert.throws(
+      () => adoptLegacyState({ releaseDirectory: directory, currentSource: candidate }),
+      /before-switch/,
+    );
+  } finally {
+    delete process.env.CANNABEATS_TEST_STATE_FAIL;
+  }
+  assert.deepEqual(readdirSync(join(directory, 'states')), []);
 });
 
 test('the first P2 release atomically adopts legacy P1 records and their used identities', async () => {

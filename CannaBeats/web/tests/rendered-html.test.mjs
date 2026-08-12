@@ -69,10 +69,16 @@ test("retryable player intents carry authoritative game context", async () => {
 
   assert.match(page, /requestGame\(cannabeatsPath\("\/api\/game"\), body\)/);
   assert.match(page, /expectedRunId: room\.runId/);
+  assert.match(page, /expectedRunGeneration: room\.runGeneration/);
   assert.match(page, /expectedRevision: room\.revision/);
   assert.match(page, /reason\.pendingRequest/);
-  assert.match(page, /gameRequest\(reason\.pendingRequest\)/);
+  assert.match(page, /savePendingGameIntent\(sessionStorage, reason\.pendingRequest\)/);
+  assert.match(page, /loadPendingGameIntent\(sessionStorage, session\.code\)/);
+  assert.match(page, /clearPendingGameIntent\(sessionStorage\)/);
+  assert.match(page, /resolvePendingGameRequest\(reason, gameRequest\)/);
   assert.match(page, /keepBlocked = true/);
+  assert.match(page, /setBlockedOutcome\(keepBlocked\)/);
+  assert.match(page, /if \(!blockedOutcome\) setError\(""\)/);
   assert.match(page, /if \(!keepBlocked\) setBusy\(false\)/);
 });
 
@@ -133,7 +139,7 @@ test("either side of a matching year is accepted", async () => {
 
   assert.match(route, /previous\.year <= state\.currentSong\.year/);
   assert.match(route, /state\.currentSong\.year <= next\.year/);
-  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(currentState\)/);
+  assert.match(route, /case "reveal"[\s\S]*revealPlacement\(state\)/);
 });
 
 test("the host displays the answer after the retraction window closes", async () => {
@@ -143,8 +149,8 @@ test("the host displays the answer after the retraction window closes", async ()
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(route, /if \(action === "place"\)[\s\S]*currentState\.phase = "placed"/);
-  assert.match(route, /if \(action === "reveal"\)[\s\S]*revealPlacement\(currentState\)/);
+  assert.match(route, /case "place"[\s\S]*state\.phase = "placed"/);
+  assert.match(route, /case "reveal"[\s\S]*revealPlacement\(state\)/);
   assert.match(route, /function revealPlacement[\s\S]*state\.phase = "revealed"/);
   assert.match(page, /room\.phase === "placed"[\s\S]*Reveal answer/);
   assert.match(page, /room\.phase === "revealed" && room\.currentSong/);
@@ -186,7 +192,7 @@ test("host game setup retains persisted presets and uses weighted era selection"
   assert.match(page, /Lobby creation is restricted to an authorized Host app/);
   assert.match(styles, /\.preset-grid/);
   assert.match(route, /rules: normalizeRules\(rules \?\? DEFAULT_GAME_RULES\)/);
-  assert.match(route, /action === "rules"/);
+  assert.match(route, /case "rules"/);
   assert.match(route, /Rules are locked after the game starts/);
   assert.match(route, /song\.year >= state\.rules\.minYear/);
   assert.match(route, /film-soundtracks/);
@@ -214,8 +220,8 @@ test("the first round waits for the host before playback", async () => {
   ]);
 
   assert.match(game, /"lobby" \| "ready" \| "playing"/);
-  assert.match(route, /if \(action === "start"\)[\s\S]*state\.phase = "ready"/);
-  assert.match(route, /if \(action === "begin"\)[\s\S]*state\.phase = "playing"/);
+  assert.match(route, /case "start"[\s\S]*state\.phase = "ready"/);
+  assert.match(route, /case "begin"[\s\S]*state\.phase = "playing"/);
   assert.match(page, /Set up game/);
   assert.match(page, /Start first song/);
   assert.match(page, /action: "start", hostToken: session\.hostToken \}\)/);
@@ -238,14 +244,14 @@ test("every game supports phone and host-controlled players", async () => {
   assert.match(route, /player\.control = normalizePlayerControl\(player\.control, state\.inputMode\)/);
   assert.match(route, /delete state\.inputMode/);
   assert.doesNotMatch(route, /inputMode: normalizeInputMode\(payload\.inputMode\)/);
-  assert.match(route, /action === "addPlayer"/);
-  assert.match(route, /action === "removePlayer"/);
+  assert.match(route, /case "addPlayer"/);
+  assert.match(route, /case "removePlayer"/);
   assert.match(route, /control: "phone" as const/);
   assert.match(route, /control: "host"/);
   assert.match(route, /const hostIsPlacing = player\?\.control === "host"/);
   assert.match(route, /const activePlayerIsPlacing = player\?\.control === "phone"/);
   assert.match(route, /const hostIsRetracting = player\?\.control === "host"/);
-  assert.match(route, /if \(action === "skip"\)[\s\S]*state\.round \+= 1/);
+  assert.match(route, /case "skip"[\s\S]*state\.round \+= 1/);
   assert.match(page, /Start in the CannaBeats Host app/);
   assert.doesNotMatch(page, /Mix phones \+ this screen/);
   assert.doesNotMatch(page, /room\.inputMode/);

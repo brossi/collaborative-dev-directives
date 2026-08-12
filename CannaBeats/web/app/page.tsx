@@ -6,11 +6,15 @@ import type { AudioControlView, Player, RoomView } from "../lib/game";
 import { CATALOG_YEAR_MAX, CATALOG_YEAR_MIN, ERA_BUCKETS, RULE_PRESET_OPTIONS, rulesForPreset, type GameRules } from "../lib/rules";
 import { HOST_RULES_KEY, PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../lib/session";
 import {
+  clearPendingGameIntent,
+  commitGamePayload,
   commitJoinResult,
   commitRoomSnapshot,
   GameApiError,
+  loadPendingGameIntent,
   requestGame,
-  RETRYABLE_ACTIONS,
+  resolvePendingGameRequest,
+  savePendingGameIntent,
   type RoomSnapshotCursor,
 } from "../lib/game-request";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
@@ -273,6 +277,7 @@ export default function Home() {
   const [selection, setSelection] = useState<{ round: number; index: number } | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [blockedOutcome, setBlockedOutcome] = useState(false);
   const [error, setError] = useState("");
   const [artworkByUri, setArtworkByUri] = useState<Record<string, SpotifyTrackArtwork>>({});
   const spotify = useSpotifyPlayer();
@@ -293,6 +298,19 @@ export default function Home() {
     return reconciled.room;
   }, []);
 
+  const applyRoomPayload = useCallback((payload: Awaited<ReturnType<typeof gameRequest>>, sequence: number, expectedCode: string) => {
+    const reconciled = commitGamePayload(
+      roomCursor.current,
+      payload,
+      sequence,
+      expectedCode,
+      setRoom,
+      setAudio,
+    );
+    roomCursor.current = reconciled;
+    return reconciled.room;
+  }, []);
+
   const refresh = useCallback(async (current: GameSession) => {
     const sequence = beginRoomRequest();
     const params = new URLSearchParams({ code: current.code });
@@ -306,14 +324,12 @@ export default function Home() {
       });
       const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Unable to refresh the room.");
-      if (!payload.room) throw new Error("The room response was incomplete.");
-      const acceptedRoom = applyRoomSnapshot(payload.room, sequence, current.code);
-      if (payload.audio) setAudio(payload.audio);
+      const acceptedRoom = applyRoomPayload(payload, sequence, current.code);
       return acceptedRoom;
     } finally {
       window.clearTimeout(timeout);
     }
-  }, [applyRoomSnapshot, beginRoomRequest]);
+  }, [applyRoomPayload, beginRoomRequest]);
 
   useEffect(() => {
     const sharedCode = new URLSearchParams(window.location.search).get("session")?.trim().toUpperCase();
@@ -333,8 +349,7 @@ export default function Home() {
           .catch(async () => {
             const sequence = beginRoomRequest();
             const payload = await gameRequest({ action: "prepare", code: sharedCode });
-            if (!payload.room) throw new Error("The game response was incomplete.");
-            return applyRoomSnapshot(payload.room, sequence, sharedCode);
+            return applyRoomPayload(payload, sequence, sharedCode);
           })
           .catch((reason: Error) => setError(reason.message));
         return;
@@ -349,17 +364,54 @@ export default function Home() {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [applyRoomSnapshot, beginRoomRequest, refresh]);
+  }, [applyRoomPayload, beginRoomRequest, refresh]);
 
   useEffect(() => {
     if (!session) return;
     const timer = window.setInterval(() => {
       void refresh(session)
-        .then(() => setError(""))
-        .catch(() => setError("The room is temporarily unavailable. Retrying…"));
+        .then(() => { if (!blockedOutcome) setError(""); })
+        .catch(() => { if (!blockedOutcome) setError("The room is temporarily unavailable. Retrying…"); });
     }, 1200);
     return () => window.clearInterval(timer);
-  }, [refresh, session]);
+  }, [blockedOutcome, refresh, session]);
+
+  useEffect(() => {
+    if (!session) return;
+    const pending = loadPendingGameIntent(sessionStorage, session.code);
+    if (!pending) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      setBusy(true);
+      setBlockedOutcome(true);
+      setError("Confirming an interrupted action before allowing another move…");
+      void gameRequest(pending).then((payload) => {
+        if (cancelled) return;
+        const sequence = beginRoomRequest();
+        applyRoomPayload(payload, sequence, session.code);
+        clearPendingGameIntent(sessionStorage);
+        setBlockedOutcome(false);
+        setBusy(false);
+        setError("The interrupted action was confirmed against the current game.");
+      }).catch((reason) => {
+        if (cancelled) return;
+        if (reason instanceof GameApiError && reason.pendingRequest) {
+          savePendingGameIntent(sessionStorage, reason.pendingRequest);
+          setError("This action is still pending. Keep this tab open while CannaBeats reconnects.");
+          return;
+        }
+        clearPendingGameIntent(sessionStorage);
+        setBlockedOutcome(false);
+        setBusy(false);
+        setError(reason instanceof Error ? reason.message : "The interrupted action was rejected.");
+      });
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [applyRoomPayload, beginRoomRequest, session]);
 
   useEffect(() => {
     if (hostRules) localStorage.setItem(HOST_RULES_KEY, hostRules);
@@ -439,21 +491,24 @@ export default function Home() {
   async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return false;
     setBusy(true);
+    setBlockedOutcome(false);
     setError("");
     let keepBlocked = false;
     const applyActionResult = async (payload: Awaited<ReturnType<typeof gameRequest>>, sequence: number) => {
-      if (payload.audio) setAudio(payload.audio);
       if (!payload.room) return;
-      const acceptedRoom = applyRoomSnapshot(payload.room, sequence, session.code);
+      const acceptedRoom = applyRoomPayload(payload, sequence, session.code);
       const managed = (payload.audio ?? audio).selection === "managed";
       if (!managed && playNewSong && acceptedRoom?.phase === "playing" && acceptedRoom.currentSong?.uri) {
         await spotify.play(acceptedRoom.currentSong.uri);
       }
     };
     try {
-      const action = String(body.action ?? "");
-      const actionContext = RETRYABLE_ACTIONS.has(action) && room
-        ? { expectedRunId: room.runId, expectedRevision: room.revision }
+      const actionContext = room
+        ? {
+          expectedRunId: room.runId,
+          expectedRunGeneration: room.runGeneration,
+          expectedRevision: room.revision,
+        }
         : {};
       const sequence = beginRoomRequest();
       const payload = await gameRequest({ ...body, ...actionContext, code: session.code });
@@ -461,24 +516,29 @@ export default function Home() {
       return true;
     } catch (reason) {
       if (reason instanceof GameApiError && reason.pendingRequest) {
-        try {
+        savePendingGameIntent(sessionStorage, reason.pendingRequest);
+        const resolution = await resolvePendingGameRequest(reason, gameRequest);
+        if (resolution.kind === "confirmed") {
+          clearPendingGameIntent(sessionStorage);
           const sequence = beginRoomRequest();
-          const resolved = await gameRequest(reason.pendingRequest);
-          await applyActionResult(resolved, sequence);
+          await applyActionResult(resolution.payload, sequence);
           setError("The delayed action was confirmed against the current game.");
           return true;
-        } catch (resolutionReason) {
-          if (resolutionReason instanceof GameApiError && resolutionReason.pendingRequest) {
-            keepBlocked = true;
-            setError("This action is still pending. Reconnect or reload before attempting another move.");
-          } else {
-            try {
-              await refresh(session);
-            } catch {
-              // A definitive rejection is safe to unblock even when refresh remains unavailable.
-            }
-            setError(resolutionReason instanceof Error ? resolutionReason.message : "The delayed action was rejected.");
+        }
+        if (resolution.kind === "pending") {
+          if (resolution.error instanceof GameApiError && resolution.error.pendingRequest) {
+            savePendingGameIntent(sessionStorage, resolution.error.pendingRequest);
           }
+          keepBlocked = resolution.keepBlocked;
+          setError("This action is still pending. Keep this tab open while CannaBeats reconnects.");
+        } else {
+          clearPendingGameIntent(sessionStorage);
+          try {
+            await refresh(session);
+          } catch {
+            // A definitive rejection is safe to unblock even when refresh remains unavailable.
+          }
+          setError(resolution.error instanceof Error ? resolution.error.message : "The delayed action was rejected.");
         }
       } else if (reason instanceof GameApiError && reason.code === "invalid_response") {
         try {
@@ -493,6 +553,7 @@ export default function Home() {
       }
       return false;
     } finally {
+      setBlockedOutcome(keepBlocked);
       if (!keepBlocked) setBusy(false);
     }
   }
@@ -540,10 +601,20 @@ export default function Home() {
   }
 
   function leaveRoom() {
+    if (blockedOutcome) {
+      setError("Wait for the pending action to resolve before leaving this game.");
+      return;
+    }
     managedAudio.stop();
     if (room?.isHost) {
       if (audio.selection === "managed" && session) {
-        void gameRequest({ action: "audioRelease", code: session.code });
+        void gameRequest({
+          action: "audioRelease",
+          code: session.code,
+          expectedRunId: room.runId,
+          expectedRunGeneration: room.runGeneration,
+          expectedRevision: room.revision,
+        });
       } else {
         void spotify.stop();
       }
@@ -555,6 +626,8 @@ export default function Home() {
     setRoom(null);
     setAudio({ selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" });
     setSelection(null);
+    setBlockedOutcome(false);
+    setBusy(false);
     setError("");
   }
 

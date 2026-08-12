@@ -44,6 +44,20 @@ const MANAGED_ERROR_CATEGORIES = new Set([
   "spotify_unavailable",
 ]);
 
+function immediateTransaction<T>(work: () => T) {
+  const db = database();
+  const ownsTransaction = !db.isTransaction;
+  if (ownsTransaction) db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = work();
+    if (ownsTransaction) db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    if (ownsTransaction && db.isTransaction) db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 function managedErrorCategory(value: string | null) {
   const category = String(value ?? "").trim().toLowerCase();
   return MANAGED_ERROR_CATEGORIES.has(category) ? category : "managed_playback_failed";
@@ -94,15 +108,13 @@ export function renewManagedAudioLease(sessionCode: string) {
 
 export function acquireManagedAudioLease(sessionCode: string, userId: string) {
   const now = Date.now();
-  database().exec("BEGIN IMMEDIATE");
-  try {
+  return immediateTransaction(() => {
     cleanupExpiredLeases(now);
     const existing = leaseRow(sessionCode);
     if (existing) {
       database().prepare(`
         UPDATE managed_audio_leases SET renewed_at = ?, expires_at = ? WHERE id = ?
       `).run(now, now + MANAGED_LEASE_TTL_MS, existing.id);
-      database().exec("COMMIT");
       return viewFor({ ...existing, expires_at: now + MANAGED_LEASE_TTL_MS }, now);
     }
     const source = database().prepare(`
@@ -123,7 +135,6 @@ export function acquireManagedAudioLease(sessionCode: string, userId: string) {
         (id, source_id, session_code, acquired_by, acquired_at, renewed_at, expires_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(leaseId, source.id, sessionCode, userId, now, now, now + MANAGED_LEASE_TTL_MS);
-    database().exec("COMMIT");
     return {
       selection: "managed" as const,
       mode: "managed" as const,
@@ -132,10 +143,7 @@ export function acquireManagedAudioLease(sessionCode: string, userId: string) {
       sourceOnline: true,
       status: "ready" as const,
     };
-  } catch (error) {
-    database().exec("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
 function audioSelection(sessionCode: string) {
@@ -202,8 +210,7 @@ export function enqueueManagedAudioCommand(
     pause: "pausing",
     resume: "resuming",
   };
-  database().exec("BEGIN IMMEDIATE");
-  try {
+  return immediateTransaction(() => {
     database().prepare(`
       INSERT INTO managed_audio_commands
         (id, lease_id, source_id, session_code, kind, track_uri, requested_by, created_at)
@@ -212,12 +219,8 @@ export function enqueueManagedAudioCommand(
     database().prepare(`
       UPDATE managed_audio_leases SET playback_status = ?, last_error = NULL WHERE id = ?
     `).run(status[kind], lease.id);
-    database().exec("COMMIT");
-  } catch (error) {
-    database().exec("ROLLBACK");
-    throw error;
-  }
-  return managedAudioView(sessionCode);
+    return managedAudioView(sessionCode);
+  });
 }
 
 export function authenticateManagedAudioSource(authorization: string | null) {

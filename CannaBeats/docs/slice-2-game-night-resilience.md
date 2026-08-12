@@ -339,14 +339,102 @@ These fixes were added behind regressions that failed against the checkpoint.
 Final local evidence is access/release/backup `69/69` and web/client/API
 `58/58`, including the production Next.js build and TypeScript compilation.
 ESLint and whitespace validation pass. The audited P1 findings are closed
-locally; remaining P2 work includes stale join-identity cleanup, durable release
-state after rename, additional relational/privacy response hardening, explicit
-busy-versus-unknown outcome classification, and S2-B audio response ordering.
+locally. At this checkpoint, the follow-on audit still assigned stale
+join-identity cleanup, durable release state after rename, additional
+relational/privacy response hardening, explicit busy-versus-unknown outcome
+classification, and S2-B audio response ordering.
+
+#### Follow-on adversarial P1/P2 remediation — 2026-08-11
+
+- Successful room-producing transitions now classify invalid JSON, empty/204
+  bodies, interrupted body reads, and body-read timeouts as typed
+  `invalid_response` outcomes. The browser performs authoritative
+  reconciliation and remains blocked if that reconciliation is unavailable.
+- An explicit server `database_busy` response still receives one identical
+  bounded retry, but exhaustion preserves the definitive `database_busy`
+  classification without inventing a pending action outcome.
+- Protected actions, transition responses, and state compare-and-swap now bind
+  both run ID and lobby run generation. Reactivating the same run cannot make
+  state or intent captured during an earlier activation valid again.
+- Runtime response validation now covers relational room invariants, UUID
+  identities, rule bounds, pre-reveal song privacy, and managed-audio shape.
+  Room and audio snapshots commit together on the client; a stale room response
+  cannot regress audio state, and invalid audio cannot partially update the UI.
+- Stale player-identity replacement is inside the same write transaction as
+  room state, identity, and membership. Injected save failure preserves the
+  original identity and leaves no partial replacement.
+- Release-state switching records the prior active target before rename. A
+  post-rename synchronization failure restores and synchronizes the prior link;
+  failed promotion can no longer delete the newly active state and leave a
+  dangling release record.
+- Deterministic source-order assertions complement the live migration and
+  independent-process prepare races, preventing timing-only false passes. A
+  real API composition test commits an action, loses its first response, then
+  proves the identical retry resolves through one receipt without a second
+  mutation. The pending-intent state machine is behaviorally tested for
+  confirmed, rejected, and still-pending outcomes.
+
+Final local evidence is access/release/backup `71/71` and web/client/API
+`65/65`, including the production Next.js build and TypeScript compilation.
+ESLint and whitespace validation pass. This closes the P1 and P2 findings from
+the follow-on audit; it does not pull the planned S2-B transition/playback
+idempotency expansion into this checkpoint.
+
+#### Invariant-driven mutation contract — incomplete checkpoint 2026-08-11
+
+The follow-on targeted audit showed that action-specific remediation still left
+sibling mutations able to bypass run context and uncertain-outcome handling.
+Slice 2 therefore uses one executable action catalog and one server mutation
+boundary rather than relying on individual route branches to remember the
+contract.
+
+| Request class | Required context | Server decision boundary | Delivery/outcome contract |
+| --- | --- | --- | --- |
+| `prepare` | Authenticated lobby and host | Lobby write transaction chooses or creates one active run | Naturally convergent; concurrent calls return the same run |
+| `join` / `joinGuest` | Authenticated or invitation-bound lobby | Identity and room state commit together | Reuses an existing run identity for an existing principal; guest bootstrap remains separately scoped |
+| Gameplay mutation | Run ID, lobby generation, revision, action ID | One `BEGIN IMMEDIATE` boundary validates context, checks receipt, authorizes, mutates, saves by CAS, and records receipt | Exact immutable request replay; success, definitive rejection, or pending/unknown only |
+| Playback mutation | Run ID, lobby generation, revision, action ID | The same mutation boundary includes lease/command writes | Exact immutable request replay; no toggle-only ambiguity |
+| Poll/read | Lobby membership | Read-only authoritative snapshot | Safe bounded retry; runtime schema validation before UI commit |
+| Invitation creation | Authenticated host and lobby phase | Invitation write | Not a game-state mutation; full bootstrap idempotency remains separately tracked |
+
+The executable gameplay/playback catalog is `web/lib/game-action-contract.ts`.
+Every cataloged action is receipt-backed and the route accepts cataloged actions
+only through the shared transactional executor. The browser assigns an action
+ID before first dispatch and retains the exact serialized request across every
+transport, gateway, response-body, or validation uncertainty. No cataloged
+gameplay or playback mutation may reach React as a raw transport exception.
+
+Acceptance is matrix-based rather than example-based:
+
+- every cataloged action rejects the wrong run ID, generation, or revision
+  before action-specific validation or side effects;
+- every cataloged action replays one receipt without a second room, identity,
+  lease, or command mutation;
+- failures are injected before dispatch, after dispatch, after commit, after
+  headers, during body delivery, and during response validation;
+- room and audio snapshots satisfy cross-field runtime invariants before either
+  is applied;
+- bootstrap, adoption, promotion, and rollback either restore their prior
+  active state or complete a documented recoverable state.
+
+The targeted regressions first failed against checkpoint `591798a`: stale
+context mutated `addPlayer`, and a headers-only successful response escaped as
+a raw timeout. The checkpoint implementation rejects stale context for all 14
+cataloged actions before action validation, exact-replays representative room
+and audio mutations through one receipt, persists unresolved intent across a
+reload, rejects cross-field-impossible room/audio snapshots, and makes initial
+bootstrap/adoption rollback fully on either side of the active-link rename.
+Those passing checks exposed further protocol gaps: intent is not journaled
+before dispatch or retried continuously, audio mutations do not advance an
+authoritative clock, and legacy adoption can delete a newly active state if
+stable-link creation fails. This checkpoint is intentionally not a completion
+claim; the evidence counts describe only the behaviors then covered.
 
 ### S2-B: Complete transition and playback idempotency
 
-- Extend the receipt boundary through advance, skip, start/begin as required by
-  measured retry behavior, audio selection/acquire/release, and pause/resume.
+- The invariant-driven remediation pulls the receipt boundary through advance,
+  skip, start/begin, audio selection/acquire/release, and pause/resume before
+  further Slice 2 feature work.
 - Remove nested transaction seams so room mutation, playback-command enqueue,
   and receipt commit as one authoritative decision.
 - Make playback commands describe desired intent rather than toggle ambiguity.

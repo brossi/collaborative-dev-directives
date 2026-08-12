@@ -1,21 +1,34 @@
 import type { AudioControlView, Player, RoomView, Song } from "./game";
+import {
+  isRunBoundMutationAction,
+  ROOM_STATE_MUTATION_ACTIONS,
+  RUN_BOUND_MUTATION_ACTIONS,
+} from "./game-action-contract.ts";
 import type { GameRules } from "./rules";
 
-export const RETRYABLE_ACTIONS = new Set(["place", "retract", "reveal"]);
+// Every run-bound mutation is receipt-backed by the server, so every dispatched
+// intent can be retried only with its exact action identity and payload.
+export const RETRYABLE_ACTIONS = new Set<string>(RUN_BOUND_MUTATION_ACTIONS);
 const ROOM_RESPONSE_ACTIONS = new Set([
   "prepare", "join", "audioAcquire", "audioSelect", "audioRelease", "audioControl",
   "addPlayer", "removePlayer", "rules", "start", "begin", "place", "retract",
   "reveal", "advance", "skip",
 ]);
-
 const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_TIMEOUT_MS = 8_000;
 const ROOM_PHASES = new Set(["lobby", "ready", "playing", "placed", "revealed", "finished"]);
 const PLAYER_CONTROLS = new Set(["phone", "host"]);
+const AUDIO_SELECTIONS = new Set(["local", "managed"]);
+const AUDIO_MODES = new Set(["local", "managed"]);
+const AUDIO_STATUSES = new Set([
+  "disconnected", "ready", "starting", "playing", "pausing", "paused", "resuming", "error",
+]);
 const RULE_PRESETS = new Set(["family", "all-eras", "modern", "younger", "broadway-tv-movies", "custom"]);
 const CATALOG_SCOPES = new Set(["all", "broadway-tv-movies"]);
 const ERA_IDS = ["early", "midcentury", "classics", "millennial", "current"] as const;
 const UUID_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const PENDING_GAME_INTENT_KEY = "cannabeats-pending-game-intent";
 
 type CryptoSource = {
   randomUUID?: () => string;
@@ -68,6 +81,53 @@ export class GameApiError extends Error {
   }
 }
 
+export function loadPendingGameIntent(storage: Pick<Storage, "getItem" | "removeItem">, expectedCode: string) {
+  const saved = storage.getItem(PENDING_GAME_INTENT_KEY);
+  if (!saved) return null;
+  try {
+    const parsed = JSON.parse(saved) as unknown;
+    if (!isRecord(parsed)
+        || !isRunBoundMutationAction(String(parsed.action ?? ""))
+        || !ACTION_ID.test(String(parsed.actionId ?? ""))
+        || String(parsed.code ?? "").trim().toUpperCase() !== expectedCode.trim().toUpperCase()) {
+      throw new Error("Invalid pending intent");
+    }
+    return Object.freeze({ ...parsed }) as Readonly<Record<string, unknown>>;
+  } catch {
+    storage.removeItem(PENDING_GAME_INTENT_KEY);
+    return null;
+  }
+}
+
+export function savePendingGameIntent(
+  storage: Pick<Storage, "setItem">,
+  request: Readonly<Record<string, unknown>>,
+) {
+  storage.setItem(PENDING_GAME_INTENT_KEY, JSON.stringify(request));
+}
+
+export function clearPendingGameIntent(storage: Pick<Storage, "removeItem">) {
+  storage.removeItem(PENDING_GAME_INTENT_KEY);
+}
+
+export async function resolvePendingGameRequest(
+  error: GameApiError,
+  send: (request: Readonly<Record<string, unknown>>) => Promise<GameApiPayload>,
+) {
+  if (!error.pendingRequest) {
+    return { kind: "rejected" as const, keepBlocked: false, error };
+  }
+  try {
+    const payload = await send(error.pendingRequest);
+    return { kind: "confirmed" as const, keepBlocked: false, payload };
+  } catch (resolutionError) {
+    if (resolutionError instanceof GameApiError && resolutionError.pendingRequest) {
+      return { kind: "pending" as const, keepBlocked: true, error: resolutionError };
+    }
+    return { kind: "rejected" as const, keepBlocked: false, error: resolutionError };
+  }
+}
+
 export function actionUuid(cryptoSource: CryptoSource = globalThis.crypto) {
   if (typeof cryptoSource.randomUUID === "function") return cryptoSource.randomUUID();
   const bytes = cryptoSource.getRandomValues(new Uint8Array(16));
@@ -89,6 +149,12 @@ export function reconcileRoomSnapshot(
       : { room: null, sequence: nextSequence };
   }
   if (current.room.runId === incoming.runId) {
+    if (incoming.runGeneration > current.room.runGeneration) {
+      return { room: incoming, sequence: nextSequence };
+    }
+    if (incoming.runGeneration < current.room.runGeneration) {
+      return { room: current.room, sequence: nextSequence };
+    }
     if (incoming.revision > current.room.revision) {
       return { room: incoming, sequence: nextSequence };
     }
@@ -126,6 +192,28 @@ export function commitRoomSnapshot(
   }
   const reconciled = reconcileRoomSnapshot(current, incoming, sequence);
   setRoom(reconciled.room);
+  return reconciled;
+}
+
+export function commitGamePayload(
+  current: RoomSnapshotCursor,
+  payload: GameApiPayload,
+  sequence: number,
+  expectedCode: string,
+  setRoom: (room: RoomView | null) => void,
+  setAudio: (audio: AudioControlView) => void,
+) {
+  if (!validRoomViewShape(payload.room)
+      || (payload.audio !== undefined && !validAudioControlViewShape(payload.audio))) {
+    throw new GameApiError(
+      "The game returned an incomplete room snapshot.",
+      502,
+      "invalid_response",
+      payload.correlationId,
+    );
+  }
+  const reconciled = commitRoomSnapshot(current, payload.room, sequence, expectedCode, setRoom);
+  if (reconciled.room === payload.room && payload.audio) setAudio(payload.audio);
   return reconciled;
 }
 
@@ -175,7 +263,7 @@ function validSong(value: unknown): value is Song {
 
 function validPlayer(value: unknown): value is Player {
   if (!isRecord(value)) return false;
-  return typeof value.id === "string"
+  return UUID_ID.test(String(value.id ?? ""))
     && typeof value.name === "string"
     && PLAYER_CONTROLS.has(String(value.control ?? ""))
     && Array.isArray(value.timeline)
@@ -188,15 +276,91 @@ function validRules(value: unknown): value is GameRules {
   return RULE_PRESETS.has(String(value.preset ?? ""))
     && typeof value.minYear === "number" && Number.isSafeInteger(value.minYear)
     && typeof value.maxYear === "number" && Number.isSafeInteger(value.maxYear)
+    && value.minYear <= value.maxYear
     && typeof value.targetScore === "number" && Number.isSafeInteger(value.targetScore)
+    && value.targetScore >= 3 && value.targetScore <= 20
     && typeof value.allowRetraction === "boolean"
     && CATALOG_SCOPES.has(String(value.catalogScope ?? ""))
-    && ERA_IDS.every((era) => typeof eraWeights[era] === "number" && Number.isFinite(eraWeights[era]));
+    && ERA_IDS.every((era) => typeof eraWeights[era] === "number"
+      && Number.isFinite(eraWeights[era])
+      && Number(eraWeights[era]) >= 0
+      && Number(eraWeights[era]) <= 100);
+}
+
+export function validAudioControlViewShape(value: unknown): value is AudioControlView {
+  if (!isRecord(value)) return false;
+  const selection = String(value.selection ?? "");
+  const mode = String(value.mode ?? "");
+  const status = String(value.status ?? "");
+  const baseShape = AUDIO_SELECTIONS.has(selection)
+    && AUDIO_MODES.has(String(value.mode ?? ""))
+    && typeof value.sourceOnline === "boolean"
+    && AUDIO_STATUSES.has(status)
+    && (value.leaseId === undefined || typeof value.leaseId === "string")
+    && (value.sourceName === undefined || typeof value.sourceName === "string")
+    && (value.error === undefined || typeof value.error === "string");
+  if (!baseShape) return false;
+  if (mode === "local") {
+    return value.sourceOnline === false
+      && status === "disconnected"
+      && value.leaseId === undefined
+      && value.sourceName === undefined
+      && value.error === undefined;
+  }
+  return selection === "managed"
+    && typeof value.leaseId === "string"
+    && UUID_ID.test(value.leaseId)
+    && typeof value.sourceName === "string"
+    && value.sourceName.length > 0
+    && status !== "disconnected";
+}
+
+function validRoomPhaseRelations(
+  value: Record<string, unknown>,
+  players: Player[],
+  activePlayer: Player | undefined,
+) {
+  const phase = String(value.phase);
+  const round = Number(value.round);
+  const currentSong = value.currentSong;
+  const placement = value.placement;
+  const result = value.result;
+  const winnerId = value.winnerId;
+  if (phase === "lobby") {
+    return round === 0
+      && value.activePlayerId === null
+      && currentSong === null
+      && placement === null
+      && result === null
+      && winnerId === null;
+  }
+  if (!players.length || !activePlayer || value.activePlayerId !== activePlayer.id || round < 1) return false;
+  const songMayBeHidden = value.isHost === false && ["ready", "playing", "placed"].includes(phase);
+  if (currentSong === null && !songMayBeHidden) return false;
+  if (phase === "ready" || phase === "playing") {
+    return placement === null && result === null && winnerId === null;
+  }
+  if (phase === "placed") return placement !== null && result === null && winnerId === null;
+  if (phase === "revealed") return placement !== null && result !== null && currentSong !== null;
+  return phase === "finished"
+    && placement !== null
+    && result !== null
+    && currentSong !== null
+    && winnerId !== null;
 }
 
 export function validRoomViewShape(value: unknown): value is RoomView {
   if (!isRecord(value)) return false;
-  return UUID_ID.test(String(value.runId ?? ""))
+  if (!Array.isArray(value.players) || !value.players.every(validPlayer)) return false;
+  const players = value.players as Player[];
+  const playerIds = new Set(players.map((player) => player.id));
+  if (playerIds.size !== players.length) return false;
+  const activePlayerIndex = Number(value.activePlayerIndex);
+  const activePlayer = players[activePlayerIndex];
+  const activePlayerId = value.activePlayerId;
+  const placement = value.placement;
+  const result = value.result;
+  const baseShape = UUID_ID.test(String(value.runId ?? ""))
     && typeof value.runGeneration === "number"
     && Number.isSafeInteger(value.runGeneration)
     && Number(value.runGeneration) >= 0
@@ -205,38 +369,56 @@ export function validRoomViewShape(value: unknown): value is RoomView {
     && Number(value.revision) >= 0
     && /^[A-Z2-9]{6}$/.test(String(value.code ?? ""))
     && ROOM_PHASES.has(String(value.phase ?? ""))
-    && Array.isArray(value.players)
-    && value.players.every(validPlayer)
-    && (value.activePlayerId === null || typeof value.activePlayerId === "string")
+    && (activePlayerId === null || (UUID_ID.test(String(activePlayerId)) && activePlayer?.id === activePlayerId))
     && typeof value.activePlayerIndex === "number"
     && Number.isSafeInteger(value.activePlayerIndex)
     && Number(value.activePlayerIndex) >= 0
+    && (players.length === 0 ? activePlayerIndex === 0 : activePlayerIndex < players.length)
     && typeof value.round === "number"
     && Number.isSafeInteger(value.round)
     && Number(value.round) >= 0
     && (value.currentSong === null || validSong(value.currentSong))
-    && (value.placement === null || (typeof value.placement === "number" && Number.isSafeInteger(value.placement) && value.placement >= 0))
+    && (placement === null || (typeof placement === "number"
+      && Number.isSafeInteger(placement)
+      && placement >= 0
+      && Boolean(activePlayer)
+      && placement <= activePlayer.timeline.length))
     && typeof value.retractionUsed === "boolean"
-    && (value.result === null || (isRecord(value.result)
-      && typeof value.result.correct === "boolean"
-      && typeof value.result.index === "number"
-      && Number.isSafeInteger(value.result.index)
-      && Number(value.result.index) >= 0))
-    && (value.winnerId === null || typeof value.winnerId === "string")
+    && (result === null || (isRecord(result)
+      && typeof result.correct === "boolean"
+      && typeof result.index === "number"
+      && Number.isSafeInteger(result.index)
+      && Number(result.index) >= 0
+      && Boolean(activePlayer)
+      && Number(result.index) <= activePlayer.timeline.length))
+    && (value.winnerId === null || (UUID_ID.test(String(value.winnerId)) && playerIds.has(String(value.winnerId))))
     && validRules(value.rules)
-    && typeof value.isHost === "boolean";
+    && typeof value.isHost === "boolean"
+    && (value.isHost === true
+      || value.phase === "revealed"
+      || value.phase === "finished"
+      || value.currentSong === null);
+  return baseShape && validRoomPhaseRelations(value, players, activePlayer);
 }
 
-function validRoomView(
+function validTransitionRoom(
   value: unknown,
-  expectedRunId: string,
-  expectedRevision: number,
+  action: string,
   expectedCode: string,
+  expectedRunId: string,
+  expectedRunGeneration: number,
+  expectedRevision: number,
 ): value is RoomView {
-  if (!validRoomViewShape(value)) return false;
-  return value.runId.toLowerCase() === expectedRunId
-    && value.revision > expectedRevision
-    && value.code === expectedCode;
+  if (!validRoomViewShape(value) || value.code !== expectedCode) return false;
+  if (!isRunBoundMutationAction(action)) return true;
+  if (!UUID_ID.test(expectedRunId)
+      || !Number.isSafeInteger(expectedRunGeneration) || expectedRunGeneration < 0
+      || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return false;
+  if (value.runId.toLowerCase() !== expectedRunId
+      || value.runGeneration !== expectedRunGeneration) return false;
+  return ROOM_STATE_MUTATION_ACTIONS.has(action)
+    ? value.revision > expectedRevision
+    : value.revision >= expectedRevision;
 }
 
 export async function requestGame(
@@ -256,9 +438,10 @@ export async function requestGame(
   const retainedRequest = retryable ? Object.freeze({ ...requestBody }) : undefined;
   const serializedBody = JSON.stringify(requestBody);
   const requestedActionId = retryable ? String(requestBody.actionId ?? "").toLowerCase() : "";
-  const requestedRunId = retryable ? String(requestBody.expectedRunId ?? "").toLowerCase() : "";
-  const requestedRevision = retryable ? Number(requestBody.expectedRevision) : -1;
-  const requestedCode = retryable ? String(requestBody.code ?? "").trim().toUpperCase() : "";
+  const requestedRunId = String(requestBody.expectedRunId ?? "").toLowerCase();
+  const requestedRunGeneration = Number(requestBody.expectedRunGeneration);
+  const requestedRevision = Number(requestBody.expectedRevision);
+  const requestedCode = String(requestBody.code ?? "").trim().toUpperCase();
   const fetchImpl = options.fetchImpl ?? fetch;
   const attempts = retryable ? 2 : 1;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -275,7 +458,23 @@ export async function requestGame(
         body: serializedBody,
         signal: controller.signal,
       });
-      const parsedPayload = await response.json() as unknown;
+      let parsedPayload: unknown;
+      try {
+        parsedPayload = await response.json() as unknown;
+      } catch (error) {
+        if (!response.ok || !ROOM_RESPONSE_ACTIONS.has(action)) throw error;
+        if (retryable && attempt + 1 < attempts) continue;
+        throw new GameApiError(
+          retryable
+            ? "The game returned an incomplete action result."
+            : "The game returned an incomplete transition result.",
+          502,
+          "invalid_response",
+          undefined,
+          retryable ? requestedActionId : undefined,
+          retryable ? retainedRequest : undefined,
+        );
+      }
       const payload = parsedPayload && typeof parsedPayload === "object" && !Array.isArray(parsedPayload)
         ? parsedPayload as GameApiPayload
         : {};
@@ -283,10 +482,18 @@ export async function requestGame(
         if (retryable) {
           const responseActionId = String(payload.action?.id ?? "").toLowerCase();
           const validActionOutcome = Boolean(
-            validRoomView(payload.room, requestedRunId, requestedRevision, requestedCode)
+            validTransitionRoom(
+              payload.room,
+              action,
+              requestedCode,
+              requestedRunId,
+              requestedRunGeneration,
+              requestedRevision,
+            )
             && payload.action?.accepted === true
             && typeof payload.action.replayed === "boolean"
-            && responseActionId === requestedActionId,
+            && responseActionId === requestedActionId
+            && (payload.audio === undefined || validAudioControlViewShape(payload.audio)),
           );
           if (!validActionOutcome) {
             if (attempt + 1 < attempts) continue;
@@ -300,7 +507,14 @@ export async function requestGame(
             );
           }
         } else if (ROOM_RESPONSE_ACTIONS.has(action)
-            && (!validRoomViewShape(payload.room) || payload.room.code !== String(body.code ?? "").trim().toUpperCase())) {
+            && (!validTransitionRoom(
+              payload.room,
+              action,
+              requestedCode,
+              requestedRunId,
+              requestedRunGeneration,
+              requestedRevision,
+            ) || (payload.audio !== undefined && !validAudioControlViewShape(payload.audio)))) {
           throw new GameApiError(
             "The game returned an incomplete transition result.",
             502,
@@ -309,6 +523,15 @@ export async function requestGame(
           );
         }
         return payload;
+      }
+      if (retryable && response.status === 503 && payload.code === "database_busy") {
+        if (attempt + 1 < attempts) continue;
+        throw new GameApiError(
+          payload.error ?? "The game is temporarily busy. Retry the same action.",
+          response.status,
+          "database_busy",
+          payload.correlationId,
+        );
       }
       if (retryable && TRANSIENT_GATEWAY_STATUSES.has(response.status)) {
         if (attempt + 1 < attempts) continue;
