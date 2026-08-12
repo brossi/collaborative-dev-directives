@@ -170,6 +170,58 @@ class CompletionAcknowledgementTests(unittest.TestCase):
         }, api=api)
         api.assert_not_called()
 
+    def test_bridge_controller_accepts_slice1_completion_acknowledgement(self):
+        command_id = "00000000-0000-4000-8000-000000000026"
+        claimed = controller.claim_polled_command(
+            {"id": command_id, "kind": "pause"},
+            api=Mock(),
+            protocol_version=1,
+        )
+        controller.accept_browser_begin({
+            "commandId": command_id,
+            "claimGeneration": claimed["claimGeneration"],
+        }, api=Mock())
+        old_api = Mock(return_value=({"completed": True}, None))
+        controller.accept_browser_completion({
+            "commandId": command_id,
+            "claimGeneration": claimed["claimGeneration"],
+            "ok": True,
+            "playbackStatus": "paused",
+        }, api=old_api)
+        self.assertEqual(old_api.call_args.args[0]["protocolVersion"], 1)
+        with controller.lock:
+            self.assertIsNone(controller.state["commandOutbox"])
+
+    def test_same_process_begin_failure_can_be_reconciled_as_unknown(self):
+        command_id = "00000000-0000-4000-8000-000000000027"
+        generation = "00000000-0000-4000-8000-000000000028"
+        claimed = {
+            "generation": generation,
+            "commandId": command_id,
+            "phase": "claimed",
+            "command": {"id": command_id, "kind": "play"},
+            "correlationId": None,
+            "protocolVersion": 2,
+        }
+        with controller.lock:
+            controller.state["commandOutbox"] = claimed
+        controller.persist_command_outbox(claimed)
+        with self.assertRaises(OSError):
+            controller.accept_browser_begin({
+                "commandId": command_id,
+                "claimGeneration": generation,
+            }, api=Mock(side_effect=OSError("begin response lost")))
+
+        reconciliation = Mock(return_value=(
+            {"accepted": True, "status": "outcome_unknown", "replayed": False}, None,
+        ))
+        self.assertEqual(controller.accept_browser_unknown({
+            "commandId": command_id,
+            "claimGeneration": generation,
+        }, api=reconciliation), {"accepted": True, "status": "outcome_unknown"})
+        self.assertEqual(reconciliation.call_args.args[0]["action"], "outcome_unknown")
+        self.assertEqual(controller.load_command_outbox()["phase"], "outcome_unknown")
+
     def test_claim_does_not_advance_in_memory_or_contact_server_when_fsync_fails(self):
         command_id = "00000000-0000-4000-8000-000000000014"
         server = Mock()

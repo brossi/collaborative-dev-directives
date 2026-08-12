@@ -27,6 +27,16 @@ function argument(name, fallback) {
   return index === -1 ? fallback : process.argv[index + 1];
 }
 
+function releaseManagedSourceLeases(db, sourceId) {
+  const supportsReason = db.prepare('PRAGMA table_info(managed_audio_leases)').all()
+    .some((column) => column.name === 'release_reason');
+  if (supportsReason) {
+    db.prepare(`UPDATE managed_audio_leases SET release_reason = 'explicit_release'
+      WHERE source_id = ?`).run(sourceId);
+  }
+  db.prepare('DELETE FROM managed_audio_leases WHERE source_id = ?').run(sourceId);
+}
+
 const command = process.argv[2];
 if (!['invite', 'host-onboarding', 'admin-access', 'managed-source', 'operator-summary', 'operator-status'].includes(command)) {
   console.error('Usage:');
@@ -177,7 +187,7 @@ if (command === 'operator-summary' || command === 'operator-status') {
         if (!/^[0-9a-f-]{36}$/i.test(sourceId)) throw new Error('--source-id must be a UUID');
         db.exec('BEGIN IMMEDIATE');
         try {
-          db.prepare('DELETE FROM managed_audio_leases WHERE source_id = ?').run(sourceId);
+          releaseManagedSourceLeases(db, sourceId);
           const result = db.prepare(`
             UPDATE managed_audio_sources
             SET token_hash = ?, enabled = 1, last_seen_at = NULL, device_id = NULL, last_error = NULL
@@ -195,7 +205,7 @@ if (command === 'operator-summary' || command === 'operator-status') {
       if (!/^[0-9a-f-]{36}$/i.test(sourceId)) throw new Error('--source-id must be a UUID');
       db.exec('BEGIN IMMEDIATE');
       try {
-        db.prepare('DELETE FROM managed_audio_leases WHERE source_id = ?').run(sourceId);
+        releaseManagedSourceLeases(db, sourceId);
         const result = db.prepare(`
           UPDATE managed_audio_sources
           SET enabled = 0, last_seen_at = NULL, device_id = NULL, last_error = NULL

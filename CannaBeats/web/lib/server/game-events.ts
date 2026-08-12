@@ -335,6 +335,7 @@ export function deleteGameHistory(runId: string) {
       .run(runId);
     const events = Number(db.prepare("DELETE FROM game_events WHERE run_id = ?").run(runId).changes);
     const receipts = Number(db.prepare("DELETE FROM game_action_receipts WHERE run_id = ?").run(runId).changes);
+    db.prepare("DELETE FROM managed_audio_command_outcomes WHERE run_id = ?").run(runId);
     db.prepare(`
       UPDATE game_event_coverage
       SET baseline_revision = (SELECT revision FROM game_runs WHERE id = ?),
@@ -342,7 +343,6 @@ export function deleteGameHistory(runId: string) {
           purged_at = ?, lifecycle_state = 'purged'
       WHERE run_id = ?
     `).run(runId, runId, Date.now(), runId);
-    db.prepare("DELETE FROM managed_audio_command_outcomes WHERE run_id = ?").run(runId);
     db.exec("COMMIT");
     return { events, receipts };
   } catch (error) {
@@ -398,6 +398,7 @@ export function purgeExpiredGameHistory({
         .run(run.id);
       events += Number(db.prepare("DELETE FROM game_events WHERE run_id = ?").run(run.id).changes);
       receipts += Number(db.prepare("DELETE FROM game_action_receipts WHERE run_id = ?").run(run.id).changes);
+      db.prepare("DELETE FROM managed_audio_command_outcomes WHERE run_id = ?").run(run.id);
       db.prepare(`
         UPDATE game_event_coverage
         SET baseline_revision = (SELECT revision FROM game_runs WHERE id = ?),
@@ -405,7 +406,6 @@ export function purgeExpiredGameHistory({
             purged_at = ?, lifecycle_state = 'purged'
         WHERE run_id = ?
       `).run(run.id, run.id, now, run.id);
-      db.prepare("DELETE FROM managed_audio_command_outcomes WHERE run_id = ?").run(run.id);
     }
     db.exec("COMMIT");
     return { runs: runs.length, events, receipts };

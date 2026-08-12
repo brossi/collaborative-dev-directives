@@ -115,6 +115,62 @@ services:
         max-size: 10m
         max-file: "3"
 
+  # This profile is deliberately absent from the pre-cutover release. During
+  # cutover it is the only long-running service with a read-write mount of the
+  # separated state database.
+  state:
+    profiles: ["state-cutover"]
+    build:
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: state-service/Dockerfile
+    image: ${CANNABEATS_STATE_IMAGE:-cannabeats/state-service:local}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    environment:
+      NODE_ENV: production
+      PORT: "3010"
+      CANNABEATS_STATE_DATABASE_PATH: /state/cannabeats-state.sqlite
+      CANNABEATS_STATE_SERVICE_TOKEN_FILE: ${STATE_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/state-service-token}
+    volumes:
+      - cannabeats_state_data:/state
+      - ${STATE_SERVICE_TOKEN_HOST_FILE:-./secrets/state-service-token}:${STATE_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/state-service-token}:ro
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+
+  # Run only while app/game/state are stopped. It is the sole, bounded exception
+  # to the state volume's runtime writer rule and never mounts the source RW.
+  state-migrate:
+    profiles: ["state-migration"]
+    build:
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: state-service/Dockerfile
+    image: ${CANNABEATS_STATE_IMAGE:-cannabeats/state-service:local}
+    read_only: true
+    network_mode: none
+    user: node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - cannabeats_poc_data:/legacy:ro
+      - cannabeats_state_data:/state
+    entrypoint: ["node", "scripts/migrate-monolith.mjs"]
+    command:
+      - --source
+      - /legacy/cannabeats-poc.sqlite
+      - --destination
+      - /state/cannabeats-state.sqlite
+
   backup:
     profiles: ["operations"]
     build:
@@ -178,3 +234,5 @@ services:
 volumes:
   cannabeats_poc_data:
     name: ${CANNABEATS_DATA_VOLUME:-cannabeats_poc_data}
+  cannabeats_state_data:
+    name: ${CANNABEATS_STATE_DATA_VOLUME:-cannabeats_state_data}

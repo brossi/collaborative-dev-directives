@@ -76,7 +76,37 @@ function canonicalManagedOutcomesSql(ifNotExists = false) {
     completed_at INTEGER NOT NULL CHECK (completed_at >= 0),
     command_state TEXT NOT NULL DEFAULT 'queued'
       CHECK (command_state IN ('queued','claimed','executing','completed','failed','outcome_unknown','cancelled')),
-    claim_generation TEXT
+    claim_generation TEXT,
+    CHECK (
+      (command_state IN ('queued','cancelled')
+        AND claim_generation IS NULL AND completed_at = 0
+        AND json_extract(completion_fingerprint, '$.pending') = 1)
+      OR (command_state IN ('claimed','executing','outcome_unknown')
+        AND claim_generation IS NOT NULL AND length(claim_generation) > 0
+        AND completed_at = 0
+        AND json_extract(completion_fingerprint, '$.pending') = 1)
+      OR (command_state IN ('completed','failed')
+        AND claim_generation IS NOT NULL AND length(claim_generation) > 0
+        AND completed_at > 0
+        AND json_type(completion_fingerprint, '$.ok') IN ('true','false'))
+    )
+  )`;
+}
+
+function canonicalManagedCommandsSql(ifNotExists = false) {
+  return `CREATE TABLE ${ifNotExists ? "IF NOT EXISTS " : ""}managed_audio_commands (
+    id TEXT PRIMARY KEY,
+    lease_id TEXT REFERENCES managed_audio_leases(id) ON DELETE SET NULL,
+    source_id TEXT NOT NULL REFERENCES managed_audio_sources(id) ON DELETE RESTRICT,
+    session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('play', 'pause', 'resume')),
+    track_uri TEXT,
+    requested_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    delivered_at INTEGER,
+    completed_at INTEGER,
+    error TEXT,
+    completion_fingerprint TEXT
   )`;
 }
 
@@ -89,6 +119,7 @@ const GAME_EVENTS_SCHEMA_DIGEST = createHash("sha256")
   .digest("hex");
 const HISTORY_FEATURE_OBJECTS = [
   "game_event_coverage",
+  "game_history_terminal_evidence",
   "game_events_history_write_guard",
   "game_event_coverage_lifecycle_guard",
   "game_event_coverage_initial_guard",
@@ -97,6 +128,7 @@ const HISTORY_FEATURE_OBJECTS = [
   "game_events_sealed_delete_guard",
 ] as const;
 const MANAGED_AUDIO_FEATURE_OBJECTS = [
+  "managed_audio_commands",
   "managed_audio_command_outcomes",
   "managed_audio_command_state_insert_guard",
   "managed_audio_command_state_update_guard",
@@ -104,6 +136,7 @@ const MANAGED_AUDIO_FEATURE_OBJECTS = [
   "managed_audio_command_intent_guard",
   "managed_audio_lease_delete_transition",
   "managed_audio_source_delete_guard",
+  "managed_audio_command_outcome_delete_guard",
 ] as const;
 
 function featureDigest(contract: string) {
@@ -249,6 +282,7 @@ export function database() {
   try {
     db.exec(`
       PRAGMA foreign_keys = ON;
+      PRAGMA recursive_triggers = ON;
       PRAGMA journal_mode = WAL;
       PRAGMA busy_timeout = ${databaseBusyTimeoutMs()};
     `);
@@ -413,24 +447,15 @@ export function database() {
       renewed_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
       playback_status TEXT NOT NULL DEFAULT 'ready',
-      last_error TEXT
+      last_error TEXT,
+      release_reason TEXT CHECK (release_reason IS NULL OR release_reason IN (
+        'explicit_release','lease_expired','source_selected_local','game_completed','game_abandoned'
+      ))
     );
     CREATE INDEX IF NOT EXISTS managed_audio_leases_expires_at
       ON managed_audio_leases(expires_at);
 
-    CREATE TABLE IF NOT EXISTS managed_audio_commands (
-      id TEXT PRIMARY KEY,
-      lease_id TEXT NOT NULL REFERENCES managed_audio_leases(id) ON DELETE CASCADE,
-      source_id TEXT NOT NULL REFERENCES managed_audio_sources(id) ON DELETE CASCADE,
-      session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
-      kind TEXT NOT NULL CHECK (kind IN ('play', 'pause', 'resume')),
-      track_uri TEXT,
-      requested_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_at INTEGER NOT NULL,
-      delivered_at INTEGER,
-      completed_at INTEGER,
-      error TEXT
-    );
+    ${canonicalManagedCommandsSql(true)};
     CREATE INDEX IF NOT EXISTS managed_audio_commands_pending
       ON managed_audio_commands(source_id, completed_at, created_at);
 
@@ -507,7 +532,7 @@ export function database() {
     if (accessPrerequisitesExist) verifyGameEventsBehavior(db);
     recordFeatureMigration(db, "game_events_canonical_v2", GAME_EVENTS_SCHEMA_DIGEST);
     const historyFeatureVerified = verifyRecordedFeature(
-      db, "history_lifecycle_v3", HISTORY_FEATURE_OBJECTS,
+      db, "history_lifecycle_v4", HISTORY_FEATURE_OBJECTS,
     );
     if (!historyFeatureVerified) {
     const coverageColumns = new Set(
@@ -545,8 +570,50 @@ export function database() {
       `);
     }
     db.exec(`
-      UPDATE game_event_coverage SET lifecycle_state = 'purged'
-      WHERE purged_at IS NOT NULL AND lifecycle_state <> 'purged';
+      UPDATE game_event_coverage
+      SET lifecycle_state = CASE WHEN purged_at IS NOT NULL THEN 'purged' ELSE 'recording' END;
+      DROP VIEW IF EXISTS game_history_terminal_evidence;
+      CREATE VIEW game_history_terminal_evidence AS
+      SELECT c.run_id
+      FROM game_event_coverage c
+      JOIN game_runs r ON r.id = c.run_id
+      JOIN game_sessions s ON s.code = r.session_code
+      WHERE s.status = 'ended'
+        AND s.active_run_id = r.id
+        AND typeof(r.ended_at) = 'integer' AND r.ended_at > 0
+        AND typeof(r.revision) = 'integer' AND r.revision >= 0
+        AND r.revision = c.last_recorded_revision
+        AND json_valid(r.state)
+        AND (
+          (r.terminal_outcome = 'completed' AND json_extract(r.state, '$.phase') = 'finished')
+          OR (r.terminal_outcome = 'abandoned'
+              AND json_extract(r.state, '$.phase') IN ('lobby','ready','playing','placed','revealed'))
+        )
+        AND 1 = (
+          SELECT COUNT(*) FROM game_events e
+          WHERE e.run_id = r.id AND e.event_type IN ('game_completed','game_abandoned')
+        )
+        AND 1 = (
+          SELECT COUNT(*) FROM game_events e
+          WHERE e.run_id = r.id
+            AND ((r.terminal_outcome = 'completed'
+                  AND e.event_type = 'game_completed' AND e.outcome = 'completed')
+              OR (r.terminal_outcome = 'abandoned'
+                  AND e.event_type = 'game_abandoned' AND e.outcome = 'abandoned'))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM managed_audio_command_outcomes o
+          WHERE o.run_id = r.id AND o.command_state IN ('queued','claimed','executing')
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM game_events requested
+          WHERE requested.run_id = r.id
+            AND requested.event_type = 'audio_command_requested'
+            AND (requested.command_ref IS NULL OR NOT EXISTS (
+              SELECT 1 FROM managed_audio_command_outcomes o
+              WHERE o.command_id = requested.command_ref AND o.run_id = r.id
+            ))
+        );
       DROP TRIGGER IF EXISTS game_events_history_write_guard;
       CREATE TRIGGER game_events_history_write_guard
       BEFORE INSERT ON game_events
@@ -577,28 +644,23 @@ export function database() {
       WHEN NOT (
         (NEW.lifecycle_state = OLD.lifecycle_state AND NEW.purged_at IS OLD.purged_at)
         OR (OLD.lifecycle_state = 'recording' AND NEW.lifecycle_state = 'terminal_pending'
-            AND NEW.purged_at IS NULL AND EXISTS (
-              SELECT 1 FROM game_runs r JOIN game_sessions s ON s.code = r.session_code
-              WHERE r.id = NEW.run_id AND s.status = 'ended' AND s.active_run_id = r.id
-                AND typeof(r.ended_at) = 'integer' AND r.ended_at > 0
-                AND r.revision = NEW.last_recorded_revision AND json_valid(r.state)
-                AND ((r.terminal_outcome = 'completed' AND json_extract(r.state,'$.phase')='finished')
-                  OR (r.terminal_outcome = 'abandoned' AND json_extract(r.state,'$.phase')<>'finished'))
-                AND 1 = (SELECT COUNT(*) FROM game_events e WHERE e.run_id=r.id
-                  AND ((r.terminal_outcome='completed' AND e.event_type='game_completed' AND e.outcome='completed')
-                    OR (r.terminal_outcome='abandoned' AND e.event_type='game_abandoned' AND e.outcome='abandoned')))
-                AND NOT EXISTS (SELECT 1 FROM managed_audio_command_outcomes o
-                  WHERE o.run_id=r.id AND o.command_state IN ('queued','claimed','executing'))
-            ))
+            AND NEW.purged_at IS NULL
+            AND EXISTS (SELECT 1 FROM game_history_terminal_evidence
+                        WHERE run_id = NEW.run_id))
         OR (OLD.lifecycle_state = 'terminal_pending' AND NEW.lifecycle_state = 'sealed'
-            AND NEW.purged_at IS NULL AND NEW.last_recorded_revision =
-              (SELECT revision FROM game_runs WHERE id=NEW.run_id))
+            AND NEW.purged_at IS NULL
+            AND EXISTS (SELECT 1 FROM game_history_terminal_evidence
+                        WHERE run_id = NEW.run_id))
         OR (OLD.lifecycle_state = 'sealed' AND NEW.lifecycle_state = 'purging'
-            AND NEW.purged_at IS NULL AND NEW.last_recorded_revision =
-              (SELECT revision FROM game_runs WHERE id=NEW.run_id))
+            AND NEW.purged_at IS NULL
+            AND EXISTS (SELECT 1 FROM game_history_terminal_evidence
+                        WHERE run_id = NEW.run_id))
         OR (OLD.lifecycle_state = 'purging' AND NEW.lifecycle_state = 'purged'
             AND NEW.purged_at IS NOT NULL AND typeof(NEW.purged_at) = 'integer'
-            AND NEW.purged_at > 0)
+            AND NEW.purged_at > 0
+            AND NOT EXISTS (SELECT 1 FROM game_events WHERE run_id = NEW.run_id)
+            AND NOT EXISTS (SELECT 1 FROM game_action_receipts WHERE run_id = NEW.run_id)
+            AND NOT EXISTS (SELECT 1 FROM managed_audio_command_outcomes WHERE run_id = NEW.run_id))
       )
       BEGIN
         SELECT RAISE(ABORT, 'game history lifecycle transition is invalid');
@@ -634,10 +696,10 @@ export function database() {
         SELECT RAISE(ABORT, 'game history is sealed outside an authorized purge');
       END;
     `);
-    recordFeatureMigration(db, "history_lifecycle_v3", schemaObjectsDigest(db, HISTORY_FEATURE_OBJECTS));
+    recordFeatureMigration(db, "history_lifecycle_v4", schemaObjectsDigest(db, HISTORY_FEATURE_OBJECTS));
     }
     const managedAudioFeatureVerified = verifyRecordedFeature(
-      db, "managed_audio_protocol_v3", MANAGED_AUDIO_FEATURE_OBJECTS,
+      db, "managed_audio_protocol_v4", MANAGED_AUDIO_FEATURE_OBJECTS,
     );
     if (!managedAudioFeatureVerified) {
     const commandColumns = new Set(
@@ -646,6 +708,13 @@ export function database() {
     );
     if (!commandColumns.has("completion_fingerprint")) {
       db.exec("ALTER TABLE managed_audio_commands ADD COLUMN completion_fingerprint TEXT");
+    }
+    const leaseColumns = new Set(
+      db.prepare("PRAGMA table_info(managed_audio_leases)").all()
+        .map((column) => (column as { name: string }).name),
+    );
+    if (!leaseColumns.has("release_reason")) {
+      db.exec("ALTER TABLE managed_audio_leases ADD COLUMN release_reason TEXT");
     }
     const commandOutcomeColumns = new Set(
       db.prepare("PRAGMA table_info(managed_audio_command_outcomes)").all()
@@ -658,17 +727,61 @@ export function database() {
       db.exec("ALTER TABLE managed_audio_command_outcomes ADD COLUMN claim_generation TEXT");
     }
     db.exec(`
+      INSERT OR IGNORE INTO managed_audio_command_outcomes
+        (command_id, source_id, run_id, completion_fingerprint, completed_at,
+         command_state, claim_generation)
+      SELECT c.id, c.source_id, s.active_run_id,
+             json_object('pending', 1, 'kind', c.kind), 0, 'queued', NULL
+      FROM managed_audio_commands c
+      JOIN game_sessions s ON s.code = c.session_code
+      WHERE c.completed_at IS NULL;
+    `);
+    db.exec(`
       UPDATE managed_audio_command_outcomes
       SET command_state = CASE
-        WHEN completed_at > 0 AND json_valid(completion_fingerprint)
-          AND json_extract(completion_fingerprint, '$.ok') = 1 THEN 'completed'
-        WHEN completed_at > 0 THEN 'failed'
-        WHEN NOT EXISTS (
-          SELECT 1 FROM managed_audio_commands
-          WHERE managed_audio_commands.id = managed_audio_command_outcomes.command_id
-        ) THEN 'outcome_unknown'
-        ELSE command_state
-      END;
+            WHEN command_state IN ('completed','failed')
+              AND typeof(completed_at) = 'integer' AND completed_at > 0
+              AND json_valid(completion_fingerprint)
+              AND json_type(completion_fingerprint, '$.ok') IN ('true','false')
+              THEN command_state
+            WHEN command_state IN ('queued','cancelled')
+              AND claim_generation IS NULL AND completed_at = 0
+              AND json_valid(completion_fingerprint)
+              AND json_extract(completion_fingerprint, '$.pending') = 1
+              THEN command_state
+            WHEN command_state IN ('claimed','executing','outcome_unknown')
+              AND claim_generation IS NOT NULL AND length(claim_generation) > 0
+              AND completed_at = 0 AND json_valid(completion_fingerprint)
+              AND json_extract(completion_fingerprint, '$.pending') = 1
+              THEN command_state
+            ELSE 'outcome_unknown'
+          END,
+          claim_generation = CASE
+            WHEN command_state IN ('queued','cancelled')
+              AND claim_generation IS NULL AND completed_at = 0
+              AND json_valid(completion_fingerprint)
+              AND json_extract(completion_fingerprint, '$.pending') = 1
+              THEN NULL
+            WHEN claim_generation IS NOT NULL AND length(claim_generation) > 0
+              THEN claim_generation
+            ELSE 'legacy-migration:' || command_id
+          END,
+          completed_at = CASE
+            WHEN command_state IN ('completed','failed')
+              AND typeof(completed_at) = 'integer' AND completed_at > 0
+              AND json_valid(completion_fingerprint)
+              AND json_type(completion_fingerprint, '$.ok') IN ('true','false')
+              THEN completed_at
+            ELSE 0
+          END,
+          completion_fingerprint = CASE
+            WHEN command_state IN ('completed','failed')
+              AND typeof(completed_at) = 'integer' AND completed_at > 0
+              AND json_valid(completion_fingerprint)
+              AND json_type(completion_fingerprint, '$.ok') IN ('true','false')
+              THEN completion_fingerprint
+            ELSE '{"pending":true}'
+          END;
     `);
     const outcomesSql = (db.prepare(`
       SELECT sql FROM sqlite_schema WHERE type='table' AND name='managed_audio_command_outcomes'
@@ -691,6 +804,27 @@ export function database() {
         DROP TABLE managed_audio_command_outcomes_before_canonical;
         CREATE INDEX managed_audio_command_outcomes_completed_at
           ON managed_audio_command_outcomes(completed_at);
+        PRAGMA legacy_alter_table = OFF;
+      `);
+    }
+    const commandsSql = (db.prepare(`
+      SELECT sql FROM sqlite_schema WHERE type='table' AND name='managed_audio_commands'
+    `).get() as { sql: string }).sql;
+    if (normalizedSchemaSql(commandsSql) !== normalizedSchemaSql(canonicalManagedCommandsSql())) {
+      db.exec(`
+        DROP TRIGGER IF EXISTS managed_audio_command_intent_guard;
+        PRAGMA legacy_alter_table = ON;
+        ALTER TABLE managed_audio_commands RENAME TO managed_audio_commands_before_canonical;
+        ${canonicalManagedCommandsSql()};
+        INSERT INTO managed_audio_commands
+          (id, lease_id, source_id, session_code, kind, track_uri, requested_by,
+           created_at, delivered_at, completed_at, error, completion_fingerprint)
+        SELECT id, lease_id, source_id, session_code, kind, track_uri, requested_by,
+               created_at, delivered_at, completed_at, error, completion_fingerprint
+        FROM managed_audio_commands_before_canonical;
+        DROP TABLE managed_audio_commands_before_canonical;
+        CREATE INDEX managed_audio_commands_pending
+          ON managed_audio_commands(source_id, completed_at, created_at);
         PRAGMA legacy_alter_table = OFF;
       `);
     }
@@ -747,7 +881,7 @@ export function database() {
       END;
       DROP TRIGGER IF EXISTS managed_audio_command_intent_guard;
       CREATE TRIGGER managed_audio_command_intent_guard
-      BEFORE UPDATE OF id, lease_id, source_id, session_code, kind, track_uri, requested_by, created_at
+      BEFORE UPDATE OF id, source_id, session_code, kind, track_uri, requested_by, created_at
       ON managed_audio_commands
       BEGIN
         SELECT RAISE(ABORT, 'managed command intent is immutable');
@@ -756,6 +890,22 @@ export function database() {
       CREATE TRIGGER managed_audio_lease_delete_transition
       BEFORE DELETE ON managed_audio_leases
       BEGIN
+        INSERT INTO game_events
+          (run_id, sequence, event_type, outcome, actor_type, command_ref,
+           detail_code, reason_code, occurred_at)
+        SELECT o.run_id,
+               (SELECT COALESCE(MAX(sequence), 0) FROM game_events WHERE run_id = o.run_id)
+                 + ROW_NUMBER() OVER (PARTITION BY o.run_id ORDER BY c.created_at, c.id),
+               CASE WHEN o.command_state = 'queued'
+                    THEN 'audio_command_cancelled' ELSE 'audio_command_outcome_unknown' END,
+               CASE WHEN o.command_state = 'queued' THEN 'cancelled' ELSE 'unknown' END,
+               'system', c.id, c.kind,
+               COALESCE(OLD.release_reason, 'explicit_release'),
+               CAST(strftime('%s', 'now') AS INTEGER) * 1000
+        FROM managed_audio_commands c
+        JOIN managed_audio_command_outcomes o ON o.command_id = c.id
+        WHERE c.lease_id = OLD.id AND o.run_id IS NOT NULL
+          AND o.command_state IN ('queued','claimed','executing');
         UPDATE managed_audio_command_outcomes
         SET command_state = CASE
           WHEN command_state = 'queued' THEN 'cancelled'
@@ -772,9 +922,19 @@ export function database() {
       BEGIN
         SELECT RAISE(ABORT, 'managed source has durable command outcomes');
       END;
+      DROP TRIGGER IF EXISTS managed_audio_command_outcome_delete_guard;
+      CREATE TRIGGER managed_audio_command_outcome_delete_guard
+      BEFORE DELETE ON managed_audio_command_outcomes
+      WHEN OLD.run_id IS NULL OR NOT EXISTS (
+        SELECT 1 FROM game_event_coverage
+        WHERE run_id = OLD.run_id AND lifecycle_state = 'purging'
+      )
+      BEGIN
+        SELECT RAISE(ABORT, 'managed command outcomes are immutable outside an authorized purge');
+      END;
     `);
     recordFeatureMigration(
-      db, "managed_audio_protocol_v3", schemaObjectsDigest(db, MANAGED_AUDIO_FEATURE_OBJECTS),
+      db, "managed_audio_protocol_v4", schemaObjectsDigest(db, MANAGED_AUDIO_FEATURE_OBJECTS),
     );
     }
     // Provider device identifiers are source-local capabilities/fingerprints. The
@@ -854,6 +1014,10 @@ export function database() {
       table: string;
     }>;
     if (receiptForeignKeys.some((foreignKey) => foreignKey.from === "actor_id" && foreignKey.table === "users")) {
+      const lifecycleGuardSql = (db.prepare(`
+        SELECT sql FROM sqlite_schema
+        WHERE type = 'trigger' AND name = 'game_event_coverage_lifecycle_guard'
+      `).get() as { sql: string } | undefined)?.sql;
       db.exec(`
         CREATE TABLE game_action_receipts_run_scoped (
           run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
@@ -868,11 +1032,15 @@ export function database() {
           (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
         SELECT run_id, actor_id, action_id, action, request_fingerprint, accepted_at
         FROM game_action_receipts;
+      `);
+      if (lifecycleGuardSql) db.exec("DROP TRIGGER game_event_coverage_lifecycle_guard");
+      db.exec(`
         DROP TABLE game_action_receipts;
         ALTER TABLE game_action_receipts_run_scoped RENAME TO game_action_receipts;
         CREATE INDEX game_action_receipts_accepted_at
           ON game_action_receipts(accepted_at);
       `);
+      if (lifecycleGuardSql) db.exec(lifecycleGuardSql);
     }
     const resultingVersion = Math.max(startingVersion, DATABASE_SCHEMA_TARGET_VERSION);
     db.exec(`PRAGMA user_version = ${resultingVersion}; COMMIT`);

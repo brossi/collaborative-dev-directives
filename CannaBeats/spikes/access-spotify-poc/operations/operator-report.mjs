@@ -29,6 +29,10 @@ function iso(timestamp) {
   try { return new Date(timestamp).toISOString(); } catch { return null; }
 }
 
+function validTimestamp(value) {
+  return iso(value) === null ? null : value;
+}
+
 function nonnegativeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
@@ -40,11 +44,25 @@ function tableExists(db, name) {
 }
 
 function one(db, sql, ...values) {
-  return db.prepare(sql).get(...values);
+  const statement = db.prepare(sql);
+  statement.setReadBigInts(true);
+  return normalizedRow(statement.get(...values));
 }
 
 function many(db, sql, ...values) {
-  return db.prepare(sql).all(...values);
+  const statement = db.prepare(sql);
+  statement.setReadBigInts(true);
+  return statement.all(...values).map(normalizedRow);
+}
+
+function normalizedRow(row) {
+  if (!row) return row;
+  return Object.fromEntries(Object.entries(row).map(([key, value]) => [
+    key,
+    typeof value === 'bigint' && value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER
+      ? Number(value)
+      : value,
+  ]));
 }
 
 function parsedState(serialized) {
@@ -103,7 +121,7 @@ function terminalAssessment({
     ? Boolean(
       reviewedOutcome === resolved
       && reviewedStatus === 'ended'
-      && Number.isFinite(endedAt) && endedAt > 0
+      && validTimestamp(endedAt) !== null
       && phaseMatches
       && eventsMatch
       && coverageComplete
@@ -112,7 +130,7 @@ function terminalAssessment({
     : Boolean(
       reviewedStatus && reviewedStatus !== 'ended'
       && reviewedPhase && reviewedPhase !== 'finished'
-      && !endedAt
+      && endedAt === null
       && eventOutcomes.length === 0
       && !impossibleRetainedEvents
     );
@@ -206,6 +224,10 @@ export function sessionReport(db, {
     historyBoundary: 'authoritative current snapshots plus a privacy-bounded, run-scoped significant-event trail',
     sessions: sessions.map((row) => {
       const state = parsedState(row.run_state);
+      const projectedStatus = reviewed(row.status, SESSION_STATUSES, null);
+      const projectedPhase = reviewed(state?.phase, GAME_PHASES, null);
+      const projectedEndedAt = validTimestamp(row.run_ended_at);
+      const projectedRunRevision = nonnegativeInteger(row.run_revision);
       const players = Array.isArray(state?.players) ? state.players : [];
       const controls = players.reduce((counts, player) => {
         const control = player?.control === 'phone' ? 'phone' : 'host';
@@ -242,9 +264,17 @@ export function sessionReport(db, {
         FROM managed_audio_commands WHERE session_code = ?
         ORDER BY created_at DESC LIMIT 1
       `, row.code) : undefined;
-      const lastClientAt = maximum(member.last_seen_at, guest?.last_seen_at, playerIdentity?.last_seen_at);
-      const leaseActive = Boolean(lease?.expires_at && lease.expires_at > now);
-      const sourceOnline = Boolean(lease?.source_last_seen_at && lease.source_last_seen_at > now - SOURCE_ONLINE_MS);
+      const lastClientAt = maximum(
+        validTimestamp(member.last_seen_at),
+        validTimestamp(guest?.last_seen_at),
+        validTimestamp(playerIdentity?.last_seen_at),
+      );
+      const projectedLeaseExpiry = validTimestamp(lease?.expires_at);
+      const projectedSourceLastSeen = validTimestamp(lease?.source_last_seen_at);
+      const leaseActive = Boolean(projectedLeaseExpiry && projectedLeaseExpiry > now);
+      const sourceOnline = Boolean(
+        projectedSourceLastSeen && projectedSourceLastSeen > now - SOURCE_ONLINE_MS,
+      );
       const eventCount = row.active_run_id && eventHistoryAvailable ? one(db, `
         SELECT COUNT(*) AS count, MAX(occurred_at) AS latest_at
         FROM game_events WHERE run_id = ?
@@ -270,25 +300,37 @@ export function sessionReport(db, {
                ${coverageColumns.has('lifecycle_state') ? 'lifecycle_state' : "'recording' AS lifecycle_state"}
         FROM game_event_coverage WHERE run_id = ?
       `, row.active_run_id) : undefined;
-      if (coverage) coverage.current_revision = row.run_revision;
+      const projectedCoverage = coverage ? {
+        baseline_revision: nonnegativeInteger(coverage.baseline_revision),
+        last_recorded_revision: nonnegativeInteger(coverage.last_recorded_revision),
+        current_revision: projectedRunRevision,
+        purged_at: validTimestamp(coverage.purged_at),
+        lifecycle_state: reviewed(
+          coverage.lifecycle_state, new Set(PRIVACY_CONTRACT.historyLifecycle), null,
+        ),
+      } : undefined;
       const terminal = terminalAssessment({
-        status: row.status,
-        phase: state?.phase,
-        endedAt: row.run_ended_at,
+        status: projectedStatus,
+        phase: projectedPhase,
+        endedAt: projectedEndedAt,
         terminalEvents,
         terminalOutcome: row.run_terminal_outcome,
         historyAvailable: eventHistoryAvailable,
-        coverage,
+        coverage: projectedCoverage,
         eventCount: Number(eventCount?.count ?? 0),
       });
       const lastMeaningfulAt = maximum(
-        row.created_at, row.updated_at, row.run_updated_at, row.run_ended_at, eventCount?.latest_at,
+        validTimestamp(row.created_at),
+        validTimestamp(row.updated_at),
+        validTimestamp(row.run_updated_at),
+        projectedEndedAt,
+        validTimestamp(eventCount?.latest_at),
       );
       return {
         lobbyId: /^[A-Z0-9]{6}$/.test(row.code) ? row.code : 'unrecognized_lobby',
         runId: UUID.test(row.active_run_id ?? '') ? row.active_run_id : null,
-        databaseStatus: reviewed(row.status, SESSION_STATUSES, 'unrecognized_status'),
-        phase: reviewed(state?.phase, GAME_PHASES, 'unrecognized_phase'),
+        databaseStatus: projectedStatus ?? 'unrecognized_status',
+        phase: projectedPhase ?? 'unrecognized_phase',
         round: nonnegativeInteger(state?.round),
         createdAt: iso(row.created_at),
         lastMeaningfulAt: iso(lastMeaningfulAt),
@@ -303,9 +345,9 @@ export function sessionReport(db, {
           leaseId: UUID.test(lease.id ?? '') ? lease.id : null,
           sourceId: UUID.test(lease.source_id ?? '') ? lease.source_id : null,
           leaseActive,
-          expiresAt: iso(lease.expires_at),
+          expiresAt: iso(projectedLeaseExpiry),
           sourceOnline,
-          sourceLastSeenAt: iso(lease.source_last_seen_at),
+          sourceLastSeenAt: iso(projectedSourceLastSeen),
           playbackStatus: reviewed(lease.playback_status, PLAYBACK_STATUSES, 'unrecognized_playback_status'),
           errorCategory: lease.lease_error || lease.source_error ? 'managed_source_error' : null,
           latestCommand: command ? {
@@ -331,19 +373,21 @@ export function sessionReport(db, {
             occurredAt: iso(terminalEvent.occurred_at),
             consistent: terminal.consistent,
           } : null,
-          coverage: coverage ? {
-            complete: Number(coverage.last_recorded_revision) === Number(row.run_revision),
-            baselineRevision: nonnegativeInteger(coverage.baseline_revision),
-            lastRecordedRevision: nonnegativeInteger(coverage.last_recorded_revision),
-            currentRevision: nonnegativeInteger(row.run_revision),
-            lifecycle: reviewed(coverage.lifecycle_state, new Set(PRIVACY_CONTRACT.historyLifecycle), null),
+          coverage: projectedCoverage ? {
+            complete: projectedCoverage.last_recorded_revision !== null
+              && projectedCoverage.current_revision !== null
+              && projectedCoverage.last_recorded_revision === projectedCoverage.current_revision,
+            baselineRevision: projectedCoverage.baseline_revision,
+            lastRecordedRevision: projectedCoverage.last_recorded_revision,
+            currentRevision: projectedCoverage.current_revision,
+            lifecycle: projectedCoverage.lifecycle_state,
           } : {
             complete: false,
             reasonCode: 'coverage_marker_unavailable',
           },
-          retention: coverage?.purged_at ? {
+          retention: projectedCoverage?.purged_at ? {
             state: 'purged',
-            purgedAt: iso(coverage.purged_at),
+            purgedAt: iso(projectedCoverage.purged_at),
           } : { state: 'full-history', purgedAt: null },
           recentEvents: recentEvents.map((event) => ({
             sequence: nonnegativeInteger(event.sequence),
@@ -362,13 +406,13 @@ export function sessionReport(db, {
           reasonCode: 'significant_event_history_unavailable',
         },
         liveness: liveness({
-          status: row.status,
-          phase: state?.phase,
-          endedAt: row.run_ended_at,
+          status: projectedStatus,
+          phase: projectedPhase,
+          endedAt: projectedEndedAt,
           terminalEvents,
           terminalOutcome: row.run_terminal_outcome,
           historyAvailable: eventHistoryAvailable,
-          coverage,
+          coverage: projectedCoverage,
           eventCount: Number(eventCount?.count ?? 0),
           lastMeaningfulAt,
           lastClientAt,

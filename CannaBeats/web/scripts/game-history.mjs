@@ -23,8 +23,8 @@ function supportsHistory(databasePath) {
     if (!ledgerExists) return false;
     const required = new Set([
       "game_events_canonical_v2",
-      "history_lifecycle_v3",
-      "managed_audio_protocol_v3",
+      "history_lifecycle_v4",
+      "managed_audio_protocol_v4",
     ]);
     for (const row of candidate.prepare(`
       SELECT name FROM cannabeats_feature_migrations

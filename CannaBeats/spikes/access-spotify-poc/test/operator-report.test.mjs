@@ -266,6 +266,59 @@ test('an abandoned outcome with a finished snapshot fails closed', () => {
   });
 });
 
+test('operator conclusions use only projected safe timestamps and revisions', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  if (!writable.prepare("PRAGMA table_info(game_event_coverage)").all()
+    .some((column) => column.name === 'lifecycle_state')) {
+    writable.exec("ALTER TABLE game_event_coverage ADD COLUMN lifecycle_state TEXT NOT NULL DEFAULT 'recording'");
+  }
+  writable.prepare("UPDATE game_sessions SET status = 'ended' WHERE code = 'ABC234'").run();
+  writable.prepare(`
+    UPDATE game_runs SET ended_at = ?, terminal_outcome = 'completed',
+      state = json_set(state, '$.phase', 'finished')
+  `).run(now + 0.5);
+  writable.prepare(`
+    UPDATE game_event_coverage
+    SET last_recorded_revision = (SELECT revision FROM game_runs WHERE id = run_id),
+        lifecycle_state = 'sealed'
+  `).run();
+  writable.prepare(`
+    INSERT INTO game_events
+      (run_id, sequence, event_type, outcome, actor_type, round, occurred_at)
+    SELECT id, 4, 'game_completed', 'completed', 'system', 3, ? FROM game_runs
+  `).run(now);
+  writable.close();
+
+  for (const invalidEndedAt of [now + 0.5, 1e300]) {
+    const mutate = new DatabaseSync(databasePath);
+    mutate.prepare('UPDATE game_runs SET ended_at = ?').run(invalidEndedAt);
+    mutate.close();
+    const db = openOperatorDatabase(databasePath);
+    const session = sessionReport(db, { now }).sessions[0];
+    db.close();
+    assert.deepEqual(session.liveness, {
+      state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent',
+    });
+    assert.equal(session.history.terminal.consistent, false);
+  }
+
+  const unsafe = new DatabaseSync(databasePath);
+  unsafe.prepare('UPDATE game_runs SET ended_at = ?, revision = ?').run(now, 9007199254740992);
+  unsafe.prepare('UPDATE game_event_coverage SET last_recorded_revision = ?')
+    .run(9007199254740992);
+  unsafe.close();
+  const db = openOperatorDatabase(databasePath);
+  const session = sessionReport(db, { now }).sessions[0];
+  db.close();
+  assert.equal(session.history.coverage.complete, false);
+  assert.equal(session.history.coverage.lastRecordedRevision, null);
+  assert.equal(session.history.coverage.currentRevision, null);
+  assert.deepEqual(session.liveness, {
+    state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent',
+  });
+});
+
 test('the operator projection allowlists every persisted enum-like string', () => {
   const { databasePath, now } = fixture();
   const sentinel = 'token_secret_abcdefghijklmnopqrstuvwxyz';

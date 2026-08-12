@@ -216,6 +216,12 @@ Working plan: [Slice 2: Game-night resilience](slice-2-game-night-resilience.md)
 
 Structural resilience contract: [ADR 0002](architecture/0002-resilience-protocols-are-persisted-state-machines.md)
 
+The amended Slice 2 foundation separates identity/access storage from a
+single-writer game-night state store. A versioned state service is the only
+read-write owner of lobby, run, receipt, history, lease, and command state;
+other services use its idempotent API or read-only projections. The controlled
+migration and rollback floor are defined in the Slice 2 working plan.
+
 Candidate scope:
 
 - Add stable action identifiers and idempotent handling for placement, retraction, reveal, advance, skip, and playback commands

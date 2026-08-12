@@ -1,6 +1,6 @@
 # ADR 0002: Resilience protocols are persisted state machines
 
-- Status: Accepted for Slice 2 remediation
+- Status: Amended; single-writer implementation in progress
 - Date: 2026-08-12
 - Supersedes: implicit managed-audio and history lifecycle rules in the Slice 2 implementation checkpoint
 - Preserves: [ADR 0001](0001-lobby-orchestrates-game-runs.md)
@@ -26,6 +26,78 @@ architecture must instead make ownership, uncertainty, and irreversible
 transitions explicit and durable.
 
 ## Decision
+
+### 0. One service owns all mutable game-night state
+
+The earlier checkpoint attempted to make application processes, CLI commands,
+retention jobs, and legacy images safe co-writers of one SQLite file. That
+configuration is rejected. Trigger ordering, `INSERT OR REPLACE`, cascades,
+partially upgraded schemas, and independently versioned writers made protocol
+authority depend on which connection happened to write.
+
+CannaBeats will use two explicit bounded contexts:
+
+| Context | Durable store | Sole writer | Contents |
+| --- | --- | --- | --- |
+| identity and access | access SQLite | access service | users, credentials, invitations, sessions, capabilities, audit records |
+| game-night state | state SQLite | versioned state service | lobbies, opaque principal membership, runs, receipts, history, leases, and commands |
+
+The access service authenticates a caller and sends a bounded principal claim to
+the state service. The claim is input to a state transaction; identity rows and
+game mutations need no cross-database transaction. Lobby creation uses an
+idempotent state-service request so retries converge without dual writes.
+
+Only the state-service operating-system identity receives write permission to
+the state database. Game routes, source controllers, administrative commands,
+retention, reports, and backup verification use its command API or a read-only
+snapshot/projection. This is an enforced ownership boundary, not a convention.
+
+Within the state database:
+
+- command intent and protocol transitions are durable records independent of a
+  transient lease;
+- history and lifecycle transitions are append-only until authorized purge;
+- current room, command, lease, and history state are projections maintained by
+  the owner in the same `BEGIN IMMEDIATE` transaction as each command;
+- constraints validate record shape, keys, and uniqueness, while the owner
+  validates protocol edges and complete evidence; and
+- purge removes privacy-scoped payloads and leaves an immutable tombstone plus
+  the final authoritative snapshot.
+
+Triggers may maintain mechanical projections, but are not an authorization,
+migration, or compatibility boundary. Correctness may not depend on recursive
+trigger behavior or on every future writer remembering a transition rule.
+
+### Controlled migration and rollback floor
+
+There are no active games during this refactor, so migration uses a drained
+cutover instead of dual-write compatibility:
+
+1. Stop admission and prove there are no active runs, live leases, or unresolved
+   commands.
+2. Take and verify the encrypted online backup of the monolithic database.
+3. Copy state-owned tables into a new database without altering the source.
+4. Validate row counts, foreign keys, canonical projections, privacy rules, and
+   a content manifest for both databases.
+5. Start the state service and run read comparison plus synthetic
+   mutation/replay probes.
+6. Switch access, game, and source clients together. Protocol versions are
+   issued and persisted by the state service; payloads cannot select legacy
+   authority.
+7. Record state schema generation, service digest, migration manifest, and
+   minimum compatible client generation in release metadata.
+
+The untouched monolithic database and pre-cutover release remain the rollback
+artifact until the first post-cutover game is admitted. Before admission,
+rollback restores that complete release. After admission, rollback may use only
+a state-service image whose declared schema and protocol ranges include the
+active generation. Release tooling must reject an older image;
+`PRAGMA user_version = 1` alone is not compatibility evidence.
+
+Schema generations are expand-only during their rollback window. A new
+generation creates versioned objects or additive columns and never rewrites an
+object attested by the prior generation. Contracting a generation requires a
+later promotion that explicitly advances the rollback floor.
 
 CannaBeats will represent managed-audio execution, retained history, schema
 features, and privacy projection as explicit contracts. Production code may not
@@ -162,6 +234,11 @@ The Slice 1 application ignores this additive table and remains schema-version-1
 compatible. Feature IDs do not replace the release-level `user_version`
 expand/promote contract.
 
+For the separated state database, the ledger is written only by the state
+service and records state-schema generations. Prior-generation objects remain
+byte-for-byte unchanged during their rollback window. A new generation is
+additive; it does not repair an old digest by rewriting the attested object.
+
 For each feature migration:
 
 1. Acquire `BEGIN IMMEDIATE` before inspecting capability.
@@ -210,10 +287,11 @@ Privacy validation supplements database constraints; it does not assume them.
 
 ### 5. Retention execution is independent of the active game image
 
-The retention executable belongs to a separately versioned operations artifact,
-not `/app` in whichever game image is active. Its immutable version and schema
-feature range are release metadata independent of the current/previous game
-image pair.
+The retention scheduler belongs to a separately versioned operations artifact,
+not `/app` in whichever game image is active. It requests an idempotent purge
+from the state service and does not receive a read-write state-database mount.
+Its immutable version and state-service protocol range are release metadata
+independent of the current/previous game image pair.
 
 Before mutation it checks the feature ledger and canonical history lifecycle.
 If the active database lacks the required feature, it exits successfully with a
@@ -221,9 +299,9 @@ bounded `unsupported_schema` result and performs no deletion. Exact Slice 1
 rollback therefore does not turn the daily timer into a failing job, while a
 real retention failure still alerts.
 
-The operations artifact receives only the database mount and minimum backup
-dependency it requires. It does not gain application-network authority or source
-credentials.
+The operations artifact receives only scoped state-service authority and the
+minimum backup dependency it requires. It does not gain database-write,
+application, or source credentials.
 
 ## Cross-cutting invariants
 
@@ -242,6 +320,11 @@ The implementation and tests must preserve all of the following:
     leaves no change.
 11. No arbitrary persisted string crosses a public or operator projection.
 12. Exact rollback cannot silently disable or repeatedly fail protection jobs.
+13. Only the state-service identity can mutate game-night state.
+14. Protocol compatibility is server-issued and persisted, never selected by a
+    request payload.
+15. A deployed state-schema generation never mutates an attested object required
+    by a still-supported rollback generation.
 
 An `outcome_unknown` command produces one coherent server-visible recovery
 state. Clients stop managed playback controls for that command and receive an

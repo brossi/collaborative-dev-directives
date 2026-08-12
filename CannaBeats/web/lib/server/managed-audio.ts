@@ -103,15 +103,13 @@ function transitionLeaseCommands(leaseId: string) {
     claimGeneration: string | null;
   }>;
   return commands.map((command) => {
-    const action = command.status === "queued" ? "cancel" : "lose_authority";
-    const next = transitionManagedCommand(
-      { status: command.status, claimGeneration: command.claimGeneration },
-      { action, claimGeneration: command.claimGeneration },
-    ).command.status as "cancelled" | "outcome_unknown";
-    database().prepare(`
-      UPDATE managed_audio_command_outcomes SET command_state = ? WHERE command_id = ?
-    `).run(next, command.id);
-    return { id: command.id, kind: command.kind, status: next };
+    return {
+      id: command.id,
+      kind: command.kind,
+      status: command.status === "queued"
+        ? "cancelled" as const
+        : "outcome_unknown" as const,
+    };
   });
 }
 
@@ -122,22 +120,12 @@ function cleanupExpiredLeases(now = Date.now()) {
     `).all(now) as Array<{ id: string; session_code: string }>;
     for (const lease of expired) {
       const runId = activeRunId(lease.session_code);
-      const commands = transitionLeaseCommands(lease.id);
+      transitionLeaseCommands(lease.id);
+      database().prepare(`
+        UPDATE managed_audio_leases SET release_reason = 'lease_expired' WHERE id = ?
+      `).run(lease.id);
+      database().prepare("DELETE FROM managed_audio_leases WHERE id = ?").run(lease.id);
       if (runId) {
-        for (const command of commands) {
-          recordGameEvent({
-            runId,
-            type: command.status === "cancelled"
-              ? "audio_command_cancelled"
-              : "audio_command_outcome_unknown",
-            outcome: command.status === "cancelled" ? "cancelled" : "unknown",
-            actorType: "system",
-            detailCode: command.kind,
-            commandRef: command.id,
-            reasonCode: "lease_expired",
-            occurredAt: now,
-          });
-        }
         recordGameEvent({
           runId,
           type: "audio_lease_expired",
@@ -148,7 +136,7 @@ function cleanupExpiredLeases(now = Date.now()) {
         });
       }
     }
-    return database().prepare("DELETE FROM managed_audio_leases WHERE expires_at <= ?").run(now).changes;
+    return expired.length;
   });
 }
 
@@ -259,20 +247,25 @@ export function selectAudioSource(
   database().prepare("UPDATE game_sessions SET audio_mode = ?, updated_at = ? WHERE code = ?")
     .run(selection, Date.now(), sessionCode);
   if (selection === "local") {
-    const result = releaseManagedAudioLease(sessionCode);
+    const result = releaseManagedAudioLease(sessionCode, "source_selected_local");
     return { ...result, audio: { ...result.audio, selection } };
   }
   const result = acquireManagedAudioLease(sessionCode, hostUserId);
   return { ...result, audio: { ...result.audio, selection } };
 }
 
-export function releaseManagedAudioLease(sessionCode: string): ManagedLeaseResult {
+export function releaseManagedAudioLease(
+  sessionCode: string,
+  reasonCode: "explicit_release" | "source_selected_local" | "game_completed" | "game_abandoned" = "explicit_release",
+): ManagedLeaseResult {
   const lease = database().prepare("SELECT id FROM managed_audio_leases WHERE session_code = ?")
     .get(sessionCode) as { id: string } | undefined;
   if (!lease) {
     return { audio: managedAudioView(sessionCode), transition: "unchanged", interrupted: [], commands: [] };
   }
   const transitioned = transitionLeaseCommands(lease.id);
+  database().prepare("UPDATE managed_audio_leases SET release_reason = ? WHERE id = ?")
+    .run(reasonCode, lease.id);
   database().prepare("DELETE FROM managed_audio_leases WHERE id = ?").run(lease.id);
   // `interrupted` is retained in the return shape for exact Slice 1 callers,
   // but ADR 0002 derives terminal evidence from the protocol states below.
@@ -520,6 +513,7 @@ export function completeManagedAudioCommand(
   playbackStatus: "ready" | "playing" | "paused" | "error",
   error: string | null,
   claimGeneration?: string,
+  protocolVersion = 2,
 ) {
   // The source may receive detailed browser/Spotify errors. Persist only a stable,
   // operator-safe category so tokens, URIs, or account details cannot reach SQLite.
@@ -539,10 +533,29 @@ export function completeManagedAudioCommand(
       command_state: ManagedCommandState;
       claim_generation: string | null;
     } | undefined;
+    if (protocolVersion === 1 && claimGeneration && outcome?.command_state === "queued") {
+      const claimed = transitionManagedCommand(
+        { status: "queued", claimGeneration: null },
+        { action: "claim", claimGeneration },
+      ).command;
+      database().prepare(`
+        UPDATE managed_audio_command_outcomes
+        SET command_state = ?, claim_generation = ? WHERE command_id = ? AND source_id = ?
+      `).run(claimed.status, claimed.claimGeneration, commandId, sourceId);
+      const executing = transitionManagedCommand(claimed, {
+        action: "begin_execution", claimGeneration,
+      }).command;
+      database().prepare(`
+        UPDATE managed_audio_command_outcomes SET command_state = ?
+        WHERE command_id = ? AND source_id = ?
+      `).run(executing.status, commandId, sourceId);
+      outcome.command_state = "executing";
+      outcome.claim_generation = claimGeneration;
+    }
+    if (!claimGeneration || outcome?.claim_generation !== claimGeneration) {
+      throw new Error("managed command generation conflict");
+    }
     if (outcome?.completed_at) {
-      if (!claimGeneration || outcome.claim_generation !== claimGeneration) {
-        throw new Error("managed command generation conflict");
-      }
       return outcome.completion_fingerprint === completionFingerprint
         ? { status: "replayed" as const }
         : { status: "conflict" as const };
@@ -593,7 +606,7 @@ export function completeManagedAudioCommand(
       },
       {
         action: transitionAction,
-        claimGeneration: claimGeneration ?? outcome?.claim_generation ?? null,
+        claimGeneration,
         outcomeFingerprint: completionFingerprint,
       },
     );

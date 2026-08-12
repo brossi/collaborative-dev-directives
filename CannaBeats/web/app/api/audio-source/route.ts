@@ -89,6 +89,7 @@ async function postAudioSource(request: Request) {
         playbackStatus as "ready" | "playing" | "paused" | "error",
         typeof payload.error === "string" ? payload.error : null,
         claimGeneration,
+        payload.protocolVersion === 1 ? 1 : 2,
       );
     } catch (error) {
       if (error instanceof Error && error.message.includes("completion state does not match")) {

@@ -581,17 +581,6 @@ function executeRunBoundMutation(
         reasonCode: "explicit_release" | "source_selected_local" | "game_completed" | "game_abandoned",
         occurredAt = Date.now(),
       ) => {
-        for (const command of result.commands) {
-          event(command.status === "cancelled"
-            ? "audio_command_cancelled"
-            : "audio_command_outcome_unknown", {
-            outcome: command.status === "cancelled" ? "cancelled" : "unknown",
-            detailCode: command.kind,
-            commandRef: command.id,
-            reasonCode,
-            occurredAt,
-          });
-        }
         if (result.transition === "released") {
           event("audio_lease_released", { detailCode: "managed", reasonCode, occurredAt });
         }
@@ -615,7 +604,9 @@ function executeRunBoundMutation(
           `).run(endedAt, current.row.id);
           database().prepare("UPDATE game_sessions SET status = 'ended', updated_at = ? WHERE code = ?")
             .run(endedAt, code);
-          const audio = recordLeaseResult(releaseManagedAudioLease(code), "game_abandoned", endedAt);
+          const audio = recordLeaseResult(
+            releaseManagedAudioLease(code, "game_abandoned"), "game_abandoned", endedAt,
+          );
           recordGameEvent({
             runId: current.row.id,
             type: "game_abandoned",
@@ -798,7 +789,7 @@ function executeRunBoundMutation(
             `).run(endedAt, current.row.id);
             database().prepare("UPDATE game_sessions SET status = 'ended', updated_at = ? WHERE code = ?")
               .run(endedAt, code);
-            const released = releaseManagedAudioLease(code);
+            const released = releaseManagedAudioLease(code, "game_completed");
             recordGameEvent({
               runId: current.row.id,
               type: "game_completed",

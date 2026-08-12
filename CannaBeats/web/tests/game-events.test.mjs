@@ -297,6 +297,137 @@ test("SQLite refuses lifecycle edges without their authoritative terminal eviden
   `).run(runId), /coverage identity/i);
 });
 
+test("SQLite replacement cannot reopen purged history or rewrite feature attestations", () => {
+  const { db, now, runId } = fixture("history-replacement-authority");
+  recordGameEvent({
+    runId,
+    type: "game_completed",
+    outcome: "completed",
+    actorType: "system",
+    occurredAt: now,
+  });
+  const state = JSON.parse(db.prepare("SELECT state FROM game_runs WHERE id = ?").get(runId).state);
+  state.phase = "finished";
+  db.prepare(`
+    UPDATE game_runs SET state = ?, ended_at = ?, terminal_outcome = 'completed' WHERE id = ?
+  `).run(JSON.stringify(state), now, runId);
+  db.prepare("UPDATE game_sessions SET status = 'ended' WHERE active_run_id = ?").run(runId);
+  db.prepare(`
+    UPDATE game_event_coverage
+    SET last_recorded_revision = (SELECT revision FROM game_runs WHERE id = ?)
+    WHERE run_id = ?
+  `).run(runId, runId);
+  deleteGameHistory(runId);
+
+  const boundary = db.prepare(`
+    SELECT * FROM game_event_coverage WHERE run_id = ?
+  `).get(runId);
+  assert.throws(() => db.prepare(`
+    INSERT OR REPLACE INTO game_event_coverage
+      (run_id, baseline_revision, last_recorded_revision, started_at, purged_at, lifecycle_state)
+    VALUES (?, ?, ?, ?, NULL, 'recording')
+  `).run(
+    runId,
+    boundary.baseline_revision,
+    boundary.last_recorded_revision,
+    boundary.started_at,
+  ), /coverage identity|lifecycle transition/i);
+  assert.equal(db.prepare(`
+    SELECT lifecycle_state FROM game_event_coverage WHERE run_id = ?
+  `).get(runId).lifecycle_state, "purged");
+
+  const migration = db.prepare(`
+    SELECT name, digest, applied_at FROM cannabeats_feature_migrations ORDER BY name LIMIT 1
+  `).get();
+  assert.throws(() => db.prepare(`
+    INSERT OR REPLACE INTO cannabeats_feature_migrations (name, digest, applied_at)
+    VALUES (?, ?, ?)
+  `).run(migration.name, migration.digest, migration.applied_at + 1), /immutable/i);
+  assert.equal(db.prepare(`
+    SELECT applied_at FROM cannabeats_feature_migrations WHERE name = ?
+  `).get(migration.name).applied_at, migration.applied_at);
+});
+
+test("every irreversible lifecycle edge revalidates complete evidence and purge erasure", () => {
+  const contradictory = fixture("history-contradictory-sql-evidence");
+  for (const [type, outcome] of [
+    ["game_completed", "completed"],
+    ["game_abandoned", "abandoned"],
+  ]) {
+    recordGameEvent({
+      runId: contradictory.runId,
+      type,
+      outcome,
+      actorType: "system",
+      occurredAt: contradictory.now,
+    });
+  }
+  const contradictoryState = JSON.parse(contradictory.db.prepare(
+    "SELECT state FROM game_runs WHERE id = ?",
+  ).get(contradictory.runId).state);
+  contradictoryState.phase = "finished";
+  contradictory.db.prepare(`
+    UPDATE game_runs SET state = ?, ended_at = ?, terminal_outcome = 'completed' WHERE id = ?
+  `).run(JSON.stringify(contradictoryState), contradictory.now, contradictory.runId);
+  contradictory.db.prepare("UPDATE game_sessions SET status = 'ended' WHERE active_run_id = ?")
+    .run(contradictory.runId);
+  contradictory.db.prepare(`
+    UPDATE game_event_coverage
+    SET last_recorded_revision = (SELECT revision FROM game_runs WHERE id = ?)
+    WHERE run_id = ?
+  `).run(contradictory.runId, contradictory.runId);
+  assert.throws(() => contradictory.db.prepare(`
+    UPDATE game_event_coverage SET lifecycle_state = 'terminal_pending' WHERE run_id = ?
+  `).run(contradictory.runId), /lifecycle transition|terminal evidence/i);
+
+  const invalidated = fixture("history-invalidated-after-terminalize");
+  recordGameEvent({
+    runId: invalidated.runId,
+    type: "game_completed",
+    outcome: "completed",
+    actorType: "system",
+    occurredAt: invalidated.now,
+  });
+  const invalidatedState = JSON.parse(invalidated.db.prepare(
+    "SELECT state FROM game_runs WHERE id = ?",
+  ).get(invalidated.runId).state);
+  invalidatedState.phase = "finished";
+  invalidated.db.prepare(`
+    UPDATE game_runs SET state = ?, ended_at = ?, terminal_outcome = 'completed' WHERE id = ?
+  `).run(JSON.stringify(invalidatedState), invalidated.now, invalidated.runId);
+  invalidated.db.prepare("UPDATE game_sessions SET status = 'ended' WHERE active_run_id = ?")
+    .run(invalidated.runId);
+  invalidated.db.prepare(`
+    UPDATE game_event_coverage
+    SET last_recorded_revision = (SELECT revision FROM game_runs WHERE id = ?)
+    WHERE run_id = ?
+  `).run(invalidated.runId, invalidated.runId);
+  invalidated.db.prepare(`
+    UPDATE game_event_coverage SET lifecycle_state = 'terminal_pending' WHERE run_id = ?
+  `).run(invalidated.runId);
+  invalidated.db.prepare("UPDATE game_sessions SET status = 'playing' WHERE active_run_id = ?")
+    .run(invalidated.runId);
+  assert.throws(() => invalidated.db.prepare(`
+    UPDATE game_event_coverage SET lifecycle_state = 'sealed' WHERE run_id = ?
+  `).run(invalidated.runId), /lifecycle transition|terminal evidence/i);
+
+  invalidated.db.prepare("UPDATE game_sessions SET status = 'ended' WHERE active_run_id = ?")
+    .run(invalidated.runId);
+  invalidated.db.prepare(`
+    UPDATE game_event_coverage SET lifecycle_state = 'sealed' WHERE run_id = ?
+  `).run(invalidated.runId);
+  invalidated.db.prepare(`
+    UPDATE game_event_coverage SET lifecycle_state = 'purging' WHERE run_id = ?
+  `).run(invalidated.runId);
+  assert.throws(() => invalidated.db.prepare(`
+    UPDATE game_event_coverage
+    SET lifecycle_state = 'purged', purged_at = ? WHERE run_id = ?
+  `).run(invalidated.now + 1, invalidated.runId), /lifecycle transition|purge/i);
+  assert.equal(invalidated.db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events WHERE run_id = ?
+  `).get(invalidated.runId).count, 1);
+});
+
 test("first feature migration repairs a weakened legacy coverage contract before attesting it", () => {
   const databasePath = join(root, "weakened-coverage.sqlite");
   const access = openDatabase(databasePath);
@@ -338,6 +469,126 @@ test("first feature migration repairs a weakened legacy coverage contract before
   assert.throws(() => db.prepare(`
     UPDATE game_event_coverage SET baseline_revision = -1 WHERE run_id = ?
   `).run(runId), /constraint/i);
+});
+
+test("first feature migration does not attest poisoned legacy lifecycle or command states", () => {
+  const poisoned = fixture("poisoned-preledger-state");
+  const sourceId = randomUUID();
+  const commandId = randomUUID();
+  poisoned.db.prepare(`
+    INSERT INTO managed_audio_sources
+      (id, display_name, token_hash, enabled, created_at, last_seen_at)
+    VALUES (?, 'Legacy source', 'hash', 1, ?, ?)
+  `).run(sourceId, poisoned.now, poisoned.now);
+  poisoned.db.prepare(`
+    INSERT INTO managed_audio_command_outcomes
+      (command_id, source_id, run_id, completion_fingerprint, completed_at, command_state)
+    VALUES (?, ?, ?, '{"pending":true}', 0, 'queued')
+  `).run(commandId, sourceId, poisoned.runId);
+
+  poisoned.db.exec(`
+    DROP TRIGGER game_event_coverage_lifecycle_guard;
+    DROP TRIGGER managed_audio_command_state_update_guard;
+    DROP TRIGGER cannabeats_feature_migrations_immutable_delete;
+    PRAGMA ignore_check_constraints = ON;
+  `);
+  poisoned.db.prepare(`
+    UPDATE game_event_coverage SET lifecycle_state = 'sealed' WHERE run_id = ?
+  `).run(poisoned.runId);
+  poisoned.db.prepare(`
+    UPDATE managed_audio_command_outcomes
+    SET command_state = 'completed', claim_generation = NULL,
+        completed_at = 0, completion_fingerprint = '{"pending":true}'
+    WHERE command_id = ?
+  `).run(commandId);
+  poisoned.db.exec("PRAGMA ignore_check_constraints = OFF");
+  poisoned.db.prepare(`
+    DELETE FROM cannabeats_feature_migrations
+    WHERE name IN ('history_lifecycle_v4', 'managed_audio_protocol_v4')
+  `).run();
+
+  fixture("poisoned-preledger-detour");
+  process.env.CANNABEATS_DATABASE_PATH = poisoned.databasePath;
+  const migrated = database();
+  const coverage = migrated.prepare(`
+    SELECT lifecycle_state, purged_at FROM game_event_coverage WHERE run_id = ?
+  `).get(poisoned.runId);
+  assert.equal(coverage.lifecycle_state, "recording");
+  assert.equal(coverage.purged_at, null);
+  const outcome = migrated.prepare(`
+    SELECT command_state, claim_generation, completed_at, completion_fingerprint
+    FROM managed_audio_command_outcomes WHERE command_id = ?
+  `).get(commandId);
+  assert.equal(outcome.command_state, "outcome_unknown");
+  assert.equal(typeof outcome.claim_generation, "string");
+  assert.ok(outcome.claim_generation.length > 0);
+  assert.equal(outcome.completed_at, 0);
+  assert.deepEqual(JSON.parse(outcome.completion_fingerprint), { pending: true });
+  assert.throws(() => migrated.prepare(`
+    INSERT INTO managed_audio_command_outcomes
+      (command_id, source_id, run_id, completion_fingerprint, completed_at,
+       command_state, claim_generation)
+    VALUES (?, ?, ?, '{"pending":true}', 0, 'completed', NULL)
+  `).run(randomUUID(), sourceId, poisoned.runId), /constraint|initial state/i);
+});
+
+test("v3 sealed history migrates forward without reopening or breaking its attestation", () => {
+  const sealed = fixture("v3-sealed-forward-compatible");
+  recordGameEvent({
+    runId: sealed.runId, type: "game_completed", outcome: "completed",
+    actorType: "system", occurredAt: sealed.now,
+  });
+  const state = JSON.parse(sealed.db.prepare("SELECT state FROM game_runs WHERE id = ?")
+    .get(sealed.runId).state);
+  state.phase = "finished";
+  sealed.db.prepare(`
+    UPDATE game_runs SET state=?, ended_at=?, terminal_outcome='completed' WHERE id=?
+  `).run(JSON.stringify(state), sealed.now, sealed.runId);
+  sealed.db.prepare("UPDATE game_sessions SET status='ended' WHERE active_run_id=?")
+    .run(sealed.runId);
+  sealed.db.prepare(`UPDATE game_event_coverage SET last_recorded_revision=(
+    SELECT revision FROM game_runs WHERE id=?) WHERE run_id=?`)
+    .run(sealed.runId, sealed.runId);
+  sealGameHistory(sealed.runId);
+  sealed.db.exec("DROP TRIGGER cannabeats_feature_migrations_immutable_delete");
+  sealed.db.prepare("DELETE FROM cannabeats_feature_migrations WHERE name='history_lifecycle_v4'").run();
+  fixture("v3-sealed-forward-detour");
+  process.env.CANNABEATS_DATABASE_PATH = sealed.databasePath;
+  const migrated = database();
+  assert.equal(migrated.prepare(`SELECT lifecycle_state FROM game_event_coverage WHERE run_id=?`)
+    .get(sealed.runId).lifecycle_state, "sealed");
+  assert.ok(migrated.prepare(`SELECT 1 FROM cannabeats_feature_migrations
+    WHERE name='history_lifecycle_v3'`).get());
+  assert.ok(migrated.prepare(`SELECT 1 FROM cannabeats_feature_migrations
+    WHERE name='history_lifecycle_v4'`).get());
+});
+
+test("purged runs remain immutable and cannot regain retained evidence", () => {
+  const purged = fixture("purged-permanent-boundary");
+  recordGameEvent({
+    runId: purged.runId, type: "game_completed", outcome: "completed",
+    actorType: "system", occurredAt: purged.now,
+  });
+  const state = JSON.parse(purged.db.prepare("SELECT state FROM game_runs WHERE id=?")
+    .get(purged.runId).state);
+  state.phase = "finished";
+  purged.db.prepare(`UPDATE game_runs SET state=?, ended_at=?, terminal_outcome='completed'
+    WHERE id=?`).run(JSON.stringify(state), purged.now, purged.runId);
+  purged.db.prepare("UPDATE game_sessions SET status='ended' WHERE active_run_id=?")
+    .run(purged.runId);
+  purged.db.prepare(`UPDATE game_event_coverage SET last_recorded_revision=(
+    SELECT revision FROM game_runs WHERE id=?) WHERE run_id=?`)
+    .run(purged.runId, purged.runId);
+  deleteGameHistory(purged.runId);
+  assert.throws(() => purged.db.prepare(`UPDATE game_event_coverage
+    SET baseline_revision=baseline_revision+1 WHERE run_id=?`).run(purged.runId), /purge boundary|immutable/i);
+  assert.throws(() => purged.db.prepare(`INSERT INTO game_action_receipts
+    (run_id,actor_id,action_id,action,request_fingerprint,accepted_at)
+    VALUES (?,?,?,?,?,?)`).run(
+    purged.runId, purged.hostId, randomUUID(), "advance", "fingerprint", purged.now,
+  ), /purged|sealed/i);
+  assert.throws(() => purged.db.prepare("DELETE FROM game_runs WHERE id=?").run(purged.runId),
+    /purged|snapshot|immutable/i);
 });
 
 test("sealing is atomic and refuses an incomplete coverage trail", () => {
@@ -477,7 +728,7 @@ test("canonical migration verification rejects a permissive constraint containin
 test("recorded feature migrations fail closed when an authoritative trigger is missing", () => {
   const { db, databasePath } = fixture("feature-trigger-tamper");
   assert.ok(db.prepare(`
-    SELECT digest FROM cannabeats_feature_migrations WHERE name = 'history_lifecycle_v3'
+    SELECT digest FROM cannabeats_feature_migrations WHERE name = 'history_lifecycle_v4'
   `).get());
   db.exec("DROP TRIGGER game_event_coverage_lifecycle_guard");
   fixture("feature-trigger-tamper-detour");

@@ -197,6 +197,8 @@ def _completion_payload(payload):
     }
     if payload.get("claimGeneration") is not None:
         completion["claimGeneration"] = str(uuid.UUID(str(payload["claimGeneration"])))
+    if payload.get("protocolVersion") == 1:
+        completion["protocolVersion"] = 1
     return completion
 
 
@@ -419,7 +421,36 @@ def accept_browser_unknown(payload, api=api_call):
                 or current.get("phase") not in {"executing", "outcome_unknown"}:
             raise ValueError("Managed command execution is not awaiting reconciliation")
     if current.get("phase") == "executing":
-        retry_unresolved_execution(api=api)
+        if current.get("protocolVersion") == 1:
+            with lock:
+                latest = state.get("commandOutbox")
+                if latest and latest.get("generation") == generation \
+                        and latest.get("phase") == "executing":
+                    reconciled = {**latest, "phase": "outcome_unknown"}
+                    persist_command_outbox(reconciled)
+                    state["commandOutbox"] = reconciled
+        else:
+            result, response_correlation_id = api({
+                "action": "outcome_unknown",
+                "commandId": command_id,
+                "claimGeneration": generation,
+            }, current.get("correlationId"))
+            if not isinstance(result, dict) or result.get("accepted") is not True \
+                    or result.get("status") != "outcome_unknown" \
+                    or not isinstance(result.get("replayed"), bool):
+                raise ValueError("Managed unknown-outcome acknowledgement is invalid")
+            with lock:
+                latest = state.get("commandOutbox")
+                if latest and latest.get("generation") == generation \
+                        and latest.get("commandId") == command_id \
+                        and latest.get("phase") == "executing":
+                    reconciled = {
+                        **latest,
+                        "phase": "outcome_unknown",
+                        "correlationId": response_correlation_id,
+                    }
+                    persist_command_outbox(reconciled)
+                    state["commandOutbox"] = reconciled
     return {"accepted": True, "status": "outcome_unknown"}
 
 
@@ -431,8 +462,11 @@ def retry_pending_completion(api=api_call):
         result, response_correlation_id = api(
             outbox["payload"], outbox.get("correlationId"),
         )
-        if not isinstance(result, dict) or result.get("completed") is not True \
-                or not isinstance(result.get("replayed"), bool):
+        v1_ack = outbox.get("protocolVersion") == 1 \
+            and isinstance(result, dict) and result.get("completed") is True \
+            and ("replayed" not in result or isinstance(result.get("replayed"), bool))
+        if not v1_ack and (not isinstance(result, dict) or result.get("completed") is not True \
+                or not isinstance(result.get("replayed"), bool)):
             raise ValueError("Managed completion acknowledgement is invalid")
         with lock:
             current = state.get("commandOutbox")
@@ -480,6 +514,8 @@ def accept_browser_completion(payload, api=api_call):
                 "phase": "outcome_pending",
                 "payload": completion,
             }
+            if current.get("protocolVersion") == 1:
+                pending["payload"] = {**completion, "protocolVersion": 1}
             state["commandOutbox"] = pending
             persist_command_outbox(pending)
         return retry_pending_completion(api=api)

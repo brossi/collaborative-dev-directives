@@ -122,13 +122,60 @@ across access, game, Compose, release, backup, and rollback contracts.
 ## Development sequence
 
 The repeated S2-B/S2-C adversarial findings exposed implicit distributed
-protocols rather than isolated defects. Before further gate remediation, follow
-ADR 0002 in order: accept the architectural invariants, build executable
-transition models, refactor managed audio and retained history around those
-models, introduce the migration ledger and shared privacy projection, and move
-retention out of the active game image. Existing checkpoint tests remain
-acceptance evidence, not the design specification. Do not declare either gate
-closed until the structural implementation passes a fresh full audit.
+protocols rather than isolated defects. The first ADR 0002 implementation then
+showed that multiple SQLite writers plus trigger-enforced authority still created
+new bypass and rollback classes. The amended ADR therefore establishes a
+single-writer state service and a separate state database before further gate
+remediation. Existing checkpoint tests remain acceptance evidence, not the
+design specification. Do not declare either gate closed until the new ownership
+boundary, migration, and cutover pass a fresh full audit.
+
+### Single-writer foundation and migration sequence
+
+The executable cutover procedure and its current limitations are maintained in
+[the state-service cutover strategy](operations/state-service-cutover.md).
+
+This work precedes the remaining S2-B/S2-C implementation:
+
+1. **Freeze the ownership contract.** Access exclusively owns identity and
+   authentication data. The state service exclusively owns lobbies, opaque
+   principal membership, runs, receipts, significant history, managed-source
+   leases, commands, and protocol transitions.
+2. **Create the state store additively.** Introduce a new state SQLite database,
+   schema-generation ledger, append-only command/history transition tables,
+   current projections, and a state-service API. No existing release writes it.
+3. **Build a non-destructive migrator.** With admission drained, take and verify
+   the encrypted monolith backup, copy only state-owned data, normalize reviewed
+   legacy values, and emit a manifest containing source identity, destination
+   generation, table counts, and content digests. The source is never modified.
+4. **Prove equivalence before authority.** Compare read projections, run foreign
+   key/integrity/privacy checks, and execute synthetic create/mutate/replay,
+   managed-command, seal, and purge probes against the candidate state database.
+5. **Cut over all writers together.** Access, game, source, administrative, and
+   retention callers use the state-service contract. Filesystem permissions
+   leave only the state-service identity with write access. Caller payloads
+   cannot select protocol compatibility versions.
+6. **Hold a rollback window.** Until the first post-cutover game is admitted,
+   rollback restores the untouched monolith and the full prior release. After
+   admission, rollback is restricted to state-service images whose declared
+   schema/protocol ranges include the active generation.
+7. **Retire legacy write paths only after rehearsal.** Direct SQLite mutation by
+   game routes, managed-source CLI commands, and retention is removed after the
+   disposable-host cutover/rollback rehearsal proves the replacement.
+
+Foundation gates:
+
+- migration refuses active runs, live leases, or unresolved commands;
+- migration failure leaves both source and destination authority unchanged;
+- repeated migration with the same source produces the same manifest and no
+  duplicate state;
+- only one process identity can open the state database read-write;
+- every mutating API command is idempotent and commits intent, transition,
+  projection, and receipt together;
+- prior-generation schema objects remain unchanged throughout their rollback
+  window; and
+- release metadata gates state-service, client, schema, and protocol ranges as
+  one cutover unit.
 
 ### S2-A: Action identity and atomic receipts
 
@@ -682,7 +729,10 @@ before declaring the combined gate closed.
 
 #### ADR 0002 structural remediation — implementation checkpoint, audit pending 2026-08-12
 
-This checkpoint is not a completion claim. After the first full audit found that
+This checkpoint is not a completion claim and has been superseded as the target
+architecture by the single-writer foundation above. Its tests remain regression
+inputs while its multi-writer schema and trigger configuration is removed.
+After the first full audit found that
 the application models were not authoritative at the SQLite boundary, the
 following corrections were reproduced with failing counterexamples and then
 verified locally. A fresh independent audit is still required before the paired

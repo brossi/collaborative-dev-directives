@@ -87,7 +87,9 @@ test("an executed command can report its first completion after lease release", 
   });
   releaseManagedAudioLease("AUD234");
   assert.deepEqual(
-    completeManagedAudioCommand(sourceId, command.commandId, true, "playing", null),
+    completeManagedAudioCommand(
+      sourceId, command.commandId, true, "playing", null, claimGeneration,
+    ),
     { status: "completed" },
   );
   assert.equal(db.prepare(`
@@ -107,7 +109,7 @@ test("external outcomes require a durable claim and executing transition", () =>
     () => completeManagedAudioCommand(
       sourceId, command.commandId, true, "playing", null, claimGeneration,
     ),
-    /forbidden transition/i,
+    /forbidden transition|generation conflict/i,
   );
   assert.deepEqual(claimManagedAudioCommand(sourceId, command.commandId, claimGeneration), {
     status: "claimed", replayed: false,
@@ -128,6 +130,44 @@ test("external outcomes require a durable claim and executing transition", () =>
     ),
     { status: "completed" },
   );
+});
+
+test("completion authority requires the exact claim generation at the domain boundary", () => {
+  const { hostId, sourceId } = fixture("completion-exact-generation");
+  acquireManagedAudioLease("AUD234", hostId);
+  const command = enqueueManagedAudioCommand(
+    "AUD234", hostId, "play", "spotify:track:exactGeneration",
+  );
+  const generation = randomUUID();
+  claimManagedAudioCommand(sourceId, command.commandId, generation);
+  beginManagedAudioCommand(sourceId, command.commandId, generation);
+  assert.throws(() => completeManagedAudioCommand(
+    sourceId, command.commandId, true, "playing", null,
+  ), /generation conflict|required/i);
+  assert.equal(completeManagedAudioCommand(
+    sourceId, command.commandId, true, "playing", null, generation,
+  ).status, "completed");
+});
+
+test("a Slice 1-polled command can converge after the game API upgrades", () => {
+  const { db, hostId, sourceId } = fixture("slice1-current-crossover");
+  acquireManagedAudioLease("AUD234", hostId);
+  const command = enqueueManagedAudioCommand(
+    "AUD234", hostId, "play", "spotify:track:bridgeCrossover",
+  );
+  const generation = randomUUID();
+  assert.deepEqual(completeManagedAudioCommand(
+    sourceId, command.commandId, true, "playing", null, generation, 1,
+  ), { status: "completed" });
+  const adopted = db.prepare(`
+    SELECT command_state, claim_generation FROM managed_audio_command_outcomes
+    WHERE command_id = ?
+  `).get(command.commandId);
+  assert.equal(adopted.command_state, "completed");
+  assert.equal(adopted.claim_generation, generation);
+  assert.deepEqual(completeManagedAudioCommand(
+    sourceId, command.commandId, true, "playing", null, generation, 1,
+  ), { status: "replayed" });
 });
 
 test("SQLite enforces managed-command transition edges and generation invariants", () => {
@@ -218,15 +258,55 @@ test("SQLite preserves command identity and classifies lease loss for every writ
   assert.throws(() => db.prepare(`
     UPDATE managed_audio_commands SET kind = 'resume' WHERE id = ?
   `).run(executing.commandId), /intent is immutable/i);
+  const queuedOutcome = db.prepare(`
+    SELECT * FROM managed_audio_command_outcomes WHERE command_id = ?
+  `).get(queued.commandId);
+  assert.throws(() => db.prepare(`
+    INSERT OR REPLACE INTO managed_audio_command_outcomes
+      (command_id, source_id, run_id, completion_fingerprint, completed_at,
+       command_state, claim_generation)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    queuedOutcome.command_id,
+    queuedOutcome.source_id,
+    queuedOutcome.run_id,
+    queuedOutcome.completion_fingerprint,
+    queuedOutcome.completed_at,
+    queuedOutcome.command_state,
+    queuedOutcome.claim_generation,
+  ), /outcomes are immutable/i);
   db.prepare("DELETE FROM managed_audio_leases WHERE session_code = 'AUD234'").run();
+  const retainedCommands = db.prepare(`
+    SELECT id, lease_id FROM managed_audio_commands WHERE id IN (?, ?) ORDER BY id
+  `).all(queued.commandId, executing.commandId);
+  assert.equal(retainedCommands.length, 2);
+  assert.ok(retainedCommands.every((command) => command.lease_id === null));
   const states = new Map(db.prepare(`
     SELECT command_id, command_state FROM managed_audio_command_outcomes
     WHERE command_id IN (?, ?)
   `).all(queued.commandId, executing.commandId).map((row) => [row.command_id, row.command_state]));
   assert.equal(states.get(queued.commandId), "cancelled");
   assert.equal(states.get(executing.commandId), "outcome_unknown");
+  assert.deepEqual(db.prepare(`
+    SELECT command_ref, event_type, reason_code FROM game_events
+    WHERE command_ref IN (?, ?) ORDER BY command_ref
+  `).all(queued.commandId, executing.commandId).map((event) => ({ ...event })), [
+    {
+      command_ref: queued.commandId,
+      event_type: "audio_command_cancelled",
+      reason_code: "explicit_release",
+    },
+    {
+      command_ref: executing.commandId,
+      event_type: "audio_command_outcome_unknown",
+      reason_code: "explicit_release",
+    },
+  ].sort((left, right) => left.command_ref.localeCompare(right.command_ref)));
   assert.throws(() => db.prepare("DELETE FROM managed_audio_sources WHERE id = ?").run(sourceId),
     /durable command outcomes/i);
+  assert.throws(() => db.prepare(`
+    DELETE FROM managed_audio_command_outcomes WHERE command_id = ?
+  `).run(executing.commandId), /outcomes are immutable/i);
 });
 
 test("lease release cancels unclaimed work but preserves uncertain executed work", () => {
