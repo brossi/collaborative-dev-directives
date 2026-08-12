@@ -152,8 +152,13 @@ After `first_admitted_at`:
 
 ## Remaining development gates
 
-- Finish the exhaustive role × phase × typed-command matrix and stable HTTP
-  error contract for the owner API.
+- The owner API prerequisite is frozen at HTTP contract version 1.
+  `/v1/contract` publishes schema generation, managed-source protocol,
+  projection versions, supported public game commands, and the stable status
+  assigned to each safe external error code. Internal exception messages are
+  never returned. The executable contract suite covers every public route's
+  credential scope and the complete host/phone role × room-phase ×
+  typed-command matrix.
 - Replace direct game, access, source, CLI, report, backup, and retention DB use.
 - Wire and verify gateway-issued principal assertions and source work delivery
   through the actual access/game/controller clients.
@@ -161,3 +166,8 @@ After `first_admitted_at`:
 - Extend release and rollback scripts with state image and compatibility gates.
 - Build the image and execute the full procedure on disposable rehearsal hosts.
 - Run a fresh independent adversarial audit before calling the cutover verified.
+
+Item 1 local evidence (2026-08-12): state-service `36/36`, including contract,
+authorization-route, reducer matrix, ownership, migration, history, and managed
+audio protocol tests. This closes the contract prerequisite only; callers have
+not yet been cut over and the overall S2-B/S2-C gate remains open.

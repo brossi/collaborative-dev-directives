@@ -268,10 +268,17 @@ state-service candidate databases are unpublished and must be discarded and
 reconstructed from the still-authoritative monolith; the migrator never upgrades
 or adopts a checkpoint candidate in place. No existing web, access, source,
 administrative, or retention writer has been routed to the new service yet.
-Gateway assertion integration, source-controller cutover, stable HTTP errors,
-multi-process schedules, release/rollback metadata, full migration rehearsal,
-and a fresh independent adversarial pass remain required before the foundation
-or Slice 2 can be described as complete.
+The state-service HTTP prerequisite was subsequently frozen as contract version
+1. It publishes compatibility and projection metadata, maps failures to stable
+safe codes without returning internal messages, proves a single scoped caller
+class for every route, and exercises the exhaustive public typed-command
+role/phase matrix. The focused state-service evidence is `36/36`. This is item 1
+of the cutover sequence, not evidence that any legacy caller has been replaced.
+
+Gateway assertion integration, source-controller cutover, multi-process
+schedules, release/rollback metadata, full migration rehearsal, and a fresh
+independent adversarial pass remain required before the foundation or Slice 2
+can be described as complete.
 
 ### S2-A: Action identity and atomic receipts
 

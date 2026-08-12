@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { StateOwner } from "./owner.mjs";
 import { loadCatalogGameServices } from "./catalog.mjs";
-import { STATE_SCHEMA_GENERATION } from "./schema.mjs";
+import {
+  classifyStateHttpError,
+  STATE_SERVICE_CONTRACT,
+} from "./contract.mjs";
 
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -90,9 +93,15 @@ export function createStateServer({
       if (request.method === "GET" && url.pathname === "/ready") {
         const readiness = owner.readiness();
         return writeJson(response, 200, {
-          ready: true, schemaGeneration: STATE_SCHEMA_GENERATION, protocolVersion: 3,
+          ready: true,
+          schemaGeneration: STATE_SERVICE_CONTRACT.schemaGeneration,
+          protocolVersion: STATE_SERVICE_CONTRACT.protocolVersion,
+          httpContractVersion: STATE_SERVICE_CONTRACT.httpContractVersion,
           authority: readiness.authority, sanitizationPending: readiness.sanitizationPending,
         });
+      }
+      if (request.method === "GET" && url.pathname === "/v1/contract") {
+        return writeJson(response, 200, STATE_SERVICE_CONTRACT);
       }
       const body = await readJson(request);
       const principalId = request.headers["x-cannabeats-principal"];
@@ -278,10 +287,8 @@ export function createStateServer({
       }
       return writeJson(response, 404, { code: "not_found" });
     } catch (error) {
-      return writeJson(response, 409, {
-        code: "state_command_rejected",
-        message: error instanceof Error ? error.message : String(error),
-      });
+      const failure = classifyStateHttpError(error);
+      return writeJson(response, failure.status, { code: failure.code });
     }
   });
   server.on("close", () => owner.close());

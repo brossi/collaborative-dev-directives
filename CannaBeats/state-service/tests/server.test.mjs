@@ -11,6 +11,27 @@ const root = mkdtempSync(join(tmpdir(), "cannabeats-state-server-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 const developmentOwner = (path) => new StateOwner(path, { allowDevelopmentActivation: true });
 
+const scopedCredentials = Object.freeze({
+  activationToken: "scope-activation", operatorToken: "scope-operator",
+  accessToken: "scope-access", gameToken: "scope-game",
+  accessPrincipalAssertionKey: "scope-access-assertion",
+  gamePrincipalAssertionKey: "scope-game-assertion",
+});
+
+function signedPrincipalHeaders(principal, scope, now = 100) {
+  const issuer = scope;
+  const expiresAt = now + 1_000;
+  const key = scope === "access"
+    ? scopedCredentials.accessPrincipalAssertionKey : scopedCredentials.gamePrincipalAssertionKey;
+  const claim = `${issuer}\ncannabeats-state\n${scope}\n${principal}\n${expiresAt}`;
+  return {
+    "x-cannabeats-principal": principal,
+    "x-cannabeats-principal-issuer": issuer,
+    "x-cannabeats-principal-expires-at": String(expiresAt),
+    "x-cannabeats-principal-signature": createHmac("sha256", key).update(claim).digest("hex"),
+  };
+}
+
 test("state server rejects collapsed credential scopes", () => {
   assert.throws(() => createStateServer({
     databasePath: join(root, "collapsed.sqlite"),
@@ -39,6 +60,81 @@ test("state server rejects retained source credentials that collide with service
   assert.throws(() => createStateServer({ databasePath: path, credentials }), /collides/i);
 });
 
+test("every HTTP mutation and read route has one explicit credential scope", async () => {
+  const path = join(root, "scope-matrix.sqlite");
+  const sourceToken = "scope-source";
+  const owner = developmentOwner(path);
+  owner.activate({ now: 1 });
+  owner.registerManagedSource({
+    commandId: randomUUID(), sourceId: randomUUID(), displayName: "Source",
+    tokenHash: createHash("sha256").update(sourceToken).digest("hex"), now: 2,
+  });
+  owner.close();
+  const server = createStateServer({
+    databasePath: path, credentials: scopedCredentials, clock: () => 100,
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const principal = "scope-principal";
+  const tokens = {
+    activation: scopedCredentials.activationToken,
+    operator: scopedCredentials.operatorToken,
+    access: scopedCredentials.accessToken,
+    game: scopedCredentials.gameToken,
+    source: sourceToken,
+  };
+  const commandId = randomUUID();
+  const routes = [
+    ["POST", "/v1/admin/activate", "activation"],
+    ["POST", "/v1/lobbies", "game"],
+    ["POST", "/v1/lobbies/ABC123/runs", "game"],
+    ["GET", "/v1/lobbies/ABC123", "game"],
+    ["POST", "/v1/lobbies/ABC123/actions", "game"],
+    ["POST", "/v1/lobbies/ABC123/admissions", "access"],
+    ["POST", "/v1/admin/managed-sources", "operator"],
+    ["POST", "/v1/admin/expire-managed-leases", "operator"],
+    ["POST", "/v1/admin/history/seal", "operator"],
+    ["POST", "/v1/admin/history/purge", "operator"],
+    ["POST", "/v1/admin/history/sanitize", "operator"],
+    ["GET", "/v1/admin/validate", "operator"],
+    ["POST", "/v1/lobbies/ABC123/managed-lease", "game"],
+    ["POST", `/v1/managed-leases/${commandId}/renew`, "game"],
+    ["POST", `/v1/managed-leases/${commandId}/release`, "game"],
+    ["POST", "/v1/managed-commands", "game"],
+    ["GET", "/v1/source/work", "source"],
+    ["POST", `/v1/managed-commands/${commandId}/transitions`, "source"],
+  ];
+  try {
+    for (const [method, pathname, acceptedScope] of routes) {
+      for (const [scope, token] of Object.entries(tokens)) {
+        const headers = {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+          ...(scope === "game" || scope === "access"
+            ? signedPrincipalHeaders(principal, scope) : {}),
+        };
+        const response = await fetch(`${origin}${pathname}`, {
+          method, headers, ...(method === "POST" ? { body: "{}" } : {}),
+        });
+        if (scope === acceptedScope) {
+          assert.notEqual(response.status, 401, `${method} ${pathname} rejected its ${scope} scope`);
+          assert.notEqual(response.status, 403, `${method} ${pathname} rejected its ${scope} scope`);
+        } else {
+          assert.equal(response.status, 403, `${method} ${pathname} accepted ${scope} scope`);
+        }
+      }
+      const anonymous = await fetch(`${origin}${pathname}`, {
+        method, headers: { "content-type": "application/json" },
+        ...(method === "POST" ? { body: "{}" } : {}),
+      });
+      assert.equal(anonymous.status, acceptedScope === "source" ? 403 : 401,
+        `${method} ${pathname} anonymous status`);
+    }
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("HTTP boundary authenticates callers and derives the lobby host from its principal claim", async () => {
   const server = createStateServer({
     allowDevelopmentActivation: true,
@@ -57,6 +153,33 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
   const { port } = server.address();
   const origin = `http://127.0.0.1:${port}`;
   try {
+    const contractResponse = await fetch(`${origin}/v1/contract`);
+    assert.equal(contractResponse.status, 200);
+    assert.deepEqual(await contractResponse.json(), {
+      service: "cannabeats-state",
+      httpContractVersion: 1,
+      schemaGeneration: 2,
+      protocolVersion: 3,
+      projections: { room: 1, history: 1 },
+      gameCommands: [
+        "add_host_player", "remove_player", "configure_rules", "start_game",
+        "begin_round", "place_song", "retract_placement", "reveal_answer",
+        "advance_round", "skip_track", "abandon_game",
+      ],
+      errors: {
+        invalid_json: 400, invalid_request: 400, unauthorized: 401, forbidden: 403,
+        principal_assertion_invalid: 403, source_forbidden: 403, not_found: 404,
+        payload_too_large: 413, idempotency_conflict: 409, stale_context: 409,
+        state_conflict: 409, database_busy: 503, internal_error: 500,
+      },
+    });
+    const readiness = await (await fetch(`${origin}/ready`)).json();
+    assert.equal(readiness.httpContractVersion, 1);
+    const malformed = await fetch(`${origin}/v1/lobbies`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: "{secret",
+    });
+    assert.equal(malformed.status, 400);
+    assert.deepEqual(await malformed.json(), { code: "invalid_json" });
     assert.equal((await fetch(`${origin}/v1/lobbies`, { method: "POST" })).status, 401);
     const principalHeaders = (principal, scope) => {
       const issuer = scope;
@@ -92,6 +215,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       body: JSON.stringify({ commandId: "b7246a76-3bcb-4da1-9d7a-11ef56ed3ea4", code: "BAD234" }),
     });
     assert.equal(candidate.status, 409);
+    assert.deepEqual(await candidate.json(), { code: "state_conflict" });
     const wrongVolumeActivation = await fetch(`${origin}/v1/admin/activate`, {
       method: "POST", headers: { ...headers, authorization: "Bearer activation-secret" },
       body: JSON.stringify({
@@ -158,7 +282,8 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
         command: { type: "join_player", name: "Guest" },
       }),
     });
-    assert.equal(forbiddenJoin.status, 409);
+    assert.equal(forbiddenJoin.status, 403);
+    assert.deepEqual(await forbiddenJoin.json(), { code: "forbidden" });
     const join = await fetch(`${origin}/v1/lobbies/SRV234/admissions`, {
       method: "POST", headers: { ...guestHeaders, authorization: "Bearer access-secret",
         ...principalHeaders("opaque-principal-2", "access") },
