@@ -67,19 +67,25 @@ test("lobby game sessions survive reloads and transient connection gaps", async 
 test("retryable player intents carry authoritative game context", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /requestGame\(cannabeatsPath\("\/api\/game"\), body\)/);
+  assert.match(page, /requestGame\(cannabeatsPath\("\/api\/game"\), body, options\)/);
   assert.match(page, /expectedRunId: room\.runId/);
   assert.match(page, /expectedRunGeneration: room\.runGeneration/);
   assert.match(page, /expectedRevision: room\.revision/);
   assert.match(page, /reason\.pendingRequest/);
   assert.match(page, /savePendingGameIntent\(sessionStorage, reason\.pendingRequest\)/);
-  assert.match(page, /loadPendingGameIntent\(sessionStorage, session\.code\)/);
+  assert.match(page, /loadPendingGameIntent\(sessionStorage\)/);
   assert.match(page, /clearPendingGameIntent\(sessionStorage\)/);
-  assert.match(page, /resolvePendingGameRequest\(reason, gameRequest\)/);
+  assert.match(page, /onRequestPrepared: \(request\) => savePendingGameIntent\(sessionStorage, request\)/);
+  assert.match(page, /reconcilePendingGameRequest\(pending, gameRequest/);
+  assert.match(page, /const sameLobby = pendingCode === session\.code/);
+  assert.match(page, /if \(sameLobby\) \{\s*const sequence = beginRoomRequest\(\)/);
+  assert.doesNotMatch(page, /Resolve the pending action for lobby/);
   assert.match(page, /keepBlocked = true/);
   assert.match(page, /setBlockedOutcome\(keepBlocked\)/);
   assert.match(page, /if \(!blockedOutcome\) setError\(""\)/);
   assert.match(page, /if \(!keepBlocked\) setBusy\(false\)/);
+  assert.match(page, /if \(!await act\(\{ action: "audioRelease" \}\)\) return/);
+  assert.doesNotMatch(page, /void gameRequest\(\{\s*action: "audioRelease"/);
 });
 
 test("the player game view prioritizes the timeline", async () => {

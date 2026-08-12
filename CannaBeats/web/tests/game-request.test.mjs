@@ -11,7 +11,7 @@ import {
   loadPendingGameIntent,
   PENDING_GAME_INTENT_KEY,
   reconcileRoomSnapshot,
-  resolvePendingGameRequest,
+  reconcilePendingGameRequest,
   requestGame,
   savePendingGameIntent,
 } from "../lib/game-request.ts";
@@ -228,53 +228,7 @@ test("an uncertain action can be resolved only by replaying its complete origina
   assert.equal(new Set(sentBodies).size, 1);
 });
 
-test("pending-intent resolution keeps controls blocked until the exact request is definitive", async () => {
-  const pendingRequest = Object.freeze({
-    action: "place",
-    actionId: "00010203-0405-4607-8809-0a0b0c0d0e0f",
-    code: room.code,
-    expectedRunId: room.runId,
-    expectedRunGeneration: room.runGeneration,
-    expectedRevision: room.revision,
-    playerId: roomPlayerId,
-    index: 0,
-  });
-  const initial = new GameApiError(
-    "Unknown outcome",
-    502,
-    "action_outcome_unknown",
-    undefined,
-    pendingRequest.actionId,
-    pendingRequest,
-  );
-  const stillPending = new GameApiError(
-    "Still unknown",
-    502,
-    "action_outcome_unknown",
-    undefined,
-    pendingRequest.actionId,
-    pendingRequest,
-  );
-  const unresolved = await resolvePendingGameRequest(initial, async (request) => {
-    assert.equal(request, pendingRequest);
-    throw stillPending;
-  });
-  assert.equal(unresolved.kind, "pending");
-  assert.equal(unresolved.keepBlocked, true);
-
-  const rejected = await resolvePendingGameRequest(initial, async () => {
-    throw new GameApiError("Stale action", 409, "stale_action");
-  });
-  assert.equal(rejected.kind, "rejected");
-  assert.equal(rejected.keepBlocked, false);
-
-  const confirmed = await resolvePendingGameRequest(initial, async () => ({ room }));
-  assert.equal(confirmed.kind, "confirmed");
-  assert.equal(confirmed.keepBlocked, false);
-  assert.equal(confirmed.payload.room, room);
-});
-
-test("an unresolved mutation identity survives reload only for its original lobby", () => {
+test("an unresolved mutation identity survives reload until explicitly cleared", () => {
   const values = new Map();
   const storage = {
     getItem: (key) => values.get(key) ?? null,
@@ -291,12 +245,95 @@ test("an unresolved mutation identity survives reload only for its original lobb
   });
   savePendingGameIntent(storage, pendingRequest);
   assert.equal(values.has(PENDING_GAME_INTENT_KEY), true);
-  assert.deepEqual(loadPendingGameIntent(storage, room.code), pendingRequest);
-  assert.equal(loadPendingGameIntent(storage, "OTHER2"), null);
-  assert.equal(values.has(PENDING_GAME_INTENT_KEY), false);
-  savePendingGameIntent(storage, pendingRequest);
+  assert.deepEqual(loadPendingGameIntent(storage), pendingRequest);
+  assert.equal(values.has(PENDING_GAME_INTENT_KEY), true);
   clearPendingGameIntent(storage);
   assert.equal(values.has(PENDING_GAME_INTENT_KEY), false);
+});
+
+test("a mutation intent is durably exposed before its first fetch dispatch", async () => {
+  let journaled = null;
+  const payload = await requestGame("/game/api/game", {
+    action: "advance",
+    code: room.code,
+    expectedRunId: room.runId,
+    expectedRunGeneration: room.runGeneration,
+    expectedRevision: room.revision - 1,
+  }, {
+    cryptoSource: fallbackCrypto,
+    onRequestPrepared(request) {
+      journaled = request;
+    },
+    fetchImpl: async (_input, init) => {
+      assert.ok(journaled, "fetch began before the intent was journaled");
+      assert.equal(JSON.stringify(journaled), init.body);
+      return Response.json({
+        room,
+        audio: { selection: "local", mode: "local", sourceOnline: false, status: "disconnected" },
+        action: { id: JSON.parse(init.body).actionId, accepted: true, replayed: false },
+      });
+    },
+  });
+  assert.deepEqual(payload.room, room);
+});
+
+test("pending reconciliation keeps replaying the exact intent until the receipt is definitive", async () => {
+  const pendingRequest = Object.freeze({
+    action: "advance",
+    actionId: "00010203-0405-4607-8809-0a0b0c0d0e0f",
+    code: room.code,
+    expectedRunId: room.runId,
+    expectedRunGeneration: room.runGeneration,
+    expectedRevision: room.revision - 1,
+  });
+  const seen = [];
+  const waits = [];
+  const result = await reconcilePendingGameRequest(pendingRequest, async (request) => {
+    seen.push(request);
+    if (seen.length < 3) {
+      throw new GameApiError(
+        "Still unknown",
+        502,
+        "action_outcome_unknown",
+        undefined,
+        pendingRequest.actionId,
+        pendingRequest,
+      );
+    }
+    return { room };
+  }, {
+    onPending(request) { assert.equal(request, pendingRequest); },
+    wait: async (attempt) => { waits.push(attempt); },
+  });
+  assert.equal(result.kind, "confirmed");
+  assert.deepEqual(seen, [pendingRequest, pendingRequest, pendingRequest]);
+  assert.deepEqual(waits, [1, 2]);
+});
+
+test("pending reconciliation distinguishes definitive rejection from cancellation", async () => {
+  const pendingRequest = Object.freeze({
+    action: "place",
+    actionId: "00010203-0405-4607-8809-0a0b0c0d0e0f",
+    code: room.code,
+    expectedRunId: room.runId,
+    expectedRunGeneration: room.runGeneration,
+    expectedRevision: room.revision,
+    playerId: roomPlayerId,
+    index: 0,
+  });
+  const rejected = await reconcilePendingGameRequest(pendingRequest, async () => {
+    throw new GameApiError("Stale action", 409, "stale_action");
+  });
+  assert.equal(rejected.kind, "rejected");
+
+  const controller = new AbortController();
+  controller.abort();
+  const aborted = await reconcilePendingGameRequest(
+    pendingRequest,
+    async () => { throw new Error("send must not run after cancellation"); },
+    { signal: controller.signal },
+  );
+  assert.equal(aborted.kind, "aborted");
 });
 
 test("every run-bound mutation response requires an authoritative room and retains its intent", async () => {
@@ -516,6 +553,37 @@ test("cross-field-impossible audio responses fail closed", async () => {
         fetchImpl: async (_input, init) => Response.json({
           room,
           audio: invalidAudio,
+          action: { id: JSON.parse(init.body).actionId, accepted: true, replayed: false },
+        }),
+      }),
+      (error) => error instanceof GameApiError && error.code === "invalid_response",
+    );
+  }
+});
+
+test("the action catalog requires exactly the response fields promised by policy", async () => {
+  const localAudio = {
+    selection: "local",
+    mode: "local",
+    sourceOnline: false,
+    status: "disconnected",
+  };
+  for (const [action, responseAudio] of [
+    ["audioSelect", undefined],
+    ["place", localAudio],
+  ]) {
+    await assert.rejects(
+      requestGame("/game/api/game", {
+        action,
+        code: room.code,
+        expectedRunId: room.runId,
+        expectedRunGeneration: room.runGeneration,
+        expectedRevision: room.revision - 1,
+      }, {
+        cryptoSource: fallbackCrypto,
+        fetchImpl: async (_input, init) => Response.json({
+          room,
+          ...(responseAudio ? { audio: responseAudio } : {}),
           action: { id: JSON.parse(init.body).actionId, accepted: true, replayed: false },
         }),
       }),

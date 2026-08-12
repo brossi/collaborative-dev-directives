@@ -3,6 +3,7 @@ import catalog from "../../../data/catalog.json";
 import { normalizePlayerControl, type AudioControlView, type RoomState, type RoomView, type Song } from "../../../lib/game";
 import {
   AUDIO_RESPONSE_ACTIONS,
+  GAME_ACTION_POLICIES,
   isRunBoundMutationAction,
   type RunBoundMutationAction,
 } from "../../../lib/game-action-contract.ts";
@@ -276,7 +277,6 @@ function mutateRoomOnce({
   expectedRevision: number;
   mutate: (room: NonNullable<ReturnType<typeof loadRoom>>) => {
     audio?: AudioControlView;
-    saveRoom?: boolean;
     status?: number;
   } | void;
   replay?: (room: NonNullable<ReturnType<typeof loadRoom>>) => { audio?: AudioControlView };
@@ -336,7 +336,7 @@ function mutateRoomOnce({
     }
 
     const result = mutate(current) ?? {};
-    if (result.saveRoom !== false) saveRoom(current.state);
+    saveRoom(current.state);
     db.prepare(`
       INSERT INTO game_action_receipts
         (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
@@ -527,28 +527,28 @@ function executeRunBoundMutation(
     mutate(current) {
       const state = current.state;
       const callerIsHost = isHost(current, principal);
+      if (GAME_ACTION_POLICIES[action].authority === "host" && !callerIsHost) {
+        throw new GameRequestError("Host access required.", 403);
+      }
       switch (action) {
         case "audioAcquire": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase === "finished") throw new GameRequestError("This game has finished.", 409);
           const acquired = selectAudioSource(code, principal.id, "managed");
           const audio = (state.phase === "playing" || state.phase === "placed") && state.currentSong?.uri
             ? enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri)
             : acquired;
-          return { saveRoom: false, audio };
+          return { audio };
         }
         case "audioSelect": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase === "finished") throw new GameRequestError("This game has finished.", 409);
           const selection = String(payload.mode ?? "");
           if (selection !== "managed" && selection !== "local") {
             throw new GameRequestError("Audio source is invalid.");
           }
-          return { saveRoom: false, audio: selectAudioSource(code, principal.id, selection) };
+          return { audio: selectAudioSource(code, principal.id, selection) };
         }
         case "audioRelease": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
-          return { saveRoom: false, audio: releaseManagedAudioLease(code) };
+          return { audio: releaseManagedAudioLease(code) };
         }
         case "audioControl": {
           if (state.phase !== "playing" && state.phase !== "placed") {
@@ -561,10 +561,9 @@ function executeRunBoundMutation(
           if (managedAudioView(code).mode !== "managed") {
             throw new GameRequestError("This game does not own the managed audio source.", 409);
           }
-          return { saveRoom: false, audio: enqueueManagedAudioCommand(code, principal.id, command) };
+          return { audio: enqueueManagedAudioCommand(code, principal.id, command) };
         }
         case "addPlayer": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "lobby") throw new GameRequestError("Players are locked after the game starts.", 409);
           const name = String(payload.name ?? "").trim().slice(0, 24);
           if (!name) throw new GameRequestError("Player name is required.");
@@ -572,7 +571,6 @@ function executeRunBoundMutation(
           return { status: 201 };
         }
         case "removePlayer": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "lobby") throw new GameRequestError("Players are locked after the game starts.", 409);
           const playerId = String(payload.playerId ?? "");
           if (!state.players.some((player) => player.id === playerId)) {
@@ -590,12 +588,10 @@ function executeRunBoundMutation(
           return {};
         }
         case "rules":
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "lobby") throw new GameRequestError("Rules are locked after the game starts.", 409);
           state.rules = normalizeRules(payload.rules);
           return {};
         case "start": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "lobby") throw new GameRequestError("The game has already started.");
           if (!state.players.length) throw new GameRequestError("At least one player is required.");
           const audio = selectedAudioView(code, principal.id);
@@ -618,7 +614,6 @@ function executeRunBoundMutation(
           return {};
         }
         case "begin": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "ready" || !state.currentSong) {
             throw new GameRequestError("The first round is not ready.", 409);
           }
@@ -665,14 +660,12 @@ function executeRunBoundMutation(
           return {};
         }
         case "reveal":
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "placed" || !state.currentSong || state.placement === null) {
             throw new GameRequestError("Wait for the active player to lock a placement.", 409);
           }
           revealPlacement(state);
           return {};
         case "advance": {
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "revealed") throw new GameRequestError("Reveal this round first.", 409);
           if (state.winnerId) {
             state.phase = "finished";
@@ -694,7 +687,6 @@ function executeRunBoundMutation(
           return { audio: managedAudioView(code) };
         }
         case "skip":
-          if (!callerIsHost) throw new GameRequestError("Host access required.", 403);
           if (state.phase !== "playing" && state.phase !== "placed") {
             throw new GameRequestError("There is no active song to skip.", 409);
           }

@@ -143,6 +143,16 @@ function activePath(releaseDirectory, name) {
   return join(releaseDirectory, 'active', name);
 }
 
+function stateIsActive(releaseDirectory, state) {
+  const activeLink = join(releaseDirectory, 'active');
+  try {
+    return readlinkSync(activeLink) === `states/${state.name}` && existsSync(state.directory);
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'EINVAL') return false;
+    throw error;
+  }
+}
+
 function assertRegularFile(path, message) {
   if (!existsSync(path) || !lstatSync(path).isFile()) throw new Error(message);
 }
@@ -157,7 +167,7 @@ export function bootstrapState({ releaseDirectory, candidate }) {
     switchActive(directory, state);
     ensureLinks(directory);
   } catch (error) {
-    if (!lstatExists(join(directory, 'active'))) rmSync(state.directory, { recursive: true, force: true });
+    if (!stateIsActive(directory, state)) rmSync(state.directory, { recursive: true, force: true });
     throw error;
   }
 }
@@ -182,7 +192,7 @@ export function adoptLegacyState({ releaseDirectory, currentSource, previousSour
     switchActive(directory, state);
     ensureLinks(directory);
   } catch (error) {
-    if (!error.releaseStateActivated) rmSync(state.directory, { recursive: true, force: true });
+    if (!stateIsActive(directory, state)) rmSync(state.directory, { recursive: true, force: true });
     throw error;
   }
 }

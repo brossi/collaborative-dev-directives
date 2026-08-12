@@ -43,10 +43,13 @@ test("every cataloged run mutation has exactly one shared executor case", () => 
   const boundary = source.slice(source.indexOf("function mutateRoomOnce"), source.indexOf("function pickSong"));
   assert.ok(boundary.indexOf('db.exec("BEGIN IMMEDIATE")') < boundary.indexOf("isLobbyMember(code, principal)"));
   assert.ok(boundary.indexOf("isLobbyMember(code, principal)") < boundary.indexOf("loadRoom(code)"));
+  assert.equal(boundary.match(/saveRoom\(current\.state\)/g)?.length, 1);
+  assert.ok(boundary.indexOf("const result = mutate(current)") < boundary.indexOf("saveRoom(current.state)"));
   const executor = source.slice(
     source.indexOf("function executeRunBoundMutation"),
     source.indexOf("function errorResponse"),
   );
+  assert.match(executor, /GAME_ACTION_POLICIES\[action\]\.authority === "host"/);
   for (const action of RUN_BOUND_MUTATION_ACTIONS) {
     assert.equal(executor.match(new RegExp(`case \\\"${action}\\\"`, "g"))?.length, 1, action);
     assert.doesNotMatch(
@@ -445,6 +448,11 @@ test("an authenticated lobby owns an internal game run and preserves host author
     ["advance", {}],
     ["skip", {}],
   ];
+  assert.deepEqual(
+    runBoundActions.map(([action]) => action),
+    RUN_BOUND_MUTATION_ACTIONS,
+    "the stale-context matrix must enumerate the executable action catalog",
+  );
   for (const [action, fields] of runBoundActions) {
     const stale = await gamePost(
       {
@@ -697,12 +705,35 @@ test("an authenticated lobby owns an internal game run and preserves host author
   });
   assert.equal(playComplete.status, 200);
 
+  const pauseContext = runContext(sessionCode);
+  const pauseRequest = {
+    action: "audioControl",
+    actionId: randomUUID(),
+    code: sessionCode,
+    command: "pause",
+    ...pauseContext,
+  };
   const playerPaused = await gamePost(
-    { action: "audioControl", code: sessionCode, command: "pause" },
+    pauseRequest,
     { Authorization: `Bearer ${playerToken}` },
   );
   assert.equal(playerPaused.status, 200);
-  assert.equal((await playerPaused.json()).audio.status, "pausing");
+  const playerPausedPayload = await playerPaused.json();
+  assert.equal(playerPausedPayload.audio.status, "pausing");
+  assert.equal(playerPausedPayload.room.revision, pauseContext.expectedRevision + 1);
+  const staleResume = await gamePost(
+    {
+      ...pauseRequest,
+      actionId: randomUUID(),
+      command: "resume",
+    },
+    { Authorization: `Bearer ${playerToken}` },
+  );
+  assert.equal(staleResume.status, 409);
+  assert.equal((await staleResume.json()).code, "stale_action");
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind IN ('pause', 'resume')
+  `).get().count, 1);
   const playerCannotInjectTrack = await gamePost(
     { action: "audioControl", code: sessionCode, command: "play", trackUri: "spotify:track:attacker" },
     { Authorization: `Bearer ${playerToken}` },
@@ -794,10 +825,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
   }
 
   const placementActionId = randomUUID();
+  const placementContext = runContext(sessionCode);
   const placementRequest = {
     action: "place", actionId: placementActionId, code: sessionCode, playerId: activePlayer.id, index: 0,
-    expectedRunId: playingRoom.runId, expectedRunGeneration: playingRoom.runGeneration,
-    expectedRevision: playingRoom.revision,
+    ...placementContext,
   };
   const otherActorHeaders = activePlayer.control === "host"
     ? { Authorization: `Bearer ${playerToken}` }

@@ -1,6 +1,6 @@
 # Slice 2: Game-night resilience
 
-- Status: preparation complete; S2-A action identity and idempotency in progress
+- Status: mutation-contract remediation locally verified; Slice 2 remains in progress
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -404,7 +404,11 @@ ID before first dispatch and retains the exact serialized request across every
 transport, gateway, response-body, or validation uncertainty. No cataloged
 gameplay or playback mutation may reach React as a raw transport exception.
 
-Acceptance is matrix-based rather than example-based:
+The closure gate is matrix-based rather than example-based. At this incomplete
+checkpoint, the stale-context matrix enumerates the full catalog; receipt replay
+and transport fault cases remain a combination of shared-boundary proofs and
+representative end-to-end actions rather than one independent scenario per
+action:
 
 - every cataloged action rejects the wrong run ID, generation, or revision
   before action-specific validation or side effects;
@@ -429,6 +433,36 @@ before dispatch or retried continuously, audio mutations do not advance an
 authoritative clock, and legacy adoption can delete a newly active state if
 stable-link creation fails. This checkpoint is intentionally not a completion
 claim; the evidence counts describe only the behaviors then covered.
+
+#### Mutation-contract remediation verification — 2026-08-11
+
+- Every cataloged browser mutation is synchronously exposed to the session
+  journal before its first fetch dispatch. A pending request is replayed with its
+  exact action ID and serialized fields on a bounded-backoff reconciliation loop;
+  the UI stays blocked until receipt replay confirms the action or the server
+  definitively rejects it. Host leave/release uses this path instead of issuing a
+  fire-and-forget playback mutation.
+- Every cataloged mutation now advances the trigger-owned room revision through
+  the shared save boundary. Playback selection, lease, pause, and resume
+  decisions therefore participate in the same stale-context clock as gameplay;
+  the regression sends conflicting pause/resume intents from one revision and
+  proves only the first command is accepted.
+- The action policy controls response expectations as well as routing. Actions
+  that promise audio must return a relationally valid audio snapshot, while
+  non-audio actions cannot apply an unrelated audio snapshot.
+- A stable-link failure after first bootstrap or legacy adoption preserves the
+  newly active, durable state directory. The next release invocation can repair
+  the stable links rather than following a dangling `active` link or deleting
+  the only recoverable state.
+- Verified local evidence: production Next.js build and TypeScript compilation;
+  all web/client/API tests `72/72`; all access/release/backup tests `74/74`;
+  ESLint and whitespace validation pass.
+
+This verifies the current remediation checkpoint, not Slice 2 as a whole. Guest
+bootstrap and invitation creation remain explicitly outside the receipt-backed
+run-mutation catalog, the exact Slice 1 image rehearsal remains an operator gate
+before schema promotion, and the S2-B/C/D gates below remain open until their own
+implementation and verification evidence is recorded.
 
 ### S2-B: Complete transition and playback idempotency
 

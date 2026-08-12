@@ -12,8 +12,8 @@ import {
   commitRoomSnapshot,
   GameApiError,
   loadPendingGameIntent,
+  reconcilePendingGameRequest,
   requestGame,
-  resolvePendingGameRequest,
   savePendingGameIntent,
   type RoomSnapshotCursor,
 } from "../lib/game-request";
@@ -21,8 +21,11 @@ import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-p
 import { useManagedAudioStream, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 
-async function gameRequest(body: Record<string, unknown>) {
-  return requestGame(cannabeatsPath("/api/game"), body);
+async function gameRequest(
+  body: Record<string, unknown>,
+  options: Parameters<typeof requestGame>[2] = {},
+) {
+  return requestGame(cannabeatsPath("/api/game"), body, options);
 }
 
 const ROOM_REFRESH_TIMEOUT_MS = 8_000;
@@ -278,6 +281,7 @@ export default function Home() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [blockedOutcome, setBlockedOutcome] = useState(false);
+  const [pendingIntentVersion, setPendingIntentVersion] = useState(0);
   const [error, setError] = useState("");
   const [artworkByUri, setArtworkByUri] = useState<Record<string, SpotifyTrackArtwork>>({});
   const spotify = useSpotifyPlayer();
@@ -378,40 +382,66 @@ export default function Home() {
 
   useEffect(() => {
     if (!session) return;
-    const pending = loadPendingGameIntent(sessionStorage, session.code);
+    const pending = loadPendingGameIntent(sessionStorage);
     if (!pending) return;
     let cancelled = false;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       setBusy(true);
       setBlockedOutcome(true);
-      setError("Confirming an interrupted action before allowing another move…");
-      void gameRequest(pending).then((payload) => {
+      const pendingCode = String(pending.code);
+      const sameLobby = pendingCode === session.code;
+      setError(sameLobby
+        ? "Confirming an interrupted action before allowing another move…"
+        : `Confirming an interrupted action from lobby ${pendingCode} before continuing…`);
+      void reconcilePendingGameRequest(pending, gameRequest, {
+        signal: controller.signal,
+        onPending(request) {
+          savePendingGameIntent(sessionStorage, request);
+          if (!cancelled) {
+            setError("This action is still pending. CannaBeats will keep reconciling it automatically.");
+          }
+        },
+      }).then(async (result) => {
         if (cancelled) return;
-        const sequence = beginRoomRequest();
-        applyRoomPayload(payload, sequence, session.code);
-        clearPendingGameIntent(sessionStorage);
-        setBlockedOutcome(false);
-        setBusy(false);
-        setError("The interrupted action was confirmed against the current game.");
-      }).catch((reason) => {
-        if (cancelled) return;
-        if (reason instanceof GameApiError && reason.pendingRequest) {
-          savePendingGameIntent(sessionStorage, reason.pendingRequest);
-          setError("This action is still pending. Keep this tab open while CannaBeats reconnects.");
+        if (result.kind === "aborted") return;
+        if (result.kind === "rejected") {
+          clearPendingGameIntent(sessionStorage);
+          setBlockedOutcome(false);
+          setBusy(false);
+          try {
+            await refresh(session);
+          } catch {
+            // A definitive rejection is safe to unblock even when refresh is unavailable.
+          }
+          setError(result.error instanceof Error ? result.error.message : "The interrupted action was rejected.");
           return;
+        }
+        if (sameLobby) {
+          const sequence = beginRoomRequest();
+          applyRoomPayload(result.payload, sequence, session.code);
+        } else {
+          try {
+            await refresh(session);
+          } catch {
+            // The old action is definitive; normal polling can recover this lobby.
+          }
         }
         clearPendingGameIntent(sessionStorage);
         setBlockedOutcome(false);
         setBusy(false);
-        setError(reason instanceof Error ? reason.message : "The interrupted action was rejected.");
+        setError(sameLobby
+          ? "The interrupted action was confirmed against the current game."
+          : `The interrupted action from lobby ${pendingCode} was confirmed.`);
       });
     }, 0);
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearTimeout(timer);
     };
-  }, [applyRoomPayload, beginRoomRequest, session]);
+  }, [applyRoomPayload, beginRoomRequest, pendingIntentVersion, refresh, session]);
 
   useEffect(() => {
     if (hostRules) localStorage.setItem(HOST_RULES_KEY, hostRules);
@@ -490,6 +520,14 @@ export default function Home() {
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return false;
+    const existingIntent = loadPendingGameIntent(sessionStorage);
+    if (existingIntent) {
+      setBusy(true);
+      setBlockedOutcome(true);
+      setError("An earlier action must be resolved before another move can be sent.");
+      setPendingIntentVersion((version) => version + 1);
+      return false;
+    }
     setBusy(true);
     setBlockedOutcome(false);
     setError("");
@@ -511,36 +549,22 @@ export default function Home() {
         }
         : {};
       const sequence = beginRoomRequest();
-      const payload = await gameRequest({ ...body, ...actionContext, code: session.code });
+      const payload = await gameRequest(
+        { ...body, ...actionContext, code: session.code },
+        { onRequestPrepared: (request) => savePendingGameIntent(sessionStorage, request) },
+      );
       await applyActionResult(payload, sequence);
+      clearPendingGameIntent(sessionStorage);
       return true;
     } catch (reason) {
       if (reason instanceof GameApiError && reason.pendingRequest) {
         savePendingGameIntent(sessionStorage, reason.pendingRequest);
-        const resolution = await resolvePendingGameRequest(reason, gameRequest);
-        if (resolution.kind === "confirmed") {
-          clearPendingGameIntent(sessionStorage);
-          const sequence = beginRoomRequest();
-          await applyActionResult(resolution.payload, sequence);
-          setError("The delayed action was confirmed against the current game.");
-          return true;
-        }
-        if (resolution.kind === "pending") {
-          if (resolution.error instanceof GameApiError && resolution.error.pendingRequest) {
-            savePendingGameIntent(sessionStorage, resolution.error.pendingRequest);
-          }
-          keepBlocked = resolution.keepBlocked;
-          setError("This action is still pending. Keep this tab open while CannaBeats reconnects.");
-        } else {
-          clearPendingGameIntent(sessionStorage);
-          try {
-            await refresh(session);
-          } catch {
-            // A definitive rejection is safe to unblock even when refresh remains unavailable.
-          }
-          setError(resolution.error instanceof Error ? resolution.error.message : "The delayed action was rejected.");
-        }
+        keepBlocked = true;
+        setBlockedOutcome(true);
+        setPendingIntentVersion((version) => version + 1);
+        setError("This action is still pending. CannaBeats will keep reconciling it automatically.");
       } else if (reason instanceof GameApiError && reason.code === "invalid_response") {
+        clearPendingGameIntent(sessionStorage);
         try {
           await refresh(session);
           setError("The transition response was incomplete, so the current game was refreshed.");
@@ -549,6 +573,7 @@ export default function Home() {
           setError("The transition result is uncertain and the current game could not be refreshed. Reload before retrying.");
         }
       } else {
+        clearPendingGameIntent(sessionStorage);
         setError(reason instanceof Error ? reason.message : "Something went wrong.");
       }
       return false;
@@ -600,25 +625,19 @@ export default function Home() {
     }
   }
 
-  function leaveRoom() {
-    if (blockedOutcome) {
+  async function leaveRoom() {
+    if (blockedOutcome || loadPendingGameIntent(sessionStorage)) {
       setError("Wait for the pending action to resolve before leaving this game.");
       return;
     }
-    managedAudio.stop();
     if (room?.isHost) {
       if (audio.selection === "managed" && session) {
-        void gameRequest({
-          action: "audioRelease",
-          code: session.code,
-          expectedRunId: room.runId,
-          expectedRunGeneration: room.runGeneration,
-          expectedRevision: room.revision,
-        });
+        if (!await act({ action: "audioRelease" })) return;
       } else {
         void spotify.stop();
       }
     }
+    managedAudio.stop();
     sessionStorage.removeItem(SESSION_KEY);
     setSession(null);
     roomSequence.current += 1;
@@ -664,7 +683,7 @@ export default function Home() {
           <h1>Rejoining the game…</h1>
           <p className="helper">Your place is saved. We’ll reconnect automatically.</p>
           {error && <p className="error-message" role="status">{error}</p>}
-          <button className="text-button" type="button" onClick={leaveRoom}>Leave room</button>
+          <button className="text-button" type="button" onClick={() => void leaveRoom()}>Leave room</button>
         </section>
       </main>
     );
@@ -708,7 +727,7 @@ export default function Home() {
       <main className="game-shell lobby-shell">
         <header className="game-header">
           <div><p className="eyebrow">CannaBeats lobby</p><h1>{room.code}</h1></div>
-          <button className="text-button" onClick={leaveRoom}>Leave</button>
+          <button className="text-button" onClick={() => void leaveRoom()}>Leave</button>
         </header>
         <section className="lobby-card">
           <p className="step-label">Players</p>
@@ -953,7 +972,7 @@ export default function Home() {
         </>
       )}
       {error && <p className="error-message" role="alert">{error}</p>}
-      <button className="leave-link" onClick={leaveRoom}>{room.isHost ? "Leave room" : `Room ${room.code} · Leave`}</button>
+      <button className="leave-link" onClick={() => void leaveRoom()}>{room.isHost ? "Leave room" : `Room ${room.code} · Leave`}</button>
     </main>
   );
 }

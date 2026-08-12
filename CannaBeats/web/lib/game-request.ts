@@ -1,7 +1,8 @@
 import type { AudioControlView, Player, RoomView, Song } from "./game";
 import {
+  AUDIO_RESPONSE_ACTIONS,
   isRunBoundMutationAction,
-  ROOM_STATE_MUTATION_ACTIONS,
+  REVISION_ADVANCING_ACTIONS,
   RUN_BOUND_MUTATION_ACTIONS,
 } from "./game-action-contract.ts";
 import type { GameRules } from "./rules";
@@ -81,7 +82,7 @@ export class GameApiError extends Error {
   }
 }
 
-export function loadPendingGameIntent(storage: Pick<Storage, "getItem" | "removeItem">, expectedCode: string) {
+export function loadPendingGameIntent(storage: Pick<Storage, "getItem" | "removeItem">) {
   const saved = storage.getItem(PENDING_GAME_INTENT_KEY);
   if (!saved) return null;
   try {
@@ -89,7 +90,14 @@ export function loadPendingGameIntent(storage: Pick<Storage, "getItem" | "remove
     if (!isRecord(parsed)
         || !isRunBoundMutationAction(String(parsed.action ?? ""))
         || !ACTION_ID.test(String(parsed.actionId ?? ""))
-        || String(parsed.code ?? "").trim().toUpperCase() !== expectedCode.trim().toUpperCase()) {
+        || !/^[A-Z2-9]{6}$/.test(String(parsed.code ?? "").trim().toUpperCase())
+        || !UUID_ID.test(String(parsed.expectedRunId ?? ""))
+        || typeof parsed.expectedRunGeneration !== "number"
+        || !Number.isSafeInteger(parsed.expectedRunGeneration)
+        || parsed.expectedRunGeneration < 0
+        || typeof parsed.expectedRevision !== "number"
+        || !Number.isSafeInteger(parsed.expectedRevision)
+        || parsed.expectedRevision < 0) {
       throw new Error("Invalid pending intent");
     }
     return Object.freeze({ ...parsed }) as Readonly<Record<string, unknown>>;
@@ -110,22 +118,49 @@ export function clearPendingGameIntent(storage: Pick<Storage, "removeItem">) {
   storage.removeItem(PENDING_GAME_INTENT_KEY);
 }
 
-export async function resolvePendingGameRequest(
-  error: GameApiError,
-  send: (request: Readonly<Record<string, unknown>>) => Promise<GameApiPayload>,
-) {
-  if (!error.pendingRequest) {
-    return { kind: "rejected" as const, keepBlocked: false, error };
-  }
-  try {
-    const payload = await send(error.pendingRequest);
-    return { kind: "confirmed" as const, keepBlocked: false, payload };
-  } catch (resolutionError) {
-    if (resolutionError instanceof GameApiError && resolutionError.pendingRequest) {
-      return { kind: "pending" as const, keepBlocked: true, error: resolutionError };
+function waitForPendingRetry(delayMs: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal?.aborted) {
+      resolve();
+      return;
     }
-    return { kind: "rejected" as const, keepBlocked: false, error: resolutionError };
+    const timeout = setTimeout(finish, delayMs);
+    function finish() {
+      clearTimeout(timeout);
+      signal?.removeEventListener("abort", finish);
+      resolve();
+    }
+    signal?.addEventListener("abort", finish, { once: true });
+  });
+}
+
+export async function reconcilePendingGameRequest(
+  request: Readonly<Record<string, unknown>>,
+  send: (request: Readonly<Record<string, unknown>>) => Promise<GameApiPayload>,
+  options: {
+    signal?: AbortSignal;
+    onPending?: (request: Readonly<Record<string, unknown>>) => void;
+    wait?: (attempt: number, signal?: AbortSignal) => Promise<void>;
+  } = {},
+) {
+  let attempt = 0;
+  while (!options.signal?.aborted) {
+    try {
+      const payload = await send(request);
+      return { kind: "confirmed" as const, payload };
+    } catch (error) {
+      if (!(error instanceof GameApiError) || !error.pendingRequest) {
+        return { kind: "rejected" as const, error };
+      }
+      options.onPending?.(error.pendingRequest);
+      attempt += 1;
+      const wait = options.wait ?? ((currentAttempt, signal) => (
+        waitForPendingRetry(Math.min(5_000, 250 * (2 ** Math.min(currentAttempt - 1, 5))), signal)
+      ));
+      await wait(attempt, options.signal);
+    }
   }
+  return { kind: "aborted" as const };
 }
 
 export function actionUuid(cryptoSource: CryptoSource = globalThis.crypto) {
@@ -416,7 +451,7 @@ function validTransitionRoom(
       || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return false;
   if (value.runId.toLowerCase() !== expectedRunId
       || value.runGeneration !== expectedRunGeneration) return false;
-  return ROOM_STATE_MUTATION_ACTIONS.has(action)
+  return REVISION_ADVANCING_ACTIONS.has(action)
     ? value.revision > expectedRevision
     : value.revision >= expectedRevision;
 }
@@ -428,6 +463,7 @@ export async function requestGame(
     fetchImpl?: FetchLike;
     cryptoSource?: CryptoSource;
     timeoutMs?: number;
+    onRequestPrepared?: (request: Readonly<Record<string, unknown>>) => void;
   } = {},
 ) {
   const action = String(body.action ?? "");
@@ -436,6 +472,7 @@ export async function requestGame(
     ? { ...body, actionId: actionUuid(options.cryptoSource) }
     : body;
   const retainedRequest = retryable ? Object.freeze({ ...requestBody }) : undefined;
+  if (retainedRequest) options.onRequestPrepared?.(retainedRequest);
   const serializedBody = JSON.stringify(requestBody);
   const requestedActionId = retryable ? String(requestBody.actionId ?? "").toLowerCase() : "";
   const requestedRunId = String(requestBody.expectedRunId ?? "").toLowerCase();
@@ -481,6 +518,9 @@ export async function requestGame(
       if (response.ok) {
         if (retryable) {
           const responseActionId = String(payload.action?.id ?? "").toLowerCase();
+          const validAudioOutcome = AUDIO_RESPONSE_ACTIONS.has(action)
+            ? validAudioControlViewShape(payload.audio)
+            : payload.audio === undefined;
           const validActionOutcome = Boolean(
             validTransitionRoom(
               payload.room,
@@ -493,7 +533,7 @@ export async function requestGame(
             && payload.action?.accepted === true
             && typeof payload.action.replayed === "boolean"
             && responseActionId === requestedActionId
-            && (payload.audio === undefined || validAudioControlViewShape(payload.audio)),
+            && validAudioOutcome,
           );
           if (!validActionOutcome) {
             if (attempt + 1 < attempts) continue;

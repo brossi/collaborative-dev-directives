@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, test } from 'node:test';
@@ -359,6 +359,26 @@ test('legacy adoption cleans up a state created before an interrupted switch', (
     delete process.env.CANNABEATS_TEST_STATE_FAIL;
   }
   assert.deepEqual(readdirSync(join(directory, 'states')), []);
+});
+
+test('stable-link failures after bootstrap or adoption preserve an active target that retry can heal', () => {
+  for (const mode of ['bootstrap', 'adopt']) {
+    const directory = mkdtempSync(join(root, `${mode}-stable-link-failure-`));
+    const candidate = join(directory, 'candidate.yaml');
+    writeFileSync(candidate, 'services: {}\n');
+    mkdirSync(join(directory, 'current-compose.yaml'));
+    assert.throws(
+      () => mode === 'bootstrap'
+        ? bootstrapState({ releaseDirectory: directory, candidate })
+        : adoptLegacyState({ releaseDirectory: directory, currentSource: candidate }),
+      /directory|EISDIR/i,
+    );
+    const activeTarget = readlinkSync(join(directory, 'active'));
+    assert.equal(existsSync(join(directory, activeTarget)), true, `${mode} deleted its active target`);
+    rmSync(join(directory, 'current-compose.yaml'), { recursive: true });
+    adoptLegacyState({ releaseDirectory: directory, currentSource: candidate });
+    assert.equal(readFileSync(join(directory, 'current-compose.yaml'), 'utf8'), 'services: {}\n');
+  }
 });
 
 test('the first P2 release atomically adopts legacy P1 records and their used identities', async () => {
