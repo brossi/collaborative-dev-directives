@@ -138,10 +138,21 @@ services:
       NODE_ENV: production
       PORT: "3010"
       CANNABEATS_STATE_DATABASE_PATH: /state/cannabeats-state.sqlite
-      CANNABEATS_STATE_SERVICE_TOKEN_FILE: ${STATE_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/state-service-token}
+      CANNABEATS_STATE_LOCK_DIRECTORY: /state/.locks
+      CANNABEATS_STATE_ACTIVATION_TOKEN_FILE: /run/secrets/cannabeats/state-activation-token
+      CANNABEATS_STATE_OPERATOR_TOKEN_FILE: /run/secrets/cannabeats/state-operator-token
+      CANNABEATS_STATE_ACCESS_TOKEN_FILE: /run/secrets/cannabeats/state-access-token
+      CANNABEATS_STATE_GAME_TOKEN_FILE: /run/secrets/cannabeats/state-game-token
+      CANNABEATS_STATE_ACCESS_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-access-principal-assertion-key
+      CANNABEATS_STATE_GAME_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-game-principal-assertion-key
     volumes:
       - cannabeats_state_data:/state
-      - ${STATE_SERVICE_TOKEN_HOST_FILE:-./secrets/state-service-token}:${STATE_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/state-service-token}:ro
+      - ${STATE_ACTIVATION_TOKEN_HOST_FILE:-./secrets/state-activation-token}:/run/secrets/cannabeats/state-activation-token:ro
+      - ${STATE_OPERATOR_TOKEN_HOST_FILE:-./secrets/state-operator-token}:/run/secrets/cannabeats/state-operator-token:ro
+      - ${STATE_ACCESS_TOKEN_HOST_FILE:-./secrets/state-access-token}:/run/secrets/cannabeats/state-access-token:ro
+      - ${STATE_GAME_TOKEN_HOST_FILE:-./secrets/state-game-token}:/run/secrets/cannabeats/state-game-token:ro
+      - ${STATE_ACCESS_PRINCIPAL_ASSERTION_KEY_HOST_FILE:-./secrets/state-access-principal-assertion-key}:/run/secrets/cannabeats/state-access-principal-assertion-key:ro
+      - ${STATE_GAME_PRINCIPAL_ASSERTION_KEY_HOST_FILE:-./secrets/state-game-principal-assertion-key}:/run/secrets/cannabeats/state-game-principal-assertion-key:ro
     mem_limit: 512m
     cpus: 0.75
     pids_limit: 128
@@ -161,6 +172,8 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    environment:
+      CANNABEATS_STATE_LOCK_DIRECTORY: /state/.locks
     volumes:
       - cannabeats_poc_data:/legacy:ro
       - cannabeats_state_data:/state

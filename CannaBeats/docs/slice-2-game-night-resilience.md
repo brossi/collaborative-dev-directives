@@ -177,6 +177,102 @@ Foundation gates:
 - release metadata gates state-service, client, schema, and protocol ranges as
   one cutover unit.
 
+#### Post-checkpoint structural remediation — implementation under verification, 2026-08-12
+
+The first post-checkpoint audit showed that a sole filesystem writer was
+necessary but insufficient while its API still accepted caller-authored facts.
+Remediation therefore proceeds at the ownership boundary in this order:
+
+1. Scoped activation, operator, access-admission, game, and managed-source
+   credentials replace the shared bearer. The HTTP service supplies its own
+   clock; request bodies cannot choose authority, expiry, or audit time.
+2. A typed game reducer accepts commands rather than replacement snapshots.
+   It derives roles, songs, terminal outcomes, events, and safe member
+   projections. Admission is not available through the general gameplay
+   endpoint.
+3. Room state, action receipt, revision coverage, canonical events, and any
+   managed-track command created by that action commit in one owner transaction.
+4. Terminal reconciliation freezes unresolved external effects before sealing.
+   Purge removes receipts, event detail, and managed-command payloads while
+   retaining redacted transition identity and an immutable content attestation.
+5. One invariant validator is used by migration publication/replay, activation,
+   readiness, mutation input/output, and public room projection. It verifies
+   room shape, snapshot identity, terminal coverage, legal transition paths,
+   transition continuity, integrity, foreign keys, and purge boundaries.
+
+The first independent audit of that checkpoint kept the gate open. It found
+raw mutation-response disclosure, caller-authored playback intent, managed
+round transitions without delivery authority, incomplete source delivery,
+caller-spoofable principal headers, sealable `outcome_unknown` work, weak
+private migration replay evidence, deploy-breaking reuse of immutable v4
+feature identities, and lifecycle rules enforced only by owner code.
+
+The remediation now projects mutation receipts for their actor, signs principal
+assertions at the trusted gateway boundary, restricts public audio controls to
+pause/resume, derives play only from the authoritative round song, and rolls a
+managed round back if no live lease can accept its effect. Source work has a
+token-bound delivery operation; command intent/result combinations are finite
+and relationally checked. Unknown external outcomes keep history pending until
+the exact claim generation reconciles. The active database enforces lifecycle,
+append-only evidence, purge-only erasure, and post-purge immutability with
+triggers, while every startup hashes the actual canonical SQLite object graph
+against an immutable generation ledger. Purge enables SQLite secure deletion,
+checkpoints the WAL, and has a byte-sentinel regression over the database and
+sidecars. Migration replay separately attests public equivalence and private
+source/payload authority. Existing monolith v4 attestations remain immutable;
+new purge guards use additive v5 identities and have exact forward-upgrade
+coverage.
+
+The fresh audit again kept the gate open. Its counterexamples are now encoded in
+the state suite. State schema generation 2 / protocol 3 persist a monotonic
+command dispatch sequence, controller-issued claim generation, normalized
+playback/error evidence, and an exact event projection for every non-executing
+command transition. All remote mutation IDs are mandatory. Readiness is bounded;
+the full invariant scan runs for migration publication/replay and activation and
+is exposed as an operator diagnostic; startup independently verifies the exact
+canonical schema graph.
+Principal assertions use separate access/game keys and bind issuer, audience,
+scope, principal, and a short expiry.
+
+Migration and runtime now contend for path and filesystem-identity SQLite locks
+inside one configured lock directory on the shared state volume. The kernel
+releases them on crash, while lexical, symbolic-link, and hard-link aliases map
+to the same durable identity lock, so only one can own destination authority.
+Migration extracts one
+SQLite read snapshot, verifies the exact supported v4/v5 feature digests against
+their canonical source objects, publishes
+without replacement, fsyncs the database and parent directory, records public,
+private, and complete candidate digests, and revalidates the complete candidate
+digest during activation. Retention redacts track identities and player names
+from the retained terminal snapshot. Logical purge records sanitization as
+`pending`; only successful WAL truncation advances it to `complete`. Startup and
+an operator endpoint resume every pending sanitization rather than requiring the
+original purge request ID, and a pinned-reader regression proves the intermediate
+state is reported honestly.
+
+Current local evidence is the state-service suite (`30/30`), access/operations
+suite (`84/84`), web suite (`119/119`) including a production Next.js build,
+ESLint, catalogue consistency, whitespace validation, both state Compose
+profiles, and a successful production state-service image build with the
+authoritative catalogue packaged into the image. A clean Compose state-service
+container reached Docker `healthy` and returned schema generation 2, protocol 3,
+and candidate authority from bounded `/ready`. The tests include
+scoped-authority denial, caller-time rejection,
+host/player command denial, pre-reveal projection, atomic managed-command
+rollback, poisoned-candidate rejection, legal-path legacy normalization,
+orphan-intent rejection, candidate replay revalidation, terminal
+reconciliation, seal, purge, and late-result rejection.
+
+This remains an implementation checkpoint, not gate closure. Previously created
+state-service candidate databases are unpublished and must be discarded and
+reconstructed from the still-authoritative monolith; the migrator never upgrades
+or adopts a checkpoint candidate in place. No existing web, access, source,
+administrative, or retention writer has been routed to the new service yet.
+Gateway assertion integration, source-controller cutover, stable HTTP errors,
+multi-process schedules, release/rollback metadata, full migration rehearsal,
+and a fresh independent adversarial pass remain required before the foundation
+or Slice 2 can be described as complete.
+
 ### S2-A: Action identity and atomic receipts
 
 - Add the schema-version bridge and additive action-receipt storage.

@@ -227,6 +227,19 @@ test("the shared member projection fails closed for every persisted output field
   assert.deepEqual(Object.keys(projected.retention), PRIVACY_PROJECTION_CONTRACT.memberRetentionFields);
 });
 
+test("member history fails closed for contradictory coverage and purged event evidence", () => {
+  const projected = projectMemberHistory({
+    run: { revision: 2 }, state: {},
+    coverage: {
+      baseline_revision: 4, last_recorded_revision: 2,
+      lifecycle_state: "purged", purged_at: 10,
+    },
+    events: [{ event_type: "game_started" }], total: 1,
+  });
+  assert.equal(projected.coverage.complete, false);
+  assert.deepEqual(projected.events, []);
+});
+
 test("a Slice 1 state write is disclosed as a significant-history coverage gap", () => {
   const { db, now, runId } = fixture("rollback-coverage");
   db.prepare("UPDATE game_runs SET state = ?, updated_at = ? WHERE id = ?")
@@ -551,6 +564,9 @@ test("v3 sealed history migrates forward without reopening or breaking its attes
     .run(sealed.runId, sealed.runId);
   sealGameHistory(sealed.runId);
   sealed.db.exec("DROP TRIGGER cannabeats_feature_migrations_immutable_delete");
+  sealed.db.prepare(`INSERT OR IGNORE INTO cannabeats_feature_migrations
+    (name,digest,applied_at) VALUES ('history_lifecycle_v3',?,?)`)
+    .run("3".repeat(64), sealed.now);
   sealed.db.prepare("DELETE FROM cannabeats_feature_migrations WHERE name='history_lifecycle_v4'").run();
   fixture("v3-sealed-forward-detour");
   process.env.CANNABEATS_DATABASE_PATH = sealed.databasePath;
@@ -561,6 +577,31 @@ test("v3 sealed history migrates forward without reopening or breaking its attes
     WHERE name='history_lifecycle_v3'`).get());
   assert.ok(migrated.prepare(`SELECT 1 FROM cannabeats_feature_migrations
     WHERE name='history_lifecycle_v4'`).get());
+});
+
+test("an immutable v4 database upgrades through separately attested v5 purge guards", () => {
+  const prior = fixture("v4-additive-guard-upgrade");
+  assert.ok(prior.db.prepare(`SELECT 1 FROM cannabeats_feature_migrations
+    WHERE name='history_lifecycle_v4'`).get());
+  assert.ok(prior.db.prepare(`SELECT 1 FROM cannabeats_feature_migrations
+    WHERE name='managed_audio_protocol_v4'`).get());
+  prior.db.exec(`
+    DROP TRIGGER cannabeats_feature_migrations_immutable_delete;
+    DELETE FROM cannabeats_feature_migrations
+      WHERE name IN ('history_purge_guards_v5','managed_audio_purge_guards_v5');
+    DROP TRIGGER game_event_coverage_purged_immutable;
+    DROP TRIGGER game_action_receipts_purged_write_guard;
+    DROP TRIGGER game_runs_purged_delete_guard;
+    DROP TRIGGER managed_audio_outcomes_purged_insert_guard;
+    DROP TRIGGER managed_audio_outcomes_purged_update_guard;
+  `);
+  fixture("v4-additive-guard-detour");
+  process.env.CANNABEATS_DATABASE_PATH = prior.databasePath;
+  const upgraded = database();
+  assert.ok(upgraded.prepare(`SELECT 1 FROM cannabeats_feature_migrations
+    WHERE name='history_purge_guards_v5'`).get());
+  assert.ok(upgraded.prepare(`SELECT 1 FROM cannabeats_feature_migrations
+    WHERE name='managed_audio_purge_guards_v5'`).get());
 });
 
 test("purged runs remain immutable and cannot regain retained evidence", () => {
@@ -581,7 +622,7 @@ test("purged runs remain immutable and cannot regain retained evidence", () => {
     .run(purged.runId, purged.runId);
   deleteGameHistory(purged.runId);
   assert.throws(() => purged.db.prepare(`UPDATE game_event_coverage
-    SET baseline_revision=baseline_revision+1 WHERE run_id=?`).run(purged.runId), /purge boundary|immutable/i);
+    SET started_at=started_at+1 WHERE run_id=?`).run(purged.runId), /purge boundary|immutable/i);
   assert.throws(() => purged.db.prepare(`INSERT INTO game_action_receipts
     (run_id,actor_id,action_id,action,request_fingerprint,accepted_at)
     VALUES (?,?,?,?,?,?)`).run(

@@ -19,6 +19,10 @@ game must survive the cutover.
   release. After it, rollback is limited to state-service/client generations
   compatible with the active state generation.
 - At runtime, only the `state` container mounts `cannabeats_state_data` RW.
+- State-service databases created by an unpublished development checkpoint are
+  not upgrade inputs. Delete the candidate and reconstruct it from the still
+  authoritative monolith with the current pinned migrator. Never edit a
+  candidate ledger to make an older generation appear compatible.
 
 ## Phase 0: build and verify the artifact
 
@@ -28,15 +32,22 @@ Required evidence before touching a rehearsal host:
 2. The state image is built and pinned by digest.
 3. Compose configuration proves that no application, game, retention, source,
    or reporting service mounts the state volume RW.
+   Both the migrator and runtime must use `CANNABEATS_STATE_LOCK_DIRECTORY`
+   pointing at the same directory on that volume; a container-local temporary
+   directory is not an acceptable production lock namespace.
 4. Release metadata names the state image digest, schema generation, protocol
    version, and compatible client range as one release unit.
 
-Local Docker verification now proves the state image builds on Linux/arm64, runs
-as the unprivileged `node` user with a read-only root filesystem, mounts only the
-state volume RW, rejects candidate mutations, persists activation/first admission
-across restart, and passes its container health check. Digest pinning, the full
-migration profile, multi-container caller topology, and items 3-4 still require
-the remaining local rehearsal; production-shaped systemd/host proof remains S2-F.
+The current development contract is state schema generation 2 and managed-source
+protocol 3. Earlier unpublished candidate databases must be reconstructed.
+
+Local Docker verification now proves the current state image builds on
+Linux/arm64, runs as the unprivileged `node` user with a read-only root
+filesystem, mounts only the state volume RW, starts from a clean volume as a
+validated candidate, and passes its container health check. Digest pinning, the
+full migration profile, multi-container caller topology, restart/activation
+rehearsal, and items 3-4 still require the remaining local rehearsal;
+production-shaped systemd/host proof remains S2-F.
 
 ## Phase 1: drain and preserve the rollback artifact
 
@@ -65,7 +76,8 @@ The migrator:
 - refuses active sessions, live leases, or unresolved commands;
 - builds a uniquely named candidate database;
 - copies state-owned rows in one transaction;
-- checks foreign keys and records counts/content digests; and
+- checks foreign keys and records public-equivalence plus private-authority
+  digests (including source token hashes and retained command payloads); and
 - publishes the candidate filename only after validation succeeds.
 
 Failure removes the unpublished candidate. Repeating the same migration against
@@ -75,8 +87,8 @@ an already-published candidate verifies the manifest and returns a replay.
 
 Start the state service against the candidate and verify `/ready` reports:
 
-- `schemaGeneration: 1`;
-- `protocolVersion: 2`; and
+- `schemaGeneration: 2`;
+- `protocolVersion: 3`; and
 - `authority.status: candidate`.
 
 Runtime mutations must return a candidate-state rejection. Perform destructive
@@ -98,9 +110,18 @@ read-only snapshot. No direct SQLite writer may remain.
 Once that gate passes:
 
 1. Start the pinned state-service image and the jointly compatible clients.
+   Access and game gateways must hold distinct scoped bearer credentials and
+   issue an HMAC-bound principal assertion; user-supplied principal or signature
+   headers are discarded at the external boundary.
 2. Verify readiness and execute read-only comparisons again.
 3. Send one idempotent authenticated activation command to
-   `POST /v1/admin/activate`.
+   `POST /v1/admin/activate`. Its body must bind the operator-observed
+   `expectedSourceDigest`, `expectedCandidateDigest`, `expectedSchemaGeneration`,
+   `expectedProtocolVersion`, and immutable release epoch in addition to the
+   command UUID. Activation rejects any mismatch and any command journal entry
+   created while authority is still a candidate. The accepted source digest,
+   candidate digest, schema generation, protocol version, and release epoch are
+   persisted on the authority row for recovery and audit.
 4. Verify the durable authority record is `active` with
    `first_admitted_at = null`.
 5. Run non-admitting mutation/replay health probes defined by the release
@@ -108,8 +129,10 @@ Once that gate passes:
 6. Enable admission. The first lobby atomically records `first_admitted_at`.
 
 The activation request and every state mutation carry stable request identity.
-Protocol version and managed-command claim generation come from the state
-service; caller payloads cannot request legacy authority.
+The state service fixes the protocol version. The source controller durably
+creates the claim generation before requesting authority, and the state service
+validates and binds that exact generation through every later transition;
+callers cannot request legacy protocol authority.
 
 ## Rollback decisions
 
@@ -129,8 +152,11 @@ After `first_admitted_at`:
 
 ## Remaining development gates
 
-- Implement all game/run/receipt/history/lease operations behind the owner API.
+- Finish the exhaustive role × phase × typed-command matrix and stable HTTP
+  error contract for the owner API.
 - Replace direct game, access, source, CLI, report, backup, and retention DB use.
+- Wire and verify gateway-issued principal assertions and source work delivery
+  through the actual access/game/controller clients.
 - Add read-only projection export and coordinated backup manifests.
 - Extend release and rollback scripts with state image and compatibility gates.
 - Build the image and execute the full procedure on disposable rehearsal hosts.

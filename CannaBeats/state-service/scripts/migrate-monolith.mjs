@@ -12,7 +12,10 @@ try {
   if (!sourcePath || !destinationPath) {
     throw new Error("Usage: migrate-monolith.mjs --source PATH --destination PATH");
   }
-  process.stdout.write(`${JSON.stringify(migrateMonolith({ sourcePath, destinationPath }))}\n`);
+  process.stdout.write(`${JSON.stringify(migrateMonolith({
+    sourcePath, destinationPath,
+    lockDirectory: process.env.CANNABEATS_STATE_LOCK_DIRECTORY,
+  }))}\n`);
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 2;

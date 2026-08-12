@@ -7,6 +7,8 @@ WORKDIR /app
 COPY --chown=node:node state-service/package.json ./package.json
 COPY --chown=node:node state-service/src ./src
 COPY --chown=node:node state-service/scripts ./scripts
+COPY --chown=node:node web/data/catalog.json ./data/catalog.json
+ENV CANNABEATS_STATE_CATALOG_PATH=/app/data/catalog.json
 RUN mkdir -p /state /run/secrets/cannabeats && chown node:node /state
 
 USER node

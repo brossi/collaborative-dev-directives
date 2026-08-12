@@ -186,11 +186,14 @@ recording
 - `terminal_pending`: exactly one game terminal event and consistent terminal
   snapshot exist, but claimed/executing audio commands may still need a terminal
   or explicitly unknown outcome.
-- `sealed`: terminal evidence is consistent and every command is terminal or
-  `outcome_unknown`; no new event may be appended.
+- `sealed`: terminal evidence is consistent and every command has a definitive
+  terminal state; `outcome_unknown` must be reconciled before sealing, and no
+  new event may be appended.
 - `purging`: a retention transaction has claimed the sealed history for deletion.
-- `purged`: events, receipts, and retained command outcomes are gone; the final
-  authoritative snapshot and immutable purge boundary remain.
+- `purged`: events, receipts, and provider-execution payloads are gone. Redacted
+  command identity, transition state, and outcome fingerprints remain as immutable
+  protocol evidence alongside the final authoritative snapshot and purge boundary;
+  they cannot authorize new execution or expose the requested track URI.
 
 SQLite enforces the lifecycle. Event insertion is permitted in `recording`.
 After game termination, `terminal_pending` permits only enumerated audio

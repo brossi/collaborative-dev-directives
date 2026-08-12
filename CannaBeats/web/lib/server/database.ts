@@ -138,6 +138,15 @@ const MANAGED_AUDIO_FEATURE_OBJECTS = [
   "managed_audio_source_delete_guard",
   "managed_audio_command_outcome_delete_guard",
 ] as const;
+const HISTORY_PURGE_GUARD_OBJECTS = [
+  "game_event_coverage_purged_immutable",
+  "game_action_receipts_purged_write_guard",
+  "game_runs_purged_delete_guard",
+] as const;
+const MANAGED_AUDIO_PURGE_GUARD_OBJECTS = [
+  "managed_audio_outcomes_purged_insert_guard",
+  "managed_audio_outcomes_purged_update_guard",
+] as const;
 
 function featureDigest(contract: string) {
   return createHash("sha256").update(contract).digest("hex");
@@ -150,7 +159,9 @@ function schemaObjectsDigest(candidate: DatabaseSync, names: readonly string[]) 
     ORDER BY type, name
   `).all(...names) as Array<{ type: string; name: string; sql: string | null }>;
   if (objects.length !== names.length) {
-    throw new Error(`Canonical feature objects are missing (${names.join(", ")}).`);
+    const present = new Set(objects.map((object) => object.name));
+    throw new Error(`Canonical feature objects are missing (${names.filter((name) =>
+      !present.has(name)).join(", ")}).`);
   }
   return featureDigest(objects.map((object) => [
     object.type,
@@ -570,8 +581,14 @@ export function database() {
       `);
     }
     db.exec(`
+      DROP TRIGGER IF EXISTS game_event_coverage_lifecycle_guard;
       UPDATE game_event_coverage
-      SET lifecycle_state = CASE WHEN purged_at IS NOT NULL THEN 'purged' ELSE 'recording' END;
+      SET lifecycle_state = CASE
+        WHEN purged_at IS NOT NULL THEN 'purged'
+        ELSE 'recording'
+      END
+      WHERE lifecycle_state NOT IN ('recording','terminal_pending','sealed','purging','purged')
+         OR (purged_at IS NOT NULL AND lifecycle_state <> 'purged');
       DROP VIEW IF EXISTS game_history_terminal_evidence;
       CREATE VIEW game_history_terminal_evidence AS
       SELECT c.run_id
@@ -614,6 +631,27 @@ export function database() {
               WHERE o.command_id = requested.command_ref AND o.run_id = r.id
             ))
         );
+      UPDATE game_event_coverage
+      SET lifecycle_state='recording', purged_at=NULL
+      WHERE lifecycle_state IN ('terminal_pending','sealed','purging')
+        AND NOT EXISTS (
+          SELECT 1 FROM game_runs r
+          JOIN game_sessions s ON s.code=r.session_code
+          WHERE r.id=game_event_coverage.run_id
+            AND s.status='ended' AND s.active_run_id=r.id
+            AND typeof(r.ended_at)='integer' AND r.ended_at>0
+            AND json_valid(r.state)
+            AND ((r.terminal_outcome='completed' AND json_extract(r.state,'$.phase')='finished')
+              OR (r.terminal_outcome='abandoned'
+                AND json_extract(r.state,'$.phase') IN ('lobby','ready','playing','placed','revealed')))
+            AND 1=(SELECT COUNT(*) FROM game_events e WHERE e.run_id=r.id
+              AND e.event_type IN ('game_completed','game_abandoned'))
+            AND 1=(SELECT COUNT(*) FROM game_events e WHERE e.run_id=r.id
+              AND ((r.terminal_outcome='completed' AND e.event_type='game_completed'
+                    AND e.outcome='completed')
+                OR (r.terminal_outcome='abandoned' AND e.event_type='game_abandoned'
+                    AND e.outcome='abandoned')))
+        );
       DROP TRIGGER IF EXISTS game_events_history_write_guard;
       CREATE TRIGGER game_events_history_write_guard
       BEFORE INSERT ON game_events
@@ -638,7 +676,6 @@ export function database() {
       BEGIN
         SELECT RAISE(ABORT, 'game history is sealed or purged');
       END;
-      DROP TRIGGER IF EXISTS game_event_coverage_lifecycle_guard;
       CREATE TRIGGER game_event_coverage_lifecycle_guard
       BEFORE UPDATE OF lifecycle_state, purged_at ON game_event_coverage
       WHEN NOT (
@@ -937,6 +974,51 @@ export function database() {
       db, "managed_audio_protocol_v4", schemaObjectsDigest(db, MANAGED_AUDIO_FEATURE_OBJECTS),
     );
     }
+    if (!verifyRecordedFeature(db, "history_purge_guards_v5", HISTORY_PURGE_GUARD_OBJECTS)) {
+      db.exec(`
+        DROP TRIGGER IF EXISTS game_event_coverage_purged_immutable;
+        CREATE TRIGGER game_event_coverage_purged_immutable BEFORE UPDATE ON game_event_coverage
+        WHEN OLD.lifecycle_state='purged'
+        BEGIN SELECT RAISE(ABORT, 'game history purge boundary is immutable'); END;
+        DROP TRIGGER IF EXISTS game_action_receipts_purged_write_guard;
+        CREATE TRIGGER game_action_receipts_purged_write_guard BEFORE INSERT ON game_action_receipts
+        WHEN EXISTS (SELECT 1 FROM game_event_coverage
+          WHERE run_id=NEW.run_id AND lifecycle_state='purged')
+        BEGIN SELECT RAISE(ABORT, 'game history is purged'); END;
+        DROP TRIGGER IF EXISTS game_runs_purged_delete_guard;
+        CREATE TRIGGER game_runs_purged_delete_guard BEFORE DELETE ON game_runs
+        WHEN EXISTS (SELECT 1 FROM game_event_coverage
+          WHERE run_id=OLD.id AND lifecycle_state='purged')
+        BEGIN SELECT RAISE(ABORT, 'purged game snapshot is immutable'); END;
+      `);
+      recordFeatureMigration(
+        db, "history_purge_guards_v5", schemaObjectsDigest(db, HISTORY_PURGE_GUARD_OBJECTS),
+      );
+    }
+    if (!verifyRecordedFeature(
+      db, "managed_audio_purge_guards_v5", MANAGED_AUDIO_PURGE_GUARD_OBJECTS,
+    )) {
+      db.exec(`
+        DROP TRIGGER IF EXISTS managed_audio_outcomes_purged_insert_guard;
+        CREATE TRIGGER managed_audio_outcomes_purged_insert_guard
+        BEFORE INSERT ON managed_audio_command_outcomes
+        WHEN NEW.run_id IS NOT NULL AND EXISTS (SELECT 1 FROM game_event_coverage
+          WHERE run_id=NEW.run_id AND lifecycle_state='purged')
+        BEGIN SELECT RAISE(ABORT, 'game history is purged'); END;
+        DROP TRIGGER IF EXISTS managed_audio_outcomes_purged_update_guard;
+        CREATE TRIGGER managed_audio_outcomes_purged_update_guard
+        BEFORE UPDATE ON managed_audio_command_outcomes
+        WHEN (NEW.run_id IS NOT NULL AND EXISTS (SELECT 1 FROM game_event_coverage
+          WHERE run_id=NEW.run_id AND lifecycle_state='purged'))
+          OR (OLD.run_id IS NOT NULL AND EXISTS (SELECT 1 FROM game_event_coverage
+            WHERE run_id=OLD.run_id AND lifecycle_state='purged'))
+        BEGIN SELECT RAISE(ABORT, 'game history is purged'); END;
+      `);
+      recordFeatureMigration(
+        db, "managed_audio_purge_guards_v5",
+        schemaObjectsDigest(db, MANAGED_AUDIO_PURGE_GUARD_OBJECTS),
+      );
+    }
     // Provider device identifiers are source-local capabilities/fingerprints. The
     // legacy column remains for exact Slice 1 compatibility but is never populated.
     db.exec("UPDATE managed_audio_sources SET device_id = NULL WHERE device_id IS NOT NULL");
@@ -1018,6 +1100,10 @@ export function database() {
         SELECT sql FROM sqlite_schema
         WHERE type = 'trigger' AND name = 'game_event_coverage_lifecycle_guard'
       `).get() as { sql: string } | undefined)?.sql;
+      const receiptPurgeGuardSql = (db.prepare(`
+        SELECT sql FROM sqlite_schema
+        WHERE type = 'trigger' AND name = 'game_action_receipts_purged_write_guard'
+      `).get() as { sql: string } | undefined)?.sql;
       db.exec(`
         CREATE TABLE game_action_receipts_run_scoped (
           run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
@@ -1041,6 +1127,7 @@ export function database() {
           ON game_action_receipts(accepted_at);
       `);
       if (lifecycleGuardSql) db.exec(lifecycleGuardSql);
+      if (receiptPurgeGuardSql) db.exec(receiptPurgeGuardSql);
     }
     const resultingVersion = Math.max(startingVersion, DATABASE_SCHEMA_TARGET_VERSION);
     db.exec(`PRAGMA user_version = ${resultingVersion}; COMMIT`);

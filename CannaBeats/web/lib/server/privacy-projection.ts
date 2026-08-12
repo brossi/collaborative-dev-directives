@@ -45,6 +45,11 @@ export function projectMemberHistory(input: {
   const revision = projectedNonnegativeInteger(input.run.revision);
   const baseline = projectedNonnegativeInteger(input.coverage?.baseline_revision);
   const lastRecorded = projectedNonnegativeInteger(input.coverage?.last_recorded_revision);
+  const lifecycle = input.coverage
+    ? projectedEnum(input.coverage.lifecycle_state, "historyLifecycle") : null;
+  const coverageConsistent = revision !== null && baseline !== null && lastRecorded !== null
+    && baseline <= lastRecorded && lastRecorded <= revision;
+  const retainedEventsConsistent = lifecycle !== "purged" || input.events.length === 0;
   return {
     runId: projectedUuid(input.run.id),
     lobbyId: typeof input.run.session_code === "string" && /^[A-Z0-9]{6}$/.test(input.run.session_code)
@@ -59,7 +64,7 @@ export function projectMemberHistory(input: {
         ? null : projectedEnum(input.run.terminal_outcome, "terminalOutcomes"),
     },
     coverage: {
-      complete: revision !== null && lastRecorded === revision,
+      complete: coverageConsistent && retainedEventsConsistent && lastRecorded === revision,
       baselineRevision: baseline,
       lastRecordedRevision: lastRecorded,
       currentRevision: revision,
@@ -67,10 +72,9 @@ export function projectMemberHistory(input: {
     retention: {
       purgedAt: input.coverage?.purged_at === null || input.coverage?.purged_at === undefined
         ? null : projectedTimestamp(input.coverage.purged_at),
-      lifecycle: input.coverage
-        ? projectedEnum(input.coverage.lifecycle_state, "historyLifecycle") : null,
+      lifecycle,
     },
-    events: input.events.map(projectHistoryEvent),
+    events: retainedEventsConsistent ? input.events.map(projectHistoryEvent) : [],
     truncated: Number.isSafeInteger(input.total) && Number(input.total) > input.events.length,
   };
 }

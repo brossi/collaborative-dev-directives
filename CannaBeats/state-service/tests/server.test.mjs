@@ -1,37 +1,118 @@
 import assert from "node:assert/strict";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
 import { createStateServer } from "../src/server.mjs";
+import { StateOwner } from "../src/owner.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "cannabeats-state-server-"));
 after(() => rmSync(root, { recursive: true, force: true }));
+const developmentOwner = (path) => new StateOwner(path, { allowDevelopmentActivation: true });
+
+test("state server rejects collapsed credential scopes", () => {
+  assert.throws(() => createStateServer({
+    databasePath: join(root, "collapsed.sqlite"),
+    credentials: {
+      activationToken: "same", operatorToken: "same", accessToken: "same",
+      gameToken: "same", accessPrincipalAssertionKey: "same",
+      gamePrincipalAssertionKey: "same",
+    },
+  }), /must be distinct/i);
+});
+
+test("state server rejects retained source credentials that collide with service scopes", () => {
+  const path = join(root, "retained-source-collision.sqlite");
+  const credentials = {
+    activationToken: "activation-a", operatorToken: "operator-a", accessToken: "access-a",
+    gameToken: "game-a", accessPrincipalAssertionKey: "access-assertion-a",
+    gamePrincipalAssertionKey: "game-assertion-a",
+  };
+  const owner = developmentOwner(path);
+  owner.activate({ now: 1 });
+  owner.registerManagedSource({
+    sourceId: randomUUID(), displayName: "Retained Source",
+    tokenHash: createHash("sha256").update(credentials.gameToken).digest("hex"), now: 2,
+  });
+  owner.close();
+  assert.throws(() => createStateServer({ databasePath: path, credentials }), /collides/i);
+});
 
 test("HTTP boundary authenticates callers and derives the lobby host from its principal claim", async () => {
   const server = createStateServer({
-    databasePath: join(root, "server.sqlite"), serviceToken: "service-secret",
+    allowDevelopmentActivation: true,
+    databasePath: join(root, "server.sqlite"),
+    credentials: {
+      activationToken: "activation-secret",
+      operatorToken: "operator-secret",
+      accessToken: "access-secret",
+      gameToken: "game-secret",
+      accessPrincipalAssertionKey: "access-principal-assertion-secret",
+      gamePrincipalAssertionKey: "game-principal-assertion-secret",
+    },
+    clock: () => 100,
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();
   const origin = `http://127.0.0.1:${port}`;
   try {
     assert.equal((await fetch(`${origin}/v1/lobbies`, { method: "POST" })).status, 401);
-    const headers = {
-      authorization: "Bearer service-secret",
-      "content-type": "application/json",
-      "x-cannabeats-principal": "opaque-principal-1",
+    const principalHeaders = (principal, scope) => {
+      const issuer = scope;
+      const expiresAt = 1_000;
+      const key = scope === "access"
+        ? "access-principal-assertion-secret" : "game-principal-assertion-secret";
+      const claim = `${issuer}\ncannabeats-state\n${scope}\n${principal}\n${expiresAt}`;
+      return {
+        "x-cannabeats-principal": principal,
+        "x-cannabeats-principal-issuer": issuer,
+        "x-cannabeats-principal-expires-at": String(expiresAt),
+        "x-cannabeats-principal-signature": createHmac("sha256", key).update(claim).digest("hex"),
+      };
     };
+    const headers = {
+      authorization: "Bearer game-secret",
+      "content-type": "application/json",
+      ...principalHeaders("opaque-principal-1", "game"),
+    };
+    const forgedPrincipal = await fetch(`${origin}/v1/lobbies`, {
+      method: "POST",
+      headers: { ...headers, "x-cannabeats-principal": "forged-host" },
+      body: JSON.stringify({ commandId: "877e8bba-a9e2-42d6-a97c-425e90f65ef3", code: "BAD777" }),
+    });
+    assert.equal(forgedPrincipal.status, 403);
+    const forbiddenActivation = await fetch(`${origin}/v1/admin/activate`, {
+      method: "POST", headers,
+      body: JSON.stringify({ commandId: "7353bdf0-38b1-47c9-a689-82dfac3a90df" }),
+    });
+    assert.equal(forbiddenActivation.status, 403);
     const candidate = await fetch(`${origin}/v1/lobbies`, {
       method: "POST", headers,
       body: JSON.stringify({ commandId: "b7246a76-3bcb-4da1-9d7a-11ef56ed3ea4", code: "BAD234" }),
     });
     assert.equal(candidate.status, 409);
-    const activation = await fetch(`${origin}/v1/admin/activate`, {
-      method: "POST", headers,
-      body: JSON.stringify({ commandId: "451653d1-0077-43f9-90db-68c9c71b6630" }),
+    const wrongVolumeActivation = await fetch(`${origin}/v1/admin/activate`, {
+      method: "POST", headers: { ...headers, authorization: "Bearer activation-secret" },
+      body: JSON.stringify({
+        commandId: randomUUID(), expectedSourceDigest: "a".repeat(64),
+        expectedCandidateDigest: "b".repeat(64), expectedSchemaGeneration: 2,
+        expectedProtocolVersion: 3, releaseEpoch: "release-test",
+      }),
     });
-    assert.equal((await activation.json()).status, "active");
+    assert.equal(wrongVolumeActivation.status, 409);
+    const activation = await fetch(`${origin}/v1/admin/activate`, {
+      method: "POST", headers: { ...headers, authorization: "Bearer activation-secret" },
+      body: JSON.stringify({
+        commandId: "451653d1-0077-43f9-90db-68c9c71b6630",
+        expectedSourceDigest: null, expectedCandidateDigest: null,
+        expectedSchemaGeneration: 2, expectedProtocolVersion: 3,
+        releaseEpoch: "development", now: -1,
+      }),
+    });
+    const activationPayload = await activation.json();
+    assert.equal(activationPayload.status, "active");
+    assert.equal(activationPayload.activatedAt, 100);
     const request = { commandId: "2c53f9fa-8882-45b0-9874-01ca670f4444", code: "SRV234" };
     const first = await fetch(`${origin}/v1/lobbies`, {
       method: "POST", headers, body: JSON.stringify(request),
@@ -41,6 +122,116 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       method: "POST", headers, body: JSON.stringify(request),
     });
     assert.deepEqual(await replay.json(), { code: "SRV234", status: "lobby", replayed: true });
+    const runId = "93de9358-d32a-4e2f-a46b-2841786c9180";
+    const run = await fetch(`${origin}/v1/lobbies/SRV234/runs`, {
+      method: "POST", headers,
+      body: JSON.stringify({
+        commandId: "d0fb60dd-1ec7-45bc-8105-abac00ff2ea6",
+        runId,
+      }),
+    });
+    assert.equal((await run.json()).revision, 0);
+    const actionRequest = {
+      actionId: "1857f452-b4d1-4b12-a3e4-b4126bfa4eea",
+      expectedRunId: runId, expectedRunGeneration: 1,
+      expectedRevision: 0, command: { type: "configure_rules", rules: { targetScore: 7 } },
+    };
+    const action = await fetch(`${origin}/v1/lobbies/SRV234/actions`, {
+      method: "POST", headers, body: JSON.stringify(actionRequest),
+    });
+    const actionPayload = await action.json();
+    assert.equal(actionPayload.revision, 1);
+    assert.equal(actionPayload.replayed, false);
+    const actionReplay = await fetch(`${origin}/v1/lobbies/SRV234/actions`, {
+      method: "POST", headers, body: JSON.stringify(actionRequest),
+    });
+    assert.equal((await actionReplay.json()).replayed, true);
+    const guestHeaders = {
+      ...headers,
+      ...principalHeaders("opaque-principal-2", "game"),
+    };
+    const forbiddenJoin = await fetch(`${origin}/v1/lobbies/SRV234/actions`, {
+      method: "POST", headers: guestHeaders,
+      body: JSON.stringify({
+        actionId: "ba1af328-13f5-4b42-b132-2351a7846463",
+        expectedRunId: runId, expectedRunGeneration: 1, expectedRevision: 1,
+        command: { type: "join_player", name: "Guest" },
+      }),
+    });
+    assert.equal(forbiddenJoin.status, 409);
+    const join = await fetch(`${origin}/v1/lobbies/SRV234/admissions`, {
+      method: "POST", headers: { ...guestHeaders, authorization: "Bearer access-secret",
+        ...principalHeaders("opaque-principal-2", "access") },
+      body: JSON.stringify({
+        actionId: "ba1af328-13f5-4b42-b132-2351a7846463",
+        expectedRunId: runId, expectedRunGeneration: 1, expectedRevision: 1,
+        name: "Guest",
+      }),
+    });
+    assert.equal((await join.json()).revision, 2);
+    const room = await fetch(`${origin}/v1/lobbies/SRV234`, { headers: guestHeaders });
+    const roomPayload = await room.json();
+    assert.equal(roomPayload.revision, 2);
+    assert.equal(roomPayload.state.players[0].id, "opaque-principal-2");
+
+    const operatorHeaders = { ...headers, authorization: "Bearer operator-secret" };
+    const operatorCannotImpersonate = await fetch(`${origin}/v1/lobbies`, {
+      method: "POST", headers: operatorHeaders,
+      body: JSON.stringify({ commandId: "ab618bdc-94e6-45e5-b640-34a23f34114e", code: "BAD999" }),
+    });
+    assert.equal(operatorCannotImpersonate.status, 403);
+    const sourceId = "d619e0c2-7fc0-4402-937a-373b4383e987";
+    const sourceToken = "managed-source-secret";
+    const registration = await fetch(`${origin}/v1/admin/managed-sources`, {
+      method: "POST", headers: operatorHeaders,
+      body: JSON.stringify({
+        commandId: "163bfebb-eed2-44ec-b1b8-548c34ecaf09",
+        sourceId, displayName: "Source",
+        tokenHash: createHash("sha256").update(sourceToken).digest("hex"),
+      }),
+    });
+    assert.equal(registration.status, 200);
+    const lease = await fetch(`${origin}/v1/lobbies/SRV234/managed-lease`, {
+      method: "POST", headers,
+      body: JSON.stringify({
+        commandId: "31db43e5-b20d-4a83-9843-f172b91f46c2",
+        sourceId, leaseDurationMs: 1_000, now: -1,
+      }),
+    });
+    const leasePayload = await lease.json();
+    assert.equal(leasePayload.expiresAt, 1_100);
+    const managedCommandId = "72caf280-228d-4744-be55-61ff32598a5d";
+    const queued = await fetch(`${origin}/v1/managed-commands`, {
+      method: "POST", headers,
+      body: JSON.stringify({
+        commandId: managedCommandId, sourceId, lobbyCode: "SRV234", runId,
+        runGeneration: 1, kind: "pause", now: -1,
+      }),
+    });
+    assert.equal(queued.status, 200);
+    const sourceWork = await fetch(`${origin}/v1/source/work`, {
+      headers: { authorization: `Bearer ${sourceToken}` },
+    });
+    assert.deepEqual(await sourceWork.json(), {
+      protocolVersion: 3,
+      lease: { id: leasePayload.leaseId, lobbyCode: "SRV234",
+        expiresAt: 1_100, playbackStatus: "ready" },
+      command: { id: managedCommandId, kind: "pause", trackUri: null },
+    });
+    const gameCannotClaim = await fetch(`${origin}/v1/managed-commands/${managedCommandId}/transitions`, {
+      method: "POST", headers,
+      body: JSON.stringify({ requestId: randomUUID(), action: "claim",
+        claimGeneration: randomUUID(), now: -1 }),
+    });
+    assert.equal(gameCannotClaim.status, 403);
+    const sourceClaim = await fetch(`${origin}/v1/managed-commands/${managedCommandId}/transitions`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${sourceToken}`, "content-type": "application/json" },
+      body: JSON.stringify({ requestId: randomUUID(), action: "claim",
+        claimGeneration: randomUUID(), now: -1 }),
+    });
+    const claimPayload = await sourceClaim.json();
+    assert.equal(claimPayload.state, "claimed");
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
