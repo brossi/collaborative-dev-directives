@@ -1,11 +1,12 @@
 # Slice 2: Game-night resilience
 
-- Status: S2-B gate locally verified; Slice 2 remains in progress
+- Status: ADR 0002 structural remediation in progress; S2-B/S2-C remain open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
 - Parent: [CannaBeats development slices](development-slices.md#slice-2-game-night-resilience)
 - Baseline protection: [Slice 1](slice-1-baseline-protection.md)
+- Structural remediation: [ADR 0002](architecture/0002-resilience-protocols-are-persisted-state-machines.md)
 
 ## Player and operator outcome
 
@@ -119,6 +120,15 @@ readability by the bridge, rejection of versions newer than 2, and agreement
 across access, game, Compose, release, backup, and rollback contracts.
 
 ## Development sequence
+
+The repeated S2-B/S2-C adversarial findings exposed implicit distributed
+protocols rather than isolated defects. Before further gate remediation, follow
+ADR 0002 in order: accept the architectural invariants, build executable
+transition models, refactor managed audio and retained history around those
+models, introduce the migration ledger and shared privacy projection, and move
+retention out of the active game image. Existing checkpoint tests remain
+acceptance evidence, not the design specification. Do not declare either gate
+closed until the structural implementation passes a fresh full audit.
 
 ### S2-A: Action identity and atomic receipts
 
@@ -512,6 +522,223 @@ verifies S2-B only; S2-C and S2-D remain open.
 Gate: a completed and an abandoned test game can be reconstructed without
 container logs, and the current snapshot remains authoritative.
 
+#### S2-C implementation checkpoint — 2026-08-12
+
+- `game_events` is an additive, run-owned chronological trail with a strict
+  database and application taxonomy. It records actor type, optional run-scoped
+  actor/action references, round, outcome, server time, and only enumerated
+  detail or reason codes. It does not accept player names, track URIs, device
+  identifiers, credentials, free-form client payloads, or raw provider errors.
+  This privacy boundary applies to receipts, significant events, history APIs,
+  and operator projections. The authoritative game snapshot and a transient
+  pending playback command necessarily contain the current track URI and may be
+  present in encrypted recovery copies; raw provider device IDs are never stored.
+- Join, configuration, start, track request, placement, retraction, reveal,
+  advance, skip, completion, explicit host abandonment, and managed-audio
+  request/delivery/completion/failure/expiry/recovery events join the same
+  SQLite transaction as their authoritative state, command, lease, and receipt
+  changes. Receipt-insert fault injection proves gameplay and playback events
+  roll back with the rejected action.
+- An authenticated lobby member can read one run's chronological history. The
+  current snapshot summary is reported separately and remains authoritative;
+  events explain significant chronology rather than replaying or replacing the
+  snapshot. The read-only operator report exposes a bounded 20-event projection,
+  aggregate outcomes, terminal outcome, and truncation without actor/action
+  identifiers or private source fields.
+- History retention is run-scoped and terminal-state guarded. The default purge
+  window is 90 days and may be set only from 1 through 365 days; it removes
+  significant events and idempotency receipts only for ended runs while
+  preserving their authoritative final snapshots. Explicit deletion also
+  refuses an active run. Operators run either:
+
+  ```sh
+  CANNABEATS_DATABASE_PATH=/var/lib/cannabeats/cannabeats.sqlite \
+    npm run history -- purge --retention-days 90
+  CANNABEATS_DATABASE_PATH=/var/lib/cannabeats/cannabeats.sqlite \
+    npm run history -- delete --run-id RUN_UUID
+  ```
+
+- The production integration gate reconstructs a completed game and an
+  abandoned game, including requested, delivered, completed, failed, and
+  recovered managed-audio outcomes, without container logs. Encrypted online
+  backup/restore preserves the event trail and its foreign-key integrity.
+- Local evidence at the checkpoint: production Next.js build and TypeScript compilation; all
+  web/client/API tests `75/75`; all access/release/backup/operator tests `74/74`;
+  ESLint and whitespace validation pass. The subsequent paired S2-B/S2-C review
+  found open protocol defects, so this evidence is an implementation checkpoint,
+  not S2-C gate closure.
+
+#### Paired S2-B/S2-C finding remediation — verified locally 2026-08-12
+
+- Each paired-review finding was first reproduced by a failing test. Game reads
+  and `prepare` now use a read-only audio projection. Acquisition and renewal are
+  explicit cataloged mutations with action ID, stale context, receipt, revision,
+  and event coverage; the host UI exposes reservation deliberately and renews it
+  through that same journaled path.
+- Lease helpers return the actual acquired, renewed, released, or unchanged
+  transition. Only real transitions emit lifecycle events. Release and expiry
+  derive command evidence from the persisted command state: unclaimed work is
+  `cancelled`, while claimed or executing work is `outcome_unknown`. A command
+  is never reported as both interrupted and completed.
+- Source completion stores a redacted outcome fingerprint. An exact completion
+  retry returns success with `replayed: true`, while a different success state
+  or failure outcome conflicts without adding a second terminal event.
+- The operator report derives confirmed completion or abandonment from the
+  durable terminal outcome on the run, corroborated by the terminal event when
+  that retained history is present, instead of treating every `ended` session
+  as completed. The outcome remains authoritative after event retention, and
+  the report also says whether the retained trail covers the current revision.
+- `game_event_coverage` starts at the bridge baseline and advances only with
+  journaled state mutations. Exact Slice 1 writes still advance the trigger-owned
+  state revision but not event coverage, making a partial trail explicit rather
+  than silently claiming complete reconstruction. The checkpoint event schema
+  expands transactionally without losing existing rows.
+- The daily retention assets are installable as an alerted systemd job. They
+  require a successful encrypted backup service before purging, invoke the
+  separately versioned operations-image retention command, enforce the 1–365-day policy, delete
+  only ended-run events and receipts, and preserve the final snapshot plus an
+  explicit retained-history boundary. A Linux systemd/Docker rehearsal remains
+  an S2-F gate; local source and static unit tests do not claim installation.
+
+Local remediation evidence is the production Next.js build and TypeScript
+compilation, web/client/API `79/79`, access/release/backup/operator `75/75`,
+ESLint, and whitespace validation. This verifies the stated remediations against
+their executable regressions; it is not a substitute for a fresh independent
+adversarial pass before declaring combined S2-B/S2-C closure.
+
+#### Targeted combined-gate audit remediation — verified locally 2026-08-12
+
+- Focused regressions first reproduced routine renewal restarting playback,
+  source-side execution after a lost completion acknowledgement, completion
+  replay disappearing with lease cleanup, raw source device persistence, open
+  reason-code persistence, repeated retention, contradictory terminal evidence,
+  and incomplete default operator/install guidance.
+- Lease renewal now extends ownership without creating a new `play` command. A
+  newly acquired lease may request recovery playback, but a `renewed` transition
+  emits only its lease event.
+- The source controller persists one generation-fenced outbox through claim,
+  executing, result, and acknowledgement phases. It records `executing` before
+  the browser may contact Spotify, never automatically re-executes uncertain
+  work after restart, and retries only an identical completion. A URI-free completion
+  outcome row is retained with the run and survives transient lease/command
+  cleanup, so exact completion replay remains successful after release;
+  conflicting outcomes fail.
+- Source-supplied provider device IDs are ignored and legacy values are cleared.
+  Event reason codes now share a finite application/SQLite taxonomy, and the
+  operator projection replaces any legacy unreviewed value instead of returning
+  it. Backup/restore evidence confirms the device sentinel is absent.
+- Retention records `purged_at` once, skips already-purged runs, preserves that
+  boundary in history/operator output, and removes retained completion outcomes
+  with the same run. Terminal row/event/phase contradictions now fail closed as
+  `terminal_evidence_inconsistent`; the default text report exposes coverage,
+  retention, terminal consistency, and truncation.
+- Scheduler instructions create their configuration directory and explicitly run
+  and inspect the retention service. The assets are described as installable—not
+  installed—because this workstation has neither Docker nor systemd; the actual
+  dependency/failure/alert exercise remains part of S2-F real-host rehearsal.
+
+Local evidence at the preceding checkpoint: production Next.js build and
+TypeScript compilation, web/client/API `81/81`, access/release/backup/operator
+`78/78`, managed-source Python `11/11`, ESLint, Python/shell syntax, catalog
+consistency, and whitespace validation. That checkpoint did not close the
+combined gate; the independent pass below found additional blockers.
+
+#### Independent follow-on remediation — implementation in progress 2026-08-12
+
+The independent pass kept the combined gate open and supplied adversarial
+regressions before each change. Current remediation behavior is:
+
+- Successful source completions are relationally checked against command intent:
+  `play` and `resume` must finish `playing`, `pause` must finish `paused`, and a
+  failed result is normalized to `error`.
+- A run-owned, URI-free pending command outcome is created with the command, so
+  release or expiry cannot erase the identity needed for a first late completion.
+  Exact completed outcomes remain replayable after transient lease cleanup.
+- The source controller atomically persists a mode-`0600` command outbox under
+  `/var/lib/cannabeats-controller`. The claim exists before server authority is
+  requested and `executing` exists before Spotify is called. Restarted executing
+  work becomes explicit `outcome_unknown`; only a matching-generation validated
+  acknowledgement may clear the exact outbox snapshot.
+- Destructive history operations require mutually consistent session status,
+  active run, `ended_at`, terminal outcome, and authoritative phase. Missing
+  coverage fails closed, and a purged run refuses later event insertion.
+- A realistic permissive prior reason-code constraint is rebuilt. Reviewed legacy
+  reasons survive; unknown legacy values become `unrecognized_reason`; application,
+  database, and operator taxonomies have an executable parity check.
+- Operator terminal assessment checks durable outcome, `ended_at`, status, phase,
+  all retained terminal events, coverage, and `purged_at`. Missing full-history
+  evidence and contradictory completion/abandonment fail closed. Every persisted
+  enum-like string in the projection is allowlisted before output.
+- Backup evidence now includes restored completion replay and a legacy provider
+  device sentinel that is cleared by current initialization after restore.
+
+This section records remediation under verification, not combined-gate closure.
+
+Current local verification after these changes: production Next.js build and
+TypeScript compilation, web/client/API `85/85`, access/release/backup/operator
+`97/97`, managed-source Python `7/7`, ESLint, Python/shell syntax, catalog
+consistency, and whitespace validation. Independent re-audit is still required
+before declaring the combined gate closed.
+
+#### ADR 0002 structural remediation — implementation checkpoint, audit pending 2026-08-12
+
+This checkpoint is not a completion claim. After the first full audit found that
+the application models were not authoritative at the SQLite boundary, the
+following corrections were reproduced with failing counterexamples and then
+verified locally. A fresh independent audit is still required before the paired
+S2-B/S2-C gate can be accepted.
+
+- SQLite now enforces legal history and managed-command transitions, generation
+  consistency, sealed-event immutability, and immutable migration-ledger rows.
+- Feature ledger entries are hashes of the actual authoritative schema objects;
+  recorded objects are verified on reopen and tampering fails closed.
+- History sealing owns its transaction, validates evidence before mutation,
+  refuses incomplete revision coverage, and revalidates sealed evidence.
+- Managed-source restart, provider ambiguity, failed local persistence, and
+  expired lease schedules now have executable protocol tests and explicit
+  `outcome_unknown` convergence.
+- The retention artifact performs a read-only capability preflight and returns
+  `unsupported_schema` without importing the mutating application initializer.
+- Member history consumes one fail-closed projection for every persisted output
+  field, including identifiers, numeric ranges, timestamps, lifecycle, and
+  terminal outcome.
+
+Local regression evidence after these corrections: clean Next production build
+and web `107/107`; access/release/backup/operator `83/83`; managed-source Python
+`9/9`; structural focused tests `34/34`; ESLint and `git diff --check` clean.
+Docker/systemd evidence remains assigned to S2-F.
+
+- Managed commands now follow the persisted
+  `queued → claimed → executing → completed|failed|outcome_unknown|cancelled`
+  model. Claim generations fence retries, the source outbox is fsynced before
+  authority and external execution boundaries, and compare-and-clear prevents an
+  old acknowledgement from deleting newer work. External execution is
+  deliberately at-most-once with explicit uncertainty, not claimed exactly-once.
+- History now follows
+  `recording → terminal_pending → sealed → purging → purged`. Terminal evidence
+  must contain one matching terminal event, coherent row/snapshot state, coverage,
+  and resolved command states. Only bound late audio reconciliation is accepted
+  while pending; SQLite triggers reject writes after sealing and purge is one
+  transaction over a database-proven sealed run.
+- `cannabeats_feature_migrations` records canonical schema digests. Game-event
+  hardening compares canonical SQL and runs a savepoint behavior probe, so a
+  permissive constraint containing every expected token is rebuilt. History and
+  managed-command protocols also record independent feature migrations and
+  enforce their state sets at the database boundary.
+- The member history API and operator report consume
+  `web/contracts/privacy-projection.json`. Malformed legacy phases, references, and
+  enum-like fields are replaced or suppressed before output; missing coverage and
+  impossible purged-with-events evidence fail closed.
+- Retention runs from the `history` operations image configured by
+  `CANNABEATS_HISTORY_IMAGE`, outside application release overrides. Exact Slice 1
+  rollback therefore does not remove the executable. Production pins must use an
+  immutable digest and are changed only as an explicit operations deployment.
+
+Focused transition, migration, privacy, scheduler, controller, clean-build, and
+composed game-API verification pass. This confirms the implementation checkpoint;
+the combined S2-B/S2-C gate remains open until the requested fresh full adversarial
+audit completes without unresolved in-scope blockers.
+
 ### S2-D: Session, seat, and host recovery
 
 - Make same-device guest reclaim explicit across refresh, expiry boundaries,
@@ -520,6 +747,16 @@ container logs, and the current snapshot remains authoritative.
 - Add stale-client/version responses and coherent current-state recovery.
 - Present managed-source busy, recovering, retry, and explicit local-fallback
   states without exposing another lobby.
+
+Open findings assigned here by the targeted S2-B/S2-C audit:
+
+- Authorize relay listening from current lease ownership, not the lobby's saved
+  `managed` preference, so a waiting lobby cannot hear the current owner's relay.
+- Fence direct lease handoff and in-flight external playback: A→B must pause/stop
+  and acknowledge A before B may use the shared source, even if no poll observes
+  an intermediate lease-free state.
+- Bind command outcomes to run ID and run generation before adding run replacement,
+  so a late completion from an old run cannot be attributed to a recovered run.
 
 Gate: returning clients recover the same seat/round without hidden data; a
 second host cannot steal the source or ambiguously control the game.

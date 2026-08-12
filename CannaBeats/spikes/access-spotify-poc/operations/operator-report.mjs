@@ -8,9 +8,29 @@ const CLIENT_PRESENT_MS = 2 * 60 * 1000;
 const ACTIVE_MS = 5 * 60 * 1000;
 const IDLE_MS = 30 * 60 * 1000;
 const ABANDONED_MS = 24 * 60 * 60 * 1000;
+const PRIVACY_CONTRACT = JSON.parse(readFileSync(
+  existsSync(new URL('../contracts/privacy-projection.json', import.meta.url))
+    ? new URL('../contracts/privacy-projection.json', import.meta.url)
+    : new URL('../../../web/contracts/privacy-projection.json', import.meta.url), 'utf8',
+));
+const EVENT_REASON_CODES = new Set(PRIVACY_CONTRACT.eventReasons);
+const SESSION_STATUSES = new Set(PRIVACY_CONTRACT.sessionStatuses);
+const GAME_PHASES = new Set(PRIVACY_CONTRACT.gamePhases);
+const EVENT_TYPES = new Set(PRIVACY_CONTRACT.eventTypes);
+const EVENT_OUTCOMES = new Set(PRIVACY_CONTRACT.eventOutcomes);
+const EVENT_ACTORS = new Set(PRIVACY_CONTRACT.eventActors);
+const EVENT_DETAILS = new Set(PRIVACY_CONTRACT.eventDetails);
+const PLAYBACK_STATUSES = new Set(PRIVACY_CONTRACT.playbackStatuses);
+const COMMAND_KINDS = new Set(PRIVACY_CONTRACT.commandKinds);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function iso(timestamp) {
-  return Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toISOString() : null;
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0) return null;
+  try { return new Date(timestamp).toISOString(); } catch { return null; }
+}
+
+function nonnegativeInteger(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 function tableExists(db, name) {
@@ -42,9 +62,84 @@ function maximum(...values) {
   return available.length ? Math.max(...available) : null;
 }
 
-function liveness({ status, phase, lastMeaningfulAt, lastClientAt, leaseActive, now }) {
-  if (status === 'ended' || phase === 'finished') {
+function eventReason(value) {
+  if (value === null || value === undefined) return null;
+  return EVENT_REASON_CODES.has(value) ? value : 'unrecognized_reason';
+}
+
+function reviewed(value, allowed, fallback) {
+  if (value === null || value === undefined) return null;
+  return allowed.has(value) ? value : fallback;
+}
+
+function terminalAssessment({
+  status, phase, endedAt, terminalEvents, terminalOutcome, historyAvailable, coverage, eventCount = 0,
+}) {
+  const reviewedStatus = reviewed(status, SESSION_STATUSES, null);
+  const reviewedPhase = reviewed(phase, GAME_PHASES, null);
+  const reviewedOutcome = terminalOutcome === 'completed' || terminalOutcome === 'abandoned'
+    ? terminalOutcome
+    : null;
+  const eventOutcomes = terminalEvents.map((event) => event.event_type === 'game_completed'
+    ? (event.outcome === 'completed' ? 'completed' : null)
+    : event.event_type === 'game_abandoned' && event.outcome === 'abandoned' ? 'abandoned' : null);
+  const retainedHistory = Boolean(coverage?.purged_at);
+  const fullHistoryExpected = historyAvailable && coverage && !retainedHistory;
+  const coverageComplete = !fullHistoryExpected || (
+    nonnegativeInteger(coverage?.last_recorded_revision) !== null
+    && nonnegativeInteger(coverage?.current_revision) !== null
+    && coverage.last_recorded_revision === coverage.current_revision
+    && coverage.lifecycle_state === 'sealed'
+  );
+  const impossibleRetainedEvents = Boolean(retainedHistory && eventCount > 0);
+  const resolved = reviewedOutcome ?? eventOutcomes.find(Boolean) ?? null;
+  const phaseMatches = resolved === 'completed'
+    ? reviewedPhase === 'finished'
+    : resolved === 'abandoned' && reviewedPhase !== null && reviewedPhase !== 'finished';
+  const eventsMatch = eventOutcomes.every((outcome) => outcome === resolved)
+    && (!fullHistoryExpected || (eventOutcomes.length === 1 && eventOutcomes[0] === resolved))
+    && (!historyAvailable || Boolean(coverage));
+  const consistent = resolved
+    ? Boolean(
+      reviewedOutcome === resolved
+      && reviewedStatus === 'ended'
+      && Number.isFinite(endedAt) && endedAt > 0
+      && phaseMatches
+      && eventsMatch
+      && coverageComplete
+      && !impossibleRetainedEvents
+    )
+    : Boolean(
+      reviewedStatus && reviewedStatus !== 'ended'
+      && reviewedPhase && reviewedPhase !== 'finished'
+      && !endedAt
+      && eventOutcomes.length === 0
+      && !impossibleRetainedEvents
+    );
+  return { consistent, resolved };
+}
+
+function liveness({
+  status, phase, endedAt, terminalEvents, terminalOutcome, historyAvailable, coverage,
+  lastMeaningfulAt, lastClientAt, leaseActive, now, eventCount,
+}) {
+  const terminal = terminalAssessment({
+    status, phase, endedAt, terminalEvents, terminalOutcome, historyAvailable, coverage, eventCount,
+  });
+  if (!terminal.consistent) {
+    return { state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent' };
+  }
+  if (terminal.resolved === 'abandoned') {
+    return { state: 'abandoned', confidence: 'confirmed', reasonCode: 'explicit_host_abandonment' };
+  }
+  if (terminal.resolved === 'completed') {
+    return { state: 'completed', confidence: 'confirmed', reasonCode: 'game_completed' };
+  }
+  if (phase === 'finished') {
     return { state: 'completed', confidence: 'confirmed', reasonCode: 'session_finished' };
+  }
+  if (status === 'ended') {
+    return { state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_outcome_unavailable' };
   }
   if (!lastMeaningfulAt) {
     return { state: 'unknown', confidence: 'unavailable', reasonCode: 'meaningful_history_unavailable' };
@@ -80,15 +175,27 @@ export function sessionReport(db, {
     throw new Error('sinceHours must be between 1 and 2160');
   }
   const cutoff = now - sinceHours * 60 * 60 * 1000;
+  const eventHistoryAvailable = tableExists(db, 'game_events');
+  const runColumns = new Set(many(db, 'PRAGMA table_info(game_runs)').map((column) => column.name));
+  const coverageColumns = tableExists(db, 'game_event_coverage')
+    ? new Set(many(db, 'PRAGMA table_info(game_event_coverage)').map((column) => column.name))
+    : new Set();
+  const revisionProjection = runColumns.has('revision') ? 'game_runs.revision' : '0';
+  const terminalProjection = runColumns.has('terminal_outcome') ? 'game_runs.terminal_outcome' : 'NULL';
   const sessions = many(db, `
     SELECT game_sessions.code, game_sessions.status, game_sessions.created_at,
            game_sessions.updated_at, game_sessions.active_run_id,
            game_runs.state AS run_state, game_runs.updated_at AS run_updated_at,
-           game_runs.ended_at AS run_ended_at
+           game_runs.ended_at AS run_ended_at, ${revisionProjection} AS run_revision,
+           ${terminalProjection} AS run_terminal_outcome
     FROM game_sessions
     LEFT JOIN game_runs ON game_runs.id = game_sessions.active_run_id
     WHERE game_sessions.created_at >= ? OR game_sessions.updated_at >= ?
        OR game_runs.updated_at >= ? OR game_runs.ended_at >= ?
+       ${eventHistoryAvailable ? `OR EXISTS (
+         SELECT 1 FROM game_events
+         WHERE game_events.run_id = game_runs.id AND game_events.occurred_at >= ${Number(cutoff)}
+       )` : ''}
     ORDER BY COALESCE(game_runs.updated_at, game_sessions.updated_at) DESC
   `, cutoff, cutoff, cutoff, cutoff);
 
@@ -96,7 +203,7 @@ export function sessionReport(db, {
     generatedAt: new Date(now).toISOString(),
     applicationVersion,
     catalogVersion,
-    historyBoundary: 'current snapshots and transient audio state; chronological history unavailable until Slice 2',
+    historyBoundary: 'authoritative current snapshots plus a privacy-bounded, run-scoped significant-event trail',
     sessions: sessions.map((row) => {
       const state = parsedState(row.run_state);
       const players = Array.isArray(state?.players) ? state.players : [];
@@ -136,15 +243,53 @@ export function sessionReport(db, {
         ORDER BY created_at DESC LIMIT 1
       `, row.code) : undefined;
       const lastClientAt = maximum(member.last_seen_at, guest?.last_seen_at, playerIdentity?.last_seen_at);
-      const lastMeaningfulAt = maximum(row.created_at, row.updated_at, row.run_updated_at, row.run_ended_at);
       const leaseActive = Boolean(lease?.expires_at && lease.expires_at > now);
       const sourceOnline = Boolean(lease?.source_last_seen_at && lease.source_last_seen_at > now - SOURCE_ONLINE_MS);
+      const eventCount = row.active_run_id && eventHistoryAvailable ? one(db, `
+        SELECT COUNT(*) AS count, MAX(occurred_at) AS latest_at
+        FROM game_events WHERE run_id = ?
+      `, row.active_run_id) : undefined;
+      const eventOutcomes = row.active_run_id && eventCount ? many(db, `
+        SELECT outcome, COUNT(*) AS count
+        FROM game_events WHERE run_id = ? GROUP BY outcome ORDER BY outcome
+      `, row.active_run_id) : [];
+      const recentEvents = row.active_run_id && eventCount ? many(db, `
+        SELECT sequence, event_type, outcome, actor_type, round,
+               detail_code, detail_value, reason_code, occurred_at
+        FROM game_events WHERE run_id = ? ORDER BY sequence DESC LIMIT 20
+      `, row.active_run_id).reverse() : [];
+      const terminalEvents = row.active_run_id && eventCount ? many(db, `
+        SELECT event_type, outcome, occurred_at FROM game_events
+        WHERE run_id = ? AND event_type IN ('game_completed', 'game_abandoned')
+        ORDER BY sequence
+      `, row.active_run_id) : [];
+      const terminalEvent = terminalEvents.at(-1);
+      const coverage = row.active_run_id && tableExists(db, 'game_event_coverage') ? one(db, `
+        SELECT baseline_revision, last_recorded_revision,
+               ${coverageColumns.has('purged_at') ? 'purged_at' : 'NULL AS purged_at'},
+               ${coverageColumns.has('lifecycle_state') ? 'lifecycle_state' : "'recording' AS lifecycle_state"}
+        FROM game_event_coverage WHERE run_id = ?
+      `, row.active_run_id) : undefined;
+      if (coverage) coverage.current_revision = row.run_revision;
+      const terminal = terminalAssessment({
+        status: row.status,
+        phase: state?.phase,
+        endedAt: row.run_ended_at,
+        terminalEvents,
+        terminalOutcome: row.run_terminal_outcome,
+        historyAvailable: eventHistoryAvailable,
+        coverage,
+        eventCount: Number(eventCount?.count ?? 0),
+      });
+      const lastMeaningfulAt = maximum(
+        row.created_at, row.updated_at, row.run_updated_at, row.run_ended_at, eventCount?.latest_at,
+      );
       return {
-        lobbyId: row.code,
-        runId: row.active_run_id ?? null,
-        databaseStatus: row.status,
-        phase: typeof state?.phase === 'string' ? state.phase : null,
-        round: Number.isInteger(state?.round) ? state.round : null,
+        lobbyId: /^[A-Z0-9]{6}$/.test(row.code) ? row.code : 'unrecognized_lobby',
+        runId: UUID.test(row.active_run_id ?? '') ? row.active_run_id : null,
+        databaseStatus: reviewed(row.status, SESSION_STATUSES, 'unrecognized_status'),
+        phase: reviewed(state?.phase, GAME_PHASES, 'unrecognized_phase'),
+        round: nonnegativeInteger(state?.round),
         createdAt: iso(row.created_at),
         lastMeaningfulAt: iso(lastMeaningfulAt),
         clientPresence: {
@@ -155,25 +300,76 @@ export function sessionReport(db, {
         },
         gameplaySeats: { count: players.length, controls },
         audio: lease ? {
-          leaseId: lease.id,
-          sourceId: lease.source_id,
+          leaseId: UUID.test(lease.id ?? '') ? lease.id : null,
+          sourceId: UUID.test(lease.source_id ?? '') ? lease.source_id : null,
           leaseActive,
           expiresAt: iso(lease.expires_at),
           sourceOnline,
           sourceLastSeenAt: iso(lease.source_last_seen_at),
-          playbackStatus: lease.playback_status,
+          playbackStatus: reviewed(lease.playback_status, PLAYBACK_STATUSES, 'unrecognized_playback_status'),
           errorCategory: lease.lease_error || lease.source_error ? 'managed_source_error' : null,
           latestCommand: command ? {
-            kind: command.kind,
+            kind: reviewed(command.kind, COMMAND_KINDS, 'unrecognized_command_kind'),
             requestedAt: iso(command.created_at),
             delivered: Boolean(command.delivered_at),
             completed: Boolean(command.completed_at),
             errorCategory: command.error ? 'command_failed' : null,
           } : null,
         } : { leaseActive: false, sourceOnline: false, state: 'not_leased' },
+        history: eventCount ? {
+          available: true,
+          eventCount: Number(eventCount.count),
+          latestAt: iso(eventCount.latest_at),
+          outcomes: eventOutcomes.reduce((counts, outcome) => {
+            const key = reviewed(outcome.outcome, EVENT_OUTCOMES, 'unrecognized_outcome');
+            counts[key] = (counts[key] ?? 0) + Number(outcome.count);
+            return counts;
+          }, {}),
+          terminal: terminalEvent ? {
+            type: reviewed(terminalEvent.event_type, EVENT_TYPES, 'unrecognized_event_type'),
+            outcome: reviewed(terminalEvent.outcome, EVENT_OUTCOMES, 'unrecognized_outcome'),
+            occurredAt: iso(terminalEvent.occurred_at),
+            consistent: terminal.consistent,
+          } : null,
+          coverage: coverage ? {
+            complete: Number(coverage.last_recorded_revision) === Number(row.run_revision),
+            baselineRevision: nonnegativeInteger(coverage.baseline_revision),
+            lastRecordedRevision: nonnegativeInteger(coverage.last_recorded_revision),
+            currentRevision: nonnegativeInteger(row.run_revision),
+            lifecycle: reviewed(coverage.lifecycle_state, new Set(PRIVACY_CONTRACT.historyLifecycle), null),
+          } : {
+            complete: false,
+            reasonCode: 'coverage_marker_unavailable',
+          },
+          retention: coverage?.purged_at ? {
+            state: 'purged',
+            purgedAt: iso(coverage.purged_at),
+          } : { state: 'full-history', purgedAt: null },
+          recentEvents: recentEvents.map((event) => ({
+            sequence: nonnegativeInteger(event.sequence),
+            type: reviewed(event.event_type, EVENT_TYPES, 'unrecognized_event_type'),
+            outcome: reviewed(event.outcome, EVENT_OUTCOMES, 'unrecognized_outcome'),
+            actorType: reviewed(event.actor_type, EVENT_ACTORS, 'unrecognized_actor_type'),
+            round: event.round === null ? null : nonnegativeInteger(event.round),
+            detailCode: reviewed(event.detail_code, EVENT_DETAILS, 'unrecognized_detail_code'),
+            detailValue: event.detail_value === null ? null : nonnegativeInteger(event.detail_value),
+            reasonCode: eventReason(event.reason_code),
+            occurredAt: iso(event.occurred_at),
+          })),
+          truncated: Number(eventCount.count) > recentEvents.length,
+        } : {
+          available: false,
+          reasonCode: 'significant_event_history_unavailable',
+        },
         liveness: liveness({
           status: row.status,
           phase: state?.phase,
+          endedAt: row.run_ended_at,
+          terminalEvents,
+          terminalOutcome: row.run_terminal_outcome,
+          historyAvailable: eventHistoryAvailable,
+          coverage,
+          eventCount: Number(eventCount?.count ?? 0),
           lastMeaningfulAt,
           lastClientAt,
           leaseActive,
@@ -363,10 +559,19 @@ export function formatSessionReport(report) {
   ];
   if (!report.sessions.length) return [...lines, 'No current or recent sessions.'].join('\n');
   for (const session of report.sessions) {
+    const coverage = session.history.coverage;
+    const coverageText = coverage?.complete
+      ? `complete baseline=${coverage.baselineRevision} current=${coverage.currentRevision}`
+      : `incomplete baseline=${coverage?.baselineRevision ?? '-'} current=${coverage?.currentRevision ?? '-'}`;
+    const retentionText = session.history.retention?.state ?? 'unknown';
+    const terminalText = session.history.terminal
+      ? `${session.history.terminal.type}/${session.history.terminal.consistent ? 'consistent' : 'inconsistent'}`
+      : 'none';
     lines.push(
       `${session.lobbyId} run=${session.runId ?? '-'} phase=${session.phase ?? 'unknown'} round=${session.round ?? '-'} liveness=${session.liveness.state}/${session.liveness.confidence}`,
       `  seats=${session.gameplaySeats.count} clients=${session.clientPresence.accountMembers + session.clientPresence.activeGuests} lastMeaningful=${session.lastMeaningfulAt ?? 'unknown'} lastSeen=${session.clientPresence.lastSeenAt ?? 'unknown'}`,
-      `  audio=${session.audio.playbackStatus ?? session.audio.state} leaseActive=${session.audio.leaseActive} sourceOnline=${session.audio.sourceOnline} history=current-state-only`,
+      `  audio=${session.audio.playbackStatus ?? session.audio.state} leaseActive=${session.audio.leaseActive} sourceOnline=${session.audio.sourceOnline} history=${session.history.available ? `${session.history.eventCount}-events` : 'unavailable'}`,
+      `  coverage=${coverageText} retention=${retentionText} terminal=${terminalText} truncated=${Boolean(session.history.truncated)}`,
     );
   }
   return lines.join('\n');

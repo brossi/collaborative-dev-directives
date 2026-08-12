@@ -26,6 +26,7 @@
     "test:do": "NEXT_PUBLIC_CANNABEATS_BASE_PATH=/game npm run catalog && NEXT_PUBLIC_CANNABEATS_BASE_PATH=/game npm run build:do && node --test --test-concurrency=1 tests/do-*.test.mjs",
     "test:sites": "npm run build:sites && node --test --test-concurrency=1 tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "history": "node scripts/game-history.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

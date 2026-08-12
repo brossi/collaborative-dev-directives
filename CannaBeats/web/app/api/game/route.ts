@@ -10,6 +10,12 @@ import {
 import { DEFAULT_GAME_RULES, ERA_BUCKETS, normalizeRules } from "../../../lib/rules";
 import { database, randomToken, sha256 } from "../../../lib/server/database";
 import {
+  advanceGameEventCoverage,
+  gameHistory,
+  recordGameEvent,
+  sealGameHistory,
+} from "../../../lib/server/game-events.ts";
+import {
   GameStateBusyError,
   StaleGameStateError,
   isDatabaseBusy,
@@ -21,6 +27,7 @@ import {
   enqueueManagedAudioCommand,
   managedAudioView,
   releaseManagedAudioLease,
+  renewManagedAudioLeaseIfNeeded,
   selectAudioSource,
   selectedAudioView,
 } from "../../../lib/server/managed-audio";
@@ -35,6 +42,8 @@ type RunRow = {
   state: string;
   revision: number;
   run_generation: number;
+  ended_at: number | null;
+  terminal_outcome: "completed" | "abandoned" | null;
 };
 
 type Principal = {
@@ -194,7 +203,8 @@ function newRoomState(runId: string, code: string, rules: unknown): RoomState {
 function loadRoom(code: string) {
   const row = database().prepare(`
     SELECT game_runs.id, game_runs.session_code, game_sessions.host_user_id,
-      game_runs.state, game_runs.revision, game_sessions.run_generation
+      game_runs.state, game_runs.revision, game_sessions.run_generation,
+      game_runs.ended_at, game_runs.terminal_outcome
     FROM game_sessions JOIN game_runs ON game_runs.id = game_sessions.active_run_id
     WHERE game_sessions.code = ?
   `).get(code) as RunRow | undefined;
@@ -278,6 +288,7 @@ function mutateRoomOnce({
   mutate: (room: NonNullable<ReturnType<typeof loadRoom>>) => {
     audio?: AudioControlView;
     status?: number;
+    sealHistory?: boolean;
   } | void;
   replay?: (room: NonNullable<ReturnType<typeof loadRoom>>) => { audio?: AudioControlView };
 }) {
@@ -327,6 +338,10 @@ function mutateRoomOnce({
       };
     }
 
+    if (current.row.ended_at) {
+      throw new GameRequestError("This game has ended.", 409, "game_ended");
+    }
+
     if (current.state.revision !== expectedRevision) {
       throw new GameRequestError(
         "The game changed before this action arrived.",
@@ -337,11 +352,18 @@ function mutateRoomOnce({
 
     const result = mutate(current) ?? {};
     saveRoom(current.state);
+    const historyCoverageAdvanced = advanceGameEventCoverage(
+      current.row.id, expectedRevision, current.state.revision,
+    );
     db.prepare(`
       INSERT INTO game_action_receipts
         (run_id, actor_id, action_id, action, request_fingerprint, accepted_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(current.row.id, principal.id, actionId, action, fingerprint, Date.now());
+    // A Slice-1/legacy writer can leave a disclosed event-coverage gap. The
+    // gameplay terminal action must still commit, but an incomplete trail must
+    // remain unsealed and therefore ineligible for destructive retention.
+    if (result.sealHistory && historyCoverageAdvanced) sealGameHistory(current.row.id);
     db.exec("COMMIT");
     return {
       payload: {
@@ -481,7 +503,9 @@ function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: P
       database().prepare(`DELETE FROM game_run_player_identities WHERE run_id = ? AND user_id = ?`)
         .run(room.row.id, principal.id);
     }
+    const expectedRevision = room.state.revision;
     saveRoom(room.state);
+    advanceGameEventCoverage(room.row.id, expectedRevision, room.state.revision);
     database().prepare(`
       INSERT INTO game_run_player_identities (run_id, user_id, player_id, joined_at, last_seen_at)
       VALUES (?, ?, ?, ?, ?)
@@ -491,6 +515,16 @@ function joinPlayer(room: NonNullable<ReturnType<typeof loadRoom>>, principal: P
       VALUES (?, ?, ?, ?)
       ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
     `).run(room.state.code, principal.id, now, now);
+    recordGameEvent({
+      runId: room.row.id,
+      type: "player_joined",
+      outcome: "accepted",
+      actorType: "player",
+      actorRef: player.id,
+      round: room.state.round,
+      detailCode: "phone",
+      occurredAt: now,
+    });
     database().exec("COMMIT");
   } catch (error) {
     database().exec("ROLLBACK");
@@ -530,13 +564,80 @@ function executeRunBoundMutation(
       if (GAME_ACTION_POLICIES[action].authority === "host" && !callerIsHost) {
         throw new GameRequestError("Host access required.", 403);
       }
+      const event = (
+        type: Parameters<typeof recordGameEvent>[0]["type"],
+        fields: Partial<Omit<Parameters<typeof recordGameEvent>[0], "runId" | "type" | "actorType">> = {},
+      ) => recordGameEvent({
+        runId: current.row.id,
+        type,
+        outcome: "accepted",
+        actorType: callerIsHost ? "host" : "player",
+        actionId,
+        round: state.round,
+        ...fields,
+      });
+      const recordLeaseResult = (
+        result: ReturnType<typeof releaseManagedAudioLease>,
+        reasonCode: "explicit_release" | "source_selected_local" | "game_completed" | "game_abandoned",
+        occurredAt = Date.now(),
+      ) => {
+        for (const command of result.commands) {
+          event(command.status === "cancelled"
+            ? "audio_command_cancelled"
+            : "audio_command_outcome_unknown", {
+            outcome: command.status === "cancelled" ? "cancelled" : "unknown",
+            detailCode: command.kind,
+            commandRef: command.id,
+            reasonCode,
+            occurredAt,
+          });
+        }
+        if (result.transition === "released") {
+          event("audio_lease_released", { detailCode: "managed", reasonCode, occurredAt });
+        }
+        return result.audio;
+      };
+      const recordLeaseAcquisition = (result: ReturnType<typeof selectAudioSource>) => {
+        if (result.transition === "acquired") event("audio_lease_acquired", { detailCode: "managed" });
+        if (result.transition === "renewed") event("audio_lease_renewed", { detailCode: "managed" });
+        return result.audio;
+      };
+      if (callerIsHost
+          && !["abandon", "audioAcquire", "audioSelect", "audioRelease"].includes(action)
+          && renewManagedAudioLeaseIfNeeded(code)) {
+        event("audio_lease_renewed", { detailCode: "managed" });
+      }
       switch (action) {
+        case "abandon": {
+          const endedAt = Date.now();
+          database().prepare(`
+            UPDATE game_runs SET ended_at = ?, terminal_outcome = 'abandoned' WHERE id = ?
+          `).run(endedAt, current.row.id);
+          database().prepare("UPDATE game_sessions SET status = 'ended', updated_at = ? WHERE code = ?")
+            .run(endedAt, code);
+          const audio = recordLeaseResult(releaseManagedAudioLease(code), "game_abandoned", endedAt);
+          recordGameEvent({
+            runId: current.row.id,
+            type: "game_abandoned",
+            outcome: "abandoned",
+            actorType: "host",
+            actionId,
+            round: state.round,
+            occurredAt: endedAt,
+          });
+          return { audio, sealHistory: true };
+        }
         case "audioAcquire": {
           if (state.phase === "finished") throw new GameRequestError("This game has finished.", 409);
           const acquired = selectAudioSource(code, principal.id, "managed");
-          const audio = (state.phase === "playing" || state.phase === "placed") && state.currentSong?.uri
-            ? enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri)
-            : acquired;
+          let audio: AudioControlView = recordLeaseAcquisition(acquired);
+          if (acquired.transition === "acquired"
+              && (state.phase === "playing" || state.phase === "placed")
+              && state.currentSong?.uri) {
+            const command = enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+            audio = command.audio;
+            event("audio_command_requested", { detailCode: "play", commandRef: command.commandId });
+          }
           return { audio };
         }
         case "audioSelect": {
@@ -545,10 +646,16 @@ function executeRunBoundMutation(
           if (selection !== "managed" && selection !== "local") {
             throw new GameRequestError("Audio source is invalid.");
           }
-          return { audio: selectAudioSource(code, principal.id, selection) };
+          const result = selectAudioSource(code, principal.id, selection);
+          const audio = selection === "local"
+            ? recordLeaseResult(result, "source_selected_local")
+            : recordLeaseAcquisition(result);
+          event("audio_source_selected", { detailCode: selection });
+          return { audio };
         }
         case "audioRelease": {
-          return { audio: releaseManagedAudioLease(code) };
+          const audio = recordLeaseResult(releaseManagedAudioLease(code), "explicit_release");
+          return { audio };
         }
         case "audioControl": {
           if (state.phase !== "playing" && state.phase !== "placed") {
@@ -561,13 +668,17 @@ function executeRunBoundMutation(
           if (managedAudioView(code).mode !== "managed") {
             throw new GameRequestError("This game does not own the managed audio source.", 409);
           }
-          return { audio: enqueueManagedAudioCommand(code, principal.id, command) };
+          const queued = enqueueManagedAudioCommand(code, principal.id, command);
+          event("audio_command_requested", { detailCode: command, commandRef: queued.commandId });
+          return { audio: queued.audio };
         }
         case "addPlayer": {
           if (state.phase !== "lobby") throw new GameRequestError("Players are locked after the game starts.", 409);
           const name = String(payload.name ?? "").trim().slice(0, 24);
           if (!name) throw new GameRequestError("Player name is required.");
-          state.players.push({ id: randomUUID(), name, control: "host", timeline: [] });
+          const player = { id: randomUUID(), name, control: "host" as const, timeline: [] };
+          state.players.push(player);
+          event("player_joined", { actorRef: player.id, detailCode: "host" });
           return { status: 201 };
         }
         case "removePlayer": {
@@ -577,6 +688,7 @@ function executeRunBoundMutation(
             throw new GameRequestError("Player not found.", 404);
           }
           state.players = state.players.filter((player) => player.id !== playerId);
+          event("player_removed", { actorRef: playerId });
           const identity = database().prepare(`
             SELECT user_id FROM game_run_player_identities WHERE run_id = ? AND player_id = ?
           `).get(current.row.id, playerId) as { user_id: string } | undefined;
@@ -590,11 +702,12 @@ function executeRunBoundMutation(
         case "rules":
           if (state.phase !== "lobby") throw new GameRequestError("Rules are locked after the game starts.", 409);
           state.rules = normalizeRules(payload.rules);
+          event("game_configured");
           return {};
         case "start": {
           if (state.phase !== "lobby") throw new GameRequestError("The game has already started.");
           if (!state.players.length) throw new GameRequestError("At least one player is required.");
-          const audio = selectedAudioView(code, principal.id);
+          const audio = selectedAudioView(code);
           if (audio.selection === "managed" && (audio.mode !== "managed" || !audio.sourceOnline)) {
             throw new GameRequestError("The managed audio source is offline.", 409);
           }
@@ -611,6 +724,7 @@ function executeRunBoundMutation(
           `).run(Date.now(), code);
           database().prepare("UPDATE game_sessions SET status = 'playing', updated_at = ? WHERE code = ?")
             .run(Date.now(), code);
+          event("game_started", { detailValue: state.players.length });
           return {};
         }
         case "begin": {
@@ -618,10 +732,12 @@ function executeRunBoundMutation(
             throw new GameRequestError("The first round is not ready.", 409);
           }
           state.phase = "playing";
-          const audio = selectedAudioView(code, principal.id);
+          const audio = selectedAudioView(code);
           if (audio.mode === "managed") {
-            enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+            const command = enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+            event("audio_command_requested", { detailCode: "play", commandRef: command.commandId });
           }
+          event("track_requested", { detailCode: "play" });
           return { audio: managedAudioView(code) };
         }
         case "place": {
@@ -640,6 +756,7 @@ function executeRunBoundMutation(
           }
           state.placement = index;
           state.phase = "placed";
+          event("placement_locked", { actorRef: player.id, detailValue: index });
           return {};
         }
         case "retract": {
@@ -657,6 +774,7 @@ function executeRunBoundMutation(
           state.placement = null;
           state.retractionUsed = true;
           state.phase = "playing";
+          event("placement_retracted", { actorRef: player.id });
           return {};
         }
         case "reveal":
@@ -664,13 +782,34 @@ function executeRunBoundMutation(
             throw new GameRequestError("Wait for the active player to lock a placement.", 409);
           }
           revealPlacement(state);
+          event("answer_revealed", {
+            detailCode: state.result?.correct ? "correct" : "incorrect",
+            detailValue: state.result?.index,
+          });
           return {};
         case "advance": {
           if (state.phase !== "revealed") throw new GameRequestError("Reveal this round first.", 409);
-          if (state.winnerId) {
+          const gameCompleted = Boolean(state.winnerId);
+          if (gameCompleted) {
             state.phase = "finished";
-            database().prepare("UPDATE game_runs SET ended_at = ? WHERE id = ?").run(Date.now(), current.row.id);
-            releaseManagedAudioLease(code);
+            const endedAt = Date.now();
+            database().prepare(`
+              UPDATE game_runs SET ended_at = ?, terminal_outcome = 'completed' WHERE id = ?
+            `).run(endedAt, current.row.id);
+            database().prepare("UPDATE game_sessions SET status = 'ended', updated_at = ? WHERE code = ?")
+              .run(endedAt, code);
+            const released = releaseManagedAudioLease(code);
+            recordGameEvent({
+              runId: current.row.id,
+              type: "game_completed",
+              outcome: "completed",
+              actorType: "host",
+              actorRef: state.winnerId,
+              actionId,
+              round: state.round,
+              occurredAt: endedAt,
+            });
+            recordLeaseResult(released, "game_completed", endedAt);
           } else {
             state.activePlayerIndex = (state.activePlayerIndex + 1) % state.players.length;
             state.activePlayerId = state.players[state.activePlayerIndex].id;
@@ -681,10 +820,13 @@ function executeRunBoundMutation(
             state.round += 1;
             state.phase = "playing";
             if (managedAudioView(code).mode === "managed") {
-              enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+              const command = enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+              event("audio_command_requested", { detailCode: "play", commandRef: command.commandId });
             }
+            event("round_advanced");
+            event("track_requested", { detailCode: "play" });
           }
-          return { audio: managedAudioView(code) };
+          return { audio: managedAudioView(code), sealHistory: gameCompleted };
         }
         case "skip":
           if (state.phase !== "playing" && state.phase !== "placed") {
@@ -697,8 +839,11 @@ function executeRunBoundMutation(
           state.phase = "playing";
           state.round += 1;
           if (managedAudioView(code).mode === "managed") {
-            enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+            const command = enqueueManagedAudioCommand(code, principal.id, "play", state.currentSong.uri);
+            event("audio_command_requested", { detailCode: "play", commandRef: command.commandId });
           }
+          event("track_skipped");
+          event("track_requested", { detailCode: "play" });
           return { audio: managedAudioView(code) };
       }
     },
@@ -725,6 +870,17 @@ async function getGame(request: Request) {
   try {
     const principal = requirePrincipal(request);
     const url = new URL(request.url);
+    const historyRunId = url.searchParams.get("runId");
+    if (historyRunId) {
+      if (!UUID_ID.test(historyRunId)) return fail("Game run ID is invalid.");
+      const run = database().prepare("SELECT session_code FROM game_runs WHERE id = ?")
+        .get(historyRunId) as { session_code: string } | undefined;
+      if (!run || !isLobbyMember(run.session_code, principal)) return fail("Game history not found.", 404);
+      return Response.json(
+        { history: gameHistory(historyRunId) },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const code = url.searchParams.get("code")?.trim().toUpperCase() ?? "";
     if (!code) return fail("Room code is required.");
     if (!isLobbyMember(code, principal)) return fail("Game session not found.", 404);
@@ -734,7 +890,7 @@ async function getGame(request: Request) {
     return Response.json(
       {
         room: roomView(room.state, callerIsHost),
-        audio: selectedAudioView(code, callerIsHost ? principal.id : undefined),
+        audio: selectedAudioView(code),
       },
       { headers: { "Cache-Control": "no-store" } },
     );
@@ -790,13 +946,13 @@ async function postGame(request: Request) {
       }
       if (!created) return Response.json({
         room: roomView(state, true),
-        audio: selectedAudioView(code, principal.id),
+        audio: selectedAudioView(code),
         created: false,
       });
       const joinOrigin = process.env.CANNABEATS_PUBLIC_GAME_ORIGIN
         ?? `${new URL(request.url).origin}${process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? ""}`;
       return Response.json(
-        { room: roomView(state, true), audio: selectedAudioView(code, principal.id), created: true, joinOrigin },
+        { room: roomView(state, true), audio: selectedAudioView(code), created: true, joinOrigin },
         { status: 201 },
       );
     }

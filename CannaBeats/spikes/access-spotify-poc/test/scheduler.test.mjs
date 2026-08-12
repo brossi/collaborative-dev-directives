@@ -14,18 +14,41 @@ test('scheduled backup and component checks have layered timeouts and local aler
   const backup = readFileSync(resolve('deploy/cannabeats-backup.service'), 'utf8');
   const operations = readFileSync(resolve('deploy/cannabeats-operations-check.service'), 'utf8');
   const timer = readFileSync(resolve('deploy/cannabeats-operations-check.timer'), 'utf8');
-  for (const unit of [backup, operations]) {
+  const history = readFileSync(resolve('deploy/cannabeats-history-retention.service'), 'utf8');
+  const historyTimer = readFileSync(resolve('deploy/cannabeats-history-retention.timer'), 'utf8');
+  for (const unit of [backup, operations, history]) {
     assert.match(unit, /^OnFailure=cannabeats-operations-alert@%n\.service$/m);
     assert.match(unit, /^TimeoutStartSec=\d+/m);
     assert.match(unit, /^RuntimeMaxSec=\d+/m);
   }
   assert.match(timer, /^OnUnitInactiveSec=15m$/m);
+  assert.match(historyTimer, /^OnCalendar=\*-\*-\* 04:10:00$/m);
+  assert.match(historyTimer, /^Persistent=true$/m);
+  assert.match(history, /^Requires=docker\.service cannabeats-backup\.service$/m);
+  assert.match(history, /^After=docker\.service cannabeats-backup\.service$/m);
   const backupScript = readFileSync(resolve('deploy/run-backup.sh'), 'utf8');
   const operationsScript = readFileSync(resolve('deploy/run-operations-check.sh'), 'utf8');
+  const historyScript = readFileSync(resolve('deploy/run-history-retention.sh'), 'utf8');
+  const compose = readFileSync(resolve('compose.yaml'), 'utf8');
+  const release = readFileSync(resolve('deploy/release.sh'), 'utf8');
+  const operationsDockerfile = readFileSync(resolve('../../web/Operations.Dockerfile'), 'utf8');
   assert.match(backupScript, /CANNABEATS_BACKUP_TIMEOUT_SECONDS/);
   assert.match(backupScript, /exec "\$timeout_command" --foreground --kill-after=/);
   assert.match(operationsScript, /CANNABEATS_OPERATIONS_TIMEOUT_SECONDS/);
   assert.match(operationsScript, /exec "\$timeout_command" --foreground --kill-after=/);
+  assert.match(historyScript, /CANNABEATS_GAME_HISTORY_RETENTION_DAYS/);
+  assert.match(historyScript, /run --rm --no-deps history[\s\\]+purge --retention-days/);
+  assert.match(compose, /history:\s+[\s\S]*CANNABEATS_HISTORY_IMAGE/);
+  assert.match(compose, /dockerfile: web\/Operations\.Dockerfile/);
+  assert.doesNotMatch(release, /services:\s+[\s\S]*history:\s+[\s\S]*image:/);
+  assert.match(operationsDockerfile, /ENTRYPOINT \["node", "scripts\/game-history\.mjs"\]/);
+  const runbook = readFileSync(resolve('../../docs/operations/baseline-protection.md'), 'utf8');
+  assert.match(runbook, /install -d -o root -g root -m 0750 \/etc\/cannabeats/);
+  assert.match(runbook, /systemctl start cannabeats-history-retention\.service/);
+  assert.match(runbook, /systemctl show cannabeats-history-retention\.service[^\n]*Result/);
+  const slicePlan = readFileSync(resolve('../../docs/slice-2-game-night-resilience.md'), 'utf8');
+  assert.match(slicePlan, /retention assets are installable/i);
+  assert.match(slicePlan, /Linux systemd\/Docker rehearsal remains\s+an S2-F gate/i);
 });
 
 test('a command timeout remains a scheduler failure exit', async () => {

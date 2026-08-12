@@ -32,6 +32,15 @@ import {
 } from '../operations/backup.mjs';
 import { openDatabase } from '../db.mjs';
 import { database as gameDatabase } from '../../../web/lib/server/database.ts';
+import {
+  acquireManagedAudioLease,
+  beginManagedAudioCommand,
+  claimManagedAudioCommand,
+  completeManagedAudioCommand,
+  enqueueManagedAudioCommand,
+  pollManagedAudioSource,
+  releaseManagedAudioLease,
+} from '../../../web/lib/server/managed-audio.ts';
 
 const root = mkdtempSync(join(tmpdir(), 'cannabeats-backup-test-'));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -75,11 +84,36 @@ function fixture() {
     VALUES (?, ?, ?, 'place', 'backup-fingerprint', ?)
   `).run(runId, userId, receiptId, Date.now());
   gameDb.prepare(`
+    INSERT INTO game_events
+      (run_id, sequence, event_type, outcome, actor_type, actor_ref, action_id,
+       round, detail_code, occurred_at)
+    VALUES (?, 1, 'placement_locked', 'accepted', 'host', ?, ?, 2, 'correct', ?)
+  `).run(runId, userId, receiptId, Date.now());
+  const sourceId = randomUUID();
+  gameDb.prepare(`
     INSERT INTO managed_audio_sources (id, display_name, token_hash, enabled, created_at)
     VALUES (?, 'Backup Test Source', 'test-source-token-hash', 1, ?)
-  `).run(randomUUID(), Date.now());
+  `).run(sourceId, Date.now());
+  pollManagedAudioSource(sourceId);
+  acquireManagedAudioLease('BKP234', userId);
+  const command = enqueueManagedAudioCommand(
+    'BKP234', userId, 'play', 'spotify:track:backupOutcomeFixture',
+  );
+  const claimGeneration = randomUUID();
+  claimManagedAudioCommand(sourceId, command.commandId, claimGeneration);
+  beginManagedAudioCommand(sourceId, command.commandId, claimGeneration);
+  assert.deepEqual(
+    completeManagedAudioCommand(
+      sourceId, command.commandId, true, 'playing', null, claimGeneration,
+    ),
+    { status: 'completed' },
+  );
+  releaseManagedAudioLease('BKP234');
   gameDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-  return { directory, databasePath, backupPath, restoredPath, passphraseFile, userId, runId, receiptId };
+  return {
+    directory, databasePath, backupPath, restoredPath, passphraseFile,
+    userId, runId, receiptId, sourceId, commandId: command.commandId, claimGeneration,
+  };
 }
 
 function legacyEnvelope(snapshot, metadata, secret) {
@@ -153,13 +187,80 @@ test('an encrypted online backup restores a consistent SQLite database', async (
     paths.runId);
   assert.equal(db.prepare('SELECT actor_id FROM game_action_receipts WHERE action_id = ?')
     .get(paths.receiptId).actor_id, paths.userId);
+  assert.deepEqual(db.prepare(`
+    SELECT event_type, outcome, round FROM game_events WHERE run_id = ? ORDER BY sequence
+  `).all(paths.runId).map((event) => ({ ...event })), [
+    { event_type: 'placement_locked', outcome: 'accepted', round: 2 },
+    { event_type: 'audio_command_completed', outcome: 'completed', round: null },
+  ]);
+  assert.deepEqual({ ...db.prepare(`
+    SELECT baseline_revision, last_recorded_revision
+    FROM game_event_coverage WHERE run_id = ?
+  `).get(paths.runId) }, {
+    baseline_revision: 0,
+    last_recorded_revision: 0,
+  });
+  assert.equal(db.prepare("SELECT terminal_outcome FROM game_runs WHERE id = ?")
+    .get(paths.runId).terminal_outcome, null);
   assert.equal(db.prepare(`
     SELECT COUNT(*) AS count FROM sqlite_schema
     WHERE type = 'trigger' AND name IN ('game_runs_advance_revision', 'game_sessions_advance_run_generation')
   `).get().count, 2);
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM managed_audio_sources').get().count, 1);
+  assert.equal(
+    db.prepare('SELECT device_id FROM managed_audio_sources WHERE id = ?').get(paths.sourceId).device_id,
+    null,
+  );
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_command_outcomes
+    WHERE command_id = ? AND completed_at > 0
+  `).get(paths.commandId).count, 1);
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   db.close();
+  process.env.CANNABEATS_DATABASE_PATH = paths.restoredPath;
+  assert.deepEqual(
+    completeManagedAudioCommand(
+      paths.sourceId, paths.commandId, true, 'playing', null, paths.claimGeneration,
+    ),
+    { status: 'replayed' },
+  );
+});
+
+test('restoring a legacy source device identifier clears it during current initialization', async () => {
+  const directory = mkdtempSync(join(root, 'legacy-device-'));
+  const databasePath = join(directory, 'legacy.sqlite');
+  const backupPath = join(directory, 'legacy.cbbackup');
+  const restoredPath = join(directory, 'restored.sqlite');
+  const passphraseFile = join(directory, 'passphrase');
+  writeFileSync(passphraseFile, 'correct horse battery staple for legacy device\n', { mode: 0o600 });
+  const legacy = openDatabase(databasePath);
+  const sourceId = randomUUID();
+  legacy.exec(`
+    CREATE TABLE managed_audio_sources (
+      id TEXT PRIMARY KEY,
+      display_name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      last_seen_at INTEGER,
+      device_id TEXT,
+      last_error TEXT
+    );
+  `);
+  legacy.prepare(`
+    INSERT INTO managed_audio_sources
+      (id, display_name, token_hash, enabled, created_at, device_id)
+    VALUES (?, 'Legacy Source', ?, 1, ?, 'private-provider-device-sentinel')
+  `).run(sourceId, `legacy-${randomUUID()}`, Date.now());
+  legacy.close();
+  await createBackup({ databasePath, outputPath: backupPath, passphraseFile });
+  restoreBackup({ backupPath, outputPath: restoredPath, passphraseFile });
+  process.env.CANNABEATS_DATABASE_PATH = restoredPath;
+  const migrated = gameDatabase();
+  assert.equal(
+    migrated.prepare('SELECT device_id FROM managed_audio_sources WHERE id = ?').get(sourceId).device_id,
+    null,
+  );
 });
 
 test('online backup remains consistent while a WAL writer stays open and commits', async () => {

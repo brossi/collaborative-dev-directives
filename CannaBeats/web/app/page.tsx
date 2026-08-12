@@ -272,6 +272,9 @@ export default function Home() {
   const [room, setRoom] = useState<RoomView | null>(null);
   const roomSequence = useRef(0);
   const roomCursor = useRef<RoomSnapshotCursor>({ room: null, sequence: 0 });
+  const actRef = useRef<(body: Record<string, unknown>, playNewSong?: boolean) => Promise<boolean>>(
+    async () => false,
+  );
   const [audio, setAudio] = useState<AudioControlView>({ selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" });
   const [session, setSession] = useState<GameSession | null>(null);
   const [name, setName] = useState("");
@@ -583,6 +586,18 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    actRef.current = act;
+  });
+  useEffect(() => {
+    if (!room?.isHost || room.phase === "finished" || audio.selection !== "managed"
+        || audio.mode !== "managed" || busy || blockedOutcome) return;
+    const timer = window.setTimeout(() => {
+      void actRef.current({ action: "audioAcquire" });
+    }, 40_000);
+    return () => window.clearTimeout(timer);
+  }, [audio.mode, audio.selection, blockedOutcome, busy, room?.isHost, room?.phase, room?.revision]);
+
   async function retractPlacement() {
     const credentials = hostControlsActivePlayer
       ? { hostToken: session?.hostToken }
@@ -631,8 +646,8 @@ export default function Home() {
       return;
     }
     if (room?.isHost) {
-      if (audio.selection === "managed" && session) {
-        if (!await act({ action: "audioRelease" })) return;
+      if (room.phase !== "finished") {
+        if (!await act({ action: "abandon" })) return;
       } else {
         void spotify.stop();
       }
@@ -794,6 +809,11 @@ export default function Home() {
               {audio.selection === "managed" ? (
                 <>
                   <p className="spotify-status"><i /> {audio.mode === "managed" && audio.sourceOnline ? `${audio.sourceName ?? "Managed source"} is reserved for this game` : "Linux Spotify source is reconnecting"}</p>
+                  {audio.mode !== "managed" && (
+                    <button className="secondary-button" disabled={busy} type="button" onClick={() => void act({ action: "audioAcquire" })}>
+                      Reserve managed source
+                    </button>
+                  )}
                 </>
               ) : (
                 <>

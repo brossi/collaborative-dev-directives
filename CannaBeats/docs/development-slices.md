@@ -214,6 +214,8 @@ Boundaries:
 
 Working plan: [Slice 2: Game-night resilience](slice-2-game-night-resilience.md)
 
+Structural resilience contract: [ADR 0002](architecture/0002-resilience-protocols-are-persisted-state-machines.md)
+
 Candidate scope:
 
 - Add stable action identifiers and idempotent handling for placement, retraction, reveal, advance, skip, and playback commands

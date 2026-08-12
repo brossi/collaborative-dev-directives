@@ -97,29 +97,56 @@ The backup container has no network, mounts the database volume read-only, write
 3. Install the scheduler:
 
    ```sh
+   sudo install -d -o root -g root -m 0750 /etc/cannabeats
    sudo install -o root -g root -m 0755 deploy/run-backup.sh /usr/local/sbin/cannabeats-backup
+   sudo install -o root -g root -m 0755 deploy/run-history-retention.sh /usr/local/sbin/cannabeats-history-retention
    sudo install -o root -g root -m 0755 deploy/run-operations-check.sh /usr/local/sbin/cannabeats-operations-check
    sudo install -o root -g root -m 0755 deploy/local-operations-alert.sh /usr/local/sbin/cannabeats-local-operations-alert
    sudo install -o root -g root -m 0644 \
      deploy/cannabeats-backup.service deploy/cannabeats-backup.timer \
+     deploy/cannabeats-history-retention.service deploy/cannabeats-history-retention.timer \
      deploy/cannabeats-operations-check.service deploy/cannabeats-operations-check.timer \
      deploy/cannabeats-operations-alert@.service /etc/systemd/system/
    sudo install -o root -g root -m 0600 deploy/backup.env.example /etc/cannabeats/backup.env
    sudo systemctl daemon-reload
-   sudo systemctl enable --now cannabeats-backup.timer cannabeats-operations-check.timer
+   sudo systemctl enable --now cannabeats-backup.timer cannabeats-history-retention.timer cannabeats-operations-check.timer
    sudo systemctl start cannabeats-backup.service
+   sudo systemctl start cannabeats-history-retention.service
    sudo systemctl start cannabeats-operations-check.service
    sudo systemctl status cannabeats-backup.service --no-pager
+   sudo systemctl show cannabeats-history-retention.service --property=Result --no-pager
    sudo systemctl status cannabeats-operations-check.service --no-pager
    ```
 
 4. Verify that the destination contains a `cannabeats-YYYY-MM-DDTHHMMSSZ.cbbackup` file with mode `0600`. Creation streams encryption to a hidden same-directory file, flushes it, and atomically links the completed artifact into its final name without overwriting an existing file. The `run` command verifies the newly created backup and authenticates every recognized retained artifact before pruning. One corrupt or foreign artifact with a recognized backup filename stops all deletion. Retention refuses fewer than 2 or more than 365 copies and ignores unrelated filenames.
 
+The history-retention timer is scheduled independently; each retention service
+activation requires and waits for a fresh successful backup service run.
+It defaults to 90 days, accepts 1–365 through
+`CANNABEATS_GAME_HISTORY_RETENTION_DAYS`, removes events and idempotency receipts
+only for ended runs, and preserves each final authoritative snapshot.
+The purge is idempotent and records a stable retained-history boundary; later
+runs do not count or rewrite an already-purged run.
+
+History retention runs from the separately versioned `history` operations image,
+not from the active `game` container. In production,
+`CANNABEATS_HISTORY_IMAGE` must be pinned to an immutable image digest. Application
+release and rollback overrides intentionally do not set this value, so an exact
+Slice 1 rollback continues to use the compatible operations artifact. Update that
+pin only as an explicit operations deployment, then run the manual retention
+service check above before accepting it.
+
+This deletes history from the live database, not immediately from recovery
+copies. The required pre-purge backup intentionally contains the history about
+to be removed. Those encrypted copies remain subject to the separately
+configured backup-retention count and operator recovery policy. Do not describe
+live-history deletion as immediate erasure from backups.
+
 Inspect scheduling and bounded logs:
 
 ```sh
-systemctl list-timers cannabeats-backup.timer cannabeats-operations-check.timer
-journalctl -u cannabeats-backup.service -u cannabeats-operations-check.service --since today
+systemctl list-timers cannabeats-backup.timer cannabeats-history-retention.timer cannabeats-operations-check.timer
+journalctl -u cannabeats-backup.service -u cannabeats-history-retention.service -u cannabeats-operations-check.service --since today
 sudo find /var/lib/cannabeats/alerts -maxdepth 1 -type f -name '*.failed' -print
 docker inspect --format '{{json .HostConfig.LogConfig}}' cannabeats-access-poc cannabeats-game
 ```

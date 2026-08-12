@@ -1,0 +1,50 @@
+{
+  "sessionStatuses": ["lobby", "playing", "ended"],
+  "gamePhases": ["lobby", "ready", "playing", "placed", "revealed", "finished"],
+  "eventTypes": [
+    "player_joined", "player_removed", "game_configured", "game_started",
+    "track_requested", "placement_locked", "placement_retracted", "answer_revealed",
+    "round_advanced", "track_skipped", "game_completed", "game_abandoned",
+    "audio_source_selected", "audio_lease_acquired", "audio_lease_released",
+    "audio_command_requested", "audio_command_delivered", "audio_command_completed",
+    "audio_command_failed", "audio_command_interrupted", "audio_command_cancelled",
+    "audio_command_outcome_unknown", "audio_lease_expired", "audio_lease_renewed",
+    "audio_source_recovered"
+  ],
+  "eventOutcomes": [
+    "accepted", "completed", "failed", "abandoned", "interrupted", "recovered",
+    "cancelled", "unknown"
+  ],
+  "eventActors": ["host", "player", "source", "system"],
+  "eventDetails": [
+    "host", "phone", "local", "managed", "play", "pause", "resume", "correct", "incorrect"
+  ],
+  "eventReasons": [
+    "authentication_required", "browser_unavailable", "device_unavailable",
+    "explicit_release", "game_abandoned", "game_api_unavailable", "game_completed",
+    "lease_expired", "managed_playback_failed", "relay_unavailable",
+    "source_selected_local", "spotify_unavailable", "unrecognized_reason"
+  ],
+  "playbackStatuses": ["ready", "starting", "playing", "pausing", "paused", "resuming", "error"],
+  "commandKinds": ["play", "pause", "resume"],
+  "historyLifecycle": ["recording", "terminal_pending", "sealed", "purging", "purged"]
+  ,
+  "terminalOutcomes": ["completed", "abandoned"],
+  "memberHistoryFields": [
+    "runId", "lobbyId", "current", "coverage", "retention", "events", "truncated"
+  ],
+  "memberCurrentFields": ["phase", "round", "revision", "updatedAt", "endedAt", "terminalOutcome"],
+  "memberCoverageFields": ["complete", "baselineRevision", "lastRecordedRevision", "currentRevision"],
+  "memberRetentionFields": ["purgedAt", "lifecycle"],
+  "numericRules": {
+    "integerMinimum": 0,
+    "timestampMinimum": 1,
+    "integerMaximum": 9007199254740991
+  },
+  "fallbacks": {
+    "enum": null,
+    "uuid": null,
+    "integer": null,
+    "timestamp": null
+  }
+}

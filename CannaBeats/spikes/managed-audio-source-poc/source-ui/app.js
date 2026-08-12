@@ -220,11 +220,7 @@ async function waitForPlaybackState(paused) {
 }
 
 async function executeManagedCommand(command) {
-  await ensurePlayerReady();
   if (command.kind === 'play') {
-    if (!/^spotify:track:[A-Za-z0-9]+$/.test(command.trackUri ?? '')) {
-      throw new Error('Managed play command did not contain a valid Spotify track');
-    }
     await spotifyApi(`/me/player/play?device_id=${encodeURIComponent(state.deviceId)}`, {
       method: 'PUT', body: JSON.stringify({ uris: [command.trackUri] }),
     });
@@ -245,12 +241,23 @@ async function executeManagedCommand(command) {
   throw new Error('Managed playback command is not supported');
 }
 
+async function prepareManagedCommand(command) {
+  await ensurePlayerReady();
+  if (command.kind === 'play' && !/^spotify:track:[A-Za-z0-9]+$/.test(command.trackUri ?? '')) {
+    throw new Error('Managed play command did not contain a valid Spotify track');
+  }
+  if (!['play', 'pause', 'resume'].includes(command.kind)) {
+    throw new Error('Managed playback command is not supported');
+  }
+}
+
 async function completeManagedCommand(command, ok, playbackStatus, error = null) {
   const response = await fetch('http://127.0.0.1:4782/complete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       commandId: command.id,
+      claimGeneration: command.claimGeneration,
       ok,
       playbackStatus,
       error,
@@ -258,6 +265,34 @@ async function completeManagedCommand(command, ok, playbackStatus, error = null)
     }),
   });
   if (!response.ok) throw new Error(`Managed command acknowledgement failed (${response.status})`);
+}
+
+async function beginManagedCommand(command) {
+  const response = await fetch('http://127.0.0.1:4782/begin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      commandId: command.id,
+      claimGeneration: command.claimGeneration,
+    }),
+  });
+  if (!response.ok) throw new Error(`Managed command execution claim failed (${response.status})`);
+  const result = await response.json();
+  if (result.accepted !== true || result.claimGeneration !== command.claimGeneration) {
+    throw new Error('Managed command execution claim was not confirmed');
+  }
+}
+
+async function reportManagedCommandUnknown(command) {
+  const response = await fetch('http://127.0.0.1:4782/unknown', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      commandId: command.id,
+      claimGeneration: command.claimGeneration,
+    }),
+  });
+  if (!response.ok) throw new Error(`Managed unknown outcome was not recorded (${response.status})`);
 }
 
 async function pollManagedController() {
@@ -273,17 +308,47 @@ async function pollManagedController() {
     return;
   }
   state.managedLeaseId = controller.lease.id;
+  if (controller.commandRecovery) {
+    log('A managed command has an unknown provider outcome and requires reconciliation.');
+  }
   const command = controller.command;
   if (!command || command.id === state.managedCommandId) return;
   state.managedCommandId = command.id;
   try {
     log(`Managed ${command.kind} command received for game ${controller.lease.sessionCode}.`);
-    const playbackStatus = await executeManagedCommand(command);
-    await completeManagedCommand(command, true, playbackStatus);
-    log(`Managed ${command.kind} command completed for game ${controller.lease.sessionCode}.`);
+    // The controller fsyncs the executing phase and the game API accepts the
+    // exact claim generation before this browser is allowed to touch Spotify.
+    await beginManagedCommand(command);
   } catch (error) {
-    await completeManagedCommand(command, false, 'error', error.message).catch(() => {});
-    log(`Managed ${command.kind} command failed: ${error.message}`);
+    if (classifyManagedCommandFailure('begin') === 'outcome_unknown') {
+      await reportManagedCommandUnknown(command).catch(() => {});
+    }
+    log(`Managed ${command.kind} authorization outcome is unknown: ${error.message}`);
+    state.managedCommandId = null;
+    return;
+  }
+  try {
+    await prepareManagedCommand(command);
+  } catch (error) {
+    const outcome = { ok: false, playbackStatus: 'error', error: error.message };
+    try {
+      await completeManagedCommand(command, outcome.ok, outcome.playbackStatus, outcome.error);
+    } catch (ackError) {
+      log(`Managed ${command.kind} failure acknowledgement pending: ${ackError.message}`);
+    } finally {
+      state.managedCommandId = null;
+    }
+    return;
+  }
+  try {
+    const playbackStatus = await executeManagedCommand(command);
+    await completeManagedCommand(command, true, playbackStatus, null);
+    log(`Managed ${command.kind} command outcome acknowledged for game ${controller.lease.sessionCode}.`);
+  } catch (error) {
+    if (classifyManagedCommandFailure('provider') === 'outcome_unknown') {
+      await reportManagedCommandUnknown(command).catch(() => {});
+    }
+    log(`Managed ${command.kind} provider outcome is unknown: ${error.message}`);
   } finally {
     state.managedCommandId = null;
   }
@@ -352,3 +417,4 @@ async function initialize() {
 }
 
 initialize().catch((error) => log(error.message));
+import { classifyManagedCommandFailure } from './protocol.mjs';

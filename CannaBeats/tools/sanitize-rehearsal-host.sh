@@ -248,6 +248,7 @@ sanitize_application() {
   fi
 
   disable_unit_if_present cannabeats-backup.timer
+  disable_unit_if_present cannabeats-history-retention.timer
   disable_unit_if_present cannabeats-operations-check.timer
   stop_unit_if_present cannabeats-p2e-game-proxy.service
   remove_container_if_present cannabeats-access-poc

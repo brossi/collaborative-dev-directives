@@ -1,0 +1,16 @@
+[Unit]
+Description=Purge expired CannaBeats run history under the configured policy
+Requires=docker.service cannabeats-backup.service
+After=docker.service cannabeats-backup.service
+OnFailure=cannabeats-operations-alert@%n.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/cannabeats/backup.env
+ExecStart=/usr/local/sbin/cannabeats-history-retention
+TimeoutStartSec=3m
+RuntimeMaxSec=3m
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict

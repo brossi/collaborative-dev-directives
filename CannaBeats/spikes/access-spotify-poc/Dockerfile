@@ -3,13 +3,14 @@ FROM node:24-bookworm-slim
 ENV NODE_ENV=production
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY spikes/access-spotify-poc/package.json spikes/access-spotify-poc/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-COPY --chown=node:node db.mjs cli.mjs onboarding.mjs observability.mjs server.mjs ./
-COPY --chown=node:node operations ./operations
-COPY --chown=node:node public ./public
-COPY --chown=node:node private ./private
+COPY --chown=node:node spikes/access-spotify-poc/db.mjs spikes/access-spotify-poc/cli.mjs spikes/access-spotify-poc/onboarding.mjs spikes/access-spotify-poc/observability.mjs spikes/access-spotify-poc/server.mjs ./
+COPY --chown=node:node spikes/access-spotify-poc/operations ./operations
+COPY --chown=node:node spikes/access-spotify-poc/public ./public
+COPY --chown=node:node spikes/access-spotify-poc/private ./private
+COPY --chown=node:node web/contracts/privacy-projection.json ./contracts/privacy-projection.json
 RUN mkdir -p /data /scratch /run/secrets/cannabeats && chown node:node /data /scratch
 
 USER node

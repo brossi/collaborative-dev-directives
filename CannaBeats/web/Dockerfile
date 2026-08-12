@@ -23,6 +23,7 @@ RUN chown node:node /app
 COPY --from=build --chown=node:node /app/web/.next/standalone ./
 COPY --from=build --chown=node:node /app/web/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/web/public ./public
+COPY --from=build --chown=node:node /app/web/scripts/game-history.mjs ./game-history.mjs
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]

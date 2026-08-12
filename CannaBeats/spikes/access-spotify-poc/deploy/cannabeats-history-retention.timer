@@ -1,0 +1,11 @@
+[Unit]
+Description=Enforce CannaBeats game-history retention each day
+
+[Timer]
+OnCalendar=*-*-* 04:10:00
+RandomizedDelaySec=10m
+Persistent=true
+Unit=cannabeats-history-retention.service
+
+[Install]
+WantedBy=timers.target

@@ -12,6 +12,7 @@ Environment=PYTHONUNBUFFERED=1
 Environment=CANNABEATS_AUDIO_SOURCE_API=https://poc.cannabeats.social/game/api/audio-source
 Environment=CANNABEATS_AUDIO_SOURCE_TOKEN_FILE=/etc/cannabeats-managed-source/source-token
 EnvironmentFile=-/etc/cannabeats-managed-source/source.env
+Environment=CANNABEATS_PENDING_COMPLETION_FILE=/var/lib/cannabeats-controller/pending-completion.json
 ExecStart=/usr/bin/python3 /opt/cannabeats-managed-source/controller.py
 Restart=on-failure
 RestartSec=3
@@ -23,6 +24,7 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 ReadOnlyPaths=/etc/cannabeats-managed-source/source-token
+ReadWritePaths=/var/lib/cannabeats-controller
 
 [Install]
 WantedBy=multi-user.target

@@ -97,14 +97,18 @@ async function availablePort() {
 
 async function waitForHealth(targetOrigin) {
   const deadline = Date.now() + 20_000;
+  let lastHealth = "no response";
   while (Date.now() < deadline) {
     try {
       const response = await fetch(`${targetOrigin}/game/api/ready`);
       if (response.ok) return;
-    } catch {}
+      lastHealth = `${response.status} ${await response.text()}`;
+    } catch (error) {
+      lastHealth = String(error);
+    }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`The DigitalOcean game build did not start in time. ${serverOutput.slice(-2_000)}`);
+  throw new Error(`The DigitalOcean game build did not start in time (${lastHealth}). ${serverOutput.slice(-2_000)}`);
 }
 
 async function startGameProcess(targetOrigin, port) {
@@ -249,6 +253,14 @@ function runContext(code) {
   };
 }
 
+function acknowledgeFixtureRevision(runId) {
+  db.prepare(`
+    UPDATE game_event_coverage
+    SET last_recorded_revision = (SELECT revision FROM game_runs WHERE id = ?)
+    WHERE run_id = ?
+  `).run(runId, runId);
+}
+
 async function sourcePost(body, token = managedSourceToken, suppliedCorrelationId) {
   return fetch(`${origin}/game/api/audio-source`, {
     method: "POST",
@@ -259,6 +271,17 @@ async function sourcePost(body, token = managedSourceToken, suppliedCorrelationI
     },
     body: JSON.stringify(body),
   });
+}
+
+async function claimAndBeginSourceCommand(commandId) {
+  const claimGeneration = randomUUID();
+  const claim = await sourcePost({ action: "claim", commandId, claimGeneration });
+  assert.equal(claim.status, 200);
+  assert.deepEqual(await claim.json(), { accepted: true, status: "claimed", replayed: false });
+  const begin = await sourcePost({ action: "begin", commandId, claimGeneration });
+  assert.equal(begin.status, 200);
+  assert.deepEqual(await begin.json(), { accepted: true, status: "executing", replayed: false });
+  return claimGeneration;
 }
 
 test("liveness and readiness are distinct and return correlation references", async () => {
@@ -445,8 +468,8 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(created.room.runGeneration, 1);
   assert.equal(created.room.revision, 0);
   assert.equal(created.audio.selection, "managed");
-  assert.equal(created.audio.mode, "managed");
-  assert.equal(created.audio.sourceOnline, true);
+  assert.equal(created.audio.mode, "local");
+  assert.equal(created.audio.sourceOnline, false);
   const lobby = db.prepare("SELECT active_run_id FROM game_sessions WHERE code = ?").get(sessionCode);
   assert.match(lobby.active_run_id, /^[0-9a-f-]{36}$/);
   assert.equal(created.room.runId, lobby.active_run_id);
@@ -454,8 +477,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM game_runs WHERE session_code = ?").get(sessionCode).count, 1);
   assert.equal(db.prepare("SELECT run_generation FROM game_sessions WHERE code = ?").get(sessionCode).run_generation, 1);
   assert.equal(db.prepare("SELECT 1 FROM rooms WHERE code = ?").get(sessionCode), undefined);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM managed_audio_leases").get().count, 0);
 
   const runBoundActions = [
+    ["abandon", {}],
     ["audioAcquire", {}],
     ["audioSelect", { mode: "local" }],
     ["audioRelease", {}],
@@ -519,6 +544,12 @@ test("an authenticated lobby owns an internal game run and preserves host author
   });
   assert.equal(hostView.status, 200);
   assert.equal((await hostView.json()).room.isHost, true);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM managed_audio_leases WHERE session_code = ?")
+      .get(sessionCode).count,
+    0,
+    "an authenticated GET must not reserve or renew playback",
+  );
 
   const playerView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Authorization: `Bearer ${playerToken}` },
@@ -572,6 +603,19 @@ test("an authenticated lobby owns an internal game run and preserves host author
   );
   assert.equal(playerCannotSelectSource.status, 403);
 
+  const reserved = await gamePost(
+    { action: "audioAcquire", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(reserved.status, 200);
+  assert.equal((await reserved.json()).audio.mode, "managed");
+  assert.deepEqual(db.prepare(`
+    SELECT event_type, outcome FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_lease_acquired' ORDER BY sequence
+  `).all(created.room.runId).map((event) => ({ ...event })), [
+    { event_type: "audio_lease_acquired", outcome: "accepted" },
+  ]);
+
   const addPlayerRequest = {
     action: "addPlayer",
     actionId: randomUUID(),
@@ -617,13 +661,16 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.notEqual(unauthenticatedSource.headers.get("x-cannabeats-correlation-id"), untrustedCorrelation);
   const trustedCorrelation = randomUUID();
   const sourceHeartbeat = await sourcePost(
-    { action: "poll", deviceId: "test-device" },
+    { action: "poll", deviceId: "spotify:track:private token-capability-SECRET" },
     managedSourceToken,
     trustedCorrelation,
   );
   assert.equal(sourceHeartbeat.status, 200);
   assert.equal(sourceHeartbeat.headers.get("x-cannabeats-correlation-id"), trustedCorrelation);
   assert.equal((await sourceHeartbeat.json()).lease.sessionCode, sessionCode);
+  const persistedSourceDeviceId = db.prepare(
+    "SELECT device_id FROM managed_audio_sources WHERE id = ?",
+  ).get(managedSourceId).device_id;
   const localSourceRequest = {
     action: "audioSelect",
     actionId: randomUUID(),
@@ -639,6 +686,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const localSourcePayload = await localSource.json();
   assert.equal(localSourcePayload.audio.selection, "local");
   assert.equal(localSourcePayload.audio.mode, "local");
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_lease_released'
+  `).get(created.room.runId).count, 1);
   const replayedLocalSource = await gamePost(
     localSourceRequest,
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
@@ -656,6 +707,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(acquiredPayload.audio.selection, "managed");
   assert.equal(acquiredPayload.audio.mode, "managed");
   assert.equal(acquiredPayload.audio.sourceOnline, true);
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_lease_acquired'
+  `).get(created.room.runId).count, 2);
   assert.equal(
     db.prepare("SELECT 1 FROM managed_audio_sources WHERE token_hash = ?").get(managedSourceToken),
     undefined,
@@ -730,18 +785,78 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(playWork.lease.sessionCode, sessionCode);
   assert.equal(playWork.command.kind, "play");
   assert.match(playWork.command.trackUri, /^spotify:track:/);
+  const playClaimGeneration = await claimAndBeginSourceCommand(playWork.command.id);
   const playComplete = await sourcePost({
     action: "complete",
     commandId: playWork.command.id,
+    claimGeneration: playClaimGeneration,
     ok: true,
     playbackStatus: "playing",
     deviceId: "test-device",
   });
   assert.equal(playComplete.status, 200);
+  const replayedPlayComplete = await sourcePost({
+    action: "complete",
+    commandId: playWork.command.id,
+    claimGeneration: playClaimGeneration,
+    ok: true,
+    playbackStatus: "playing",
+    deviceId: "test-device",
+  });
+  assert.equal(replayedPlayComplete.status, 200);
+  assert.equal((await replayedPlayComplete.json()).replayed, true);
+  const conflictingPlayComplete = await sourcePost({
+    action: "complete",
+    commandId: playWork.command.id,
+    claimGeneration: playClaimGeneration,
+    ok: false,
+    playbackStatus: "error",
+    error: "managed_playback_failed",
+    deviceId: "test-device",
+  });
+  assert.equal(conflictingPlayComplete.status, 409);
+  const conflictingStatusComplete = await sourcePost({
+    action: "complete",
+    commandId: playWork.command.id,
+    claimGeneration: playClaimGeneration,
+    ok: true,
+    playbackStatus: "paused",
+    deviceId: "test-device",
+  });
+  assert.equal(conflictingStatusComplete.status, 409);
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_command_completed' AND detail_code = 'play'
+  `).get(playingRoom.runId).count, 1);
+  const commandsBeforeRenewal = db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE lease_id = (
+      SELECT id FROM managed_audio_leases WHERE session_code = ?
+    )
+  `).get(sessionCode).count;
+  const requestedBeforeRenewal = db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_command_requested'
+  `).get(playingRoom.runId).count;
+  const renewed = await gamePost(
+    { action: "audioAcquire", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(renewed.status, 200);
+  const commandsAfterRenewal = db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE lease_id = (
+      SELECT id FROM managed_audio_leases WHERE session_code = ?
+    )
+  `).get(sessionCode).count;
+  const requestedAfterRenewal = db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_command_requested'
+  `).get(playingRoom.runId).count;
 
   const pauseContext = runContext(sessionCode);
   const beforeFailedAudioMutation = {
     commandCount: db.prepare("SELECT COUNT(*) AS count FROM managed_audio_commands").get().count,
+    eventCount: db.prepare("SELECT COUNT(*) AS count FROM game_events WHERE run_id = ?")
+      .get(pauseContext.expectedRunId).count,
     lease: db.prepare("SELECT playback_status FROM managed_audio_leases WHERE session_code = ?")
       .get(sessionCode),
     run: db.prepare("SELECT state, revision FROM game_runs WHERE id = ?").get(pauseContext.expectedRunId),
@@ -784,6 +899,11 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(db.prepare(`
     SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
   `).get(failedAudioActionId).count, 0);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM game_events WHERE run_id = ?")
+      .get(pauseContext.expectedRunId).count,
+    beforeFailedAudioMutation.eventCount,
+  );
   const pauseRequest = {
     action: "audioControl",
     actionId: randomUUID(),
@@ -821,9 +941,11 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const pausePoll = await sourcePost({ action: "poll", deviceId: "test-device" });
   const pauseWork = await pausePoll.json();
   assert.equal(pauseWork.command.kind, "pause");
+  const pauseClaimGeneration = await claimAndBeginSourceCommand(pauseWork.command.id);
   const pauseComplete = await sourcePost({
     action: "complete",
     commandId: pauseWork.command.id,
+    claimGeneration: pauseClaimGeneration,
     ok: false,
     playbackStatus: "error",
     error: `Bearer ${relayListenToken} spotify:track:preRevealPrivateId test-device`,
@@ -845,9 +967,11 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const resumePoll = await sourcePost({ action: "poll", deviceId: "test-device" });
   const resumeWork = await resumePoll.json();
   assert.equal(resumeWork.command.kind, "resume");
+  const resumeClaimGeneration = await claimAndBeginSourceCommand(resumeWork.command.id);
   assert.equal((await sourcePost({
     action: "complete",
     commandId: resumeWork.command.id,
+    claimGeneration: resumeClaimGeneration,
     ok: true,
     playbackStatus: "playing",
     deviceId: "test-device",
@@ -918,6 +1042,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const stateBeforeInjectedFailure = db.prepare(`
     SELECT state, revision FROM game_runs WHERE id = ?
   `).get(playingRoom.runId);
+  const eventsBeforeInjectedFailure = db.prepare(
+    "SELECT COUNT(*) AS count FROM game_events WHERE run_id = ?",
+  ).get(playingRoom.runId).count;
   const unauthorizedPlacement = await gamePost(placementRequest, otherActorHeaders);
   assert.equal(unauthorizedPlacement.status, 409);
   assert.deepEqual(
@@ -927,6 +1054,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(db.prepare(`
     SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
   `).get(placementActionId).count, 0);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM game_events WHERE run_id = ?").get(playingRoom.runId).count,
+    eventsBeforeInjectedFailure,
+  );
   db.exec(`
     CREATE TRIGGER inject_action_receipt_failure
     BEFORE INSERT ON game_action_receipts
@@ -947,6 +1078,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(db.prepare(`
     SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
   `).get(placementActionId).count, 0);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM game_events WHERE run_id = ?").get(playingRoom.runId).count,
+    eventsBeforeInjectedFailure,
+  );
 
   db.exec("BEGIN IMMEDIATE");
   const lockStartedAt = Date.now();
@@ -1149,13 +1284,94 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(resumed.status, 200);
   assert.equal((await resumed.json()).room.code, sessionCode);
 
+  const pendingBeforeRelease = db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE completed_at IS NULL
+  `).get().count;
+  assert.ok(pendingBeforeRelease > 0);
   const released = await gamePost(
     { action: "audioRelease", code: sessionCode },
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(released.status, 200);
   assert.equal((await released.json()).audio.mode, "local");
+  const replayAfterRelease = await sourcePost({
+    action: "complete",
+    commandId: playWork.command.id,
+    claimGeneration: playClaimGeneration,
+    ok: true,
+    playbackStatus: "playing",
+    deviceId: "private-provider-device-id",
+  });
+  const replayAfterReleasePayload = await replayAfterRelease.json();
+  assert.deepEqual({
+    persistedSourceDeviceId,
+    commandsBeforeRenewal,
+    commandsAfterRenewal,
+    requestedBeforeRenewal,
+    requestedAfterRenewal,
+    replayAfterReleaseStatus: replayAfterRelease.status,
+    replayAfterReleaseReplayed: replayAfterReleasePayload.replayed,
+  }, {
+    persistedSourceDeviceId: null,
+    commandsBeforeRenewal,
+    commandsAfterRenewal: commandsBeforeRenewal,
+    requestedBeforeRenewal,
+    requestedAfterRenewal: requestedBeforeRenewal,
+    replayAfterReleaseStatus: 200,
+    replayAfterReleaseReplayed: true,
+  });
   assert.equal((await (await sourcePost({ action: "poll", deviceId: "test-device" })).json()).lease, null);
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_command_cancelled'
+      AND outcome = 'cancelled' AND reason_code = 'explicit_release'
+  `).get(playingRoom.runId).count, pendingBeforeRelease);
+  const releasesBeforeNoop = db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_lease_released'
+  `).get(playingRoom.runId).count;
+  assert.equal((await gamePost(
+    { action: "audioRelease", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  )).status, 200);
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_events
+    WHERE run_id = ? AND event_type = 'audio_lease_released'
+  `).get(playingRoom.runId).count, releasesBeforeNoop);
+
+  const expiredLeaseId = randomUUID();
+  const expiredCommandId = randomUUID();
+  db.prepare(`
+    INSERT INTO managed_audio_leases
+      (id, source_id, session_code, acquired_by, acquired_at, renewed_at, expires_at, playback_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'starting')
+  `).run(
+    expiredLeaseId, managedSourceId, sessionCode, hostId,
+    Date.now() - 120_000, Date.now() - 120_000, Date.now() - 1,
+  );
+  db.prepare(`
+    INSERT INTO managed_audio_commands
+      (id, lease_id, source_id, session_code, kind, track_uri, requested_by, created_at)
+    VALUES (?, ?, ?, ?, 'play', 'spotify:track:expiredFixture', ?, ?)
+  `).run(expiredCommandId, expiredLeaseId, managedSourceId, sessionCode, hostId, Date.now() - 60_000);
+  const expiredPoll = await sourcePost({ action: "poll", deviceId: "test-device" });
+  assert.equal(expiredPoll.status, 200);
+  assert.equal((await expiredPoll.json()).lease, null);
+  assert.deepEqual(db.prepare(`
+    SELECT event_type, outcome, reason_code, command_ref FROM game_events
+    WHERE run_id = ? AND sequence > (
+      SELECT COALESCE(MAX(sequence), 0) - 2 FROM game_events WHERE run_id = ?
+    ) ORDER BY sequence
+  `).all(playingRoom.runId, playingRoom.runId).map((event) => ({ ...event })), [
+    {
+      event_type: "audio_command_cancelled", outcome: "cancelled",
+      reason_code: "lease_expired", command_ref: expiredCommandId,
+    },
+    {
+      event_type: "audio_lease_expired", outcome: "failed",
+      reason_code: null, command_ref: null,
+    },
+  ]);
 
   const delayedPlacement = {
     action: "place",
@@ -1212,6 +1428,57 @@ test("an authenticated lobby owns an internal game run and preserves host author
   db.prepare("DELETE FROM game_runs WHERE id = ?").run(disposableRunId);
   assert.equal(db.prepare("SELECT 1 FROM game_action_receipts WHERE action_id = ?")
     .get(disposableReceiptId), undefined);
+
+  const abandoned = await gamePost(
+    { action: "abandon", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(abandoned.status, 200);
+  const abandonedPayload = await abandoned.json();
+  assert.equal(abandonedPayload.action.accepted, true);
+  const abandonedHistoryResponse = await fetch(
+    `${origin}/game/api/game?runId=${encodeURIComponent(playingRoom.runId)}`,
+    { headers: { Cookie: `cb_session=${hostCookie}` } },
+  );
+  assert.equal(abandonedHistoryResponse.status, 200);
+  const abandonedHistory = (await abandonedHistoryResponse.json()).history;
+  assert.equal(abandonedHistory.current.endedAt > 0, true);
+  assert.equal(abandonedHistory.current.terminalOutcome, "abandoned");
+  assert.equal(abandonedHistory.coverage.complete, false);
+  assert.ok(abandonedHistory.coverage.lastRecordedRevision < abandonedHistory.coverage.currentRevision);
+  const abandonedTypes = new Set(abandonedHistory.events.map((event) => event.type));
+  for (const eventType of [
+    "player_joined",
+    "game_started",
+    "track_requested",
+    "placement_locked",
+    "placement_retracted",
+    "answer_revealed",
+    "round_advanced",
+    "track_skipped",
+    "game_abandoned",
+    "audio_command_requested",
+    "audio_command_delivered",
+    "audio_command_completed",
+    "audio_command_failed",
+    "audio_source_recovered",
+  ]) {
+    assert.equal(abandonedTypes.has(eventType), true, `missing abandoned history event ${eventType}`);
+  }
+  assert.deepEqual(
+    abandonedHistory.events
+      .filter((event) => event.commandRef === playWork.command.id)
+      .map((event) => event.type),
+    ["audio_command_requested", "audio_command_delivered", "audio_command_completed"],
+  );
+  assert.equal(abandonedHistory.events.at(-1).type, "game_abandoned");
+  assert.doesNotMatch(JSON.stringify(abandonedHistory), /spotify:track|Expired Guest|Test Host/i);
+  const afterAbandon = await gamePost(
+    { action: "skip", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(afterAbandon.status, 409);
+  assert.equal((await afterAbandon.json()).code, "game_ended");
 });
 
 test("a host-issued capability admits an accountless guest only to its lobby", async () => {
@@ -1326,6 +1593,7 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
     .filter((player) => player.id !== staleIdentity.player_id);
   db.prepare("UPDATE game_runs SET state = ?, updated_at = ? WHERE id = ?")
     .run(JSON.stringify(stateWithoutStalePlayer), Date.now(), staleIdentity.run_id);
+  acknowledgeFixtureRevision(staleIdentity.run_id);
   db.exec(`
     CREATE TRIGGER inject_stale_identity_repair_failure
     BEFORE UPDATE OF state ON game_runs
@@ -1447,6 +1715,7 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
   finishingState.winnerId = joined.playerId;
   db.prepare("UPDATE game_runs SET state = ?, updated_at = ? WHERE id = ?")
     .run(JSON.stringify(finishingState), Date.now(), finishingRun.id);
+  acknowledgeFixtureRevision(finishingRun.id);
   const beforeFailedFinish = db.prepare(`
     SELECT state, revision, ended_at FROM game_runs WHERE id = ?
   `).get(finishingRun.id);
@@ -1471,4 +1740,21 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
     db.prepare("SELECT state, revision, ended_at FROM game_runs WHERE id = ?").get(finishingRun.id),
     beforeFailedFinish,
   );
+  const completed = await gamePost(
+    { action: "advance", code: sessionCode },
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+  );
+  assert.equal(completed.status, 200);
+  assert.equal((await completed.json()).room.phase, "finished");
+  const completedHistoryResponse = await fetch(
+    `${origin}/game/api/game?runId=${encodeURIComponent(finishingRun.id)}`,
+    { headers: { Cookie: `cb_session=${hostCookie}` } },
+  );
+  assert.equal(completedHistoryResponse.status, 200);
+  const completedHistory = (await completedHistoryResponse.json()).history;
+  assert.equal(completedHistory.current.phase, "finished");
+  assert.equal(completedHistory.current.terminalOutcome, "completed");
+  assert.equal(completedHistory.coverage.complete, true);
+  assert.equal(completedHistory.events.at(-1).type, "game_completed");
+  assert.equal(completedHistory.events.at(-1).outcome, "completed");
 });

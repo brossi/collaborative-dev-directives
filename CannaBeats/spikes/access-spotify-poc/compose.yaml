@@ -1,7 +1,8 @@
 services:
   app:
     build:
-      context: .
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: spikes/access-spotify-poc/Dockerfile
     image: cannabeats/access-spotify-poc:local
     container_name: cannabeats-access-poc
     restart: unless-stopped
@@ -143,6 +144,32 @@ services:
     mem_limit: 512m
     cpus: 0.5
     pids_limit: 64
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  history:
+    profiles: ["operations"]
+    build:
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: web/Operations.Dockerfile
+    # This artifact is intentionally configured outside release overrides. Pin
+    # its production value by digest so an application rollback cannot replace it.
+    image: ${CANNABEATS_HISTORY_IMAGE:-cannabeats/history-operations:local}
+    user: node
+    read_only: true
+    network_mode: none
+    environment:
+      CANNABEATS_DATABASE_PATH: /data/cannabeats-poc.sqlite
+      CANNABEATS_SCHEMA_MIN_VERSION: "0"
+      CANNABEATS_SCHEMA_MAX_VERSION: "2"
+      CANNABEATS_SCHEMA_TARGET_VERSION: "1"
+    volumes:
+      - cannabeats_poc_data:/data
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 32
     cap_drop:
       - ALL
     security_opt:

@@ -142,11 +142,15 @@ test('access, game, Compose, and release tooling declare one schema compatibilit
   assert.match(gameDatabase, /DATABASE_SCHEMA_TARGET_VERSION = 1/);
   assert.match(gameDatabase, /Math\.max\(startingVersion, DATABASE_SCHEMA_TARGET_VERSION\)/);
   assert.match(gameDatabase, /CREATE TABLE IF NOT EXISTS game_action_receipts/);
+  assert.match(gameDatabase, /canonicalGameEventsSql\(true\)/);
+  assert.match(gameDatabase, /cannabeats_feature_migrations/);
+  assert.match(gameDatabase, /canonicalCoverageSql\(true\)/);
+  assert.match(gameDatabase, /PRIMARY KEY \(run_id, sequence\)/);
   assert.match(gameDatabase, /run_id TEXT NOT NULL REFERENCES game_runs\(id\) ON DELETE CASCADE/);
 
   const compose = readFileSync('compose.yaml', 'utf8');
   for (const [name, version] of Object.entries(contract)) {
-    assert.equal(compose.match(new RegExp(`${name}: "${version}"`, 'g'))?.length, 3);
+    assert.equal(compose.match(new RegExp(`${name}: "${version}"`, 'g'))?.length, 4);
   }
 });
 

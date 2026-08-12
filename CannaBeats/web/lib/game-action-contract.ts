@@ -5,6 +5,7 @@ type ActionPolicy = {
 };
 
 export const GAME_ACTION_POLICIES = {
+  abandon: { authority: "host", returnsAudio: true, advancesRevision: true },
   audioAcquire: { authority: "host", returnsAudio: true, advancesRevision: true },
   audioSelect: { authority: "host", returnsAudio: true, advancesRevision: true },
   audioRelease: { authority: "host", returnsAudio: true, advancesRevision: true },

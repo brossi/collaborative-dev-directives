@@ -9,6 +9,7 @@ import { openDatabase } from '../db.mjs';
 import {
   componentReport,
   componentReportExitCode,
+  formatSessionReport,
   openOperatorDatabase,
   sessionReport,
 } from '../operations/operator-report.mjs';
@@ -24,9 +25,18 @@ function fixture(now = Date.parse('2026-08-11T12:00:00Z')) {
       id TEXT PRIMARY KEY,
       session_code TEXT NOT NULL REFERENCES game_sessions(code) ON DELETE CASCADE,
       state TEXT NOT NULL,
+      revision INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      ended_at INTEGER
+      ended_at INTEGER,
+      terminal_outcome TEXT
+    );
+    CREATE TABLE game_event_coverage (
+      run_id TEXT PRIMARY KEY REFERENCES game_runs(id) ON DELETE CASCADE,
+      baseline_revision INTEGER NOT NULL,
+      last_recorded_revision INTEGER NOT NULL,
+      started_at INTEGER NOT NULL,
+      purged_at INTEGER
     );
     CREATE TABLE game_run_player_identities (
       run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
@@ -54,6 +64,13 @@ function fixture(now = Date.parse('2026-08-11T12:00:00Z')) {
       track_uri TEXT, requested_by TEXT NOT NULL REFERENCES users(id), created_at INTEGER NOT NULL,
       delivered_at INTEGER, completed_at INTEGER, error TEXT
     );
+    CREATE TABLE game_events (
+      run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE CASCADE,
+      sequence INTEGER NOT NULL, event_type TEXT NOT NULL, outcome TEXT NOT NULL,
+      actor_type TEXT NOT NULL, actor_ref TEXT, action_id TEXT, round INTEGER,
+      detail_code TEXT, detail_value INTEGER, reason_code TEXT, occurred_at INTEGER NOT NULL,
+      PRIMARY KEY (run_id, sequence)
+    );
   `);
   const hostId = randomUUID();
   const runId = randomUUID();
@@ -77,6 +94,11 @@ function fixture(now = Date.parse('2026-08-11T12:00:00Z')) {
     players: [{ id: randomUUID(), name: 'Private Player Name', control: 'phone', timeline: [] }],
   }), now - 50_000, now - 10_000);
   db.prepare(`
+    INSERT INTO game_event_coverage
+      (run_id, baseline_revision, last_recorded_revision, started_at)
+    VALUES (?, 0, 0, ?)
+  `).run(runId, now - 50_000);
+  db.prepare(`
     INSERT INTO managed_audio_sources
       (id, display_name, token_hash, enabled, created_at, last_seen_at, device_id, last_error)
     VALUES (?, 'Private source name', 'private-source-token-hash', 1, ?, ?, 'private-device-id', 'raw private source error')
@@ -91,6 +113,19 @@ function fixture(now = Date.parse('2026-08-11T12:00:00Z')) {
       (id, lease_id, source_id, session_code, kind, track_uri, requested_by, created_at, delivered_at, completed_at, error)
     VALUES (?, ?, ?, 'ABC234', 'play', 'spotify:track:1234567890123456789012', ?, ?, ?, ?, 'raw provider failure')
   `).run(randomUUID(), leaseId, sourceId, hostId, now - 9_000, now - 8_000, now - 7_000);
+  db.prepare(`
+    INSERT INTO game_events
+      (run_id, sequence, event_type, outcome, actor_type, actor_ref, action_id,
+       round, detail_code, occurred_at)
+    VALUES
+      (?, 1, 'game_started', 'accepted', 'host', ?, ?, 1, NULL, ?),
+      (?, 2, 'track_requested', 'accepted', 'host', ?, ?, 1, 'play', ?),
+      (?, 3, 'audio_command_failed', 'failed', 'source', ?, ?, 1, 'play', ?)
+  `).run(
+    runId, hostId, randomUUID(), now - 12_000,
+    runId, hostId, randomUUID(), now - 11_000,
+    runId, sourceId, randomUUID(), now - 10_000,
+  );
   db.close();
   return { databasePath, now };
 }
@@ -110,6 +145,17 @@ test('the operator summary reports conservative state without private fields', (
   assert.equal(session.liveness.confidence, 'inferred');
   assert.equal(session.audio.errorCategory, 'managed_source_error');
   assert.equal(session.audio.latestCommand.errorCategory, 'command_failed');
+  assert.equal(session.history.available, true);
+  assert.equal(session.history.eventCount, 3);
+  assert.equal(session.history.coverage.complete, true);
+  assert.deepEqual(session.history.outcomes, { accepted: 2, failed: 1 });
+  assert.deepEqual(session.history.recentEvents.map((event) => event.type), [
+    'game_started', 'track_requested', 'audio_command_failed',
+  ]);
+  assert.equal(session.history.recentEvents.at(-1).reasonCode, null);
+  const text = formatSessionReport(report);
+  assert.match(text, /coverage=complete baseline=0 current=0/);
+  assert.match(text, /retention=full-history/);
   const serialized = JSON.stringify(report);
   assert.doesNotMatch(serialized, /Private Host Name|Private Player Name|Private source name/);
   assert.doesNotMatch(serialized, /private-device-id|raw private|spotify:track/);
@@ -120,6 +166,182 @@ test('the operator database connection rejects writes', () => {
   const db = openOperatorDatabase(databasePath);
   assert.throws(() => db.exec("UPDATE game_sessions SET status = 'ended'"), /read-only|readonly/i);
   db.close();
+});
+
+test('the operator projection never returns an unreviewed persisted reason code', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare("UPDATE game_events SET reason_code = 'token_secret_abcdefghijklmnopqrstuvwxyz' WHERE sequence = 3").run();
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const serialized = JSON.stringify(sessionReport(db, { now }));
+  db.close();
+  assert.doesNotMatch(serialized, /token_secret_abcdefghijklmnopqrstuvwxyz/);
+  assert.match(serialized, /unrecognized_reason/);
+});
+
+test('the operator report can inspect a pre-history run before current-app migration', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.exec('ALTER TABLE game_runs DROP COLUMN terminal_outcome');
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const report = sessionReport(db, { now });
+  db.close();
+  assert.equal(report.sessions.length, 1);
+  assert.equal(report.sessions[0].runId !== null, true);
+  assert.equal(report.sessions[0].liveness.state, 'active');
+});
+
+test('an explicit terminal abandonment is not reported as a completed game', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare("UPDATE game_sessions SET status = 'ended' WHERE code = 'ABC234'").run();
+  writable.prepare("UPDATE game_runs SET ended_at = ?, terminal_outcome = 'abandoned'").run(now);
+  if (!writable.prepare("PRAGMA table_info(game_event_coverage)").all()
+    .some((column) => column.name === 'lifecycle_state')) {
+    writable.exec("ALTER TABLE game_event_coverage ADD COLUMN lifecycle_state TEXT NOT NULL DEFAULT 'recording'");
+  }
+  writable.prepare(`
+    UPDATE game_event_coverage
+    SET last_recorded_revision = (SELECT revision FROM game_runs WHERE id = run_id),
+        lifecycle_state = 'sealed'
+  `).run();
+  writable.prepare(`
+    INSERT INTO game_events
+      (run_id, sequence, event_type, outcome, actor_type, round, occurred_at)
+    SELECT id, 4, 'game_abandoned', 'abandoned', 'host', 3, ? FROM game_runs
+  `).run(now);
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const session = sessionReport(db, { now }).sessions[0];
+  db.close();
+  assert.deepEqual(session.liveness, {
+    state: 'abandoned', confidence: 'confirmed', reasonCode: 'explicit_host_abandonment',
+  });
+  assert.deepEqual(session.history.terminal, {
+    type: 'game_abandoned', outcome: 'abandoned', occurredAt: new Date(now).toISOString(),
+    consistent: true,
+  });
+  const purge = new DatabaseSync(databasePath);
+  purge.prepare("DELETE FROM game_events").run();
+  purge.close();
+  const afterPurgeDb = openOperatorDatabase(databasePath);
+  const afterPurge = sessionReport(afterPurgeDb, { now }).sessions[0];
+  afterPurgeDb.close();
+  assert.deepEqual(afterPurge.liveness, {
+    state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent',
+  });
+
+  const markPurged = new DatabaseSync(databasePath);
+  markPurged.prepare("UPDATE game_event_coverage SET purged_at = ?").run(now);
+  markPurged.close();
+  const retainedDb = openOperatorDatabase(databasePath);
+  const retained = sessionReport(retainedDb, { now }).sessions[0];
+  retainedDb.close();
+  assert.deepEqual(retained.liveness, {
+    state: 'abandoned', confidence: 'confirmed', reasonCode: 'explicit_host_abandonment',
+  });
+});
+
+test('an abandoned outcome with a finished snapshot fails closed', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare("UPDATE game_sessions SET status = 'ended' WHERE code = 'ABC234'").run();
+  writable.prepare(`
+    UPDATE game_runs SET ended_at = ?, terminal_outcome = 'abandoned',
+      state = json_set(state, '$.phase', 'finished')
+  `).run(now);
+  writable.prepare(`
+    INSERT INTO game_events
+      (run_id, sequence, event_type, outcome, actor_type, round, occurred_at)
+    SELECT id, 4, 'game_abandoned', 'abandoned', 'host', 3, ? FROM game_runs
+  `).run(now);
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const session = sessionReport(db, { now }).sessions[0];
+  db.close();
+  assert.deepEqual(session.liveness, {
+    state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent',
+  });
+});
+
+test('the operator projection allowlists every persisted enum-like string', () => {
+  const { databasePath, now } = fixture();
+  const sentinel = 'token_secret_abcdefghijklmnopqrstuvwxyz';
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare("UPDATE game_runs SET state = json_set(state, '$.phase', ?)").run(sentinel);
+  writable.prepare("UPDATE managed_audio_leases SET playback_status = ?").run(sentinel);
+  writable.prepare("UPDATE managed_audio_commands SET kind = ?").run(sentinel);
+  writable.prepare(`
+    UPDATE game_events SET event_type = ?, outcome = ?, actor_type = ?, detail_code = ?
+    WHERE sequence = 3
+  `).run(sentinel, sentinel, sentinel, sentinel);
+  writable.prepare(`
+    UPDATE game_events SET event_type = 'game_completed', outcome = ? WHERE sequence = 1
+  `).run(sentinel);
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const serialized = JSON.stringify(sessionReport(db, { now }));
+  db.close();
+  assert.doesNotMatch(serialized, new RegExp(sentinel));
+  assert.match(serialized, /unrecognized_/);
+});
+
+test('the operator and member-facing history consume the shared audio lifecycle taxonomy', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare(`
+    UPDATE game_events
+    SET event_type = 'audio_command_cancelled', outcome = 'cancelled'
+    WHERE sequence = 3
+  `).run();
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const event = sessionReport(db, { now }).sessions[0].history.recentEvents.at(-1);
+  db.close();
+  assert.deepEqual({ type: event.type, outcome: event.outcome }, {
+    type: 'audio_command_cancelled', outcome: 'cancelled',
+  });
+});
+
+test('terminal conclusions fail closed when the history table exists but run coverage is missing', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare("UPDATE game_sessions SET status = 'ended' WHERE code = 'ABC234'").run();
+  writable.prepare(`
+    UPDATE game_runs SET ended_at = ?, terminal_outcome = 'completed',
+      state = json_set(state, '$.phase', 'finished')
+  `).run(now);
+  writable.prepare('DELETE FROM game_events').run();
+  writable.prepare('DELETE FROM game_event_coverage').run();
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const liveness = sessionReport(db, { now }).sessions[0].liveness;
+  db.close();
+  assert.deepEqual(liveness, {
+    state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent',
+  });
+});
+
+test('contradictory terminal evidence fails closed instead of claiming a confirmed outcome', () => {
+  const { databasePath, now } = fixture();
+  const writable = new DatabaseSync(databasePath);
+  writable.prepare("UPDATE game_sessions SET status = 'ended' WHERE code = 'ABC234'").run();
+  writable.prepare("UPDATE game_runs SET ended_at = ?, terminal_outcome = 'completed'").run(now);
+  writable.prepare(`
+    INSERT INTO game_events
+      (run_id, sequence, event_type, outcome, actor_type, round, occurred_at)
+    SELECT id, 4, 'game_abandoned', 'abandoned', 'host', 3, ? FROM game_runs
+  `).run(now);
+  writable.close();
+  const db = openOperatorDatabase(databasePath);
+  const session = sessionReport(db, { now }).sessions[0];
+  db.close();
+  assert.deepEqual(session.liveness, {
+    state: 'unknown', confidence: 'unavailable', reasonCode: 'terminal_evidence_inconsistent',
+  });
+  assert.equal(session.history.terminal.consistent, false);
 });
 
 test('the operator summary fails closed when a required query cannot run', () => {

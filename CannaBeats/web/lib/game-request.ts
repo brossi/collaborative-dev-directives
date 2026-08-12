@@ -10,11 +10,7 @@ import type { GameRules } from "./rules";
 // Every run-bound mutation is receipt-backed by the server, so every dispatched
 // intent can be retried only with its exact action identity and payload.
 export const RETRYABLE_ACTIONS = new Set<string>(RUN_BOUND_MUTATION_ACTIONS);
-const ROOM_RESPONSE_ACTIONS = new Set([
-  "prepare", "join", "audioAcquire", "audioSelect", "audioRelease", "audioControl",
-  "addPlayer", "removePlayer", "rules", "start", "begin", "place", "retract",
-  "reveal", "advance", "skip",
-]);
+const ROOM_RESPONSE_ACTIONS = new Set(["prepare", "join", ...RUN_BOUND_MUTATION_ACTIONS]);
 const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_TIMEOUT_MS = 8_000;
 const ROOM_PHASES = new Set(["lobby", "ready", "playing", "placed", "revealed", "finished"]);

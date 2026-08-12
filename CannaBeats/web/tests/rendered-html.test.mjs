@@ -84,7 +84,7 @@ test("retryable player intents carry authoritative game context", async () => {
   assert.match(page, /setBlockedOutcome\(keepBlocked\)/);
   assert.match(page, /if \(!blockedOutcome\) setError\(""\)/);
   assert.match(page, /if \(!keepBlocked\) setBusy\(false\)/);
-  assert.match(page, /if \(!await act\(\{ action: "audioRelease" \}\)\) return/);
+  assert.match(page, /if \(!await act\(\{ action: "abandon" \}\)\) return/);
   assert.doesNotMatch(page, /void gameRequest\(\{\s*action: "audioRelease"/);
 });
 
@@ -233,6 +233,17 @@ test("the first round waits for the host before playback", async () => {
   assert.match(page, /action: "start", hostToken: session\.hostToken \}\)/);
   assert.match(page, /action: "begin", hostToken: session\.hostToken \}, true/);
   assert.match(page, /goes first/);
+});
+
+test("managed source reservation is an explicit journaled action", async () => {
+  const [page, route] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(page, /Reserve managed source/);
+  assert.match(page, /act\(\{ action: "audioAcquire" \}\)/);
+  assert.doesNotMatch(route, /selectedAudioView\(code, callerIsHost/);
+  assert.match(route, /audio: selectedAudioView\(code\)/);
 });
 
 test("every game supports phone and host-controlled players", async () => {
