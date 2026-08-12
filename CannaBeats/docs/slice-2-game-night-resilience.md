@@ -1,6 +1,6 @@
 # Slice 2: Game-night resilience
 
-- Status: mutation-contract remediation locally verified; Slice 2 remains in progress
+- Status: S2-B gate locally verified; Slice 2 remains in progress
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -475,6 +475,31 @@ implementation and verification evidence is recorded.
 
 Gate: response loss and retry cannot skip twice, advance twice, reveal twice,
 enqueue duplicate playback, or invert pause/resume.
+
+#### S2-B gate verification — 2026-08-12
+
+- The production API/client composition now loses the first successful response
+  body after commit for `start`, `begin`, `reveal`, `advance`, `skip`, and
+  `audioControl: pause`. Each retry sends the exact original request, resolves
+  through one receipt, and returns `replayed: true`.
+- Start and reveal retain one game transition; begin, advance, and skip enqueue
+  exactly one `play` command; advance and skip increment the round exactly once;
+  and a lost pause response leaves exactly one `pause` command rather than
+  issuing or inferring a resume.
+- A distinct resume carrying the stale pre-pause context is rejected before it
+  can enqueue. A later resume with current context creates one explicit `resume`
+  command, so playback intent is desired-state-specific rather than toggle-based.
+- Receipt-insert fault injection after a playback mutation begins proves the
+  room snapshot/revision, lease status, playback command, and receipt all roll
+  back together. The managed-audio helpers join the shared outer transaction;
+  they do not publish an independently committed nested result.
+
+These gate tests passed against checkpoint `bffa7de` without a production-code
+change: the invariant-driven shared mutation executor already implemented the
+S2-B behavior, while this checkpoint supplies the previously missing literal
+end-to-end evidence. Verification is the production Next.js build and TypeScript
+compilation, web/client/API `72/72`, ESLint, and whitespace validation. This
+verifies S2-B only; S2-C and S2-D remain open.
 
 ### S2-C: Significant game and audio history
 

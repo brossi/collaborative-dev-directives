@@ -212,6 +212,29 @@ async function gamePost(body, headers = {}, targetOrigin = origin) {
   });
 }
 
+async function gameRequestLosingFirstBody(body, headers, message) {
+  let attempts = 0;
+  const payload = await requestGame(`${origin}/game/api/game`, body, {
+    fetchImpl: async (input, init) => {
+      attempts += 1;
+      const response = await fetch(input, {
+        ...init,
+        headers: { ...Object.fromEntries(new Headers(init.headers)), ...headers },
+      });
+      if (attempts === 1) {
+        return {
+          ok: response.ok,
+          status: response.status,
+          headers: response.headers,
+          json: async () => { throw new TypeError(message); },
+        };
+      }
+      return response;
+    },
+  });
+  return { attempts, payload };
+}
+
 function runContext(code) {
   const row = db.prepare(`
     SELECT game_runs.id AS run_id, game_runs.revision, game_sessions.run_generation
@@ -644,12 +667,14 @@ test("an authenticated lobby owns an internal game run and preserves host author
     code: sessionCode,
     ...runContext(sessionCode),
   };
-  const started = await gamePost(
+  const { attempts: lostStartResponses, payload: startedPayload } = await gameRequestLosingFirstBody(
     startRequest,
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    "simulated start response loss after commit",
   );
-  assert.equal(started.status, 200);
-  const readyRoom = (await started.json()).room;
+  assert.equal(lostStartResponses, 2);
+  assert.equal(startedPayload.action.replayed, true);
+  const readyRoom = startedPayload.room;
   assert.ok(stageAndScreenUris.has(readyRoom.currentSong.uri));
   assert.ok(readyRoom.players.every((player) => player.timeline.every(
     (song) => stageAndScreenUris.has(song.uri),
@@ -667,12 +692,17 @@ test("an authenticated lobby owns an internal game run and preserves host author
     code: sessionCode,
     ...runContext(sessionCode),
   };
-  const begun = await gamePost(
+  const playCommandsBeforeBegin = db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind = 'play'
+  `).get().count;
+  const { attempts: lostBeginResponses, payload: begunPayload } = await gameRequestLosingFirstBody(
     beginRequest,
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    "simulated begin response loss after commit",
   );
-  assert.equal(begun.status, 200);
-  const playingRoom = (await begun.json()).room;
+  assert.equal(lostBeginResponses, 2);
+  assert.equal(begunPayload.action.replayed, true);
+  const playingRoom = begunPayload.room;
   assert.equal(playingRoom.runId, readyRoom.runId);
   assert.equal(playingRoom.revision, readyRoom.revision + 1);
   const replayedBegin = await gamePost(
@@ -680,6 +710,10 @@ test("an authenticated lobby owns an internal game run and preserves host author
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal((await replayedBegin.json()).action.replayed, true);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind = 'play'").get().count,
+    playCommandsBeforeBegin + 1,
+  );
   const playerBeforeReveal = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Authorization: `Bearer ${playerToken}` },
   });
@@ -706,6 +740,50 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(playComplete.status, 200);
 
   const pauseContext = runContext(sessionCode);
+  const beforeFailedAudioMutation = {
+    commandCount: db.prepare("SELECT COUNT(*) AS count FROM managed_audio_commands").get().count,
+    lease: db.prepare("SELECT playback_status FROM managed_audio_leases WHERE session_code = ?")
+      .get(sessionCode),
+    run: db.prepare("SELECT state, revision FROM game_runs WHERE id = ?").get(pauseContext.expectedRunId),
+  };
+  const failedAudioActionId = randomUUID();
+  db.exec(`
+    CREATE TRIGGER inject_audio_receipt_failure
+    BEFORE INSERT ON game_action_receipts
+    BEGIN
+      SELECT RAISE(ABORT, 'injected audio receipt failure');
+    END;
+  `);
+  try {
+    const failedAudioMutation = await gamePost(
+      {
+        action: "audioControl",
+        actionId: failedAudioActionId,
+        code: sessionCode,
+        command: "pause",
+        ...pauseContext,
+      },
+      { Authorization: `Bearer ${playerToken}` },
+    );
+    assert.equal(failedAudioMutation.status, 500);
+  } finally {
+    db.exec("DROP TRIGGER inject_audio_receipt_failure");
+  }
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM managed_audio_commands").get().count,
+    beforeFailedAudioMutation.commandCount,
+  );
+  assert.deepEqual(
+    db.prepare("SELECT playback_status FROM managed_audio_leases WHERE session_code = ?").get(sessionCode),
+    beforeFailedAudioMutation.lease,
+  );
+  assert.deepEqual(
+    db.prepare("SELECT state, revision FROM game_runs WHERE id = ?").get(pauseContext.expectedRunId),
+    beforeFailedAudioMutation.run,
+  );
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
+  `).get(failedAudioActionId).count, 0);
   const pauseRequest = {
     action: "audioControl",
     actionId: randomUUID(),
@@ -713,12 +791,13 @@ test("an authenticated lobby owns an internal game run and preserves host author
     command: "pause",
     ...pauseContext,
   };
-  const playerPaused = await gamePost(
+  const { attempts: lostPauseResponses, payload: playerPausedPayload } = await gameRequestLosingFirstBody(
     pauseRequest,
     { Authorization: `Bearer ${playerToken}` },
+    "simulated pause response loss after commit",
   );
-  assert.equal(playerPaused.status, 200);
-  const playerPausedPayload = await playerPaused.json();
+  assert.equal(lostPauseResponses, 2);
+  assert.equal(playerPausedPayload.action.replayed, true);
   assert.equal(playerPausedPayload.audio.status, "pausing");
   assert.equal(playerPausedPayload.room.revision, pauseContext.expectedRevision + 1);
   const staleResume = await gamePost(
@@ -760,6 +839,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
   );
   assert.equal(hostResumed.status, 200);
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind IN ('pause', 'resume')
+  `).get().count, 2);
   const resumePoll = await sourcePost({ action: "poll", deviceId: "test-device" });
   const resumeWork = await resumePoll.json();
   assert.equal(resumeWork.command.kind, "resume");
@@ -977,12 +1059,13 @@ test("an authenticated lobby owns an internal game run and preserves host author
     expectedRunId: finalPlacementRoom.runId, expectedRunGeneration: finalPlacementRoom.runGeneration,
     expectedRevision: finalPlacementRoom.revision,
   };
-  const revealed = await gamePost(
+  const { attempts: lostRevealResponses, payload: revealedPayload } = await gameRequestLosingFirstBody(
     revealRequest,
     { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    "simulated reveal response loss after commit",
   );
-  assert.equal(revealed.status, 200);
-  const revealedPayload = await revealed.json();
+  assert.equal(lostRevealResponses, 2);
+  assert.equal(revealedPayload.action.replayed, true);
   const answeredRoom = revealedPayload.room;
   assert.equal(answeredRoom.phase, "revealed");
   assert.ok(answeredRoom.currentSong);
@@ -1006,6 +1089,58 @@ test("an authenticated lobby owns an internal game run and preserves host author
   );
   assert.equal(conflictingReveal.status, 409);
   assert.equal((await conflictingReveal.json()).code, "action_id_conflict");
+
+  const playCommandsBeforeAdvance = db.prepare(`
+    SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind = 'play'
+  `).get().count;
+  const advanceRequest = {
+    action: "advance",
+    actionId: randomUUID(),
+    code: sessionCode,
+    expectedRunId: answeredRoom.runId,
+    expectedRunGeneration: answeredRoom.runGeneration,
+    expectedRevision: answeredRoom.revision,
+  };
+  const { attempts: lostAdvanceResponses, payload: advancedPayload } = await gameRequestLosingFirstBody(
+    advanceRequest,
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    "simulated advance response loss after commit",
+  );
+  assert.equal(lostAdvanceResponses, 2);
+  assert.equal(advancedPayload.action.replayed, true);
+  assert.equal(advancedPayload.room.phase, "playing");
+  assert.equal(advancedPayload.room.round, answeredRoom.round + 1);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind = 'play'").get().count,
+    playCommandsBeforeAdvance + 1,
+  );
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
+  `).get(advanceRequest.actionId).count, 1);
+
+  const skipRequest = {
+    action: "skip",
+    actionId: randomUUID(),
+    code: sessionCode,
+    expectedRunId: advancedPayload.room.runId,
+    expectedRunGeneration: advancedPayload.room.runGeneration,
+    expectedRevision: advancedPayload.room.revision,
+  };
+  const { attempts: lostSkipResponses, payload: skippedPayload } = await gameRequestLosingFirstBody(
+    skipRequest,
+    { Cookie: `cb_session=${hostCookie}`, Origin: origin },
+    "simulated skip response loss after commit",
+  );
+  assert.equal(lostSkipResponses, 2);
+  assert.equal(skippedPayload.action.replayed, true);
+  assert.equal(skippedPayload.room.round, advancedPayload.room.round + 1);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM managed_audio_commands WHERE kind = 'play'").get().count,
+    playCommandsBeforeAdvance + 2,
+  );
+  assert.equal(db.prepare(`
+    SELECT COUNT(*) AS count FROM game_action_receipts WHERE action_id = ?
+  `).get(skipRequest.actionId).count, 1);
 
   const resumed = await gamePost(
     { action: "prepare", code: sessionCode },
