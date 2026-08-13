@@ -1295,6 +1295,12 @@ test("a playing source must acknowledge the handoff stop before another lobby ca
   assert.throws(() => owner.acquireManagedLease({
     lobbyCode: "NXT234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 31,
   }),/handoff|quarantined/i);
+  assert.throws(() => owner.applyGameCommand({
+    lobbyCode: "NXT234",actorPrincipalId: hostB,actionId: randomUUID(),
+    expectedRunId: runB,expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "select_audio",mode: "managed" },now: 31,
+  }),/handoff|quarantined/i,
+  "the gameplay selection path must expose the same recovery boundary as direct acquisition");
 
   owner.applyGameCommand({
     lobbyCode: "HND234",actorPrincipalId: hostA,actionId: randomUUID(),

@@ -90,14 +90,16 @@ await source({
 const gameB = await createGame();
 await act(gameA,"audioRelease");
 let blockedStatus = null;
+let blockedFailure = null;
 try {
   await act(gameB,"audioAcquire");
 } catch (error) {
+  blockedFailure = error instanceof Error ? error.message : String(error);
   blockedStatus = /409/.test(error.message) && /source_recovery_required/.test(error.message)
     ? "recovery_required" : null;
 }
 if (blockedStatus !== "recovery_required") {
-  throw new Error("A second lobby acquired the source before the handoff stop completed.");
+  throw new Error(`A second lobby acquired the source before the handoff stop completed: ${blockedFailure ?? "no rejection"}`);
 }
 const handoffWork = await source({ action: "poll" });
 if (handoffWork.lease !== null || handoffWork.command?.kind !== "pause"

@@ -1525,7 +1525,14 @@ export class StateOwner {
             AND handoff.handoff_state<>'safe'
           WHERE source.enabled=1 AND source.last_seen_at>? AND lease.id IS NULL AND handoff.id IS NULL
           ORDER BY source.last_seen_at DESC,source.id LIMIT 1`).get(now - 90_000);
-        if (!source) throw new Error("Managed playback authority is unavailable.");
+        if (!source) {
+          const blockedHandoff = this.#db.prepare(`SELECT 1
+            FROM managed_source_handoff_current WHERE handoff_state<>'safe' LIMIT 1`).get();
+          if (blockedHandoff) {
+            throw new Error("Managed source handoff is quarantined until playback is safe.");
+          }
+          throw new Error("Managed playback authority is unavailable.");
+        }
         const leaseId = randomUUID();
         this.#db.prepare(`INSERT INTO managed_leases
           (id,source_id,lobby_code,acquired_by_principal_id,acquired_at,renewed_at,
