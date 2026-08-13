@@ -75,7 +75,7 @@ function readManifest(manifestPath) {
         .test(manifest.recoverySetId ?? "")
       || typeof manifest.releaseEpoch !== "string"
       || !/^[A-Za-z0-9._:-]{1,160}$/.test(manifest.releaseEpoch)
-      || manifest.state?.schemaGeneration !== 2 || manifest.state?.protocolVersion !== 3
+      || manifest.state?.schemaGeneration !== 3 || manifest.state?.protocolVersion !== 4
       || !Number.isSafeInteger(manifest.state?.admissionGeneration)
       || manifest.state.admissionGeneration < 1
       || (manifest.state?.firstAdmittedAt !== null
@@ -156,8 +156,8 @@ export async function createCoordinatedBackup({
     const snapshotSha256 = createHash("sha256").update(snapshot).digest("hex");
     if (response.headers.get("x-cannabeats-state-sha256") !== snapshotSha256
         || response.headers.get("x-cannabeats-release-epoch") !== releaseEpoch
-        || response.headers.get("x-cannabeats-schema-generation") !== "2"
-        || response.headers.get("x-cannabeats-protocol-version") !== "3"
+        || response.headers.get("x-cannabeats-schema-generation") !== "3"
+        || response.headers.get("x-cannabeats-protocol-version") !== "4"
         || response.headers.get("x-cannabeats-admission-open") !== "false") {
       throw new Error("State export contract does not match the coordinated release.");
     }
@@ -195,7 +195,7 @@ export async function createCoordinatedBackup({
       format: FORMAT,formatVersion: FORMAT_VERSION,createdAt: now.toISOString(),
       recoverySetId,releaseEpoch,applicationVersion,catalogVersion,
       state: {
-        schemaGeneration: 2,protocolVersion: 3,snapshotSha256,
+        schemaGeneration: 3,protocolVersion: 4,snapshotSha256,
         admissionGeneration: Number(response.headers.get("x-cannabeats-admission-generation")),
         firstAdmittedAt,
       },

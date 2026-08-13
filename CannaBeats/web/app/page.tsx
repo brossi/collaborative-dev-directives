@@ -575,6 +575,13 @@ export default function Home() {
   const playbackReady = audio.selection === "managed"
     ? audio.mode === "managed" && audio.sourceOnline && managedAudio.ready
     : spotify.isReady;
+  const managedHandoffMessage = audio.handoff?.outcome === "busy"
+    ? "The managed source is reserved by another game."
+    : audio.handoff?.outcome === "recovering"
+      ? "The managed source is confirming playback stopped for this game."
+      : audio.handoff?.outcome === "quarantined"
+        ? "The managed source is quarantined while an earlier game is reconciled."
+        : null;
 
   async function act(body: Record<string, unknown>, playNewSong = false) {
     if (!session) return false;
@@ -863,10 +870,21 @@ export default function Home() {
               </label>
               {audio.selection === "managed" ? (
                 <>
-                  <p className="spotify-status"><i /> {audio.mode === "managed" && audio.sourceOnline ? `${audio.sourceName ?? "Managed source"} is reserved for this game` : "Linux Spotify source is reconnecting"}</p>
+                  <p className="spotify-status"><i /> {managedHandoffMessage
+                    ?? (audio.mode === "managed" && audio.sourceOnline
+                      ? `${audio.sourceName ?? "Managed source"} is reserved for this game`
+                      : "Linux Spotify source is reconnecting")}</p>
                   {audio.mode !== "managed" && (
-                    <button className="secondary-button" disabled={busy} type="button" onClick={() => void act({ action: "audioAcquire" })}>
+                    <button className="secondary-button"
+                      disabled={busy || audio.handoff?.mayAcquire === false}
+                      type="button" onClick={() => void act({ action: "audioAcquire" })}>
                       Reserve managed source
+                    </button>
+                  )}
+                  {managedHandoffMessage && audio.handoff?.localFallback && (
+                    <button className="text-button" disabled={busy} type="button"
+                      onClick={() => void act({ action: "audioSelect",mode: "local" })}>
+                      Use Spotify on this device
                     </button>
                   )}
                 </>

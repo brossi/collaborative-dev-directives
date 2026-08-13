@@ -16,6 +16,34 @@ export const SOURCE_HANDOFF_OUTCOMES = Object.freeze([
   "quarantined",
 ]);
 
+export const SOURCE_HANDOFF_STATES = Object.freeze([
+  "clear",
+  "stop_required",
+  "stop_claimed",
+  "stop_executing",
+  "quarantined",
+]);
+
+const SOURCE_HANDOFF_EDGES = new Map([
+  ["clear:release_safe", "clear"],
+  ["clear:release_playing", "stop_required"],
+  ["clear:release_inflight", "quarantined"],
+  ["stop_required:claim", "stop_claimed"],
+  ["stop_claimed:begin", "stop_executing"],
+  ["stop_claimed:lose_authority", "quarantined"],
+  ["stop_executing:complete_paused", "clear"],
+  ["stop_executing:fail", "quarantined"],
+  ["stop_executing:lose_authority", "quarantined"],
+  ["quarantined:reconcile_paused", "clear"],
+]);
+
+export function transitionSourceHandoff(state, action) {
+  if (!SOURCE_HANDOFF_STATES.includes(state)) throw new Error("Source handoff state is invalid.");
+  const next = SOURCE_HANDOFF_EDGES.get(`${state}:${action}`);
+  if (!next) throw new Error(`Source handoff transition ${state}:${action} is forbidden.`);
+  return next;
+}
+
 function lobby(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)
       || typeof value.code !== "string" || !/^[A-Z2-9]{6}$/.test(value.code)

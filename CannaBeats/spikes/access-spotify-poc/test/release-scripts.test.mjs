@@ -110,7 +110,7 @@ function stateCutoverEnvironment(paths, overrides = {}) {
     CANNABEATS_STATE_SOURCE_DIGEST: 'a'.repeat(64),
     CANNABEATS_STATE_CANDIDATE_DIGEST: 'b'.repeat(64),
     CANNABEATS_TEST_STATE_READY_JSON: JSON.stringify({
-      schemaGeneration: 2,protocolVersion: 3,httpContractVersion: 1,
+      schemaGeneration: 3,protocolVersion: 4,httpContractVersion: 1,
       authority: {
         release_epoch: 'cutover-epoch',first_admitted_at: null,
         admission: { open: true,generation: 1 },
@@ -186,8 +186,8 @@ test('first state cutover pins one state contract and permits only pre-admission
   });
   const current = readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8');
   assert.match(current,/state-cutover: true/);
-  assert.match(current,/state-schema-min-generation: 2/);
-  assert.match(current,/state-protocol-min-version: 3/);
+  assert.match(current,/state-schema-min-generation: 3/);
+  assert.match(current,/state-protocol-min-version: 4/);
   assert.match(current,/state-http-contract-version: 1/);
   assert.match(current,/release-epoch: cutover-epoch/);
   assert.match(current,/state:\n    image: sha256:0+6/);
@@ -210,7 +210,7 @@ test('post-admission rollback cannot restore the pre-cutover monolith release', 
     env: stateCutoverEnvironment(paths),
   });
   const admitted = JSON.stringify({
-    schemaGeneration: 2,protocolVersion: 3,httpContractVersion: 1,
+    schemaGeneration: 3,protocolVersion: 4,httpContractVersion: 1,
     authority: { release_epoch: 'cutover-epoch',first_admitted_at: 100 },
   });
   await assert.rejects(

@@ -1,7 +1,9 @@
 import { STATE_SCHEMA_GENERATION } from "./schema.mjs";
-import { SESSION_RECOVERY_OUTCOMES, SOURCE_HANDOFF_OUTCOMES } from "./recovery-contract.mjs";
+import {
+  SESSION_RECOVERY_OUTCOMES,SOURCE_HANDOFF_OUTCOMES,SOURCE_HANDOFF_STATES,
+} from "./recovery-contract.mjs";
 
-export const STATE_PROTOCOL_VERSION = 3;
+export const STATE_PROTOCOL_VERSION = 4;
 export const STATE_HTTP_CONTRACT_VERSION = 1;
 export const ROOM_PROJECTION_VERSION = 1;
 export const HISTORY_PROJECTION_VERSION = 1;
@@ -53,6 +55,7 @@ export const STATE_SERVICE_CONTRACT = Object.freeze({
   recovery: Object.freeze({
     sessionOutcomes: SESSION_RECOVERY_OUTCOMES,
     sourceHandoffOutcomes: SOURCE_HANDOFF_OUTCOMES,
+    sourceHandoffStates: SOURCE_HANDOFF_STATES,
   }),
   errors: STATE_HTTP_ERROR_CODES,
 });

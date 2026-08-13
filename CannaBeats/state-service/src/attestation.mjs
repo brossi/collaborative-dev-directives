@@ -9,6 +9,8 @@ const AUTHORITATIVE_TABLES = [
   ["managed_leases", "id"], ["managed_command_intents", "id"],
   ["managed_command_payloads", "command_id"],
   ["managed_command_transitions", "command_id,sequence"], ["purge_tombstones", "run_id"],
+  ["managed_source_handoffs", "id"],
+  ["managed_source_handoff_transitions", "handoff_id,sequence"],
   ["purge_sanitization", "run_id"],
 ];
 

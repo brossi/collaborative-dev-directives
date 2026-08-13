@@ -275,8 +275,8 @@ try {
   record("candidate-mutation-rejected");
   const activation = await postJson(`http://127.0.0.1:${statePort}/v1/admin/activate`,activationToken,{
     commandId: randomUUID(),expectedSourceDigest: migration.sourceDatabaseDigest,
-    expectedCandidateDigest: migration.candidateDigest,expectedSchemaGeneration: 2,
-    expectedProtocolVersion: 3,releaseEpoch,
+    expectedCandidateDigest: migration.candidateDigest,expectedSchemaGeneration: 3,
+    expectedProtocolVersion: 4,releaseEpoch,
   });
   if (activation.status !== "active") throw new Error("State activation did not succeed.");
   record("candidate-activated-pre-admission");

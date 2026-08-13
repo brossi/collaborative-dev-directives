@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const STATE_SCHEMA_GENERATION = 2;
+export const STATE_SCHEMA_GENERATION = 3;
 
 export const STATE_SCHEMA_SQL = `
 CREATE TABLE state_schema_generations (
@@ -34,7 +34,7 @@ WHEN NOT (
   (OLD.status='candidate' AND NEW.status='active' AND OLD.activated_at IS NULL
     AND NEW.activated_at IS NOT NULL AND NEW.first_admitted_at IS OLD.first_admitted_at
     AND NEW.source_digest IS NOT NULL AND NEW.candidate_digest IS NOT NULL
-    AND NEW.schema_generation=2 AND NEW.protocol_version=3
+    AND NEW.schema_generation=3 AND NEW.protocol_version=4
     AND length(NEW.release_epoch)>0) OR
   (OLD.status='active' AND NEW.status='active' AND NEW.activated_at=OLD.activated_at
     AND OLD.first_admitted_at IS NULL AND NEW.first_admitted_at IS NOT NULL
@@ -179,7 +179,7 @@ CREATE TABLE managed_command_intents (
   lobby_code TEXT NOT NULL REFERENCES lobbies(code) ON DELETE RESTRICT,
   run_id TEXT REFERENCES game_runs(id) ON DELETE RESTRICT,
   run_generation INTEGER NOT NULL CHECK (run_generation >= 0),
-  protocol_version INTEGER NOT NULL CHECK (protocol_version = 3),
+  protocol_version INTEGER NOT NULL CHECK (protocol_version = 4),
   kind TEXT NOT NULL CHECK (kind IN ('play','pause','resume')),
   action_id TEXT NOT NULL,
   dispatch_sequence INTEGER NOT NULL CHECK (dispatch_sequence > 0),
@@ -212,6 +212,39 @@ CREATE TABLE managed_command_transitions (
   occurred_at INTEGER NOT NULL CHECK (occurred_at > 0),
   PRIMARY KEY (command_id, sequence)
 );
+
+CREATE TABLE managed_source_handoffs (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL REFERENCES managed_sources(id) ON DELETE RESTRICT,
+  prior_lobby_code TEXT NOT NULL REFERENCES lobbies(code) ON DELETE RESTRICT,
+  run_id TEXT NOT NULL REFERENCES game_runs(id) ON DELETE RESTRICT,
+  run_generation INTEGER NOT NULL CHECK (run_generation >= 0),
+  stop_command_id TEXT NOT NULL UNIQUE REFERENCES managed_command_intents(id) ON DELETE RESTRICT,
+  reason_code TEXT NOT NULL CHECK (reason_code IN (
+    'explicit_release','game_abandoned','game_completed','lease_expired','source_selected_local'
+  )),
+  created_at INTEGER NOT NULL CHECK (created_at > 0)
+);
+
+CREATE TABLE managed_source_handoff_transitions (
+  handoff_id TEXT NOT NULL REFERENCES managed_source_handoffs(id) ON DELETE RESTRICT,
+  sequence INTEGER NOT NULL CHECK (sequence > 0),
+  from_state TEXT,
+  to_state TEXT NOT NULL CHECK (to_state IN (
+    'stop_required','stop_claimed','stop_executing','quarantined','safe'
+  )),
+  occurred_at INTEGER NOT NULL CHECK (occurred_at > 0),
+  PRIMARY KEY (handoff_id,sequence)
+);
+
+CREATE VIEW managed_source_handoff_current AS
+SELECT handoff.id,handoff.source_id,handoff.prior_lobby_code,handoff.run_id,
+  handoff.run_generation,handoff.stop_command_id,handoff.reason_code,
+  transition.to_state AS handoff_state,transition.occurred_at
+FROM managed_source_handoffs handoff
+JOIN managed_source_handoff_transitions transition ON transition.handoff_id=handoff.id
+WHERE transition.sequence=(SELECT MAX(latest.sequence)
+  FROM managed_source_handoff_transitions latest WHERE latest.handoff_id=handoff.id);
 
 CREATE TABLE purge_tombstones (
   run_id TEXT PRIMARY KEY REFERENCES game_runs(id) ON DELETE RESTRICT,
@@ -346,6 +379,54 @@ CREATE TRIGGER managed_command_intents_immutable_update BEFORE UPDATE ON managed
 BEGIN SELECT RAISE(ABORT, 'managed command intents are immutable'); END;
 CREATE TRIGGER managed_command_intents_immutable_delete BEFORE DELETE ON managed_command_intents
 BEGIN SELECT RAISE(ABORT, 'managed command intents are immutable'); END;
+CREATE TRIGGER managed_source_handoff_chain BEFORE INSERT ON managed_source_handoff_transitions
+WHEN (NEW.sequence=1 AND EXISTS (
+    SELECT 1 FROM managed_source_handoff_current current
+    JOIN managed_source_handoffs incoming ON incoming.id=NEW.handoff_id
+    WHERE current.source_id=incoming.source_id AND current.handoff_state<>'safe'
+      AND current.id<>NEW.handoff_id
+  ))
+  OR (NEW.sequence=1 AND NOT (NEW.from_state IS NULL
+      AND NEW.to_state IN ('stop_required','quarantined')))
+  OR (NEW.sequence>1 AND NOT EXISTS (
+    SELECT 1 FROM managed_source_handoff_transitions prior
+    WHERE prior.handoff_id=NEW.handoff_id AND prior.sequence=NEW.sequence-1
+      AND prior.to_state=NEW.from_state
+  ))
+  OR (NEW.sequence>1 AND NEW.occurred_at < (
+    SELECT prior.occurred_at FROM managed_source_handoff_transitions prior
+    WHERE prior.handoff_id=NEW.handoff_id AND prior.sequence=NEW.sequence-1
+  ))
+  OR (NEW.sequence>1 AND NOT (
+    (NEW.from_state='stop_required' AND NEW.to_state='stop_claimed') OR
+    (NEW.from_state='stop_claimed' AND NEW.to_state IN ('stop_executing','quarantined')) OR
+    (NEW.from_state='stop_executing' AND NEW.to_state IN ('safe','quarantined')) OR
+    (NEW.from_state='quarantined' AND NEW.to_state='stop_required')
+  ))
+  OR NOT EXISTS (
+    SELECT 1 FROM managed_source_handoffs handoff
+    JOIN managed_command_current command ON command.id=handoff.stop_command_id
+    WHERE handoff.id=NEW.handoff_id AND (
+      (NEW.to_state='stop_required' AND command.command_state='queued') OR
+      (NEW.to_state='stop_claimed' AND command.command_state='claimed') OR
+      (NEW.to_state='stop_executing' AND command.command_state='executing') OR
+      (NEW.to_state='quarantined'
+        AND command.command_state IN ('queued','failed','outcome_unknown')) OR
+      (NEW.to_state='safe' AND command.command_state='completed'
+        AND command.playback_status='paused')
+    )
+  )
+BEGIN SELECT RAISE(ABORT, 'managed source handoff transition is invalid'); END;
+CREATE TRIGGER managed_source_handoffs_immutable_update BEFORE UPDATE ON managed_source_handoffs
+BEGIN SELECT RAISE(ABORT, 'managed source handoff intents are immutable'); END;
+CREATE TRIGGER managed_source_handoffs_immutable_delete BEFORE DELETE ON managed_source_handoffs
+BEGIN SELECT RAISE(ABORT, 'managed source handoff intents are immutable'); END;
+CREATE TRIGGER managed_source_handoff_transitions_immutable_update
+BEFORE UPDATE ON managed_source_handoff_transitions
+BEGIN SELECT RAISE(ABORT, 'managed source handoff transitions are immutable'); END;
+CREATE TRIGGER managed_source_handoff_transitions_immutable_delete
+BEFORE DELETE ON managed_source_handoff_transitions
+BEGIN SELECT RAISE(ABORT, 'managed source handoff transitions are immutable'); END;
 CREATE TRIGGER purge_tombstones_immutable_update BEFORE UPDATE ON purge_tombstones
 BEGIN SELECT RAISE(ABORT, 'purge tombstones are immutable'); END;
 CREATE TRIGGER purge_tombstones_immutable_delete BEFORE DELETE ON purge_tombstones
@@ -391,12 +472,16 @@ WHEN (SELECT status FROM state_authority WHERE singleton='state')='active'
     ((SELECT lifecycle FROM history_streams WHERE run_id=NEW.run_id)='terminal_pending'
       AND NOT (
         NEW.event_type='audio_lease_released' OR
-        (NEW.event_type IN ('audio_command_completed','audio_command_failed',
+        (NEW.event_type IN ('audio_command_delivered','audio_command_completed','audio_command_failed',
           'audio_command_outcome_unknown','audio_command_cancelled')
           AND NEW.command_ref IS NOT NULL
           AND EXISTS (SELECT 1 FROM managed_command_current command
             WHERE command.id=NEW.command_ref AND command.run_id=NEW.run_id
-              AND ((NEW.event_type='audio_command_completed' AND command.command_state='completed')
+              AND ((NEW.event_type='audio_command_delivered'
+                  AND command.command_state='claimed'
+                  AND EXISTS (SELECT 1 FROM managed_source_handoffs handoff
+                    WHERE handoff.stop_command_id=command.id))
+                OR (NEW.event_type='audio_command_completed' AND command.command_state='completed')
                 OR (NEW.event_type='audio_command_failed' AND command.command_state='failed')
                 OR (NEW.event_type='audio_command_outcome_unknown'
                   AND command.command_state='outcome_unknown')

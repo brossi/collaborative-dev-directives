@@ -11,7 +11,9 @@ import {
 import { validateStateDatabase } from "./invariants.mjs";
 import { candidateAuthorityDigest } from "./attestation.mjs";
 import { projectStateHistory } from "./history-projection.mjs";
-import { resolveSessionRecovery } from "./recovery-contract.mjs";
+import { resolveSessionRecovery,resolveSourceHandoff } from "./recovery-contract.mjs";
+import { STATE_PROTOCOL_VERSION } from "./contract.mjs";
+import { STATE_SCHEMA_GENERATION } from "./schema.mjs";
 
 const COMMAND_EDGES = new Map([
   ["queued:claim", "claimed"],
@@ -256,7 +258,8 @@ export class StateOwner {
 
   activate({
     commandId = randomUUID(), expectedSourceDigest = null, expectedCandidateDigest = null,
-    expectedSchemaGeneration = 2, expectedProtocolVersion = 3,
+    expectedSchemaGeneration = STATE_SCHEMA_GENERATION,
+    expectedProtocolVersion = STATE_PROTOCOL_VERSION,
     releaseEpoch = "development", now = Date.now(),
   } = {}) {
     const request = {
@@ -273,7 +276,8 @@ export class StateOwner {
     return this.#once(commandId, "activate_state_authority", request, now, () => {
       const authority = this.authorityStatus();
       if (authority.status !== "candidate") throw new Error("State authority is already active.");
-      if (expectedSchemaGeneration !== 2 || expectedProtocolVersion !== 3
+      if (expectedSchemaGeneration !== STATE_SCHEMA_GENERATION
+          || expectedProtocolVersion !== STATE_PROTOCOL_VERSION
           || typeof releaseEpoch !== "string" || !releaseEpoch.trim()) {
         throw new Error("Activation contract is incompatible with this state service.");
       }
@@ -652,6 +656,10 @@ export class StateOwner {
           WHERE code=? AND active_run_id=? AND run_generation=? AND status='playing'`)
           .run(now,lobbyCode,expectedRunId,expectedRunGeneration);
         if (closed.changes !== 1) throw new Error("Lobby terminal context is inconsistent.");
+        this.#reconcileRunCommandsForTerminal(
+          expectedRunId, actionId,
+          reduced.terminalOutcome === "completed" ? "game_completed" : "game_abandoned", now,
+        );
         const pending = this.#db.prepare(`UPDATE history_streams SET lifecycle='terminal_pending'
           WHERE run_id=? AND lifecycle='recording' AND last_recorded_revision=?`)
           .run(expectedRunId,revision);
@@ -662,10 +670,6 @@ export class StateOwner {
           (run_id,sequence,from_state,to_state,reason,occurred_at)
           VALUES (?,?,'recording','terminal_pending',?,?)`)
           .run(expectedRunId,transitionSequence,`game_${reduced.terminalOutcome}`,now);
-        this.#reconcileRunCommandsForTerminal(
-          expectedRunId, actionId,
-          reduced.terminalOutcome === "completed" ? "game_completed" : "game_abandoned", now,
-        );
       }
       return { ...result, replayed: false };
     });
@@ -991,13 +995,19 @@ export class StateOwner {
       const lease = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
         WHERE source_id=?`).get(sourceId);
       let transitions = [];
+      let handoff = { state: "clear" };
       if (lease) {
-        transitions = this.#forfeitLease(lease,"explicit_release",now);
+        const released = this.#releaseLeaseAuthority(lease,"explicit_release",commandId,now);
+        transitions = released.transitions;
+        handoff = released.handoff;
         this.#recordLeaseEvent({
           lobbyCode: lease.lobby_code,actionId: commandId,actorPrincipalId: null,
           type: "audio_lease_released",outcome: "completed",detailCode: "managed",
           reasonCode: "explicit_release",now,
         });
+      }
+      if (action === "disable" && handoff.state !== "clear") {
+        throw new Error("Managed source must confirm safe playback before it can be disabled.");
       }
       if (action === 'rotate') {
         if (typeof tokenHash !== "string" || !/^[0-9a-f]{64}$/i.test(tokenHash)) {
@@ -1010,7 +1020,9 @@ export class StateOwner {
         this.#db.prepare(`UPDATE managed_sources SET enabled=0,last_seen_at=NULL,
           last_error_category=NULL WHERE id=?`).run(sourceId);
       }
-      return { sourceId,enabled: action === 'rotate',activeLeaseReleased: Boolean(lease),transitions };
+      return {
+        sourceId,enabled: action === 'rotate',activeLeaseReleased: Boolean(lease),transitions,handoff,
+      };
     });
   }
 
@@ -1038,14 +1050,37 @@ export class StateOwner {
       FROM managed_leases lease
       JOIN managed_sources source ON source.id=lease.source_id AND source.enabled=1
       WHERE lease.source_id=? AND lease.expires_at>?`).get(authenticatedSourceId,now);
-    if (!lease) return { protocolVersion: 3, lease: null, command: null };
+    if (!lease) {
+      const handoff = this.#db.prepare(`SELECT id,prior_lobby_code,stop_command_id,handoff_state
+        FROM managed_source_handoff_current
+        WHERE source_id=? AND handoff_state<>'safe'`).get(authenticatedSourceId);
+      if (!handoff) return { protocolVersion: STATE_PROTOCOL_VERSION, lease: null, command: null };
+      if (handoff.handoff_state === "stop_required") {
+        const command = this.#db.prepare(`SELECT current.id,current.kind,payload.track_uri
+          FROM managed_command_current current
+          JOIN managed_command_payloads payload ON payload.command_id=current.id
+          WHERE current.id=? AND current.command_state='queued'`).get(handoff.stop_command_id);
+        if (!command) throw new Error("Managed source handoff stop authority is inconsistent.");
+        return {
+          protocolVersion: STATE_PROTOCOL_VERSION,lease: null,
+          handoff: { id: handoff.id,state: handoff.handoff_state,
+            priorLobbyCode: handoff.prior_lobby_code },
+          command: { id: command.id,kind: command.kind,trackUri: command.track_uri,handoff: true },
+        };
+      }
+      return {
+        protocolVersion: STATE_PROTOCOL_VERSION,lease: null,command: null,
+        handoff: { id: handoff.id,state: handoff.handoff_state,
+          priorLobbyCode: handoff.prior_lobby_code },
+      };
+    }
     const inFlight = this.#db.prepare(`SELECT id,command_state FROM managed_command_current
       WHERE source_id=? AND lobby_code=?
         AND command_state IN ('claimed','executing','outcome_unknown')
       ORDER BY dispatch_sequence LIMIT 1`).get(authenticatedSourceId,lease.lobby_code);
     if (inFlight) {
       return {
-        protocolVersion: 3,
+        protocolVersion: STATE_PROTOCOL_VERSION,
         lease: {
           id: lease.lease_id, lobbyCode: lease.lobby_code,
           expiresAt: lease.expires_at, playbackStatus: lease.playback_status,
@@ -1060,7 +1095,7 @@ export class StateOwner {
       WHERE current.source_id=? AND current.lobby_code=? AND current.command_state='queued'
       ORDER BY current.dispatch_sequence LIMIT 1`).get(authenticatedSourceId,lease.lobby_code);
     return {
-      protocolVersion: 3,
+      protocolVersion: STATE_PROTOCOL_VERSION,
       lease: {
         id: lease.lease_id, lobbyCode: lease.lobby_code,
         expiresAt: lease.expires_at, playbackStatus: lease.playback_status,
@@ -1080,17 +1115,30 @@ export class StateOwner {
       LEFT JOIN managed_sources source ON source.id=lease.source_id
       WHERE l.code=?`).get(now,lobbyCode);
     if (!row) throw new Error("Lobby was not found.");
+    const anyLease = this.#db.prepare(`SELECT lobby_code FROM managed_leases
+      WHERE expires_at>? ORDER BY acquired_at LIMIT 1`).get(now);
+    const activeHandoff = this.#db.prepare(`SELECT prior_lobby_code
+      FROM managed_source_handoff_current WHERE handoff_state<>'safe'
+      ORDER BY occurred_at LIMIT 1`).get();
+    const handoff = resolveSourceHandoff({
+      requestedLobbyCode: lobbyCode,
+      leaseLobbyCode: anyLease?.lobby_code ?? null,
+      unresolvedLobbyCode: activeHandoff?.prior_lobby_code ?? null,
+    });
     if (row.audio_mode === "local") {
-      return { selection: "local", mode: "local", sourceOnline: false, status: "disconnected" };
+      return { selection: "local", mode: "local", sourceOnline: false,
+        status: "disconnected",handoff };
     }
     if (!row.lease_id) {
-      return { selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" };
+      return { selection: "managed", mode: "local", sourceOnline: false,
+        status: "disconnected",handoff };
     }
     return {
       selection: "managed", mode: "managed", leaseId: row.lease_id,
       sourceName: row.display_name,
       sourceOnline: Number.isSafeInteger(row.last_seen_at) && row.last_seen_at > now - 90_000,
       status: row.playback_status,
+      handoff,
       ...(row.last_error_category ? { error: row.last_error_category } : {}),
     };
   }
@@ -1112,6 +1160,9 @@ export class StateOwner {
       const conflict = this.#db.prepare(`SELECT id FROM managed_leases
         WHERE source_id=? OR lobby_code=?`).get(sourceId,lobbyCode);
       if (conflict) throw new Error("Managed source or lobby is already leased.");
+      const handoff = this.#db.prepare(`SELECT 1 FROM managed_source_handoff_current
+        WHERE source_id=? AND handoff_state<>'safe'`).get(sourceId);
+      if (handoff) throw new Error("Managed source handoff is quarantined until playback is safe.");
       const leaseId = randomUUID();
       const expiresAt = now + leaseDurationMs;
       if (!Number.isSafeInteger(expiresAt)) throw new Error("Lease expiry is invalid.");
@@ -1163,13 +1214,13 @@ export class StateOwner {
         FROM managed_leases WHERE id=? AND acquired_by_principal_id=?`)
         .get(leaseId,actorPrincipalId);
       if (!lease) throw new Error("Managed lease is stale or unavailable.");
-      const transitions = this.#forfeitLease(lease, reasonCode, now);
+      const released = this.#releaseLeaseAuthority(lease,reasonCode,commandId,now);
       this.#recordLeaseEvent({
         lobbyCode: lease.lobby_code, actionId: commandId, actorPrincipalId,
         type: "audio_lease_released", outcome: "completed", detailCode: "managed",
         reasonCode, now,
       });
-      return { leaseId, released: true, transitions };
+      return { leaseId, released: true, ...released };
     });
   }
 
@@ -1179,13 +1230,13 @@ export class StateOwner {
       const leases = this.#db.prepare(`SELECT id,source_id,lobby_code
         FROM managed_leases WHERE expires_at<=? ORDER BY id`).all(now);
       const expired = leases.map((lease) => {
-        const transitions = this.#forfeitLease(lease, "lease_expired", now);
+        const released = this.#releaseLeaseAuthority(lease,"lease_expired",commandId,now);
         this.#recordLeaseEvent({
           lobbyCode: lease.lobby_code, actionId: commandId, actorPrincipalId: null,
           type: "audio_lease_expired", outcome: "interrupted", detailCode: "managed",
           reasonCode: "lease_expired", now,
         });
-        return { leaseId: lease.id, transitions };
+        return { leaseId: lease.id, ...released };
       });
       return { boundary: now, expired };
     });
@@ -1210,6 +1261,47 @@ export class StateOwner {
     const removed = this.#db.prepare("DELETE FROM managed_leases WHERE id=?").run(lease.id);
     if (removed.changes !== 1) throw new Error("Managed lease release conflicted.");
     return transitions;
+  }
+
+  #releaseLeaseAuthority(lease,reasonCode,actionId,now) {
+    const context = this.#db.prepare(`SELECT lease.id,lease.source_id,lease.lobby_code,
+        lease.acquired_by_principal_id,lease.playback_status,lobby.active_run_id AS run_id,
+        lobby.run_generation
+      FROM managed_leases lease JOIN lobbies lobby ON lobby.code=lease.lobby_code
+      WHERE lease.id=?`).get(lease.id);
+    if (!context?.run_id) throw new Error("Managed lease run authority is unavailable.");
+    const transitions = this.#forfeitLease(context,reasonCode,now);
+    const uncertain = transitions.some((entry) => entry.state === "outcome_unknown");
+    if (context.playback_status !== "playing" && !uncertain) {
+      return { transitions,handoff: { state: "clear" } };
+    }
+    const handoffId = randomUUID();
+    const stopCommandId = randomUUID();
+    this.#insertManagedCommand({
+      commandId: stopCommandId,sourceId: context.source_id,lobbyCode: context.lobby_code,
+      runId: context.run_id,runGeneration: context.run_generation,kind: "pause",trackUri: null,
+      requestedByPrincipalId: context.acquired_by_principal_id,actionId,now,
+    });
+    this.#db.prepare(`INSERT INTO managed_source_handoffs
+      (id,source_id,prior_lobby_code,run_id,run_generation,stop_command_id,reason_code,created_at)
+      VALUES (?,?,?,?,?,?,?,?)`).run(
+      handoffId,context.source_id,context.lobby_code,context.run_id,context.run_generation,
+      stopCommandId,reasonCode,now,
+    );
+    const state = uncertain ? "quarantined" : "stop_required";
+    this.#db.prepare(`INSERT INTO managed_source_handoff_transitions
+      (handoff_id,sequence,from_state,to_state,occurred_at) VALUES (?,1,NULL,?,?)`)
+      .run(handoffId,state,now);
+    return { transitions,handoff: { id: handoffId,state,stopCommandId } };
+  }
+
+  #transitionSourceHandoff(handoff,nextState,now) {
+    const sequence = this.#db.prepare(`SELECT MAX(sequence)+1 AS sequence
+      FROM managed_source_handoff_transitions WHERE handoff_id=?`).get(handoff.id).sequence;
+    this.#db.prepare(`INSERT INTO managed_source_handoff_transitions
+      (handoff_id,sequence,from_state,to_state,occurred_at) VALUES (?,?,?,?,?)`).run(
+      handoff.id,sequence,handoff.handoff_state,nextState,now,
+    );
   }
 
   createManagedCommand({
@@ -1265,8 +1357,9 @@ export class StateOwner {
     this.#db.prepare(`INSERT INTO managed_command_intents
       (id,source_id,lobby_code,run_id,run_generation,protocol_version,kind,
        action_id,dispatch_sequence,created_at)
-      VALUES (?,?,?,?,?,3,?,?,?,?)`)
-      .run(commandId,sourceId,lobbyCode,runId,runGeneration,kind,actionId,dispatchSequence,now);
+      VALUES (?,?,?,?,?,?,?,?,?,?)`)
+      .run(commandId,sourceId,lobbyCode,runId,runGeneration,STATE_PROTOCOL_VERSION,
+        kind,actionId,dispatchSequence,now);
     this.#db.prepare(`INSERT INTO managed_command_payloads
       (command_id,track_uri,requested_by_principal_id) VALUES (?,?,?)`)
       .run(commandId,trackUri,requestedByPrincipalId);
@@ -1274,7 +1367,7 @@ export class StateOwner {
       (command_id,sequence,from_state,to_state,occurred_at)
       VALUES (?,1,NULL,'queued',?)`).run(commandId,now);
     this.#recordManagedCommandEvent(commandId,"queued",null,now);
-    return { commandId, protocolVersion: 3, state: "queued" };
+    return { commandId, protocolVersion: STATE_PROTOCOL_VERSION, state: "queued" };
   }
 
   #applyGameEffects({
@@ -1290,7 +1383,7 @@ export class StateOwner {
           WHERE lobby_code=?`).get(lobbyCode);
         if (effect.mode === "local") {
           if (existing) {
-            this.#forfeitLease(existing,"source_selected_local",now);
+            this.#releaseLeaseAuthority(existing,"source_selected_local",actionId,now);
             this.#recordLeaseEvent({
               lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
               type: "audio_lease_released",outcome: "completed",detailCode: "managed",
@@ -1311,7 +1404,9 @@ export class StateOwner {
         }
         const source = this.#db.prepare(`SELECT source.id FROM managed_sources source
           LEFT JOIN managed_leases lease ON lease.source_id=source.id
-          WHERE source.enabled=1 AND source.last_seen_at>? AND lease.id IS NULL
+          LEFT JOIN managed_source_handoff_current handoff ON handoff.source_id=source.id
+            AND handoff.handoff_state<>'safe'
+          WHERE source.enabled=1 AND source.last_seen_at>? AND lease.id IS NULL AND handoff.id IS NULL
           ORDER BY source.last_seen_at DESC,source.id LIMIT 1`).get(now - 90_000);
         if (!source) throw new Error("Managed playback authority is unavailable.");
         const leaseId = randomUUID();
@@ -1329,7 +1424,7 @@ export class StateOwner {
         const lease = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
           WHERE lobby_code=?`).get(lobbyCode);
         if (!lease) throw new Error("Managed lease is stale or unavailable.");
-        this.#forfeitLease(lease,"explicit_release",now);
+        this.#releaseLeaseAuthority(lease,"explicit_release",actionId,now);
         this.#recordLeaseEvent({
           lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
           type: "audio_lease_released",outcome: "completed",detailCode: "managed",
@@ -1382,6 +1477,9 @@ export class StateOwner {
           run_id,run_generation,lobby_code,kind
         FROM managed_command_current WHERE id=?`).get(commandId);
       if (!current) throw new Error("Managed command was not found.");
+      const sourceHandoff = this.#db.prepare(`SELECT id,source_id,prior_lobby_code,
+          stop_command_id,handoff_state
+        FROM managed_source_handoff_current WHERE stop_command_id=?`).get(commandId);
       if (!authenticatedSourceId || current.source_id !== authenticatedSourceId) {
         throw new Error("Managed source is not authorized for this command.");
       }
@@ -1456,7 +1554,12 @@ export class StateOwner {
           JOIN lobbies lobby ON lobby.code=command.lobby_code AND lobby.status='playing'
             AND lobby.active_run_id=command.run_id AND lobby.run_generation=command.run_generation
           WHERE command.id=? AND command.source_id=?`).get(now,commandId,authenticatedSourceId);
-        if (!liveLease) throw new Error("Managed command lease authority has expired.");
+        const handoffAuthority = sourceHandoff
+          && ((action === "claim" && sourceHandoff.handoff_state === "stop_required")
+            || (action === "begin" && sourceHandoff.handoff_state === "stop_claimed"));
+        if (!liveLease && !handoffAuthority) {
+          throw new Error("Managed command lease or handoff authority has expired.");
+        }
       }
       this.#appendManagedCommandTransition({
         commandId, currentState: current.command_state, nextState: next,
@@ -1471,8 +1574,22 @@ export class StateOwner {
           current.source_id,current.lobby_code,
         );
       }
+      if (sourceHandoff) {
+        const nextHandoff = action === "claim" ? "stop_claimed"
+          : action === "begin" ? "stop_executing"
+            : action === "complete" ? "safe" : "quarantined";
+        this.#transitionSourceHandoff(sourceHandoff,nextHandoff,now);
+      } else if (["complete","fail"].includes(action)
+          && current.command_state === "outcome_unknown") {
+        const blockedHandoff = this.#db.prepare(`SELECT id,handoff_state
+          FROM managed_source_handoff_current
+          WHERE source_id=? AND prior_lobby_code=? AND handoff_state='quarantined'`)
+          .get(current.source_id,current.lobby_code);
+        if (blockedHandoff) this.#transitionSourceHandoff(blockedHandoff,"stop_required",now);
+      }
       this.#recordManagedCommandEvent(commandId,next,reasonCode,now);
-      return { commandId, protocolVersion: 3, state: next, claimGeneration: generation };
+      return { commandId, protocolVersion: STATE_PROTOCOL_VERSION,
+        state: next, claimGeneration: generation };
     });
   }
 
@@ -1524,27 +1641,28 @@ export class StateOwner {
   }
 
   #reconcileRunCommandsForTerminal(runId, actionId, reasonCode, now) {
+    const lobby = this.#db.prepare("SELECT lobby_code FROM game_runs WHERE id=?").get(runId);
+    const lease = this.#db.prepare("SELECT id,source_id,lobby_code FROM managed_leases WHERE lobby_code=?")
+      .get(lobby.lobby_code);
+    if (lease) {
+      this.#releaseLeaseAuthority(lease,reasonCode,actionId,now);
+      this.#recordLeaseEvent({
+        lobbyCode: lobby.lobby_code, actionId, actorPrincipalId: null,
+        type: "audio_lease_released", outcome: "completed", detailCode: "managed",
+        reasonCode, now,
+      });
+      return;
+    }
     const commands = this.#db.prepare(`SELECT id,command_state,claim_generation
       FROM managed_command_current WHERE run_id=?
         AND command_state IN ('queued','claimed','executing')`).all(runId);
     for (const command of commands) {
       const next = command.command_state === "queued" ? "cancelled" : "outcome_unknown";
       this.#appendManagedCommandTransition({
-        commandId: command.id, currentState: command.command_state, nextState: next,
-        claimGeneration: command.claim_generation, reasonCode, now,
+        commandId: command.id,currentState: command.command_state,nextState: next,
+        claimGeneration: command.claim_generation,reasonCode,now,
       });
       this.#recordManagedCommandEvent(command.id,next,reasonCode,now);
-    }
-    const lobby = this.#db.prepare("SELECT lobby_code FROM game_runs WHERE id=?").get(runId);
-    const lease = this.#db.prepare("SELECT id FROM managed_leases WHERE lobby_code=?")
-      .get(lobby.lobby_code);
-    if (lease) {
-      this.#db.prepare("DELETE FROM managed_leases WHERE id=?").run(lease.id);
-      this.#recordLeaseEvent({
-        lobbyCode: lobby.lobby_code, actionId, actorPrincipalId: null,
-        type: "audio_lease_released", outcome: "completed", detailCode: "managed",
-        reasonCode, now,
-      });
     }
   }
 

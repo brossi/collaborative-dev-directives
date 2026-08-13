@@ -237,6 +237,20 @@ class CompletionAcknowledgementTests(unittest.TestCase):
             self.assertIsNone(controller.state["commandOutbox"])
         self.assertFalse(controller.PENDING_COMPLETION_PATH.exists())
 
+    def test_protocol_four_handoff_stop_is_claimed_without_a_live_lease(self):
+        command_id = "00000000-0000-4000-8000-000000000044"
+        source_api = Mock(return_value=(
+            {"accepted": True, "status": "claimed", "replayed": False}, None,
+        ))
+        result = controller.claim_polled_command({
+            "id": command_id,"kind": "pause","trackUri": None,"handoff": True,
+        }, api=source_api, protocol_version=4)
+        self.assertTrue(result["accepted"])
+        self.assertEqual(source_api.call_args.args[0]["action"], "claim")
+        with controller.lock:
+            self.assertEqual(controller.state["commandOutbox"]["protocolVersion"], 4)
+            self.assertTrue(controller.state["commandOutbox"]["command"]["handoff"])
+
     def test_restarted_executing_command_reports_unknown_to_server_once(self):
         generation = "00000000-0000-4000-8000-000000000015"
         command_id = "00000000-0000-4000-8000-000000000016"

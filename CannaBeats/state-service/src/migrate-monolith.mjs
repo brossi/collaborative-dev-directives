@@ -7,6 +7,7 @@ import {
   acquireStateOwnership, closeStateStore, createStateStore, validateStateStoreSchema,
 } from "./store.mjs";
 import { STATE_SCHEMA_GENERATION } from "./schema.mjs";
+import { STATE_PROTOCOL_VERSION } from "./contract.mjs";
 import { validateStateDatabase } from "./invariants.mjs";
 import { candidateAuthorityDigest } from "./attestation.mjs";
 import { redactRoomStateForRetention } from "./game-domain.mjs";
@@ -210,7 +211,7 @@ function expectedReadProjection(snapshot) {
     commands: snapshot.commands.map((command) => ({
       id: command.id, sourceId: command.source_id, lobbyCode: command.session_code,
       runId: command.run_id, runGeneration: command.run_generation,
-      protocolVersion: 3, kind: command.kind, state: command.command_state,
+      protocolVersion: STATE_PROTOCOL_VERSION, kind: command.kind, state: command.command_state,
       claimGeneration: command.claim_generation,
       outcomeFingerprint: ["completed", "failed"].includes(command.command_state)
         ? contentDigest(JSON.parse(command.completion_fingerprint)) : null,
@@ -376,7 +377,7 @@ export function migrateMonolith({
         }
         return {
           sourceDatabaseDigest, candidateDigest: prior.candidate_digest,
-          schemaGeneration: STATE_SCHEMA_GENERATION, protocolVersion: 3,
+          schemaGeneration: STATE_SCHEMA_GENERATION, protocolVersion: STATE_PROTOCOL_VERSION,
           contentDigest: digest, rowCounts, replayed: true,
         };
       }
@@ -486,7 +487,7 @@ export function migrateMonolith({
         const insertIntent = destination.prepare(`INSERT INTO managed_command_intents
           (id,source_id,lobby_code,run_id,run_generation,protocol_version,kind,
            action_id,dispatch_sequence,created_at)
-          VALUES (?,?,?,?,?,3,?,?,?,?)`);
+          VALUES (?,?,?,?,?,?,?,?,?,?)`);
         const insertPayload = destination.prepare(`INSERT INTO managed_command_payloads
           (command_id,track_uri,requested_by_principal_id) VALUES (?,?,?)`);
         const insertCommandTransition = destination.prepare(`INSERT INTO managed_command_transitions
@@ -511,7 +512,7 @@ export function migrateMonolith({
             && event.event_type === "audio_command_requested");
           const actionId = requestedEvent?.action_id ?? row.id;
           insertIntent.run(row.id,row.source_id,row.session_code,row.run_id,row.run_generation,
-            row.kind,actionId,dispatchSequence,row.created_at);
+            STATE_PROTOCOL_VERSION,row.kind,actionId,dispatchSequence,row.created_at);
           if (!purgedRuns.has(row.run_id)) insertPayload.run(row.id,row.track_uri,row.requested_by);
           const path = transitionPath(row.command_state);
           if (!path) throw new Error(`Legacy command ${row.id} has an unsupported state.`);
@@ -574,7 +575,7 @@ export function migrateMonolith({
       return {
         sourceDatabaseDigest,
         candidateDigest: publishedCandidateDigest,
-        schemaGeneration: STATE_SCHEMA_GENERATION, protocolVersion: 3,
+          schemaGeneration: STATE_SCHEMA_GENERATION, protocolVersion: STATE_PROTOCOL_VERSION,
         contentDigest: digest, rowCounts, replayed: false,
       };
     } finally {

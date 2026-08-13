@@ -972,6 +972,11 @@ as a finite State-owned transition before UI behavior is added.
   unresolved action, its lobby locator is passed into State recovery; the
   authoritative room is restored with controls blocked and the exact original
   request identity is reconciled before normal mutations resume.
+- State schema generation 3 / source protocol 4 now persist lease handoff as a
+  first-class stop obligation. Playing or uncertain release paths cannot be
+  reacquired by another lobby until the real source controller executes and
+  acknowledges a State-issued pause. Busy, recovering, and quarantined lobby
+  projections deny listening and offer explicit local playback instead.
 
 - Make same-device guest reclaim explicit across refresh, expiry boundaries,
   phone sleep, and short disconnects.

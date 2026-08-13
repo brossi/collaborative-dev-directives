@@ -107,7 +107,10 @@ function exercise({ commandType, phase, role }) {
 
 test("contract publishes one stable status for every external error code", () => {
   assert.equal(STATE_SERVICE_CONTRACT.httpContractVersion, 1);
-  assert.equal(STATE_SERVICE_CONTRACT.protocolVersion, 3);
+  assert.deepEqual(STATE_SERVICE_CONTRACT.recovery.sourceHandoffStates,[
+    "clear","stop_required","stop_claimed","stop_executing","quarantined",
+  ]);
+  assert.equal(STATE_SERVICE_CONTRACT.protocolVersion, 4);
   assert.deepEqual(STATE_SERVICE_CONTRACT.gameCommands, GAME_COMMAND_TYPES);
   for (const [code, status] of Object.entries(STATE_HTTP_ERROR_CODES)) {
     assert.match(code, /^[a-z][a-z0-9_]+$/);

@@ -322,7 +322,8 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
       AND event.sequence>(SELECT MIN(terminal.sequence) FROM game_events terminal
         WHERE terminal.run_id=stream.run_id
           AND terminal.event_type IN ('game_completed','game_abandoned'))
-      AND event.event_type NOT IN ('audio_command_completed','audio_command_failed',
+      AND event.event_type NOT IN ('audio_command_requested','audio_command_delivered',
+        'audio_command_completed','audio_command_failed',
         'audio_command_outcome_unknown','audio_command_cancelled','audio_lease_released')`).get().count;
   if (forbiddenTerminalEvents) violations.push("terminal history contains a non-reconciliation event");
   const strayTombstones = db.prepare(`SELECT COUNT(*) AS count FROM purge_tombstones tombstone
@@ -339,6 +340,46 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
       WHERE transition.command_id=intent.id AND transition.sequence=1
         AND transition.from_state IS NULL AND transition.to_state='queued')`).get().count;
   if (orphanCommandIntents) violations.push("managed-command intent lacks its initial transition");
+  const malformedHandoffs = db.prepare(`SELECT COUNT(*) AS count
+    FROM managed_source_handoffs handoff
+    JOIN managed_command_current command ON command.id=handoff.stop_command_id
+    JOIN game_runs run ON run.id=handoff.run_id
+    WHERE command.kind<>'pause' OR command.source_id<>handoff.source_id
+      OR command.lobby_code<>handoff.prior_lobby_code OR command.run_id<>handoff.run_id
+      OR command.run_generation<>handoff.run_generation
+      OR run.lobby_code<>handoff.prior_lobby_code
+      OR json_extract(run.state,'$.runGeneration')<>handoff.run_generation`).get().count;
+  if (malformedHandoffs) violations.push("managed-source handoff authority is inconsistent");
+  const orphanHandoffs = db.prepare(`SELECT COUNT(*) AS count FROM managed_source_handoffs handoff
+    WHERE NOT EXISTS (SELECT 1 FROM managed_source_handoff_transitions transition
+      WHERE transition.handoff_id=handoff.id AND transition.sequence=1
+        AND transition.from_state IS NULL
+        AND transition.to_state IN ('stop_required','quarantined'))`).get().count;
+  if (orphanHandoffs) violations.push("managed-source handoff lacks its initial transition");
+  const discontinuousHandoffs = db.prepare(`SELECT COUNT(*) AS count
+    FROM managed_source_handoff_transitions transition
+    WHERE transition.sequence>1 AND transition.from_state<>(
+      SELECT prior.to_state FROM managed_source_handoff_transitions prior
+      WHERE prior.handoff_id=transition.handoff_id AND prior.sequence=transition.sequence-1
+    )`).get().count;
+  if (discontinuousHandoffs) violations.push("managed-source handoff chain is discontinuous");
+  const duplicateActiveHandoffs = db.prepare(`SELECT COUNT(*) AS count FROM (
+    SELECT source_id FROM managed_source_handoff_current WHERE handoff_state<>'safe'
+    GROUP BY source_id HAVING COUNT(*)>1)`).get().count;
+  if (duplicateActiveHandoffs) violations.push("managed source has competing handoff authority");
+  const staleHandoffProjection = db.prepare(`SELECT COUNT(*) AS count
+    FROM managed_source_handoff_current handoff
+    JOIN managed_command_current command ON command.id=handoff.stop_command_id
+    WHERE NOT (
+      (handoff.handoff_state='stop_required' AND command.command_state='queued') OR
+      (handoff.handoff_state='stop_claimed' AND command.command_state='claimed') OR
+      (handoff.handoff_state='stop_executing' AND command.command_state='executing') OR
+      (handoff.handoff_state='quarantined'
+        AND command.command_state IN ('queued','failed','outcome_unknown')) OR
+      (handoff.handoff_state='safe' AND command.command_state='completed'
+        AND command.playback_status='paused')
+    )`).get().count;
+  if (staleHandoffProjection) violations.push("managed-source handoff projection is stale");
   const contradictoryCommandRunAuthority = db.prepare(`SELECT COUNT(*) AS count
     FROM managed_command_intents command
     JOIN game_runs run ON run.id=command.run_id

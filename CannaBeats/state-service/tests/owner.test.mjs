@@ -302,7 +302,7 @@ test("managed command authority is an append-only owner-issued protocol", () => 
     sourceId, lobbyCode: "AUD234", runId, runGeneration: 1, kind: "pause",
     requestedByPrincipalId: host, now: 110,
   });
-  assert.equal(command.protocolVersion, 3);
+  assert.equal(command.protocolVersion, 4);
   const claimRequest = randomUUID();
   const claimGeneration = randomUUID();
   const claimed = owner.transitionManagedCommand({
@@ -849,6 +849,23 @@ test("terminal evidence seals and purges atomically while unresolved commands fa
     outcomeFingerprint: { ok: true, playbackStatus: "playing", errorCategory: null }, now: 44,
   });
   assert.equal(reconciled.state, "completed");
+  const handoffWork = owner.managedSourceWork({ authenticatedSourceId: sourceId, now: 44 });
+  assert.equal(handoffWork.handoff.state, "stop_required");
+  assert.equal(handoffWork.command.kind, "pause");
+  const stopGeneration = randomUUID();
+  owner.transitionManagedCommand({
+    commandId: handoffWork.command.id,action: "claim",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now: 44,
+  });
+  owner.transitionManagedCommand({
+    commandId: handoffWork.command.id,action: "begin",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now: 44,
+  });
+  owner.transitionManagedCommand({
+    commandId: handoffWork.command.id,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,
+    outcomeFingerprint: { ok: true,playbackStatus: "paused",errorCategory: null },now: 44,
+  });
   const sealed = owner.sealHistory({
     commandId: "9a1f7905-392a-455f-a020-4ae739e1f5b7", runId, now: 45,
   });
@@ -861,7 +878,7 @@ test("terminal evidence seals and purges atomically while unresolved commands fa
   const purged = owner.purgeHistory({
     commandId: purgeCommand, runId, eligibleBefore: 40, now: 50,
   });
-  assert.deepEqual(purged.counts, { events: 9, receipts: 1 });
+  assert.deepEqual(purged.counts, { events: 12, receipts: 1 });
   assert.equal(purged.lifecycle, "purged");
   assert.equal(purged.sanitization.status, "pending");
   assert.equal(readFileSync(`${path}-wal`).includes(Buffer.from(purgeSentinel)), true);
@@ -981,38 +998,133 @@ test("lease loss cancels queued work, makes delivered work unknown, and fences l
     authenticatedSourceId: sourceId, claimGeneration: claimed.claimGeneration, now: 45,
   }), /forbidden|expired/i);
 
-  const replacement = owner.acquireManagedLease({
+  assert.throws(() => owner.acquireManagedLease({
     lobbyCode: "LSE234", sourceId, actorPrincipalId: host,
     leaseDurationMs: 5, now: 50,
-  });
+  }),/handoff|quarantined/i);
   assert.equal(owner.transitionManagedCommand({
     commandId: delivered.commandId, action: "complete",
     authenticatedSourceId: sourceId, claimGeneration: claimed.claimGeneration,
     outcomeFingerprint: { ok: true, playbackStatus: "playing", errorCategory: null }, now: 50,
   }).state, "completed");
-  assert.equal(owner.managedSourceWork({ authenticatedSourceId: sourceId, now: 51 })
-    .lease.playbackStatus, "ready");
+  const handoffWork = owner.managedSourceWork({ authenticatedSourceId: sourceId, now: 51 });
+  assert.equal(handoffWork.command.kind,"pause");
+  const stopGeneration = randomUUID();
+  owner.transitionManagedCommand({
+    commandId: handoffWork.command.id,action: "claim",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now: 51,
+  });
+  owner.transitionManagedCommand({
+    commandId: handoffWork.command.id,action: "begin",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now: 52,
+  });
+  owner.transitionManagedCommand({
+    commandId: handoffWork.command.id,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,
+    outcomeFingerprint: { ok: true,playbackStatus: "paused",errorCategory: null },now: 53,
+  });
+  const replacement = owner.acquireManagedLease({
+    lobbyCode: "LSE234", sourceId, actorPrincipalId: host,
+    leaseDurationMs: 5, now: 54,
+  });
   const expiring = owner.createManagedCommand({
     sourceId, lobbyCode: "LSE234", runId, runGeneration: 1, kind: "pause",
-    requestedByPrincipalId: host, now: 51,
+    requestedByPrincipalId: host, now: 55,
   });
-  assert.equal(replacement.expiresAt, 55);
+  assert.equal(replacement.expiresAt, 59);
   assert.throws(() => owner.transitionManagedCommand({
     commandId: expiring.commandId, action: "claim",
-    authenticatedSourceId: sourceId, claimGeneration: randomUUID(), now: 56,
+    authenticatedSourceId: sourceId, claimGeneration: randomUUID(), now: 60,
   }), /expired/i);
   const expiryCommand = randomUUID();
-  const expired = owner.expireManagedLeases({ commandId: expiryCommand, now: 56 });
+  const expired = owner.expireManagedLeases({ commandId: expiryCommand, now: 60 });
   assert.deepEqual(expired.expired, [{
     leaseId: replacement.leaseId,
     transitions: [{ commandId: expiring.commandId, state: "cancelled" }],
+    handoff: { state: "clear" },
   }]);
-  assert.deepEqual(owner.expireManagedLeases({ commandId: expiryCommand, now: 66 }), {
+  assert.deepEqual(owner.expireManagedLeases({ commandId: expiryCommand, now: 70 }), {
     ...expired, replayed: true,
   });
   assert.equal(owner.acquireManagedLease({
     lobbyCode: "LSE234", sourceId, actorPrincipalId: host,
-    leaseDurationMs: 10, now: 57,
-  }).expiresAt, 67);
+    leaseDurationMs: 10, now: 61,
+  }).expiresAt, 71);
+  owner.close();
+});
+
+test("a playing source must acknowledge the handoff stop before another lobby can acquire it", () => {
+  const path = join(root,"source-handoff.sqlite");
+  const owner = developmentOwner(path);
+  const hostA = randomUUID();
+  const hostB = randomUUID();
+  const runA = randomUUID();
+  const runB = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 10 });
+  owner.createLobby({ code: "HND234",hostPrincipalId: hostA,now: 20 });
+  owner.createRun({ lobbyCode: "HND234",runId: runA,actorPrincipalId: hostA,now: 21 });
+  owner.createLobby({ code: "NXT234",hostPrincipalId: hostB,now: 22 });
+  owner.createRun({ lobbyCode: "NXT234",runId: runB,actorPrincipalId: hostB,now: 23 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Handoff Source",tokenHash: "b".repeat(64),now: 24,
+  });
+  const lease = owner.acquireManagedLease({
+    lobbyCode: "HND234",sourceId,actorPrincipalId: hostA,leaseDurationMs: 100,now: 25,
+  });
+  const resume = owner.createManagedCommand({
+    sourceId,lobbyCode: "HND234",runId: runA,runGeneration: 1,kind: "resume",
+    requestedByPrincipalId: hostA,now: 26,
+  });
+  const generation = randomUUID();
+  owner.transitionManagedCommand({
+    commandId: resume.commandId,action: "claim",authenticatedSourceId: sourceId,
+    claimGeneration: generation,now: 27,
+  });
+  owner.transitionManagedCommand({
+    commandId: resume.commandId,action: "begin",authenticatedSourceId: sourceId,
+    claimGeneration: generation,now: 28,
+  });
+  owner.transitionManagedCommand({
+    commandId: resume.commandId,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: generation,
+    outcomeFingerprint: { ok: true,playbackStatus: "playing",errorCategory: null },now: 29,
+  });
+
+  assert.throws(() => owner.updateManagedSource({
+    sourceId,action: "disable",now: 30,
+  }), /confirm safe playback/i);
+  assert.equal(owner.audioView({ lobbyCode: "HND234",now: 30 }).leaseId,lease.leaseId);
+
+  const released = owner.releaseManagedLease({
+    leaseId: lease.leaseId,actorPrincipalId: hostA,now: 31,
+  });
+  assert.equal(released.handoff.state,"stop_required");
+  assert.equal(owner.audioView({ lobbyCode: "HND234",now: 31 }).handoff.outcome,"recovering");
+  assert.equal(owner.audioView({ lobbyCode: "NXT234",now: 31 }).handoff.outcome,"quarantined");
+  assert.throws(() => owner.acquireManagedLease({
+    lobbyCode: "NXT234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 31,
+  }),/handoff|quarantined/i);
+
+  const work = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 32 });
+  assert.equal(work.lease,null);
+  assert.equal(work.command.kind,"pause");
+  assert.equal(work.command.handoff,true);
+  const stopGeneration = randomUUID();
+  for (const [action,now] of [["claim",33],["begin",34]]) {
+    owner.transitionManagedCommand({
+      commandId: work.command.id,action,authenticatedSourceId: sourceId,
+      claimGeneration: stopGeneration,now,
+    });
+  }
+  owner.transitionManagedCommand({
+    commandId: work.command.id,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,
+    outcomeFingerprint: { ok: true,playbackStatus: "paused",errorCategory: null },now: 35,
+  });
+  assert.equal(owner.audioView({ lobbyCode: "NXT234",now: 36 }).handoff.outcome,"available");
+  assert.equal(owner.acquireManagedLease({
+    lobbyCode: "NXT234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 36,
+  }).lobbyCode,"NXT234");
   owner.close();
 });

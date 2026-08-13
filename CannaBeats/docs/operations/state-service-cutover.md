@@ -101,8 +101,8 @@ an already-published candidate verifies the manifest and returns a replay.
 
 Start the state service against the candidate and verify `/ready` reports:
 
-- `schemaGeneration: 2`;
-- `protocolVersion: 3`; and
+- `schemaGeneration: 3`;
+- `protocolVersion: 4`; and
 - `authority.status: candidate`.
 
 Runtime mutations must return a candidate-state rejection. Perform destructive

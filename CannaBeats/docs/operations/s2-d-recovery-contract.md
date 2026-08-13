@@ -74,6 +74,21 @@ handoff. The source must cross the unresolved-effect fence before a new owner is
 projected as listen-capable. Local playback remains an explicit, non-destructive
 fallback in every non-owned state.
 
+State schema generation 3 / managed-source protocol 4 persist the handoff as
+an immutable stop obligation. Releasing a source that is playing creates a
+State-issued `pause`; releasing it with delivered work first quarantines the
+source until that work reaches a definitive outcome, then exposes the pause.
+The old lease is removed immediately, but another lobby cannot acquire the
+source and cannot listen until the pause completes as `paused`. A source cannot
+be disabled across this boundary; token rotation preserves the stop authority.
+The real controller accepts protocol 4 commands without a lease only when the
+command is the State-marked handoff pause.
+
+Generation-2/protocol-3 State databases were unpublished implementation
+checkpoints. They are not upgraded in place or treated as compatible release
+artifacts; a drained monolith source must be migrated into a fresh
+generation-3 candidate and activated against its exact attestation.
+
 ## Non-goals
 
 - Cross-device seat transfer
@@ -95,5 +110,9 @@ fallback in every non-owned state.
    or State identity disclosure. A durable pending action supplies its lobby
    target during startup, restores the current projection with controls blocked,
    and then reuses the existing exact-request reconciliation loop.
-5. Persist and enforce the source handoff/quarantine fence.
-6. Add busy/recovering/local-fallback UI and composed recovery scenarios.
+5. Persist and enforce the source handoff/quarantine fence. Implemented with an
+   append-only handoff intent/transition graph, acquisition and listener fences,
+   terminal-history reconciliation, and real-controller protocol handling.
+6. Add busy/recovering/local-fallback UI and composed recovery scenarios. The
+   UI outcomes and explicit local fallback are implemented; the full composed
+   scenario matrix remains the next verification task.

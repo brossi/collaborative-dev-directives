@@ -64,4 +64,10 @@ export type AudioControlView = {
   sourceOnline: boolean;
   status: "disconnected" | "ready" | "starting" | "playing" | "pausing" | "paused" | "resuming" | "error";
   error?: string;
+  handoff?: {
+    outcome: "available" | "owned" | "busy" | "recovering" | "quarantined";
+    mayAcquire: boolean;
+    mayListen: boolean;
+    localFallback: boolean;
+  };
 };

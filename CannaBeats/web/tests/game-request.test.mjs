@@ -564,6 +564,10 @@ test("cross-field-impossible audio responses fail closed", async () => {
     { selection: "local", mode: "managed", sourceOnline: true, status: "playing" },
     { selection: "managed", mode: "managed", sourceOnline: true, status: "playing" },
     { selection: "managed", mode: "local", sourceOnline: false, status: "ready" },
+    { selection: "managed",mode: "local",sourceOnline: false,status: "disconnected",
+      handoff: { outcome: "busy",mayAcquire: true,mayListen: false,localFallback: true } },
+    { selection: "managed",mode: "local",sourceOnline: false,status: "disconnected",
+      handoff: { outcome: "quarantined",mayAcquire: false,mayListen: true,localFallback: true } },
   ]) {
     await assert.rejects(
       requestGame("/game/api/game", {

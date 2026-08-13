@@ -22,6 +22,9 @@ const AUDIO_MODES = new Set(["local", "managed"]);
 const AUDIO_STATUSES = new Set([
   "disconnected", "ready", "starting", "playing", "pausing", "paused", "resuming", "error",
 ]);
+const SOURCE_HANDOFF_OUTCOMES = new Set([
+  "available","owned","busy","recovering","quarantined",
+]);
 const RULE_PRESETS = new Set(["family", "all-eras", "modern", "younger", "broadway-tv-movies", "custom"]);
 const CATALOG_SCOPES = new Set(["all", "broadway-tv-movies"]);
 const ERA_IDS = ["early", "midcentury", "classics", "millennial", "current"] as const;
@@ -325,13 +328,22 @@ export function validAudioControlViewShape(value: unknown): value is AudioContro
   const selection = String(value.selection ?? "");
   const mode = String(value.mode ?? "");
   const status = String(value.status ?? "");
+  const handoff = value.handoff;
+  const validHandoff = handoff === undefined || (isRecord(handoff)
+    && SOURCE_HANDOFF_OUTCOMES.has(String(handoff.outcome ?? ""))
+    && typeof handoff.mayAcquire === "boolean"
+    && typeof handoff.mayListen === "boolean"
+    && handoff.localFallback === true
+    && (handoff.outcome === "available") === handoff.mayAcquire
+    && (handoff.outcome === "owned") === handoff.mayListen);
   const baseShape = AUDIO_SELECTIONS.has(selection)
     && AUDIO_MODES.has(String(value.mode ?? ""))
     && typeof value.sourceOnline === "boolean"
     && AUDIO_STATUSES.has(status)
     && (value.leaseId === undefined || typeof value.leaseId === "string")
     && (value.sourceName === undefined || typeof value.sourceName === "string")
-    && (value.error === undefined || typeof value.error === "string");
+    && (value.error === undefined || typeof value.error === "string")
+    && validHandoff;
   if (!baseShape) return false;
   if (mode === "local") {
     return value.sourceOnline === false

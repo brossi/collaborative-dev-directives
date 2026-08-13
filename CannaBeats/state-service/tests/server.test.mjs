@@ -175,8 +175,8 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     assert.deepEqual(await contractResponse.json(), {
       service: "cannabeats-state",
       httpContractVersion: 1,
-      schemaGeneration: 2,
-      protocolVersion: 3,
+      schemaGeneration: 3,
+      protocolVersion: 4,
       projections: { room: 1, history: 1, accessLobby: 1 },
       gameCommands: [
         "add_host_player", "remove_player", "configure_rules", "start_game",
@@ -191,6 +191,9 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
         ],
         sourceHandoffOutcomes: [
           "available", "owned", "busy", "recovering", "quarantined",
+        ],
+        sourceHandoffStates: [
+          "clear", "stop_required", "stop_claimed", "stop_executing", "quarantined",
         ],
       },
       errors: {
@@ -247,8 +250,8 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       method: "POST", headers: { ...headers, authorization: "Bearer activation-secret" },
       body: JSON.stringify({
         commandId: randomUUID(), expectedSourceDigest: "a".repeat(64),
-        expectedCandidateDigest: "b".repeat(64), expectedSchemaGeneration: 2,
-        expectedProtocolVersion: 3, releaseEpoch: "release-test",
+        expectedCandidateDigest: "b".repeat(64), expectedSchemaGeneration: 3,
+        expectedProtocolVersion: 4, releaseEpoch: "release-test",
       }),
     });
     assert.equal(wrongVolumeActivation.status, 409);
@@ -257,7 +260,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       body: JSON.stringify({
         commandId: "451653d1-0077-43f9-90db-68c9c71b6630",
         expectedSourceDigest: null, expectedCandidateDigest: null,
-        expectedSchemaGeneration: 2, expectedProtocolVersion: 3,
+        expectedSchemaGeneration: 3, expectedProtocolVersion: 4,
         releaseEpoch: "development", now: -1,
       }),
     });
@@ -269,8 +272,8 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     });
     assert.equal(exported.status,200);
     assert.equal(exported.headers.get("x-cannabeats-release-epoch"),"development");
-    assert.equal(exported.headers.get("x-cannabeats-schema-generation"),"2");
-    assert.equal(exported.headers.get("x-cannabeats-protocol-version"),"3");
+    assert.equal(exported.headers.get("x-cannabeats-schema-generation"),"3");
+    assert.equal(exported.headers.get("x-cannabeats-protocol-version"),"4");
     const snapshot = Buffer.from(await exported.arrayBuffer());
     assert.equal(createHash("sha256").update(snapshot).digest("hex"),
       exported.headers.get("x-cannabeats-state-sha256"));
@@ -376,7 +379,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     assert.equal(registration.status, 200);
     assert.deepEqual(await (await fetch(`${origin}/v1/source/work`, {
       headers: { authorization: `Bearer ${sourceToken}` },
-    })).json(), { protocolVersion: 3, lease: null, command: null });
+    })).json(), { protocolVersion: 4, lease: null, command: null });
     const gameAction = async (expectedRevision, command) => {
       const response = await fetch(`${origin}/v1/lobbies/SRV234/actions`, {
         method: "POST", headers,
@@ -397,7 +400,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       headers: { authorization: `Bearer ${sourceToken}` },
     });
     const sourcePayload = await sourceWork.json();
-    assert.equal(sourcePayload.protocolVersion, 3);
+    assert.equal(sourcePayload.protocolVersion, 4);
     assert.equal(sourcePayload.lease.lobbyCode, "SRV234");
     assert.equal(sourcePayload.lease.expiresAt, 120_100);
     assert.deepEqual(sourcePayload.command, {

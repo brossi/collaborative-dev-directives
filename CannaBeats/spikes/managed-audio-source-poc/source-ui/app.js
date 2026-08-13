@@ -1,3 +1,7 @@
+import {
+  classifyManagedCommandFailure,shouldExecuteManagedControllerCommand,
+} from './protocol.mjs';
+
 const REFRESH_KEY = 'cannabeats.managed.spotify.refreshToken';
 const VERIFIER_KEY = 'cannabeats.managed.spotify.pkceVerifier';
 const STATE_KEY = 'cannabeats.managed.spotify.oauthState';
@@ -305,9 +309,10 @@ async function pollManagedController() {
       log('Managed session released. Playback and relay output are stopped.');
     }
     state.managedLeaseId = null;
-    return;
+    if (!shouldExecuteManagedControllerCommand(controller)) return;
+  } else {
+    state.managedLeaseId = controller.lease.id;
   }
-  state.managedLeaseId = controller.lease.id;
   if (controller.commandRecovery) {
     log('A managed command has an unknown provider outcome and requires reconciliation.');
   }
@@ -315,7 +320,8 @@ async function pollManagedController() {
   if (!command || command.id === state.managedCommandId) return;
   state.managedCommandId = command.id;
   try {
-    log(`Managed ${command.kind} command received for game ${controller.lease.sessionCode}.`);
+    const commandContext = controller.lease?.sessionCode ?? "the prior managed session";
+    log(`Managed ${command.kind} command received for ${commandContext}.`);
     // The controller fsyncs the executing phase and the game API accepts the
     // exact claim generation before this browser is allowed to touch Spotify.
     await beginManagedCommand(command);
@@ -343,7 +349,8 @@ async function pollManagedController() {
   try {
     const playbackStatus = await executeManagedCommand(command);
     await completeManagedCommand(command, true, playbackStatus, null);
-    log(`Managed ${command.kind} command outcome acknowledged for game ${controller.lease.sessionCode}.`);
+    const commandContext = controller.lease?.sessionCode ?? "the prior managed session";
+    log(`Managed ${command.kind} command outcome acknowledged for ${commandContext}.`);
   } catch (error) {
     if (classifyManagedCommandFailure('provider') === 'outcome_unknown') {
       await reportManagedCommandUnknown(command).catch(() => {});
@@ -417,4 +424,3 @@ async function initialize() {
 }
 
 initialize().catch((error) => log(error.message));
-import { classifyManagedCommandFailure } from './protocol.mjs';

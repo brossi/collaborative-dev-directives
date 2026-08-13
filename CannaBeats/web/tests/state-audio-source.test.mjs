@@ -22,7 +22,7 @@ test("managed source adapter preserves source authority and durable transition i
     calls.push({ url: String(url),options });
     if (String(url).endsWith("/v1/source/work")) {
       return Response.json({
-        protocolVersion: 3,lease: { id: randomUUID(),lobbyCode: "ABC234" },
+        protocolVersion: 4,lease: { id: randomUUID(),lobbyCode: "ABC234" },
         command: { id: commandId,kind: "play",trackUri: "spotify:track:test" },
       });
     }
@@ -32,7 +32,7 @@ test("managed source adapter preserves source authority and durable transition i
     method: "POST",headers: { authorization: "Bearer source-secret","content-type": "application/json" },
     body: JSON.stringify({ action: "poll" }),
   }), { fetchImpl: globalThis.fetch });
-  assert.equal((await poll.json()).protocolVersion,3);
+  assert.equal((await poll.json()).protocolVersion,4);
   assert.equal(calls[0].options.headers.authorization,"Bearer source-secret");
   const claim = await postStateAudioSource(new Request("https://game.test/game/api/audio-source", {
     method: "POST",headers: { authorization: "Bearer source-secret","content-type": "application/json" },
@@ -42,5 +42,24 @@ test("managed source adapter preserves source authority and durable transition i
   const forwarded = JSON.parse(calls[1].options.body);
   assert.deepEqual(forwarded,{
     requestId,claimGeneration: generation,action: "claim",outcomeFingerprint: null,reasonCode: null,
+  });
+});
+
+test("managed source adapter preserves a lease-less handoff stop", async () => {
+  const commandId = randomUUID();
+  const handoffId = randomUUID();
+  globalThis.fetch = async () => Response.json({
+    protocolVersion: 4,lease: null,
+    handoff: { id: handoffId,state: "stop_required",priorLobbyCode: "OLD234" },
+    command: { id: commandId,kind: "pause",trackUri: null,handoff: true },
+  });
+  const poll = await postStateAudioSource(new Request("https://game.test/game/api/audio-source", {
+    method: "POST",headers: { authorization: "Bearer source-secret","content-type": "application/json" },
+    body: JSON.stringify({ action: "poll" }),
+  }), { fetchImpl: globalThis.fetch });
+  assert.deepEqual(await poll.json(),{
+    protocolVersion: 4,lease: null,
+    handoff: { id: handoffId,state: "stop_required",priorLobbyCode: "OLD234" },
+    command: { id: commandId,kind: "pause",trackUri: null,handoff: true },
   });
 });

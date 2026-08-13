@@ -160,7 +160,8 @@ export function createStateServer({
           && body.releaseEpoch === "development";
         if (!developmentActivation && (![body.expectedSourceDigest,body.expectedCandidateDigest]
           .every((value) => typeof value === "string" && /^[0-9a-f]{64}$/i.test(value))
-          || body.expectedSchemaGeneration !== 2 || body.expectedProtocolVersion !== 3
+          || body.expectedSchemaGeneration !== STATE_SERVICE_CONTRACT.schemaGeneration
+          || body.expectedProtocolVersion !== STATE_SERVICE_CONTRACT.protocolVersion
           || typeof body.releaseEpoch !== "string" || !body.releaseEpoch.trim())) {
           throw new Error("Activation requires the exact published migration and release contract.");
         }

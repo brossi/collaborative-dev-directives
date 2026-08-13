@@ -581,7 +581,7 @@ def poll_loop():
             retry_pending_completion()
             payload, request_correlation_id = api_call({"action": "poll"})
             protocol_version = payload.get("protocolVersion") \
-                if payload.get("protocolVersion") in {2, 3} else 1
+                if payload.get("protocolVersion") in {2, 3, 4} else 1
             lease = payload.get("lease")
             command = payload.get("command")
             if command:
