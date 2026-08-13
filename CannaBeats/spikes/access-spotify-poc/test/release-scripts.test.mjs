@@ -19,9 +19,12 @@ function fixture() {
   const binaries = join(directory, 'bin');
   const commandLog = join(directory, 'commands.log');
   mkdirSync(composeDirectory);
+  mkdirSync(join(composeDirectory,"secrets"));
   mkdirSync(binaries);
   writeFileSync(commandLog, '');
   writeFileSync(join(composeDirectory, 'compose.yaml'), 'services: {}\n');
+  writeFileSync(join(composeDirectory, 'compose.state-cutover.yaml'), 'services: {}\n');
+  writeFileSync(join(composeDirectory,"secrets/state-operator-token"),"test-state-operator-token\n");
   writeFileSync(join(binaries, 'docker'), `#!/bin/sh
 printf 'docker %s\\n' "$*" >> "$CANNABEATS_TEST_COMMAND_LOG"
 if [ -n "\${CANNABEATS_TEST_DOCKER_FAIL_MATCH:-}" ]; then
@@ -45,6 +48,7 @@ case "$*" in
     ;;
   *"image inspect"*"cannabeats/access-spotify-poc:"*) printf 'sha256:%064d\\n' 1 ;;
   *"image inspect"*"cannabeats/game:"*) printf 'sha256:%064d\\n' 2 ;;
+  *"image inspect"*"cannabeats/state-service:"*) printf 'sha256:%064d\\n' 6 ;;
   *"inspect"*"{{.Image}}"*"cannabeats-access-poc"*) printf 'sha256:%064d\\n' 3 ;;
   *"inspect"*"{{.Image}}"*"cannabeats-game"*) printf 'sha256:%064d\\n' 4 ;;
   *"inspect"*"Config.Env"*"cannabeats-access-poc"*)
@@ -63,6 +67,11 @@ exec "${process.execPath}" "$@"
   writeFileSync(join(binaries, 'curl'), `#!/bin/sh
 printf 'curl %s\\n' "$*" >> "$CANNABEATS_TEST_COMMAND_LOG"
 if [ "\${CANNABEATS_TEST_CURL_FAIL:-}" = 1 ]; then exit 22; fi
+case "$*" in
+  *"3010/ready"*)
+    printf '%s\\n' "$CANNABEATS_TEST_STATE_READY_JSON"
+    ;;
+esac
 `);
   writeFileSync(join(binaries, 'sleep'), '#!/bin/sh\nexit 0\n');
   chmodSync(join(binaries, 'docker'), 0o755);
@@ -88,6 +97,26 @@ if [ "\${CANNABEATS_TEST_CURL_FAIL:-}" = 1 ]; then exit 22; fi
       CANNABEATS_BOOTSTRAP_SCHEMA_TARGET_VERSION: '0',
       CANNABEATS_WEB_DIR: resolve('../../web'),
     },
+  };
+}
+
+function stateCutoverEnvironment(paths, overrides = {}) {
+  return {
+    ...paths.env,
+    CANNABEATS_STATE_CUTOVER: 'true',
+    CANNABEATS_RELEASE_EPOCH: 'cutover-epoch',
+    CANNABEATS_STATE_ACTIVATE: 'true',
+    CANNABEATS_STATE_ACTIVATION_COMMAND_ID: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    CANNABEATS_STATE_SOURCE_DIGEST: 'a'.repeat(64),
+    CANNABEATS_STATE_CANDIDATE_DIGEST: 'b'.repeat(64),
+    CANNABEATS_TEST_STATE_READY_JSON: JSON.stringify({
+      schemaGeneration: 2,protocolVersion: 3,httpContractVersion: 1,
+      authority: {
+        release_epoch: 'cutover-epoch',first_admitted_at: null,
+        admission: { open: true,generation: 1 },
+      },
+    }),
+    ...overrides,
   };
 }
 
@@ -136,6 +165,7 @@ test('release backs up first and operates only the CannaBeats app/game boundary'
   assert.doesNotMatch(log.join('\n'), /vw-services/);
   assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-b2/);
   assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /release-a1/);
+  assert.match(readFileSync(resolve('deploy/release-common.sh'),'utf8'),/immutable=1/);
 });
 
 test('rollback checks the previous release before swapping release records', async () => {
@@ -146,6 +176,75 @@ test('rollback checks the previous release before swapping release records', asy
   await run(resolve('deploy/rollback-release.sh'), [], { env: paths.env });
   assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /release-a1/);
   assert.match(readFileSync(join(paths.releaseDirectory, 'previous-compose.yaml'), 'utf8'), /release-b2/);
+});
+
+test('first state cutover pins one state contract and permits only pre-admission rollback', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release,['state-cutover-a1',catalogVersion],{
+    env: stateCutoverEnvironment(paths),
+  });
+  const current = readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8');
+  assert.match(current,/state-cutover: true/);
+  assert.match(current,/state-schema-min-generation: 2/);
+  assert.match(current,/state-protocol-min-version: 3/);
+  assert.match(current,/state-http-contract-version: 1/);
+  assert.match(current,/release-epoch: cutover-epoch/);
+  assert.match(current,/state:\n    image: sha256:0+6/);
+  const commands = readFileSync(paths.commandLog,'utf8');
+  assert.match(commands,/build app game state/);
+  assert.match(commands,/exec -T state node -e/);
+  assert.match(commands,/up -d --no-deps state/);
+  assert.match(commands,/up -d --no-deps app game/);
+  await run(resolve('deploy/rollback-release.sh'),[],{
+    env: stateCutoverEnvironment(paths),
+  });
+  assert.match(readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8'),
+    /state-cutover: false/);
+  assert.match(readFileSync(paths.commandLog,'utf8'),/stop state/);
+});
+
+test('post-admission rollback cannot restore the pre-cutover monolith release', async () => {
+  const paths = fixture();
+  await run(resolve('deploy/release.sh'),['state-cutover-a1',catalogVersion],{
+    env: stateCutoverEnvironment(paths),
+  });
+  const admitted = JSON.stringify({
+    schemaGeneration: 2,protocolVersion: 3,httpContractVersion: 1,
+    authority: { release_epoch: 'cutover-epoch',first_admitted_at: 100 },
+  });
+  await assert.rejects(
+    run(resolve('deploy/rollback-release.sh'),[],{
+      env: stateCutoverEnvironment(paths,{ CANNABEATS_TEST_STATE_READY_JSON: admitted }),
+    }),
+    (error) => /forbidden after the first state-owned lobby/i.test(error.stderr),
+  );
+  assert.match(readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8'),
+    /state-cutover: true/);
+});
+
+test('post-cutover release and rollback retain the active state compatibility floor', async () => {
+  const paths = fixture();
+  const env = stateCutoverEnvironment(paths);
+  await run(resolve('deploy/release.sh'),['state-cutover-a1',catalogVersion],{ env });
+  await run(resolve('deploy/release.sh'),['state-cutover-b2',catalogVersion],{ env });
+  const log = readFileSync(paths.commandLog,'utf8');
+  assert.match(log,/compose\.state-cutover\.yaml.*--profile state-cutover --profile operations run --rm backup run/);
+  await run(resolve('deploy/rollback-release.sh'),[],{ env });
+  const current = readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8');
+  assert.match(current,/state-cutover-a1/);
+  assert.match(current,/state-cutover: true/);
+});
+
+test('a state-owned release cannot silently downgrade to legacy monolith writers', async () => {
+  const paths = fixture();
+  await run(resolve('deploy/release.sh'),['state-cutover-a1',catalogVersion],{
+    env: stateCutoverEnvironment(paths),
+  });
+  await assert.rejects(
+    run(resolve('deploy/release.sh'),['legacy-again-b2',catalogVersion],{ env: paths.env }),
+    (error) => /cannot be replaced by a pre-cutover release/i.test(error.stderr),
+  );
 });
 
 test('a named release cannot be reused after it has been recorded', async () => {
@@ -180,7 +279,7 @@ test('a failed first managed release restores the exact bootstrap images', async
   assert.match(current, /CANNABEATS_APP_VERSION: "bootstrap-a"/);
   const upCommands = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up '));
   assert.match(upCommands.at(-1), /current-compose\.yaml up -d --no-deps app game$/);
-  assert.throws(() => readFileSync(join(paths.releaseDirectory, 'used-application-versions')), /ENOENT/);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'used-application-versions'),'utf8'),/release-a1/);
 });
 
 test('release rejects a database schema newer than the candidate before build or replacement', async () => {
@@ -259,7 +358,7 @@ test('release refuses to start while another release or rollback owns the host l
   mkdirSync(join(paths.releaseDirectory, 'operation.lock'), { recursive: true });
   await assert.rejects(
     run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], { env: paths.env }),
-    (error) => /another CannaBeats release or rollback is active/i.test(error.stderr),
+    (error) => /another CannaBeats release, rollback, or coordinated backup is active/i.test(error.stderr),
   );
   assert.equal(readFileSync(paths.commandLog, 'utf8'), '');
   assert.equal(existsSync(join(paths.releaseDirectory, 'operation.lock')), true);
@@ -277,7 +376,7 @@ test('build interruption preserves the bootstrap state without recording the can
   assert.equal(existsSync(join(paths.releaseDirectory, 'used-application-versions')), false);
 });
 
-test('container-start interruption restores current images without advancing release state', async () => {
+test('container-start interruption restores current images and consumes the attempted identity', async () => {
   const paths = fixture();
   await assert.rejects(
     run(resolve('deploy/release.sh'), ['release-a1', catalogVersion], {
@@ -286,9 +385,37 @@ test('container-start interruption restores current images without advancing rel
     (error) => /restoring the exact previous application images/i.test(error.stderr),
   );
   assert.match(readFileSync(join(paths.releaseDirectory, 'current-compose.yaml'), 'utf8'), /bootstrap-a/);
-  assert.equal(existsSync(join(paths.releaseDirectory, 'used-application-versions')), false);
+  assert.match(readFileSync(join(paths.releaseDirectory, 'used-application-versions'),'utf8'),/release-a1/);
   const upCommands = readFileSync(paths.commandLog, 'utf8').split('\n').filter((line) => line.includes(' up '));
   assert.match(upCommands.at(-1), /current-compose\.yaml up -d --no-deps app game$/);
+});
+
+test('hard interruption exposes no replacement containers before the durable release record', async () => {
+  const paths = fixture();
+  await assert.rejects(run(resolve('deploy/release.sh'),['release-a1',catalogVersion],{
+    env: { ...paths.env,CANNABEATS_TEST_KILL_AFTER_RELEASE_RECORD: 'true' },
+  }));
+  assert.match(readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8'),/release-a1/);
+  const commands = readFileSync(paths.commandLog,'utf8');
+  assert.match(commands,/current-compose\.yaml stop app game/);
+  assert.doesNotMatch(commands,/candidate\..*up -d --no-deps app game/);
+  await run(resolve('deploy/reconcile-release.sh'),[],{ env: paths.env });
+  assert.match(readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8'),/release-a1/);
+});
+
+test('hard rollback interruption selects the rollback record before exposing its containers', async () => {
+  const paths = fixture();
+  const release = resolve('deploy/release.sh');
+  await run(release,['release-a1',catalogVersion],{ env: paths.env });
+  await run(release,['release-b2',catalogVersion],{ env: paths.env });
+  writeFileSync(paths.commandLog,'');
+  await assert.rejects(run(resolve('deploy/rollback-release.sh'),[],{
+    env: { ...paths.env,CANNABEATS_TEST_KILL_AFTER_ROLLBACK_RECORD: 'true' },
+  }));
+  assert.match(readFileSync(join(paths.releaseDirectory,'current-compose.yaml'),'utf8'),/release-a1/);
+  const commands = readFileSync(paths.commandLog,'utf8');
+  assert.match(commands,/current-compose\.yaml stop app game/);
+  assert.doesNotMatch(commands,/up -d --no-deps app game/);
 });
 
 test('an interrupted state promotion preserves the complete prior release state', async () => {

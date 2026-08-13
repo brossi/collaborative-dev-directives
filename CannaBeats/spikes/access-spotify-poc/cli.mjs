@@ -21,6 +21,7 @@ import {
   sessionReport,
 } from './operations/operator-report.mjs';
 import { readConfig } from './server.mjs';
+import { createStateOperatorClient, stateOperatorConfigured } from './state-operator-client.mjs';
 
 function argument(name, fallback) {
   const index = process.argv.indexOf(`--${name}`);
@@ -51,9 +52,52 @@ if (!['invite', 'host-onboarding', 'admin-access', 'managed-source', 'operator-s
 }
 
 const databasePath = resolve(process.env.DATABASE_PATH || './data/cannabeats-poc.sqlite');
+const stateWritesRequired = process.env.CANNABEATS_STATE_WRITES_REQUIRED === 'true';
 if (command === 'operator-summary' || command === 'operator-status') {
   let operatorDb;
   try {
+    const stateOperator = stateOperatorConfigured() ? createStateOperatorClient() : null;
+    if (!stateOperator && stateWritesRequired) {
+      throw new Error('State operator configuration is required for this release');
+    }
+    if (stateOperator && command === 'operator-summary') {
+      const format = argument('format','text');
+      const report = await stateOperator.report({ sinceHours: Number(argument('since-hours',24)) });
+      if (format === 'json') console.log(JSON.stringify(report,null,2));
+      else if (format === 'text') {
+        console.log(`State authority: ${report.authority.status}`);
+        console.log(`Sessions: ${report.sessions.length}; sources: ${report.sources.length}; sanitization pending: ${report.sanitizationPending}`);
+        for (const session of report.sessions) console.log(
+          `${session.code} status=${session.status} phase=${session.phase ?? 'none'} revision=${session.revision ?? 'none'} history=${session.history?.lifecycle ?? 'none'}`,
+        );
+      } else throw new Error('Format must be text or json');
+    } else if (stateOperator && command === 'operator-status') {
+      operatorDb = openOperatorDatabase(databasePath);
+      const [stateReport,validation,report] = await Promise.all([
+        stateOperator.report({ sinceHours: 24 }),stateOperator.validate(),componentReport({
+          db: operatorDb,databasePath,accessOrigin: process.env.APP_ORIGIN,
+          gameOrigin: process.env.GAME_SERVICE_INTERNAL_ORIGIN,
+          relayOrigin: process.env.AUDIO_RELAY_ORIGIN,
+          relayListenToken: process.env.AUDIO_RELAY_LISTEN_TOKEN
+            || readSecret(process.env.AUDIO_RELAY_LISTEN_TOKEN_FILE),
+        }),
+      ]);
+      const enabledSources = stateReport.sources.filter((source) => source.enabled);
+      const onlineSources = enabledSources.filter((source) => source.lastSeenAt !== null
+        && source.lastErrorCategory === null);
+      report.components.managedSource = {
+        status: onlineSources.length ? 'healthy' : 'degraded',
+        reasonCode: onlineSources.length ? 'source_online' : 'source_offline',
+        enabled: enabledSources.length,online: onlineSources.length,
+      };
+      report.components.state = validation.valid === true
+        ? { status: 'healthy',reasonCode: 'canonical_state_valid' }
+        : { status: 'unavailable',reasonCode: 'canonical_state_invalid' };
+      const result = { ...report,state: stateReport,validation };
+      console.log(JSON.stringify(result,null,2));
+      const failOn = argument('fail-on','');
+      if (process.argv.includes('--fail-on')) process.exitCode = componentReportExitCode(result,failOn);
+    } else {
     operatorDb = openOperatorDatabase(databasePath);
     if (command === 'operator-summary') {
       const format = argument('format', 'text');
@@ -79,6 +123,7 @@ if (command === 'operator-summary' || command === 'operator-status') {
       const failOn = argument('fail-on', '');
       if (process.argv.includes('--fail-on')) process.exitCode = componentReportExitCode(report, failOn);
     }
+    }
   } catch (error) {
     const correlationId = randomUUID();
     console.error(JSON.stringify({
@@ -98,6 +143,9 @@ if (command === 'operator-summary' || command === 'operator-status') {
     operatorDb?.close();
   }
 } else {
+  if (command === 'managed-source' && stateWritesRequired && !stateOperatorConfigured()) {
+    throw new Error('State operator configuration is required for managed-source changes');
+  }
   const db = openDatabase(databasePath);
   try {
   if (command === 'invite') {
@@ -158,7 +206,15 @@ if (command === 'operator-summary' || command === 'operator-status') {
   } else {
     const action = process.argv[3];
     const sourceId = argument('source-id', '');
-    if (action === 'list') {
+    const stateOperator = stateOperatorConfigured() ? createStateOperatorClient() : null;
+    if (stateOperator && action === 'list') {
+      const { sources } = await stateOperator.sources();
+      for (const source of sources) console.log(JSON.stringify({
+        ...source,
+        createdAt: new Date(source.createdAt).toISOString(),
+        lastSeenAt: source.lastSeenAt ? new Date(source.lastSeenAt).toISOString() : null,
+      }));
+    } else if (action === 'list') {
       for (const source of db.prepare(`
         SELECT id, display_name, enabled, created_at, last_seen_at
         FROM managed_audio_sources ORDER BY created_at
@@ -177,7 +233,11 @@ if (command === 'operator-summary' || command === 'operator-status') {
         const displayName = String(argument('name', '')).trim().replace(/\s+/g, ' ');
         if (displayName.length < 1 || displayName.length > 80) throw new Error('--name must be 1-80 characters');
         const id = randomUUID();
-        db.prepare(`
+        if (stateOperator) {
+          await stateOperator.registerSource({
+            commandId: randomUUID(),sourceId: id,displayName,tokenHash: sha256(token),
+          });
+        } else db.prepare(`
           INSERT INTO managed_audio_sources
             (id, display_name, token_hash, enabled, created_at)
           VALUES (?, ?, ?, 1, ?)
@@ -185,6 +245,11 @@ if (command === 'operator-summary' || command === 'operator-status') {
         console.log(JSON.stringify({ sourceId: id, token, shownOnce: true }));
       } else {
         if (!/^[0-9a-f-]{36}$/i.test(sourceId)) throw new Error('--source-id must be a UUID');
+        if (stateOperator) {
+          await stateOperator.rotateSource({
+            commandId: randomUUID(),sourceId,tokenHash: sha256(token),
+          });
+        } else {
         db.exec('BEGIN IMMEDIATE');
         try {
           releaseManagedSourceLeases(db, sourceId);
@@ -199,10 +264,14 @@ if (command === 'operator-summary' || command === 'operator-status') {
           db.exec('ROLLBACK');
           throw error;
         }
+        }
         console.log(JSON.stringify({ sourceId, token, shownOnce: true, activeLeaseReleased: true }));
       }
     } else if (action === 'disable') {
       if (!/^[0-9a-f-]{36}$/i.test(sourceId)) throw new Error('--source-id must be a UUID');
+      if (stateOperator) {
+        await stateOperator.disableSource({ commandId: randomUUID(),sourceId });
+      } else {
       db.exec('BEGIN IMMEDIATE');
       try {
         releaseManagedSourceLeases(db, sourceId);
@@ -216,6 +285,7 @@ if (command === 'operator-summary' || command === 'operator-status') {
       } catch (error) {
         db.exec('ROLLBACK');
         throw error;
+      }
       }
       console.log(JSON.stringify({ sourceId, disabled: true, activeLeaseReleased: true }));
     } else {

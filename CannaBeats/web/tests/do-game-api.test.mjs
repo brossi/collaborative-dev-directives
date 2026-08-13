@@ -123,6 +123,7 @@ async function startGameProcess(targetOrigin, port) {
         PORT: String(port),
         CANNABEATS_APP_ORIGIN: targetOrigin,
         CANNABEATS_DATABASE_PATH: databasePath,
+        CANNABEATS_ENABLE_LEGACY_STATE: "true",
         CANNABEATS_DATABASE_BUSY_TIMEOUT_MS: "250",
         CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
         CANNABEATS_PUBLIC_GAME_ORIGIN: `${targetOrigin}/game`,
@@ -390,6 +391,7 @@ test("configured game origins can never receive forwarded user credentials", asy
       PORT: String(isolatedPort),
       CANNABEATS_APP_ORIGIN: isolatedOrigin,
       CANNABEATS_DATABASE_PATH: databasePath,
+      CANNABEATS_ENABLE_LEGACY_STATE: "true",
       CANNABEATS_GAME_SERVICE_TOKEN: internalToken,
       CANNABEATS_PUBLIC_GAME_ORIGIN: untrustedOrigin,
       AUDIO_RELAY_ORIGIN: relayOrigin,
@@ -532,12 +534,9 @@ test("an authenticated lobby owns an internal game run and preserves host author
   const hostAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`, {
     headers: { Cookie: `cb_session=${hostCookie}` },
   });
-  assert.equal(hostAudio.status, 200);
-  assert.equal(hostAudio.headers.get("x-audio-rate"), "48000");
-  assert.equal(hostAudio.headers.get("x-audio-channels"), "2");
-  assert.equal(hostAudio.headers.get("x-audio-encoding"), "s16le");
-  assert.equal(relayCorrelationIds.at(-1), hostAudio.headers.get("x-cannabeats-correlation-id"));
-  assert.deepEqual(new Uint8Array(await hostAudio.arrayBuffer()), new Uint8Array([0, 0, 0, 0, 1, 0, 1, 0]));
+  assert.equal(hostAudio.status, 409);
+  assert.equal((await hostAudio.json()).error,
+    "This lobby does not currently own the shared audio source.");
 
   const hostView = await fetch(`${origin}/game/api/game?code=${sessionCode}`, {
     headers: { Cookie: `cb_session=${hostCookie}` },
@@ -707,6 +706,16 @@ test("an authenticated lobby owns an internal game run and preserves host author
   assert.equal(acquiredPayload.audio.selection, "managed");
   assert.equal(acquiredPayload.audio.mode, "managed");
   assert.equal(acquiredPayload.audio.sourceOnline, true);
+  const acquiredAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`, {
+    headers: { Cookie: `cb_session=${hostCookie}` },
+  });
+  assert.equal(acquiredAudio.status,200);
+  assert.equal(acquiredAudio.headers.get("x-audio-rate"),"48000");
+  assert.equal(acquiredAudio.headers.get("x-audio-channels"),"2");
+  assert.equal(acquiredAudio.headers.get("x-audio-encoding"),"s16le");
+  assert.equal(relayCorrelationIds.at(-1),acquiredAudio.headers.get("x-cannabeats-correlation-id"));
+  assert.deepEqual(new Uint8Array(await acquiredAudio.arrayBuffer()),
+    new Uint8Array([0,0,0,0,1,0,1,0]));
   assert.equal(db.prepare(`
     SELECT COUNT(*) AS count FROM game_events
     WHERE run_id = ? AND event_type = 'audio_lease_acquired'
@@ -1546,8 +1555,7 @@ test("a host-issued capability admits an accountless guest only to its lobby", a
   const guestAudio = await fetch(`${origin}/game/api/audio-stream?code=${sessionCode}`, {
     headers: { Cookie: guestCookie },
   });
-  assert.equal(guestAudio.status, 200);
-  assert.equal((await guestAudio.arrayBuffer()).byteLength, 8);
+  assert.equal(guestAudio.status,409);
 
   const hostAction = await gamePost(
     { action: "addPlayer", code: sessionCode, name: "Not Allowed" },

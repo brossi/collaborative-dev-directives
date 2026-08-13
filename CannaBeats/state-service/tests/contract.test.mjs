@@ -49,6 +49,9 @@ const COMMANDS = {
   reveal_answer: { type: "reveal_answer" },
   advance_round: { type: "advance_round" },
   skip_track: { type: "skip_track" },
+  select_audio: { type: "select_audio", mode: "managed" },
+  release_audio: { type: "release_audio" },
+  control_audio: { type: "control_audio", kind: "pause" },
   abandon_game: { type: "abandon_game" },
 };
 
@@ -63,6 +66,9 @@ const HOST_ALLOWED = {
   reveal_answer: ["placed"],
   advance_round: ["revealed"],
   skip_track: ["playing", "placed"],
+  select_audio: ["lobby", "ready", "playing", "placed", "revealed"],
+  release_audio: ["lobby", "ready", "playing", "placed", "revealed"],
+  control_audio: ["playing", "placed"],
   abandon_game: ["lobby", "ready", "playing", "placed", "revealed"],
 };
 
@@ -77,6 +83,9 @@ const PHONE_ALLOWED = {
   reveal_answer: [],
   advance_round: [],
   skip_track: [],
+  select_audio: [],
+  release_audio: [],
+  control_audio: ["playing", "placed"],
   abandon_game: [],
 };
 
@@ -87,7 +96,10 @@ function exercise({ commandType, phase, role }) {
   return reduceGameCommand({
     state,
     command: COMMANDS[commandType],
-    actor: { principalId: role === "phone" ? "player-1" : "host-1", isHost: role === "host" },
+    actor: {
+      principalId: role === "phone" ? "player-1" : "host-1",
+      isHost: role === "host", isMember: true,
+    },
     selectSong: () => song(`selected-${songNumber++}`),
     selectStartingPlayer: () => 0,
   });
@@ -130,7 +142,8 @@ test("host role by phase matrix is exhaustive for every public typed game comman
       if (allowed) {
         const result = exercise({ commandType, phase, role: "host" });
         validateRoomState(result.state);
-        assert.ok(result.events?.length, `${commandType}/${phase} must derive history`);
+        assert.ok(result.events?.length || result.effects?.length,
+          `${commandType}/${phase} must derive history or an authoritative effect`);
       } else {
         assert.throws(() => exercise({ commandType, phase, role: "host" }), undefined,
           `${commandType}/${phase} must be rejected`);
@@ -146,7 +159,8 @@ test("phone role by phase matrix permits only its active placement lifecycle", (
       if (allowed) {
         const result = exercise({ commandType, phase, role: "phone" });
         validateRoomState(result.state);
-        assert.ok(result.events?.length, `${commandType}/${phase} must derive history`);
+        assert.ok(result.events?.length || result.effects?.length,
+          `${commandType}/${phase} must derive history or an authoritative effect`);
       } else {
         assert.throws(() => exercise({ commandType, phase, role: "phone" }), undefined,
           `${commandType}/${phase} must be rejected`);

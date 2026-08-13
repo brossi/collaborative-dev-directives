@@ -1,11 +1,16 @@
 import { createHash, randomUUID } from "node:crypto";
-import { closeStateStore, createStateStore } from "./store.mjs";
+import {
+  closeSync,existsSync,fsyncSync,mkdirSync,openSync,readFileSync,rmSync,writeFileSync,
+} from "node:fs";
+import { dirname,join,resolve } from "node:path";
+import { closeStateStore, createStateStore, openStateStoreReadOnly } from "./store.mjs";
 import {
   initialRoomState, projectRoomState, redactRoomStateForRetention,
   reduceGameCommand, validateRoomState,
 } from "./game-domain.mjs";
 import { validateStateDatabase } from "./invariants.mjs";
 import { candidateAuthorityDigest } from "./attestation.mjs";
+import { projectStateHistory } from "./history-projection.mjs";
 
 const COMMAND_EDGES = new Map([
   ["queued:claim", "claimed"],
@@ -73,6 +78,7 @@ export class StateOwner {
   #selectSong;
   #selectStartingPlayer;
   #allowDevelopmentActivation;
+  #rollbackFloorPath;
 
   constructor(path, {
     selectSong = null, selectStartingPlayer = null,
@@ -82,7 +88,71 @@ export class StateOwner {
     this.#selectSong = selectSong;
     this.#selectStartingPlayer = selectStartingPlayer;
     this.#allowDevelopmentActivation = allowDevelopmentActivation;
-    if (this.authorityStatus().status === "active") this.resumePendingSanitization({ now: Date.now() });
+    this.#rollbackFloorPath = resolve(storeOptions.rollbackFloorPath ?? `${path}.rollback-floor.json`);
+    try {
+      if (this.authorityStatus().status === "active") {
+        this.#reconcileRollbackFloor();
+        validateStateDatabase(this.#db);
+        this.resumePendingSanitization({ now: Date.now() });
+      }
+    } catch (error) {
+      closeStateStore(this.#db);
+      throw error;
+    }
+  }
+
+  #rollbackFloor() {
+    if (!existsSync(this.#rollbackFloorPath)) return null;
+    const floor = JSON.parse(readFileSync(this.#rollbackFloorPath,"utf8"));
+    if (floor?.version !== 1 || typeof floor.releaseEpoch !== "string"
+        || !floor.releaseEpoch || !Number.isSafeInteger(floor.firstAdmittedAt)
+        || floor.firstAdmittedAt <= 0) {
+      throw new Error("State rollback-floor record is invalid.");
+    }
+    return floor;
+  }
+
+  #writeRollbackFloor(firstAdmittedAt) {
+    const authority = this.authorityStatus();
+    const existing = this.#rollbackFloor();
+    if (existing) {
+      if (existing.releaseEpoch !== authority.release_epoch
+          || existing.firstAdmittedAt !== firstAdmittedAt) {
+        throw new Error("State rollback-floor record conflicts with active authority.");
+      }
+      return existing;
+    }
+    mkdirSync(dirname(this.#rollbackFloorPath),{ recursive: true,mode: 0o700 });
+    const floor = {
+      version: 1,releaseEpoch: authority.release_epoch,firstAdmittedAt,
+    };
+    writeFileSync(this.#rollbackFloorPath,`${JSON.stringify(floor)}\n`,{
+      flag: "wx",mode: 0o600,
+    });
+    const file = openSync(this.#rollbackFloorPath,"r");
+    try { fsyncSync(file); } finally { closeSync(file); }
+    const directory = openSync(dirname(this.#rollbackFloorPath),"r");
+    try { fsyncSync(directory); } finally { closeSync(directory); }
+    return floor;
+  }
+
+  #reconcileRollbackFloor() {
+    const authority = this.authorityStatus();
+    const floor = this.#rollbackFloor();
+    if (!floor && authority.first_admitted_at !== null) {
+      this.#writeRollbackFloor(authority.first_admitted_at);
+      return;
+    }
+    if (!floor) return;
+    if (floor.releaseEpoch !== authority.release_epoch) {
+      throw new Error("State rollback-floor release epoch conflicts with active authority.");
+    }
+    if (authority.first_admitted_at === null) {
+      this.#db.prepare(`UPDATE state_authority SET first_admitted_at=?
+        WHERE singleton='state' AND first_admitted_at IS NULL`).run(floor.firstAdmittedAt);
+    } else if (authority.first_admitted_at !== floor.firstAdmittedAt) {
+      throw new Error("State rollback-floor timestamp conflicts with active authority.");
+    }
   }
 
   close() {
@@ -121,10 +191,27 @@ export class StateOwner {
     });
   }
 
+  #admissionStatus() {
+    const authority = this.#db.prepare(`SELECT status,release_epoch
+      FROM state_authority WHERE singleton='state'`).get();
+    const latest = this.#db.prepare(`SELECT result FROM state_commands
+      WHERE command_type='set_admission'
+      ORDER BY CAST(json_extract(result,'$.generation') AS INTEGER) DESC LIMIT 1`).get();
+    if (latest) {
+      const result = JSON.parse(latest.result);
+      return { open: result.open === true,generation: result.generation };
+    }
+    return {
+      open: authority.status === "active" && authority.release_epoch === "development",
+      generation: 0,
+    };
+  }
+
   authorityStatus() {
-    return { ...this.#db.prepare(`SELECT status,activated_at,first_admitted_at,
+    const authority = { ...this.#db.prepare(`SELECT status,activated_at,first_admitted_at,
       source_digest,candidate_digest,schema_generation,protocol_version,release_epoch
       FROM state_authority WHERE singleton='state'`).get() };
+    return { ...authority,admission: this.#admissionStatus() };
   }
 
   readiness() {
@@ -134,6 +221,36 @@ export class StateOwner {
     const sanitizationPending = this.#db.prepare(`SELECT COUNT(*) AS count
       FROM purge_sanitization WHERE status='pending'`).get().count;
     return { authority, sanitizationPending };
+  }
+
+  exportSnapshot({ directory }) {
+    this.#assertActive();
+    validateStateDatabase(this.#db);
+    const pending = this.#db.prepare(`SELECT COUNT(*) AS count
+      FROM purge_sanitization WHERE status='pending'`).get().count;
+    if (pending !== 0) {
+      throw new Error("State export is unavailable while purge sanitization is pending.");
+    }
+    mkdirSync(directory,{ recursive: true,mode: 0o700 });
+    const path = join(directory,`state-export-${randomUUID()}.sqlite`);
+    try {
+      this.#db.prepare("VACUUM INTO ?").run(path);
+      const exported = openStateStoreReadOnly(path);
+      try {
+        validateStateDatabase(exported);
+      } finally {
+        exported.close();
+      }
+      const snapshot = readFileSync(path);
+      const authority = this.authorityStatus();
+      return {
+        snapshot,
+        digest: createHash("sha256").update(snapshot).digest("hex"),
+        authority,
+      };
+    } finally {
+      rmSync(path,{ force: true });
+    }
   }
 
   activate({
@@ -184,16 +301,36 @@ export class StateOwner {
     });
   }
 
+  setAdmission({ commandId,open,expectedGeneration,now = Date.now() }) {
+    if (typeof open !== "boolean" || !Number.isSafeInteger(expectedGeneration)
+        || expectedGeneration < 0) {
+      throw new Error("Admission control request is invalid.");
+    }
+    return this.#once(commandId,"set_admission",{ open,expectedGeneration },now,() => {
+      this.#assertActive();
+      const current = this.#admissionStatus();
+      if (current.generation !== expectedGeneration) {
+        throw new Error("Admission control generation is stale.");
+      }
+      return { open,generation: current.generation + 1 };
+    });
+  }
+
   #assertActive() {
     if (this.authorityStatus().status !== "active") {
       throw new Error("State database is a candidate and cannot accept runtime commands.");
     }
   }
 
+  #assertAdmissionOpen() {
+    if (!this.#admissionStatus().open) throw new Error("State admission is closed.");
+  }
+
   createLobby({ commandId = randomUUID(), code, hostPrincipalId, now = Date.now() }) {
     const request = { code, hostPrincipalId };
     return this.#once(commandId, "create_lobby", request, now, () => {
       this.#assertActive();
+      this.#assertAdmissionOpen();
       if (!/^[A-Z0-9]{6}$/.test(code)) throw new Error("Lobby code is invalid.");
       if (!hostPrincipalId) throw new Error("Host principal is required.");
       this.#db.prepare(`INSERT INTO lobbies
@@ -202,10 +339,105 @@ export class StateOwner {
       this.#db.prepare(`INSERT INTO lobby_members
         (lobby_code,principal_id,joined_at,last_seen_at) VALUES (?,?,?,?)`)
         .run(code,hostPrincipalId,now,now);
+      const firstAdmittedAt = this.authorityStatus().first_admitted_at ?? now;
+      const rollbackFloor = this.#writeRollbackFloor(firstAdmittedAt);
       this.#db.prepare(`UPDATE state_authority SET first_admitted_at=COALESCE(first_admitted_at,?)
-        WHERE singleton='state'`).run(now);
+        WHERE singleton='state' AND first_admitted_at IS NULL`).run(rollbackFloor.firstAdmittedAt);
       return { code, status: "lobby" };
     });
+  }
+
+  addLobbyMember({
+    commandId = randomUUID(), lobbyCode, principalId, admittedByPrincipalId, now = Date.now(),
+  }) {
+    const request = { lobbyCode, principalId, admittedByPrincipalId };
+    return this.#once(commandId, "add_lobby_member", request, now, () => {
+      this.#assertActive();
+      this.#assertAdmissionOpen();
+      if (!principalId) throw new Error("Lobby member principal is required.");
+      const lobby = this.#db.prepare(`SELECT status FROM lobbies WHERE code=?`).get(lobbyCode);
+      if (!lobby) throw new Error("Lobby was not found.");
+      if (lobby.status === "ended") throw new Error("Run has ended.");
+      const prior = this.#db.prepare(`SELECT joined_at FROM lobby_members
+        WHERE lobby_code=? AND principal_id=?`).get(lobbyCode,principalId);
+      if (!prior) {
+        this.#db.prepare(`INSERT INTO lobby_members
+          (lobby_code,principal_id,joined_at,last_seen_at) VALUES (?,?,?,?)`)
+          .run(lobbyCode,principalId,now,now);
+      }
+      return { lobbyCode, principalId, joinedAt: prior?.joined_at ?? now, admitted: !prior };
+    });
+  }
+
+  accessLobby({ lobbyCode, principalId }) {
+    const lobby = this.#db.prepare(`SELECT l.code,l.host_principal_id,l.status,l.run_generation,
+        l.created_at,l.updated_at,r.state
+      FROM lobbies l LEFT JOIN game_runs r ON r.id=l.active_run_id
+      WHERE l.code=? AND EXISTS(
+        SELECT 1 FROM lobby_members WHERE lobby_code=l.code AND principal_id=?)`)
+      .get(lobbyCode,principalId);
+    if (!lobby) throw new Error("Lobby membership was not found.");
+    const members = this.#db.prepare(`SELECT principal_id,joined_at
+      FROM lobby_members WHERE lobby_code=? ORDER BY joined_at,principal_id`).all(lobbyCode);
+    let admissionOpen = false;
+    if (lobby.state) {
+      admissionOpen = validateRoomState(JSON.parse(lobby.state)).phase === "lobby";
+    }
+    return {
+      code: lobby.code, status: lobby.status, hostPrincipalId: lobby.host_principal_id,
+      runGeneration: lobby.run_generation, admissionOpen,
+      members: members.map((member) => ({
+        principalId: member.principal_id, joinedAt: member.joined_at,
+      })),
+      createdAt: lobby.created_at, updatedAt: lobby.updated_at,
+    };
+  }
+
+  accessLobbies({ principalId }) {
+    return this.#db.prepare(`SELECT l.code,l.status,l.host_principal_id,l.run_generation,
+        l.created_at,l.updated_at
+      FROM lobbies l JOIN lobby_members m ON m.lobby_code=l.code
+      WHERE m.principal_id=? AND l.status<>'ended'
+      ORDER BY m.last_seen_at DESC,l.code`).all(principalId).map((lobby) => ({
+        code: lobby.code, status: lobby.status, hostPrincipalId: lobby.host_principal_id,
+        runGeneration: lobby.run_generation,
+        createdAt: lobby.created_at, updatedAt: lobby.updated_at,
+      }));
+  }
+
+  accessAdmissionContext({ lobbyCode }) {
+    const row = this.#db.prepare(`SELECT l.active_run_id AS run_id,l.run_generation,r.revision,r.state
+      FROM lobbies l JOIN game_runs r ON r.id=l.active_run_id
+      WHERE l.code=? AND l.status='playing'`).get(lobbyCode);
+    if (!row) throw new Error("Active run was not found.");
+    const room = validateRoomState(JSON.parse(row.state));
+    if (room.phase !== "lobby") throw new Error("Players are locked after the game starts.");
+    return {
+      runId: row.run_id, runGeneration: row.run_generation,
+      revision: row.revision, admissionOpen: true,
+    };
+  }
+
+  memberHistory({ runId, principalId, limit = 500 }) {
+    if (!UUID_PATTERN.test(runId)) throw new Error("Run ID must be a canonical UUID.");
+    if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw new Error("History limit is invalid.");
+    const run = this.#db.prepare(`SELECT r.id,r.lobby_code,r.state,r.revision,r.updated_at,
+        r.ended_at,r.terminal_outcome
+      FROM game_runs r WHERE r.id=? AND EXISTS(
+        SELECT 1 FROM lobby_members m WHERE m.lobby_code=r.lobby_code AND m.principal_id=?)`)
+      .get(runId,principalId);
+    if (!run) throw new Error("Game run was not found.");
+    const stream = this.#db.prepare(`SELECT baseline_revision,last_recorded_revision,lifecycle,purged_at
+      FROM history_streams WHERE run_id=?`).get(runId);
+    if (!stream) throw new Error("Game history was not found.");
+    const events = this.#db.prepare(`SELECT sequence,event_type,outcome,actor_type,actor_ref,
+        action_id,command_ref,round,detail_code,detail_value,reason_code,occurred_at
+      FROM game_events WHERE run_id=? ORDER BY sequence LIMIT ?`).all(runId,limit);
+    const total = this.#db.prepare("SELECT COUNT(*) AS count FROM game_events WHERE run_id=?")
+      .get(runId).count;
+    let state = {};
+    try { state = JSON.parse(run.state); } catch { /* Invalid fields project to null. */ }
+    return projectStateHistory({ run,stream,state,events,total });
   }
 
   createRun({
@@ -274,6 +506,13 @@ export class StateOwner {
     });
     return this.#transaction(() => {
       this.#assertActive();
+      const context = this.#db.prepare(`SELECT l.active_run_id,l.run_generation,
+          l.host_principal_id,r.revision,r.ended_at,r.terminal_outcome,r.state,
+          EXISTS(SELECT 1 FROM lobby_members m
+            WHERE m.lobby_code=l.code AND m.principal_id=?) AS is_member
+        FROM lobbies l JOIN game_runs r ON r.id=l.active_run_id AND r.lobby_code=l.code
+        WHERE l.code=?`).get(actorPrincipalId,lobbyCode);
+      if (!context) throw new Error("Active run membership was not found.");
       const receipt = this.#db.prepare(`SELECT action,request_fingerprint,result
         FROM action_receipts WHERE run_id=? AND actor_principal_id=? AND action_id=?`)
         .get(expectedRunId,actorPrincipalId,actionId);
@@ -281,15 +520,18 @@ export class StateOwner {
         if (receipt.action !== command.type || receipt.request_fingerprint !== requestFingerprint) {
           throw new Error("Action identity conflicts with its prior request.");
         }
-        return { ...JSON.parse(receipt.result), replayed: true };
+        if (!context.is_member) throw new Error("Active run membership was not found.");
+        const prior = JSON.parse(receipt.result);
+        return {
+          ...prior, runId: context.active_run_id,runGeneration: context.run_generation,
+          revision: context.revision,
+          state: projectRoomState(validateRoomState(JSON.parse(context.state)), {
+            isHost: context.host_principal_id === actorPrincipalId,
+          }),
+          terminalOutcome: context.terminal_outcome ?? null,replayed: true,
+        };
       }
-      const context = this.#db.prepare(`SELECT l.active_run_id,l.run_generation,
-          l.host_principal_id,r.revision,r.ended_at,r.state,
-          EXISTS(SELECT 1 FROM lobby_members m
-            WHERE m.lobby_code=l.code AND m.principal_id=?) AS is_member
-        FROM lobbies l JOIN game_runs r ON r.id=l.active_run_id AND r.lobby_code=l.code
-        WHERE l.code=?`).get(actorPrincipalId,lobbyCode);
-      if (!context) throw new Error("Active run membership was not found.");
+      if (allowAdmission) this.#assertAdmissionOpen();
       if (context.active_run_id !== expectedRunId
           || context.run_generation !== expectedRunGeneration
           || context.revision !== expectedRevision) {
@@ -339,9 +581,7 @@ export class StateOwner {
           reduced.terminalOutcome ?? null,reduced.terminalOutcome ?? null,
           expectedRunId,lobbyCode,expectedRevision,lobbyCode,expectedRunGeneration);
       if (updated.changes !== 1) throw new Error("Run mutation context is stale.");
-      if (!Array.isArray(reduced.events) || reduced.events.length === 0) {
-        throw new Error("Every game mutation must derive at least one canonical event.");
-      }
+      if (!Array.isArray(reduced.events)) throw new Error("Game events are invalid.");
       for (const event of reduced.events) {
         this.#recordGameEvent(expectedRunId, revision, actionId, actorPrincipalId, event, now);
       }
@@ -350,6 +590,11 @@ export class StateOwner {
         runGeneration: expectedRunGeneration, requestedByPrincipalId: actorPrincipalId,
         actionId, now,
       });
+      const eventCount = this.#db.prepare(`SELECT COUNT(*) AS count FROM game_events
+        WHERE run_id=? AND revision=? AND action_id=?`).get(expectedRunId,revision,actionId).count;
+      if (eventCount < 1) {
+        throw new Error("Every game mutation must derive at least one canonical event.");
+      }
       const coverage = this.#db.prepare(`UPDATE history_streams SET last_recorded_revision=?
         WHERE run_id=? AND lifecycle='recording' AND last_recorded_revision=?`)
         .run(revision,expectedRunId,expectedRevision);
@@ -481,6 +726,17 @@ export class StateOwner {
     });
   }
 
+  retentionCandidates({ eligibleBefore }) {
+    safeNonnegative(eligibleBefore,"Retention eligibility boundary");
+    return this.#db.prepare(`SELECT r.id AS run_id,r.ended_at,h.lifecycle
+      FROM game_runs r JOIN history_streams h ON h.run_id=r.id
+      WHERE r.ended_at IS NOT NULL AND r.ended_at<=?
+        AND h.lifecycle IN ('terminal_pending','sealed')
+      ORDER BY r.ended_at,r.id`).all(eligibleBefore).map((row) => ({
+      runId: row.run_id,endedAt: row.ended_at,lifecycle: row.lifecycle,
+    }));
+  }
+
   purgeHistory({ commandId = randomUUID(), runId, eligibleBefore, now = Date.now() }) {
     safeNonnegative(eligibleBefore, "Retention eligibility boundary");
     const request = { runId, eligibleBefore };
@@ -607,7 +863,7 @@ export class StateOwner {
        round,detail_code,detail_value,reason_code,occurred_at)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       runId,sequence,revision,event.type,event.outcome,event.actorType,
-      event.actorRef ?? (event.actorType === "system" ? null : actorPrincipalId),
+      event.actorType === "system" ? null : (actorPrincipalId ?? event.actorRef ?? null),
       actionId,event.commandRef ?? null,
       event.round ?? null,event.detailCode ?? null,event.detailValue ?? null,
       event.reasonCode ?? null,now,
@@ -621,12 +877,105 @@ export class StateOwner {
     const request = { sourceId, displayName, tokenHash };
     return this.#once(commandId, "register_managed_source", request, now, () => {
       this.#assertActive();
-      if (!displayName?.trim()) throw new Error("Managed source display name is required.");
-      if (!tokenHash?.trim()) throw new Error("Managed source token hash is required.");
+      if (!UUID_PATTERN.test(sourceId)) throw new Error("Managed source ID must be a canonical UUID.");
+      const normalizedName = typeof displayName === "string" ? displayName.trim() : "";
+      if (!normalizedName || normalizedName.length > 80) {
+        throw new Error("Managed source display name must be 1-80 characters.");
+      }
+      if (!/^[0-9a-f]{64}$/.test(tokenHash ?? "")) {
+        throw new Error("Managed source token hash must be a lowercase SHA-256 digest.");
+      }
       this.#db.prepare(`INSERT INTO managed_sources
         (id,display_name,token_hash,enabled,created_at) VALUES (?,?,?,1,?)`)
-        .run(sourceId,displayName.trim(),tokenHash,now);
+        .run(sourceId,normalizedName,tokenHash,now);
       return { sourceId, enabled: true };
+    });
+  }
+
+  managedSources() {
+    return this.#db.prepare(`SELECT id,display_name,enabled,created_at,last_seen_at,last_error_category
+      FROM managed_sources ORDER BY created_at,id`).all().map((source) => ({
+      sourceId: source.id,displayName: source.display_name,enabled: Boolean(source.enabled),
+      createdAt: source.created_at,lastSeenAt: source.last_seen_at,
+      errorCategory: source.last_error_category,
+    }));
+  }
+
+  operatorReport({ sinceHours = 24, now = Date.now() } = {}) {
+    if (!Number.isInteger(sinceHours) || sinceHours < 1 || sinceHours > 24 * 31) {
+      throw new Error("Operator report window is invalid.");
+    }
+    const cutoff = now - sinceHours * 60 * 60 * 1000;
+    const sessions = this.#db.prepare(`SELECT l.code,l.status,l.run_generation,l.updated_at,
+        r.id AS run_id,r.revision,r.state,r.ended_at,r.terminal_outcome,
+        h.lifecycle,h.baseline_revision,h.last_recorded_revision,h.purged_at,
+        lease.id AS lease_id,lease.playback_status,lease.expires_at,
+        source.id AS source_id,source.last_seen_at,source.last_error_category
+      FROM lobbies l
+      LEFT JOIN game_runs r ON r.id=l.active_run_id
+      LEFT JOIN history_streams h ON h.run_id=r.id
+      LEFT JOIN managed_leases lease ON lease.lobby_code=l.code
+      LEFT JOIN managed_sources source ON source.id=lease.source_id
+      WHERE l.updated_at>=? OR r.updated_at>=? OR r.ended_at>=?
+      ORDER BY COALESCE(r.updated_at,l.updated_at) DESC,l.code`).all(cutoff,cutoff,cutoff);
+    return {
+      generatedAt: now,sinceHours,authority: this.authorityStatus(),
+      sanitizationPending: this.readiness().sanitizationPending,
+      sources: this.managedSources(),
+      sessions: sessions.map((row) => {
+        let phase = null;
+        try { phase = validateRoomState(JSON.parse(row.state)).phase; } catch { /* report null */ }
+        return {
+          code: row.code,status: row.status,runGeneration: row.run_generation,
+          updatedAt: row.updated_at,runId: row.run_id,revision: row.revision,phase,
+          endedAt: row.ended_at,terminalOutcome: row.terminal_outcome,
+          history: row.run_id ? {
+            lifecycle: row.lifecycle,baselineRevision: row.baseline_revision,
+            lastRecordedRevision: row.last_recorded_revision,purgedAt: row.purged_at,
+            complete: row.last_recorded_revision === row.revision,
+          } : null,
+          audio: row.lease_id ? {
+            leaseId: row.lease_id,sourceId: row.source_id,
+            playbackStatus: row.playback_status,expiresAt: row.expires_at,
+            sourceLastSeenAt: row.last_seen_at,errorCategory: row.last_error_category,
+          } : null,
+        };
+      }),
+    };
+  }
+
+  updateManagedSource({
+    commandId = randomUUID(), sourceId, action, tokenHash = null, now = Date.now(),
+  }) {
+    if (!['rotate','disable'].includes(action)) throw new Error("Managed source update is invalid.");
+    const request = { sourceId,action,tokenHash };
+    return this.#once(commandId,`managed_source_${action}`,request,now,() => {
+      this.#assertActive();
+      const source = this.#db.prepare("SELECT id FROM managed_sources WHERE id=?").get(sourceId);
+      if (!source) throw new Error("Managed source was not found.");
+      const lease = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
+        WHERE source_id=?`).get(sourceId);
+      let transitions = [];
+      if (lease) {
+        transitions = this.#forfeitLease(lease,"explicit_release",now);
+        this.#recordLeaseEvent({
+          lobbyCode: lease.lobby_code,actionId: commandId,actorPrincipalId: null,
+          type: "audio_lease_released",outcome: "completed",detailCode: "managed",
+          reasonCode: "explicit_release",now,
+        });
+      }
+      if (action === 'rotate') {
+        if (typeof tokenHash !== "string" || !/^[0-9a-f]{64}$/i.test(tokenHash)) {
+          throw new Error("Managed source token hash is invalid.");
+        }
+        this.#db.prepare(`UPDATE managed_sources SET token_hash=?,enabled=1,
+          last_seen_at=NULL,last_error_category=NULL WHERE id=?`).run(tokenHash,sourceId);
+      } else {
+        if (tokenHash !== null) throw new Error("Managed source disable cannot carry a token hash.");
+        this.#db.prepare(`UPDATE managed_sources SET enabled=0,last_seen_at=NULL,
+          last_error_category=NULL WHERE id=?`).run(sourceId);
+      }
+      return { sourceId,enabled: action === 'rotate',activeLeaseReleased: Boolean(lease),transitions };
     });
   }
 
@@ -647,6 +996,8 @@ export class StateOwner {
 
   managedSourceWork({ authenticatedSourceId, now = Date.now() }) {
     this.#assertActive();
+    this.#db.prepare("UPDATE managed_sources SET last_seen_at=? WHERE id=? AND enabled=1")
+      .run(now,authenticatedSourceId);
     const lease = this.#db.prepare(`SELECT lease.id AS lease_id,lease.lobby_code,
         lease.expires_at,lease.playback_status
       FROM managed_leases lease
@@ -682,6 +1033,30 @@ export class StateOwner {
       command: command ? {
         id: command.id, kind: command.kind, trackUri: command.track_uri,
       } : null,
+    };
+  }
+
+  audioView({ lobbyCode, now = Date.now() }) {
+    const row = this.#db.prepare(`SELECT l.audio_mode,lease.id AS lease_id,
+        lease.expires_at,lease.playback_status,lease.last_error_category,
+        source.display_name,source.last_seen_at
+      FROM lobbies l
+      LEFT JOIN managed_leases lease ON lease.lobby_code=l.code AND lease.expires_at>?
+      LEFT JOIN managed_sources source ON source.id=lease.source_id
+      WHERE l.code=?`).get(now,lobbyCode);
+    if (!row) throw new Error("Lobby was not found.");
+    if (row.audio_mode === "local") {
+      return { selection: "local", mode: "local", sourceOnline: false, status: "disconnected" };
+    }
+    if (!row.lease_id) {
+      return { selection: "managed", mode: "local", sourceOnline: false, status: "disconnected" };
+    }
+    return {
+      selection: "managed", mode: "managed", leaseId: row.lease_id,
+      sourceName: row.display_name,
+      sourceOnline: Number.isSafeInteger(row.last_seen_at) && row.last_seen_at > now - 90_000,
+      status: row.playback_status,
+      ...(row.last_error_category ? { error: row.last_error_category } : {}),
     };
   }
 
@@ -873,6 +1248,70 @@ export class StateOwner {
     if (!Array.isArray(effects)) throw new Error("Game effects are invalid.");
     const results = [];
     for (const effect of effects) {
+      if (effect?.type === "select_audio") {
+        this.#db.prepare("UPDATE lobbies SET audio_mode=?,updated_at=? WHERE code=?")
+          .run(effect.mode,now,lobbyCode);
+        const existing = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
+          WHERE lobby_code=?`).get(lobbyCode);
+        if (effect.mode === "local") {
+          if (existing) {
+            this.#forfeitLease(existing,"source_selected_local",now);
+            this.#recordLeaseEvent({
+              lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
+              type: "audio_lease_released",outcome: "completed",detailCode: "managed",
+              reasonCode: "source_selected_local",now,
+            });
+          }
+          continue;
+        }
+        if (existing) {
+          const expiresAt = now + 120_000;
+          this.#db.prepare("UPDATE managed_leases SET renewed_at=?,expires_at=? WHERE id=?")
+            .run(now,expiresAt,existing.id);
+          this.#recordLeaseEvent({
+            lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
+            type: "audio_lease_renewed",outcome: "accepted",detailCode: "managed",now,
+          });
+          continue;
+        }
+        const source = this.#db.prepare(`SELECT source.id FROM managed_sources source
+          LEFT JOIN managed_leases lease ON lease.source_id=source.id
+          WHERE source.enabled=1 AND source.last_seen_at>? AND lease.id IS NULL
+          ORDER BY source.last_seen_at DESC,source.id LIMIT 1`).get(now - 90_000);
+        if (!source) throw new Error("Managed playback authority is unavailable.");
+        const leaseId = randomUUID();
+        this.#db.prepare(`INSERT INTO managed_leases
+          (id,source_id,lobby_code,acquired_by_principal_id,acquired_at,renewed_at,
+           expires_at,playback_status) VALUES (?,?,?,?,?,?,?,'ready')`)
+          .run(leaseId,source.id,lobbyCode,requestedByPrincipalId,now,now,now + 120_000);
+        this.#recordLeaseEvent({
+          lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
+          type: "audio_lease_acquired",outcome: "accepted",detailCode: "managed",now,
+        });
+        continue;
+      }
+      if (effect?.type === "release_audio") {
+        const lease = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
+          WHERE lobby_code=?`).get(lobbyCode);
+        if (!lease) throw new Error("Managed lease is stale or unavailable.");
+        this.#forfeitLease(lease,"explicit_release",now);
+        this.#recordLeaseEvent({
+          lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
+          type: "audio_lease_released",outcome: "completed",detailCode: "managed",
+          reasonCode: "explicit_release",now,
+        });
+        continue;
+      }
+      if (effect?.type === "control_audio") {
+        const lease = this.#db.prepare(`SELECT source_id FROM managed_leases
+          WHERE lobby_code=? AND expires_at>?`).get(lobbyCode,now);
+        if (!lease) throw new Error("Managed playback authority is unavailable.");
+        results.push(this.#insertManagedCommand({
+          commandId: randomUUID(),sourceId: lease.source_id,lobbyCode,runId,runGeneration,
+          kind: effect.kind,trackUri: null,requestedByPrincipalId,actionId,now,
+        }));
+        continue;
+      }
       if (effect?.type !== "request_track" || typeof effect.uri !== "string" || !effect.uri) {
         throw new Error("Game effect is not implemented by this state-service generation.");
       }
@@ -1020,18 +1459,21 @@ export class StateOwner {
 
   #recordManagedCommandEvent(commandId, state, reasonCode, now) {
     const command = this.#db.prepare(`SELECT command.id,command.run_id,command.kind,command.source_id,
-        command.action_id,
+        command.action_id,lobby.host_principal_id,
         payload.requested_by_principal_id,run.revision,stream.lifecycle
       FROM managed_command_intents command
       LEFT JOIN managed_command_payloads payload ON payload.command_id=command.id
       JOIN game_runs run ON run.id=command.run_id
+      JOIN lobbies lobby ON lobby.code=command.lobby_code
       JOIN history_streams stream ON stream.run_id=run.id
       WHERE command.id=?`).get(commandId);
     if (!command || !["recording", "terminal_pending"].includes(command.lifecycle)) {
       throw new Error("Managed command history is closed.");
     }
     const mapping = {
-      queued: ["audio_command_requested", "accepted", "host", command.requested_by_principal_id],
+      queued: ["audio_command_requested", "accepted",
+        command.requested_by_principal_id === command.host_principal_id ? "host" : "player",
+        command.requested_by_principal_id],
       claimed: ["audio_command_delivered", "accepted", "source", command.source_id],
       completed: ["audio_command_completed", "completed", "source", command.source_id],
       failed: ["audio_command_failed", "failed", "source", command.source_id],

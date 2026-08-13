@@ -227,7 +227,7 @@ export function reduceGameCommand({ state, command, actor, selectSong, selectSta
         state: next,
         events: [{
           type: "player_joined", outcome: "accepted", actorType: "host",
-          actorRef: playerId, round: next.round, detailCode: "host",
+          round: next.round, detailCode: "host",
         }],
       };
     }
@@ -242,7 +242,7 @@ export function reduceGameCommand({ state, command, actor, selectSong, selectSta
         removePrincipalId: playerId,
         events: [{
           type: "player_removed", outcome: "accepted", actorType: "host",
-          actorRef: playerId, round: next.round,
+          round: next.round,
         }],
       };
     }
@@ -306,7 +306,7 @@ export function reduceGameCommand({ state, command, actor, selectSong, selectSta
         state: next,
         events: [{
           type: "placement_locked", outcome: "accepted",
-          actorType: actor.isHost ? "host" : "player", actorRef: player.id,
+          actorType: actor.isHost ? "host" : "player",
           round: next.round, detailValue: command.index,
         }],
       };
@@ -323,7 +323,7 @@ export function reduceGameCommand({ state, command, actor, selectSong, selectSta
         state: next,
         events: [{
           type: "placement_retracted", outcome: "accepted",
-          actorType: actor.isHost ? "host" : "player", actorRef: player.id, round: next.round,
+          actorType: actor.isHost ? "host" : "player", round: next.round,
         }],
       };
     }
@@ -350,7 +350,7 @@ export function reduceGameCommand({ state, command, actor, selectSong, selectSta
           terminalOutcome: "completed",
           events: [{
             type: "game_completed", outcome: "completed", actorType: "host",
-            actorRef: next.winnerId, round: next.round,
+            round: next.round,
           }],
         };
       }
@@ -387,6 +387,34 @@ export function reduceGameCommand({ state, command, actor, selectSong, selectSta
           { type: "track_skipped", outcome: "accepted", actorType: "host", round: next.round },
           { type: "track_requested", outcome: "accepted", actorType: "host", round: next.round, detailCode: "play" },
         ],
+      };
+    }
+    case "select_audio": {
+      requireHost(actor);
+      if (next.phase === "finished") throw new Error("This game has already finished.");
+      if (!['local', 'managed'].includes(command.mode)) throw new Error("Audio source is invalid.");
+      return {
+        state: next,
+        effects: [{ type: "select_audio", mode: command.mode }],
+        events: [{
+          type: "audio_source_selected", outcome: "accepted", actorType: "host",
+          round: next.round, detailCode: command.mode,
+        }],
+      };
+    }
+    case "release_audio": {
+      requireHost(actor);
+      if (next.phase === "finished") throw new Error("This game has already finished.");
+      return { state: next, effects: [{ type: "release_audio" }], events: [] };
+    }
+    case "control_audio": {
+      requirePhase(next, ["playing", "placed"], "Playback controls are not active for this round.");
+      if (!actor.isHost && !actor.isMember) throw new Error("Lobby membership is required.");
+      if (!["pause", "resume"].includes(command.kind)) throw new Error("Playback command is invalid.");
+      return {
+        state: next,
+        effects: [{ type: "control_audio", kind: command.kind }],
+        events: [],
       };
     }
     case "abandon_game": {

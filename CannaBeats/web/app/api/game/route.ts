@@ -31,6 +31,9 @@ import {
   selectAudioSource,
   selectedAudioView,
 } from "../../../lib/server/managed-audio";
+import { accessGatewayConfigured } from "../../../lib/server/access-gateway.mjs";
+import { stateGatewayConfigured } from "../../../lib/server/state-client.mjs";
+import { getStateGame, postStateGame } from "./state-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -1068,5 +1071,15 @@ async function postGame(request: Request) {
   }
 }
 
-export const GET = observeRoute(getGame, { acceptCorrelationId: trustedInternalRequest });
-export const POST = observeRoute(postGame);
+const useStateGateway = stateGatewayConfigured() && accessGatewayConfigured();
+const legacyStateEnabled = process.env.CANNABEATS_ENABLE_LEGACY_STATE === "true";
+const stateConfigurationRequired = () => Response.json({
+  error: "State service configuration is required for this release.",
+},{ status: 503 });
+
+export const GET = observeRoute(useStateGateway ? getStateGame
+  : legacyStateEnabled ? getGame : stateConfigurationRequired, {
+  acceptCorrelationId: trustedInternalRequest,
+});
+export const POST = observeRoute(useStateGateway ? postStateGame
+  : legacyStateEnabled ? postGame : stateConfigurationRequired);

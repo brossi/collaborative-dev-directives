@@ -56,6 +56,12 @@ def correlation_id(value=None):
         return str(uuid.uuid4())
 
 
+def transition_request_id(action, command_id, claim_generation):
+    return str(uuid.uuid5(
+        uuid.UUID(int=0), f"{action}:{command_id}:{claim_generation}",
+    ))
+
+
 def operational_log(level, event, message, **context):
     record = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -197,6 +203,9 @@ def _completion_payload(payload):
     }
     if payload.get("claimGeneration") is not None:
         completion["claimGeneration"] = str(uuid.UUID(str(payload["claimGeneration"])))
+        completion["requestId"] = transition_request_id(
+            "complete", command_id, completion["claimGeneration"],
+        )
     if payload.get("protocolVersion") == 1:
         completion["protocolVersion"] = 1
     return completion
@@ -340,6 +349,7 @@ def claim_polled_command(command, request_correlation_id=None, api=api_call, pro
             "action": "claim",
             "commandId": command_id,
             "claimGeneration": outbox["generation"],
+            "requestId": transition_request_id("claim", command_id, outbox["generation"]),
         }, outbox.get("correlationId"))
     if not isinstance(result, dict) or result.get("accepted") is not True \
             or result.get("status") != "claimed" or not isinstance(result.get("replayed"), bool):
@@ -371,6 +381,7 @@ def accept_browser_begin(payload, api=api_call):
     else:
         result, response_correlation_id = api({
             "action": "begin", "commandId": command_id, "claimGeneration": generation,
+            "requestId": transition_request_id("begin", command_id, generation),
         }, executing.get("correlationId"))
     if not isinstance(result, dict) or result.get("accepted") is not True \
             or result.get("status") != "executing" or not isinstance(result.get("replayed"), bool):
@@ -390,6 +401,9 @@ def retry_unresolved_execution(api=api_call):
         "action": "outcome_unknown",
         "commandId": outbox["commandId"],
         "claimGeneration": outbox["generation"],
+        "requestId": transition_request_id(
+            "outcome_unknown", outbox["commandId"], outbox["generation"],
+        ),
     }, outbox.get("correlationId"))
     if not isinstance(result, dict) or result.get("accepted") is not True \
             or result.get("status") != "outcome_unknown" \
@@ -434,6 +448,7 @@ def accept_browser_unknown(payload, api=api_call):
                 "action": "outcome_unknown",
                 "commandId": command_id,
                 "claimGeneration": generation,
+                "requestId": transition_request_id("outcome_unknown", command_id, generation),
             }, current.get("correlationId"))
             if not isinstance(result, dict) or result.get("accepted") is not True \
                     or result.get("status") != "outcome_unknown" \
@@ -565,7 +580,8 @@ def poll_loop():
             retry_unresolved_execution()
             retry_pending_completion()
             payload, request_correlation_id = api_call({"action": "poll"})
-            protocol_version = 2 if payload.get("protocolVersion") == 2 else 1
+            protocol_version = payload.get("protocolVersion") \
+                if payload.get("protocolVersion") in {2, 3} else 1
             lease = payload.get("lease")
             command = payload.get("command")
             if command:

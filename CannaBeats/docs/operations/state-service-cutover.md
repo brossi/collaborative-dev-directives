@@ -1,6 +1,6 @@
 # State-service cutover and migration strategy
 
-Status: development procedure; not approved for production execution.
+Status: locally rehearsed development procedure; independent audit and S2-F host proof pending.
 
 This procedure separates identity/access data from game-night state without a
 dual-write interval. It assumes the refactor is operator-controlled and no live
@@ -41,13 +41,20 @@ Required evidence before touching a rehearsal host:
 The current development contract is state schema generation 2 and managed-source
 protocol 3. Earlier unpublished candidate databases must be reconstructed.
 
-Local Docker verification now proves the current state image builds on
-Linux/arm64, runs as the unprivileged `node` user with a read-only root
-filesystem, mounts only the state volume RW, starts from a clean volume as a
-validated candidate, and passes its container health check. Digest pinning, the
-full migration profile, multi-container caller topology, restart/activation
-rehearsal, and items 3-4 still require the remaining local rehearsal;
-production-shaped systemd/host proof remains S2-F.
+Before starting State, create the host authority directory configured by
+`CANNABEATS_STATE_AUTHORITY_DIR` with mode `0700` and ownership matching the
+State container's unprivileged runtime user (UID/GID 1000 in the checked-in
+image). It stores the monotonic rollback-floor record separately from
+replaceable database snapshots; restoring an older database must not replace
+or delete it.
+
+Local Docker verification now proves the current Access, Game, and State images
+build on Linux/arm64. State runs as the unprivileged `node` user with a read-only
+root filesystem and is the only runtime State-volume writer. The complete local
+rehearsal covers the migration profile, candidate readiness and digest-bound
+activation, multi-container caller topology, restart recovery, coordinated
+backup/restore, and both rollback boundaries. Production digest publication and
+production-shaped systemd/host proof remain S2-F.
 
 ## Phase 1: drain and preserve the rollback artifact
 
@@ -58,7 +65,11 @@ production-shaped systemd/host proof remains S2-F.
    SQLite integrity, and foreign keys.
 4. Record the monolith backup identity and current release image digests.
 5. Stop `app`, `game`, `history`, managed-source controller, and any CLI writer.
-6. Re-run the drain query against the stopped monolith. A mismatch aborts.
+6. Checkpoint the stopped monolith with `PRAGMA wal_checkpoint(TRUNCATE)` and
+   prove that no non-empty `-wal` sidecar remains. The migrator rejects an
+   uncheckpointed source rather than ignoring frames or requiring a writable
+   source mount.
+7. Re-run the drain query against the stopped monolith. A mismatch aborts.
 
 ## Phase 2: create the candidate
 
@@ -71,8 +82,9 @@ docker compose --profile state-migration run --rm state-migrate
 The migrator:
 
 - opens the monolith read-only and never changes it;
-- derives source identity from a canonical schema-and-content snapshot rather
-  than from the SQLite main file alone (which could omit WAL content);
+- requires the source WAL to be fully checkpointed, opens the main database as
+  immutable through its read-only mount, and derives source identity from a
+  canonical schema-and-content snapshot rather than raw file bytes;
 - refuses active sessions, live leases, or unresolved commands;
 - builds a uniquely named candidate database;
 - copies state-owned rows in one transaction;
@@ -150,24 +162,54 @@ After `first_admitted_at`:
 - Restore state and access backups as a coordinated recovery point only when
   their manifests identify the same release epoch.
 
-## Remaining development gates
+## Local executable rehearsal
 
-- The owner API prerequisite is frozen at HTTP contract version 1.
-  `/v1/contract` publishes schema generation, managed-source protocol,
-  projection versions, supported public game commands, and the stable status
-  assigned to each safe external error code. Internal exception messages are
-  never returned. The executable contract suite covers every public route's
-  credential scope and the complete host/phone role × room-phase ×
-  typed-command matrix.
-- Replace direct game, access, source, CLI, report, backup, and retention DB use.
-- Wire and verify gateway-issued principal assertions and source work delivery
-  through the actual access/game/controller clients.
-- Add read-only projection export and coordinated backup manifests.
-- Extend release and rollback scripts with state image and compatibility gates.
-- Build the image and execute the full procedure on disposable rehearsal hosts.
-- Run a fresh independent adversarial audit before calling the cutover verified.
+With Docker Desktop running, execute the complete disposable local topology:
 
-Item 1 local evidence (2026-08-12): state-service `36/36`, including contract,
-authorization-route, reducer matrix, ownership, migration, history, and managed
-audio protocol tests. This closes the contract prerequisite only; callers have
-not yet been cut over and the overall S2-B/S2-C gate remains open.
+```sh
+cd spikes/access-spotify-poc
+node deploy/rehearse-state-cutover.mjs
+```
+
+The runner requires the production loopback ports for the release-script phase,
+chooses unused ports for its separately booted restore topology, and uses unique
+Compose project/volume names. It
+creates all credentials in a mode-`0700` temporary directory, and removes only
+those exact containers, volumes, and files after completion. Set
+`CANNABEATS_KEEP_REHEARSAL=1` only while diagnosing a failed run; the printed
+project and temporary path must then be removed explicitly. A successful run
+replaces `docs/evidence/state-cutover-local.json` with the step-by-step pass
+record. That record contains digests and generated rehearsal identities, not
+credential material or backup contents.
+
+## Verification status and remaining gates
+
+Completed local development evidence:
+
+- HTTP contract version 1 publishes schema, protocol, projections, typed game
+  commands, caller scopes, and stable safe failure codes.
+- Access, game, source, CLI, report, retention, and backup callers use the State
+  contract; only the State runtime owns the State volume read-write.
+- Admission-fenced export and coordinated encrypted Access/State backup manifests
+  bind both encrypted artifacts to one authenticated recovery-set UUID and one
+  release epoch. Authenticated rollback-floor authority is recovered from the
+  newest valid set in that epoch even when an older database set is selected.
+  Restore publishes a complete Access/State/floor generation through one atomic
+  selector, and restored State starts with admission closed.
+- Release and rollback records gate the State image, schema generation, protocol,
+  HTTP contract, client set, recovery epoch, and first-admission boundary.
+- `deploy/rehearse-state-cutover.mjs` executes the full local procedure and writes
+  [machine-readable evidence](../evidence/state-cutover-local.json). The recorded
+  pass includes immutable-source migration, activation, the real pre-admission
+  rollback script, gameplay plus a protocol-faithful source simulator, sealed
+  history, encrypted backup/restore, a separately booted restored topology,
+  exact completed and abandoned reconstruction, physically completed purge,
+  restart recovery, and
+  post-admission rollback refusal.
+
+Remaining before the foundation is called verified:
+
+- complete the follow-on independent audit of this remediated cutover unit and
+  repeat any affected validation;
+- execute the production-shaped disposable-host, systemd scheduling, alerting,
+  reboot, and digest-pinned rehearsal assigned to S2-F.

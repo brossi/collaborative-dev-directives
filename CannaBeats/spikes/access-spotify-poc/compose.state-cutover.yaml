@@ -1,0 +1,70 @@
+services:
+  app:
+    environment:
+      CANNABEATS_STATE_SERVICE_ORIGIN: http://state:3010
+      CANNABEATS_STATE_ACCESS_TOKEN_FILE: /run/secrets/cannabeats/state-access-token
+      CANNABEATS_STATE_ACCESS_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-access-principal-assertion-key
+      CANNABEATS_ENABLE_LEGACY_STATE: "false"
+      CANNABEATS_STATE_WRITES_REQUIRED: "true"
+    volumes:
+      - ${STATE_ACCESS_TOKEN_HOST_FILE:-./secrets/state-access-token}:/run/secrets/cannabeats/state-access-token:ro
+      - ${STATE_ACCESS_PRINCIPAL_ASSERTION_KEY_HOST_FILE:-./secrets/state-access-principal-assertion-key}:/run/secrets/cannabeats/state-access-principal-assertion-key:ro
+    depends_on:
+      state:
+        condition: service_healthy
+
+  game:
+    environment:
+      CANNABEATS_DATABASE_PATH: /legacy-state-disabled/cannabeats.sqlite
+      CANNABEATS_STATE_SERVICE_ORIGIN: http://state:3010
+      CANNABEATS_ACCESS_SERVICE_INTERNAL_ORIGIN: http://app:3002
+      CANNABEATS_STATE_GAME_TOKEN_FILE: /run/secrets/cannabeats/state-game-token
+      CANNABEATS_STATE_GAME_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-game-principal-assertion-key
+      CANNABEATS_ENABLE_LEGACY_STATE: "false"
+    volumes: !override
+      - ${AUDIO_RELAY_LISTEN_TOKEN_HOST_FILE:-./secrets/audio-relay-listen-token}:${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}:ro
+      - ${GAME_SERVICE_TOKEN_HOST_FILE:-./secrets/game-service-token}:${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}:ro
+      - ${STATE_GAME_TOKEN_HOST_FILE:-./secrets/state-game-token}:/run/secrets/cannabeats/state-game-token:ro
+      - ${STATE_GAME_PRINCIPAL_ASSERTION_KEY_HOST_FILE:-./secrets/state-game-principal-assertion-key}:/run/secrets/cannabeats/state-game-principal-assertion-key:ro
+    depends_on:
+      state:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+  backup:
+    network_mode: !reset null
+    environment:
+      CANNABEATS_STATE_SERVICE_ORIGIN: http://state:3010
+      CANNABEATS_STATE_OPERATOR_TOKEN_FILE: /run/secrets/cannabeats/state-operator-token
+      CANNABEATS_RELEASE_EPOCH: ${CANNABEATS_RELEASE_EPOCH:?Set CANNABEATS_RELEASE_EPOCH}
+    volumes: !override
+      - cannabeats_poc_data:/data:ro
+      - ${CANNABEATS_BACKUP_DIR:-./backups}:/backups
+      - ${BACKUP_PASSPHRASE_HOST_FILE:-./secrets/backup-passphrase}:/run/secrets/cannabeats/backup-passphrase:ro
+      - ${STATE_OPERATOR_TOKEN_HOST_FILE:-./secrets/state-operator-token}:/run/secrets/cannabeats/state-operator-token:ro
+      - /scratch
+    entrypoint: ["node", "operations/coordinated-backup.mjs"]
+    depends_on:
+      state:
+        condition: service_healthy
+
+  history:
+    depends_on:
+      state:
+        condition: service_healthy
+
+  operator:
+    environment:
+      CANNABEATS_STATE_SERVICE_ORIGIN: http://state:3010
+      CANNABEATS_STATE_OPERATOR_TOKEN_FILE: /run/secrets/cannabeats/state-operator-token
+      CANNABEATS_STATE_WRITES_REQUIRED: "true"
+    volumes:
+      - ${STATE_OPERATOR_TOKEN_HOST_FILE:-./secrets/state-operator-token}:/run/secrets/cannabeats/state-operator-token:ro
+    depends_on:
+      state:
+        condition: service_healthy
+      app:
+        condition: service_started
+      game:
+        condition: service_started

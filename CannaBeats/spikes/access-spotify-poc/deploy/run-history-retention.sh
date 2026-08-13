@@ -22,9 +22,17 @@ fi
 
 cd -- "$compose_directory"
 compose=(docker compose -f compose.yaml)
-if [[ -f "$release_override" ]]; then
-  compose+=(-f "$release_override")
+profiles=(--profile operations)
+if [[ -f "$release_override" ]] && grep -Eq '^  state-cutover:[[:space:]]+true$' "$release_override"; then
+  [[ -f compose.state-cutover.yaml ]] || { echo "State cutover override is missing" >&2; exit 2; }
+  release_epoch="$(awk '/^  release-epoch:/ { sub(/^  release-epoch:[[:space:]]*/, ""); print; exit }' "$release_override")"
+  [[ "$release_epoch" =~ ^[A-Za-z0-9._:-]{1,160}$ ]] \
+    || { echo "State release epoch is invalid" >&2; exit 2; }
+  export CANNABEATS_RELEASE_EPOCH="$release_epoch"
+  compose+=(-f compose.state-cutover.yaml)
+  profiles=(--profile state-cutover --profile operations)
 fi
+if [[ -f "$release_override" ]]; then compose+=(-f "$release_override"); fi
 exec "$timeout_command" --foreground --kill-after=10s "${timeout_seconds}s" \
-  "${compose[@]}" --profile operations run --rm --no-deps history \
+  "${compose[@]}" "${profiles[@]}" run --rm --no-deps history \
     purge --retention-days "$retention_days"

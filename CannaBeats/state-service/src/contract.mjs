@@ -16,6 +16,9 @@ export const GAME_COMMAND_TYPES = Object.freeze([
   "reveal_answer",
   "advance_round",
   "skip_track",
+  "select_audio",
+  "release_audio",
+  "control_audio",
   "abandon_game",
 ]);
 
@@ -43,6 +46,7 @@ export const STATE_SERVICE_CONTRACT = Object.freeze({
   projections: Object.freeze({
     room: ROOM_PROJECTION_VERSION,
     history: HISTORY_PROJECTION_VERSION,
+    accessLobby: 1,
   }),
   gameCommands: GAME_COMMAND_TYPES,
   errors: STATE_HTTP_ERROR_CODES,

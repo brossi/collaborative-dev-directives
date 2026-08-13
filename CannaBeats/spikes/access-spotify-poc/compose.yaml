@@ -37,6 +37,7 @@ services:
       CANNABEATS_SCHEMA_MAX_VERSION: "2"
       CANNABEATS_SCHEMA_TARGET_VERSION: "1"
       CANNABEATS_ENVIRONMENT: ${CANNABEATS_ENVIRONMENT:-poc}
+      CANNABEATS_ENABLE_LEGACY_STATE: ${CANNABEATS_ENABLE_LEGACY_STATE:-true}
       HOST_RELEASE_PATH: /releases/CannaBeats-Host-interim-universal.dmg
       HOST_RELEASE_NAME: CannaBeats-Host-0.5-interim-universal.dmg
       HOST_RELEASE_CHANNEL: interim
@@ -94,6 +95,7 @@ services:
       CANNABEATS_SCHEMA_MAX_VERSION: "2"
       CANNABEATS_SCHEMA_TARGET_VERSION: "1"
       CANNABEATS_ENVIRONMENT: ${CANNABEATS_ENVIRONMENT:-poc}
+      CANNABEATS_ENABLE_LEGACY_STATE: ${CANNABEATS_ENABLE_LEGACY_STATE:-true}
     ports:
       - "127.0.0.1:3003:3000"
     volumes:
@@ -139,14 +141,18 @@ services:
       PORT: "3010"
       CANNABEATS_STATE_DATABASE_PATH: /state/cannabeats-state.sqlite
       CANNABEATS_STATE_LOCK_DIRECTORY: /state/.locks
+      CANNABEATS_STATE_ROLLBACK_FLOOR_PATH: /authority/rollback-floor.json
       CANNABEATS_STATE_ACTIVATION_TOKEN_FILE: /run/secrets/cannabeats/state-activation-token
       CANNABEATS_STATE_OPERATOR_TOKEN_FILE: /run/secrets/cannabeats/state-operator-token
       CANNABEATS_STATE_ACCESS_TOKEN_FILE: /run/secrets/cannabeats/state-access-token
       CANNABEATS_STATE_GAME_TOKEN_FILE: /run/secrets/cannabeats/state-game-token
       CANNABEATS_STATE_ACCESS_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-access-principal-assertion-key
       CANNABEATS_STATE_GAME_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-game-principal-assertion-key
+    ports:
+      - "127.0.0.1:${CANNABEATS_STATE_PORT:-3010}:3010"
     volumes:
       - cannabeats_state_data:/state
+      - ${CANNABEATS_STATE_AUTHORITY_DIR:-./state-authority}:/authority
       - ${STATE_ACTIVATION_TOKEN_HOST_FILE:-./secrets/state-activation-token}:/run/secrets/cannabeats/state-activation-token:ro
       - ${STATE_OPERATOR_TOKEN_HOST_FILE:-./secrets/state-operator-token}:/run/secrets/cannabeats/state-operator-token:ro
       - ${STATE_ACCESS_TOKEN_HOST_FILE:-./secrets/state-access-token}:/run/secrets/cannabeats/state-access-token:ro
@@ -222,20 +228,18 @@ services:
     profiles: ["operations"]
     build:
       context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
-      dockerfile: web/Operations.Dockerfile
-    # This artifact is intentionally configured outside release overrides. Pin
-    # its production value by digest so an application rollback cannot replace it.
-    image: ${CANNABEATS_HISTORY_IMAGE:-cannabeats/history-operations:local}
+      dockerfile: state-service/Dockerfile
+    # The operations client uses the same pinned contract artifact as State,
+    # but owns no database mount and mutates only through the operator API.
+    image: ${CANNABEATS_STATE_IMAGE:-cannabeats/state-service:local}
     user: node
     read_only: true
-    network_mode: none
     environment:
-      CANNABEATS_DATABASE_PATH: /data/cannabeats-poc.sqlite
-      CANNABEATS_SCHEMA_MIN_VERSION: "0"
-      CANNABEATS_SCHEMA_MAX_VERSION: "2"
-      CANNABEATS_SCHEMA_TARGET_VERSION: "1"
+      CANNABEATS_STATE_SERVICE_ORIGIN: http://state:3010
+      CANNABEATS_STATE_OPERATOR_TOKEN_FILE: /run/secrets/cannabeats/state-operator-token
     volumes:
-      - cannabeats_poc_data:/data
+      - ${STATE_OPERATOR_TOKEN_HOST_FILE:-./secrets/state-operator-token}:/run/secrets/cannabeats/state-operator-token:ro
+    entrypoint: ["node", "scripts/operations.mjs"]
     mem_limit: 256m
     cpus: 0.25
     pids_limit: 32
@@ -243,6 +247,39 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+
+  operator:
+    profiles: ["operations"]
+    build:
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: spikes/access-spotify-poc/Dockerfile
+    image: cannabeats/access-spotify-poc:local
+    user: node
+    read_only: true
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /data/cannabeats-poc.sqlite
+      APP_ORIGIN: http://app:3002
+      GAME_SERVICE_INTERNAL_ORIGIN: http://game:3000
+      AUDIO_RELAY_ORIGIN: ${AUDIO_RELAY_ORIGIN:-https://cannaudio.cannabeats.social}
+      AUDIO_RELAY_LISTEN_TOKEN_FILE: /run/secrets/cannabeats/audio-relay-listen-token
+      CANNABEATS_APP_VERSION: ${CANNABEATS_APP_VERSION:-development}
+      CANNABEATS_CATALOG_VERSION: ${CANNABEATS_CATALOG_VERSION:-development}
+      CANNABEATS_ENVIRONMENT: ${CANNABEATS_ENVIRONMENT:-poc}
+    volumes:
+      - cannabeats_poc_data:/data:ro
+      - ${AUDIO_RELAY_LISTEN_TOKEN_HOST_FILE:-./secrets/audio-relay-listen-token}:/run/secrets/cannabeats/audio-relay-listen-token:ro
+    entrypoint: ["node", "cli.mjs"]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 64
 
 volumes:
   cannabeats_poc_data:

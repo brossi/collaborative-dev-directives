@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash, createHmac, randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
 import { createStateServer } from "../src/server.mjs";
 import { StateOwner } from "../src/owner.mjs";
+import { createCatalogGameServices } from "../src/catalog.mjs";
+import { DatabaseSync } from "node:sqlite";
 
 const root = mkdtempSync(join(tmpdir(), "cannabeats-state-server-"));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -86,21 +88,31 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
   const commandId = randomUUID();
   const routes = [
     ["POST", "/v1/admin/activate", "activation"],
+    ["POST", "/v1/admin/admission", "operator"],
+    ["POST", "/v1/access/lobbies", "access"],
+    ["GET", "/v1/access/lobbies", "access"],
+    ["GET", "/v1/access/lobbies/ABC123", "access"],
+    ["POST", "/v1/access/lobbies/ABC123/memberships", "access"],
+    ["GET", "/v1/access/lobbies/ABC123/admission-context", "access"],
     ["POST", "/v1/lobbies", "game"],
     ["POST", "/v1/lobbies/ABC123/runs", "game"],
     ["GET", "/v1/lobbies/ABC123", "game"],
+    ["GET", "/v1/lobbies/ABC123/audio", "game"],
+    ["GET", `/v1/history/${commandId}`, "game"],
     ["POST", "/v1/lobbies/ABC123/actions", "game"],
     ["POST", "/v1/lobbies/ABC123/admissions", "access"],
     ["POST", "/v1/admin/managed-sources", "operator"],
+    ["GET", "/v1/admin/managed-sources", "operator"],
+    ["POST", `/v1/admin/managed-sources/${commandId}/rotate`, "operator"],
+    ["POST", `/v1/admin/managed-sources/${commandId}/disable`, "operator"],
     ["POST", "/v1/admin/expire-managed-leases", "operator"],
     ["POST", "/v1/admin/history/seal", "operator"],
     ["POST", "/v1/admin/history/purge", "operator"],
     ["POST", "/v1/admin/history/sanitize", "operator"],
+    ["GET", "/v1/admin/history/candidates?eligibleBefore=1", "operator"],
     ["GET", "/v1/admin/validate", "operator"],
-    ["POST", "/v1/lobbies/ABC123/managed-lease", "game"],
-    ["POST", `/v1/managed-leases/${commandId}/renew`, "game"],
-    ["POST", `/v1/managed-leases/${commandId}/release`, "game"],
-    ["POST", "/v1/managed-commands", "game"],
+    ["GET", "/v1/admin/report", "operator"],
+    ["GET", "/v1/admin/export", "operator"],
     ["GET", "/v1/source/work", "source"],
     ["POST", `/v1/managed-commands/${commandId}/transitions`, "source"],
   ];
@@ -148,6 +160,11 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       gamePrincipalAssertionKey: "game-principal-assertion-secret",
     },
     clock: () => 100,
+    gameServices: createCatalogGameServices([
+      { title: "One", artist: "Artist", year: 1960, uri: "spotify:track:one" },
+      { title: "Two", artist: "Artist", year: 1980, uri: "spotify:track:two" },
+      { title: "Three", artist: "Artist", year: 2000, uri: "spotify:track:three" },
+    ], { random: () => 0 }),
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();
@@ -160,11 +177,12 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       httpContractVersion: 1,
       schemaGeneration: 2,
       protocolVersion: 3,
-      projections: { room: 1, history: 1 },
+      projections: { room: 1, history: 1, accessLobby: 1 },
       gameCommands: [
         "add_host_player", "remove_player", "configure_rules", "start_game",
         "begin_round", "place_song", "retract_placement", "reveal_answer",
-        "advance_round", "skip_track", "abandon_game",
+        "advance_round", "skip_track", "select_audio", "release_audio",
+        "control_audio", "abandon_game",
       ],
       errors: {
         invalid_json: 400, invalid_request: 400, unauthorized: 401, forbidden: 403,
@@ -237,6 +255,22 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     const activationPayload = await activation.json();
     assert.equal(activationPayload.status, "active");
     assert.equal(activationPayload.activatedAt, 100);
+    const exported = await fetch(`${origin}/v1/admin/export`,{
+      headers: { authorization: "Bearer operator-secret" },
+    });
+    assert.equal(exported.status,200);
+    assert.equal(exported.headers.get("x-cannabeats-release-epoch"),"development");
+    assert.equal(exported.headers.get("x-cannabeats-schema-generation"),"2");
+    assert.equal(exported.headers.get("x-cannabeats-protocol-version"),"3");
+    const snapshot = Buffer.from(await exported.arrayBuffer());
+    assert.equal(createHash("sha256").update(snapshot).digest("hex"),
+      exported.headers.get("x-cannabeats-state-sha256"));
+    const exportedPath = `${root}/server-export.sqlite`;
+    writeFileSync(exportedPath,snapshot,{ mode: 0o600 });
+    const exportedDb = new DatabaseSync(exportedPath,{ readOnly: true });
+    assert.equal(exportedDb.prepare("PRAGMA integrity_check").get().integrity_check,"ok");
+    assert.equal(exportedDb.prepare("SELECT status FROM state_authority").get().status,"active");
+    exportedDb.close();
     const request = { commandId: "2c53f9fa-8882-45b0-9874-01ca670f4444", code: "SRV234" };
     const first = await fetch(`${origin}/v1/lobbies`, {
       method: "POST", headers, body: JSON.stringify(request),
@@ -316,32 +350,34 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       }),
     });
     assert.equal(registration.status, 200);
-    const lease = await fetch(`${origin}/v1/lobbies/SRV234/managed-lease`, {
-      method: "POST", headers,
-      body: JSON.stringify({
-        commandId: "31db43e5-b20d-4a83-9843-f172b91f46c2",
-        sourceId, leaseDurationMs: 1_000, now: -1,
-      }),
-    });
-    const leasePayload = await lease.json();
-    assert.equal(leasePayload.expiresAt, 1_100);
-    const managedCommandId = "72caf280-228d-4744-be55-61ff32598a5d";
-    const queued = await fetch(`${origin}/v1/managed-commands`, {
-      method: "POST", headers,
-      body: JSON.stringify({
-        commandId: managedCommandId, sourceId, lobbyCode: "SRV234", runId,
-        runGeneration: 1, kind: "pause", now: -1,
-      }),
-    });
-    assert.equal(queued.status, 200);
+    assert.deepEqual(await (await fetch(`${origin}/v1/source/work`, {
+      headers: { authorization: `Bearer ${sourceToken}` },
+    })).json(), { protocolVersion: 3, lease: null, command: null });
+    const gameAction = async (expectedRevision, command) => {
+      const response = await fetch(`${origin}/v1/lobbies/SRV234/actions`, {
+        method: "POST", headers,
+        body: JSON.stringify({
+          actionId: randomUUID(), expectedRunId: runId, expectedRunGeneration: 1,
+          expectedRevision, command,
+        }),
+      });
+      assert.equal(response.status, 200);
+      return response.json();
+    };
+    await gameAction(2, { type: "select_audio", mode: "managed" });
+    await gameAction(3, { type: "add_host_player", name: "Host" });
+    await gameAction(4, { type: "start_game" });
+    const begun = await gameAction(5, { type: "begin_round" });
+    const managedCommandId = begun.managedCommands[0].commandId;
     const sourceWork = await fetch(`${origin}/v1/source/work`, {
       headers: { authorization: `Bearer ${sourceToken}` },
     });
-    assert.deepEqual(await sourceWork.json(), {
-      protocolVersion: 3,
-      lease: { id: leasePayload.leaseId, lobbyCode: "SRV234",
-        expiresAt: 1_100, playbackStatus: "ready" },
-      command: { id: managedCommandId, kind: "pause", trackUri: null },
+    const sourcePayload = await sourceWork.json();
+    assert.equal(sourcePayload.protocolVersion, 3);
+    assert.equal(sourcePayload.lease.lobbyCode, "SRV234");
+    assert.equal(sourcePayload.lease.expiresAt, 120_100);
+    assert.deepEqual(sourcePayload.command, {
+      id: managedCommandId, kind: "play", trackUri: begun.state.currentSong.uri,
     });
     const gameCannotClaim = await fetch(`${origin}/v1/managed-commands/${managedCommandId}/transitions`, {
       method: "POST", headers,
@@ -352,11 +388,19 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     const sourceClaim = await fetch(`${origin}/v1/managed-commands/${managedCommandId}/transitions`, {
       method: "POST",
       headers: { authorization: `Bearer ${sourceToken}`, "content-type": "application/json" },
-      body: JSON.stringify({ requestId: randomUUID(), action: "claim",
+      body: JSON.stringify({ requestId: "a38e6d45-f9d8-5f19-b440-32787e9c85c7", action: "claim",
         claimGeneration: randomUUID(), now: -1 }),
     });
     const claimPayload = await sourceClaim.json();
     assert.equal(claimPayload.state, "claimed");
+    const retentionRequest = await fetch(`${origin}/v1/admin/history/seal`, {
+      method: "POST",headers: operatorHeaders,
+      body: JSON.stringify({
+        commandId: "dff14c79-4273-50a7-9d38-51d7f6c0d32b",runId: randomUUID(),
+      }),
+    });
+    assert.notEqual(retentionRequest.status,400,
+      "the production retention client's deterministic UUIDv5 must reach the owner boundary");
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

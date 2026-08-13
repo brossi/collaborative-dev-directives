@@ -43,9 +43,14 @@ async function getAudioStream(request: Request) {
     });
   }
 
-  const view = await membership.json() as { audio?: { selection?: string } };
+  const view = await membership.json() as {
+    audio?: { selection?: string; mode?: string; leaseId?: string };
+  };
   if (view.audio?.selection !== "managed") {
     return Response.json({ error: "This lobby is using local Spotify playback." }, { status: 409 });
+  }
+  if (view.audio.mode !== "managed" || typeof view.audio.leaseId !== "string") {
+    return Response.json({ error: "This lobby does not currently own the shared audio source." }, { status: 409 });
   }
 
   let listenToken: string;

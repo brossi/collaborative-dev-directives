@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, existsSync, fsyncSync, linkSync, openSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import {
   acquireStateOwnership, closeStateStore, createStateStore, validateStateStoreSchema,
@@ -303,10 +304,14 @@ export function migrateMonolith({
   const destinationFile = resolve(destinationPath);
   if (sourceFile === destinationFile) throw new Error("Source and destination databases must differ.");
   if (!statSync(sourceFile).isFile()) throw new Error("Source database was not found.");
+  const recoveryArtifacts = [`${sourceFile}-wal`,`${sourceFile}-journal`];
+  if (recoveryArtifacts.some((path) => existsSync(path) && statSync(path).size !== 0)) {
+    throw new Error("Source database must be checkpointed and recovered before read-only migration.");
+  }
   const releaseDestinationOwnership = acquireStateOwnership(destinationFile, { lockDirectory });
   let source = null;
   try {
-    source = new DatabaseSync(sourceFile, { readOnly: true });
+    source = new DatabaseSync(`${pathToFileURL(sourceFile).href}?immutable=1`, { readOnly: true });
     source.exec("PRAGMA query_only=ON; PRAGMA foreign_keys=ON");
     source.exec("BEGIN");
     for (const table of REQUIRED_TABLES) {

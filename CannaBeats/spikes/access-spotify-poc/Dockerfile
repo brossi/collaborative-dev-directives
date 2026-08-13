@@ -6,7 +6,7 @@ WORKDIR /app
 COPY spikes/access-spotify-poc/package.json spikes/access-spotify-poc/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-COPY --chown=node:node spikes/access-spotify-poc/db.mjs spikes/access-spotify-poc/cli.mjs spikes/access-spotify-poc/onboarding.mjs spikes/access-spotify-poc/observability.mjs spikes/access-spotify-poc/server.mjs ./
+COPY --chown=node:node spikes/access-spotify-poc/db.mjs spikes/access-spotify-poc/cli.mjs spikes/access-spotify-poc/onboarding.mjs spikes/access-spotify-poc/observability.mjs spikes/access-spotify-poc/server.mjs spikes/access-spotify-poc/state-client.mjs spikes/access-spotify-poc/state-operator-client.mjs ./
 COPY --chown=node:node spikes/access-spotify-poc/operations ./operations
 COPY --chown=node:node spikes/access-spotify-poc/public ./public
 COPY --chown=node:node spikes/access-spotify-poc/private ./private

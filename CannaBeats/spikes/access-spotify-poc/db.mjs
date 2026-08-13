@@ -235,6 +235,56 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS game_guest_sessions_user_id
       ON game_guest_sessions(user_id);
 
+    -- Identity-only guest records used after game-night state moves to the
+    -- single-writer state service. These deliberately do not reference the
+    -- legacy game_sessions table: Access owns the identity and credential,
+    -- while State owns the lobby membership and player projection.
+    CREATE TABLE IF NOT EXISTS state_guest_invites (
+      token_hash TEXT PRIMARY KEY,
+      action_id TEXT NOT NULL UNIQUE,
+      lobby_code TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS state_guest_invites_lobby_code
+      ON state_guest_invites(lobby_code);
+
+    CREATE TABLE IF NOT EXISTS state_guest_admissions (
+      action_id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lobby_code TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS state_guest_admissions_user_lobby
+      ON state_guest_admissions(user_id,lobby_code);
+
+    CREATE TABLE IF NOT EXISTS state_guest_sessions (
+      token_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lobby_code TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS state_guest_sessions_user_id
+      ON state_guest_sessions(user_id);
+
+    CREATE TABLE IF NOT EXISTS state_admission_requests (
+      action_id TEXT PRIMARY KEY,
+      principal_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lobby_code TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      run_generation INTEGER NOT NULL,
+      revision INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS rooms (
       code TEXT PRIMARY KEY,
       host_user_id TEXT NOT NULL REFERENCES users(id),
@@ -314,6 +364,13 @@ function migrate(db) {
       expires_at INTEGER NOT NULL
     );
   `);
+    const stateGuestInviteColumns = new Set(db.prepare('PRAGMA table_info(state_guest_invites)').all()
+      .map((column) => column.name));
+    if (!stateGuestInviteColumns.has('action_id')) {
+      db.exec('ALTER TABLE state_guest_invites ADD COLUMN action_id TEXT');
+      db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS state_guest_invites_action_id
+        ON state_guest_invites(action_id) WHERE action_id IS NOT NULL`);
+    }
     const gameSessionColumns = new Set(db.prepare('PRAGMA table_info(game_sessions)').all().map((column) => column.name));
     if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
     const ticketColumns = new Set(db.prepare('PRAGMA table_info(desktop_web_tickets)').all().map((column) => column.name));
@@ -339,6 +396,17 @@ export function purgeExpired(db, now = Date.now()) {
   db.prepare('DELETE FROM desktop_web_sessions WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM game_guest_invites WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM game_guest_sessions WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM state_guest_invites WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM state_guest_sessions WHERE expires_at <= ?').run(now);
+  db.prepare(`DELETE FROM users WHERE id IN (
+    SELECT admission.user_id FROM state_guest_admissions admission
+    WHERE admission.expires_at <= ? AND NOT EXISTS (
+      SELECT 1 FROM state_guest_sessions session
+      WHERE session.user_id=admission.user_id AND session.expires_at>?
+        AND session.revoked_at IS NULL
+    )
+  )`).run(now,now);
+  db.prepare('DELETE FROM state_guest_admissions WHERE expires_at <= ?').run(now);
   db.prepare(`
     DELETE FROM users WHERE id IN (
       SELECT user_id FROM game_guest_users WHERE expires_at <= ?

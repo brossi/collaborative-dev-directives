@@ -9,8 +9,10 @@ import type { GameRules } from "./rules";
 
 // Every run-bound mutation is receipt-backed by the server, so every dispatched
 // intent can be retried only with its exact action identity and payload.
-export const RETRYABLE_ACTIONS = new Set<string>(RUN_BOUND_MUTATION_ACTIONS);
-const ROOM_RESPONSE_ACTIONS = new Set(["prepare", "join", ...RUN_BOUND_MUTATION_ACTIONS]);
+export const RETRYABLE_ACTIONS = new Set<string>([
+  "prepare", "join", "joinGuest", "guestInvite", ...RUN_BOUND_MUTATION_ACTIONS,
+]);
+const ROOM_RESPONSE_ACTIONS = new Set(["prepare", "join", "joinGuest", ...RUN_BOUND_MUTATION_ACTIONS]);
 const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_TIMEOUT_MS = 8_000;
 const ROOM_PHASES = new Set(["lobby", "ready", "playing", "placed", "revealed", "finished"]);
@@ -514,21 +516,25 @@ export async function requestGame(
       if (response.ok) {
         if (retryable) {
           const responseActionId = String(payload.action?.id ?? "").toLowerCase();
+          const validInviteOutcome = action === "guestInvite"
+            ? typeof payload.guestInvite === "string"
+              && /^[A-Za-z0-9_-]{32,128}$/.test(payload.guestInvite)
+              && typeof payload.expiresAt === "number"
+              && Number.isSafeInteger(payload.expiresAt)
+              && payload.expiresAt > 0
+            : true;
           const validAudioOutcome = AUDIO_RESPONSE_ACTIONS.has(action)
             ? validAudioControlViewShape(payload.audio)
             : payload.audio === undefined;
           const validActionOutcome = Boolean(
-            validTransitionRoom(
-              payload.room,
-              action,
-              requestedCode,
-              requestedRunId,
-              requestedRunGeneration,
-              requestedRevision,
-            )
+            (action === "guestInvite" || validTransitionRoom(
+              payload.room, action, requestedCode, requestedRunId,
+              requestedRunGeneration, requestedRevision,
+            ))
             && payload.action?.accepted === true
             && typeof payload.action.replayed === "boolean"
             && responseActionId === requestedActionId
+            && validInviteOutcome
             && validAudioOutcome,
           );
           if (!validActionOutcome) {

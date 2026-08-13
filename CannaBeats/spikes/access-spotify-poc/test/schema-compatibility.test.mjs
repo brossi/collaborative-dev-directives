@@ -150,7 +150,7 @@ test('access, game, Compose, and release tooling declare one schema compatibilit
 
   const compose = readFileSync('compose.yaml', 'utf8');
   for (const [name, version] of Object.entries(contract)) {
-    assert.equal(compose.match(new RegExp(`${name}: "${version}"`, 'g'))?.length, 4);
+    assert.equal(compose.match(new RegExp(`${name}: "${version}"`, 'g'))?.length, 3);
   }
 });
 

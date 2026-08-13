@@ -1,6 +1,6 @@
 # Slice 2: Game-night resilience
 
-- Status: ADR 0002 structural remediation in progress; S2-B/S2-C remain open
+- Status: single-writer S2-B/S2-C foundation locally rehearsed; independent audit pending
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -250,35 +250,46 @@ an operator endpoint resume every pending sanitization rather than requiring the
 original purge request ID, and a pinned-reader regression proves the intermediate
 state is reported honestly.
 
-Current local evidence is the state-service suite (`30/30`), access/operations
-suite (`84/84`), web suite (`119/119`) including a production Next.js build,
-ESLint, catalogue consistency, whitespace validation, both state Compose
-profiles, and a successful production state-service image build with the
-authoritative catalogue packaged into the image. A clean Compose state-service
-container reached Docker `healthy` and returned schema generation 2, protocol 3,
-and candidate authority from bounded `/ready`. The tests include
-scoped-authority denial, caller-time rejection,
-host/player command denial, pre-reveal projection, atomic managed-command
-rollback, poisoned-candidate rejection, legal-path legacy normalization,
-orphan-intent rejection, candidate replay revalidation, terminal
-reconciliation, seal, purge, and late-result rejection.
+The local cutover implementation now routes Access, game, managed-source,
+administrative, reporting, backup, and retention callers through HTTP contract
+version 1. Runtime Compose gives only the State service a read-write State
+volume; the bounded migrator is the sole stopped-topology exception. Access
+retains identity/authentication data without owning game-night authority.
+Gateway assertions are issuer/audience/scope/principal/expiry bound, and source
+work is authenticated with its registered token.
 
-This remains an implementation checkpoint, not gate closure. Previously created
-state-service candidate databases are unpublished and must be discarded and
-reconstructed from the still-authoritative monolith; the migrator never upgrades
-or adopts a checkpoint candidate in place. No existing web, access, source,
-administrative, or retention writer has been routed to the new service yet.
-The state-service HTTP prerequisite was subsequently frozen as contract version
-1. It publishes compatibility and projection metadata, maps failures to stable
-safe codes without returning internal messages, proves a single scoped caller
-class for every route, and exercises the exhaustive public typed-command
-role/phase matrix. The focused state-service evidence is `36/36`. This is item 1
-of the cutover sequence, not evidence that any legacy caller has been replaced.
+Release records now bind State image, schema generation, managed-source protocol,
+HTTP contract, compatible clients, and recovery epoch. Coordinated backup exports
+Access and State snapshots into separately encrypted artifacts under one manifest,
+authenticated recovery-set UUID, and release epoch while admission is closed.
+Rollback permits the untouched monolith only before the first
+State-owned lobby is admitted; after admission it requires a State-compatible
+release and refuses the monolith floor.
 
-Gateway assertion integration, source-controller cutover, multi-process
-schedules, release/rollback metadata, full migration rehearsal, and a fresh
-independent adversarial pass remain required before the foundation or Slice 2
-can be described as complete.
+The executable local Docker rehearsal builds the production images, creates a
+drained supported monolith, checkpoints and migrates it through the read-only
+immutable source mount, verifies and activates candidate authority, proves the
+real pre-admission rollback script, then restores the complete State topology. It
+drives one Access/Game flow and a protocol-faithful source simulator through
+managed playback and abandonment, reconstructs canonical history, seals it,
+creates/verifies/restores the coordinated encrypted backup, boots a separate
+restored topology, reconstructs both completed and abandoned runs, exercises
+purge, restarts all three live services, re-reads history, and invokes the
+production rollback script to prove post-admission refusal. Its passed machine-readable
+record is [the local State cutover evidence](evidence/state-cutover-local.json).
+The unique rehearsal project, volumes, secrets, backups, and restored databases
+are removed after success.
+
+Current focused evidence is State `45/45`, the production web build, the
+state-aware coordinated backup/release/scheduler suite, catalogue and whitespace
+checks, and the complete Docker rehearsal above. Previously created unpublished
+candidate databases remain invalid upgrade inputs and must be reconstructed from
+the still-authoritative monolith.
+
+This is verified local implementation evidence, not combined S2-B/S2-C closure.
+A follow-on independent audit of the remediated authority, migration, recovery,
+packaging, and rehearsal boundaries remains required. Production-shaped
+disposable-host/systemd evidence remains S2-F.
 
 ### S2-A: Action identity and atomic receipts
 

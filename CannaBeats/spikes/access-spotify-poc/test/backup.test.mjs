@@ -371,7 +371,7 @@ test('new backups stream databases larger than the former tmpfs limit', async ()
   restored.close();
 
   const compose = readFileSync(resolve('compose.yaml'), 'utf8');
-  const backupService = compose.split('\n  backup:')[1].split('\nvolumes:')[0];
+  const backupService = compose.split('\n  backup:')[1].split('\n  history:')[0];
   assert.doesNotMatch(backupService, /\n    tmpfs:/);
 });
 

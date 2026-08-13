@@ -17,8 +17,11 @@ fi
 
 cd -- "$compose_directory"
 compose=(docker compose -f compose.yaml)
+if [[ -f "$compose_directory/compose.state-cutover.yaml" ]]; then
+  compose+=(-f compose.state-cutover.yaml)
+fi
 if [[ -f "$release_override" ]]; then
   compose+=(-f "$release_override")
 fi
 exec "$timeout_command" --foreground --kill-after=10s "${timeout_seconds}s" \
-  "${compose[@]}" exec -T app node cli.mjs operator-status --format json --fail-on unavailable
+  "${compose[@]}" --profile operations run --rm --no-deps operator operator-status --format json --fail-on unavailable

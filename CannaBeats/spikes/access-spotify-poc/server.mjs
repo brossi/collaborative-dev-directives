@@ -1,4 +1,4 @@
-import { createPublicKey, randomBytes, randomUUID, timingSafeEqual, verify as verifySignature } from 'node:crypto';
+import { createHmac, createPublicKey, randomBytes, randomUUID, timingSafeEqual, verify as verifySignature } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +22,7 @@ import {
   writeAuditEvent,
 } from './db.mjs';
 import { createHostOnboarding, renderHostOnboardingEmail } from './onboarding.mjs';
+import { createAccessStateClient, StateClientError } from './state-client.mjs';
 import {
   createOperationalLogger,
   createTransitionReporter,
@@ -39,6 +40,7 @@ const DESKTOP_WEB_TICKET_TTL_MS = 60 * 1000;
 const HOST_AGENT_PAIRING_LABEL = 'host_agent_pair:';
 const DESKTOP_PAIRING_LABEL = 'desktop_pair:';
 const GAME_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const GAME_GUEST_TTL_MS = 8 * 60 * 60 * 1000;
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -97,6 +99,21 @@ export function readConfig(overrides = {}) {
   if (Boolean(gameServiceOrigin) !== Boolean(gameServiceToken)) {
     throw new Error('Game service origin and token must be configured together');
   }
+  const stateServiceOriginText = overrides.stateServiceOrigin
+    ?? process.env.CANNABEATS_STATE_SERVICE_ORIGIN ?? '';
+  const stateServiceOrigin = stateServiceOriginText ? new URL(stateServiceOriginText).origin : '';
+  const stateAccessToken = secretEnvironment(
+    overrides, 'stateAccessToken', 'CANNABEATS_STATE_ACCESS_TOKEN',
+    'CANNABEATS_STATE_ACCESS_TOKEN_FILE',
+  );
+  const stateAccessPrincipalAssertionKey = secretEnvironment(
+    overrides, 'stateAccessPrincipalAssertionKey', 'CANNABEATS_STATE_ACCESS_PRINCIPAL_ASSERTION_KEY',
+    'CANNABEATS_STATE_ACCESS_PRINCIPAL_ASSERTION_KEY_FILE',
+  );
+  if ([stateServiceOrigin,stateAccessToken,stateAccessPrincipalAssertionKey].some(Boolean)
+      && ![stateServiceOrigin,stateAccessToken,stateAccessPrincipalAssertionKey].every(Boolean)) {
+    throw new Error('State service origin and access-scoped credentials must be configured together');
+  }
   const hostReleaseChannel = overrides.hostReleaseChannel
     ?? process.env.HOST_RELEASE_CHANNEL
     ?? 'notarized';
@@ -115,6 +132,9 @@ export function readConfig(overrides = {}) {
     audioRelayListenToken,
     gameServiceOrigin,
     gameServiceToken,
+    stateServiceOrigin,
+    stateAccessToken,
+    stateAccessPrincipalAssertionKey,
     hostReleasePath: overrides.hostReleasePath ?? process.env.HOST_RELEASE_PATH ?? '',
     hostReleaseName: overrides.hostReleaseName ?? process.env.HOST_RELEASE_NAME ?? 'CannaBeats-Host-universal.dmg',
     hostReleaseChannel,
@@ -222,6 +242,11 @@ export function createApp({
   config = readConfig(),
   db = openDatabase(config.databasePath),
   gameServiceFetch = fetch,
+  stateClient = config.stateServiceOrigin ? createAccessStateClient({
+    origin: config.stateServiceOrigin,
+    token: config.stateAccessToken,
+    principalAssertionKey: config.stateAccessPrincipalAssertionKey,
+  }) : null,
   logWrite,
 } = {}) {
   const app = express();
@@ -275,8 +300,9 @@ export function createApp({
     res.set('Cache-Control', 'no-store');
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       const origin = req.get('origin');
-      const nativeDesktopRequest = !origin && req.path.startsWith('/desktop/');
-      if (!nativeDesktopRequest && (!origin || !constantTimeTextEqual(origin, config.origin))) {
+      const trustedServiceRequest = !origin
+        && (req.path.startsWith('/desktop/') || req.path.startsWith('/internal/'));
+      if (!trustedServiceRequest && (!origin || !constantTimeTextEqual(origin, config.origin))) {
         return next(new HttpError(403, 'Request origin was not accepted'));
       }
     }
@@ -362,7 +388,87 @@ export function createApp({
     next();
   }
 
-  function gameSessionView(code) {
+  function internalGameCaller(req) {
+    const supplied = req.get('x-cannabeats-internal-token') ?? '';
+    return Boolean(config.gameServiceToken && constantTimeTextEqual(supplied, config.gameServiceToken));
+  }
+
+  function principalFromForwardedCredentials({ authorization = '', cookie = '' }) {
+    if (typeof authorization !== 'string' || authorization.length > 256
+        || typeof cookie !== 'string' || cookie.length > 4096) return null;
+    const bearer = /^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(authorization);
+    if (bearer) {
+      const principal = db.prepare(`SELECT users.id,users.display_name,users.role
+        FROM desktop_sessions JOIN users ON users.id=desktop_sessions.user_id
+        WHERE desktop_sessions.token_hash=? AND desktop_sessions.revoked_at IS NULL
+          AND desktop_sessions.expires_at>?`).get(sha256(bearer[1]),Date.now());
+      if (principal) return { ...principal, kind: 'account' };
+    }
+    const cookies = parseCookies(cookie);
+    const sessionToken = cookies[SESSION_COOKIE];
+    if (sessionToken) {
+      const principal = db.prepare(`SELECT users.id,users.display_name,users.role
+        FROM sessions JOIN users ON users.id=sessions.user_id
+        WHERE sessions.token_hash=? AND sessions.expires_at>?`)
+        .get(sha256(sessionToken),Date.now());
+      if (principal) return { ...principal, kind: 'account' };
+    }
+    const desktopWebToken = cookies.cb_desktop_web;
+    if (desktopWebToken) {
+      const principal = db.prepare(`SELECT users.id,users.display_name,users.role
+        FROM desktop_web_sessions
+        JOIN desktop_sessions ON desktop_sessions.token_hash=desktop_web_sessions.desktop_session_hash
+        JOIN users ON users.id=desktop_sessions.user_id
+        WHERE desktop_web_sessions.token_hash=? AND desktop_web_sessions.expires_at>?
+          AND desktop_sessions.expires_at>? AND desktop_sessions.revoked_at IS NULL`)
+        .get(sha256(desktopWebToken),Date.now(),Date.now());
+      if (principal) return { ...principal, kind: 'account' };
+    }
+    const guestToken = cookies.cb_guest;
+    if (guestToken) {
+      const statePrincipal = stateClient ? db.prepare(`SELECT users.id,users.display_name,users.role,
+          state_guest_sessions.lobby_code
+        FROM state_guest_sessions JOIN users ON users.id=state_guest_sessions.user_id
+        WHERE state_guest_sessions.token_hash=? AND state_guest_sessions.expires_at>?
+          AND state_guest_sessions.revoked_at IS NULL`).get(sha256(guestToken),Date.now()) : null;
+      if (statePrincipal) return {
+        ...statePrincipal, kind: 'guest', sessionCode: statePrincipal.lobby_code,
+      };
+      const principal = db.prepare(`SELECT users.id,users.display_name,users.role,
+          game_guest_sessions.session_code
+        FROM game_guest_sessions JOIN users ON users.id=game_guest_sessions.user_id
+        WHERE game_guest_sessions.token_hash=? AND game_guest_sessions.expires_at>?
+          AND game_guest_sessions.revoked_at IS NULL`).get(sha256(guestToken),Date.now());
+      if (principal) return { ...principal, kind: 'guest', sessionCode: principal.session_code };
+    }
+    return null;
+  }
+
+  function identityView(principalId) {
+    const row = db.prepare('SELECT id,display_name,role FROM users WHERE id=?').get(principalId);
+    return row ? { id: row.id, displayName: row.display_name, role: row.role } : null;
+  }
+
+  async function gameSessionView(code, principalId) {
+    if (stateClient) {
+      const session = await stateClient.lobby({ code, principalId });
+      const host = identityView(session.hostPrincipalId);
+      if (!host) throw new HttpError(500, 'State lobby host identity is unavailable');
+      return {
+        code: session.code,
+        status: session.status,
+        host,
+        members: session.members.map((member) => {
+          const identity = identityView(member.principalId);
+          return identity ? { ...identity, joinedAt: new Date(member.joinedAt).toISOString() } : {
+            id: member.principalId, displayName: 'Player', role: 'player',
+            joinedAt: new Date(member.joinedAt).toISOString(),
+          };
+        }),
+        createdAt: new Date(session.createdAt).toISOString(),
+        updatedAt: new Date(session.updatedAt).toISOString(),
+      };
+    }
     const session = db.prepare(`
       SELECT game_sessions.*, users.display_name AS host_display_name
       FROM game_sessions JOIN users ON users.id = game_sessions.host_user_id
@@ -389,7 +495,18 @@ export function createApp({
     };
   }
 
-  function createGameSessionForHost(hostUserId) {
+  async function createGameSessionForHost(hostUserId, commandId) {
+    if (stateClient) {
+      if (!/^[0-9a-f-]{36}$/i.test(commandId ?? '')) {
+        throw new HttpError(400, 'A persistent request ID is required');
+      }
+      const digest = Buffer.from(sha256(commandId), 'hex');
+      const code = Array.from(digest.subarray(0, 6),
+        (byte) => GAME_CODE_ALPHABET[byte % GAME_CODE_ALPHABET.length]).join('');
+      await stateClient.createLobby({ commandId, code, principalId: hostUserId });
+      writeAuditEvent(db, hostUserId, 'game_session.created', code);
+      return gameSessionView(code, hostUserId);
+    }
     let code = makeGameCode();
     while (db.prepare('SELECT 1 FROM game_sessions WHERE code = ?').get(code)) code = makeGameCode();
     const now = Date.now();
@@ -409,12 +526,20 @@ export function createApp({
       throw error;
     }
     writeAuditEvent(db, hostUserId, 'game_session.created', code);
-    return gameSessionView(code);
+    return gameSessionView(code, hostUserId);
   }
 
-  function existingGameSessionForHost(hostUserId, rawCode) {
+  async function existingGameSessionForHost(hostUserId, rawCode) {
     const code = normalizeGameCode(rawCode);
     if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    if (stateClient) {
+      const session = await gameSessionView(code, hostUserId);
+      if (session.host.id !== hostUserId) {
+        throw new HttpError(404, 'Game session was not found for this host account');
+      }
+      if (session.status === 'ended') throw new HttpError(409, 'This game session has ended');
+      return session;
+    }
     const session = db.prepare(`
       SELECT code, status FROM game_sessions WHERE code = ? AND host_user_id = ?
     `).get(code, hostUserId);
@@ -423,7 +548,15 @@ export function createApp({
     db.prepare(`
       UPDATE game_session_members SET last_seen_at = ? WHERE session_code = ? AND user_id = ?
     `).run(Date.now(), code, hostUserId);
-    return gameSessionView(code);
+    return gameSessionView(code, hostUserId);
+  }
+
+  function persistentRequestId(req) {
+    const value = String(req.get('idempotency-key') ?? req.body?.commandId ?? req.body?.actionId ?? '');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+      throw new HttpError(400, 'A persistent request ID is required');
+    }
+    return value;
   }
 
   function issueSession(res, userId) {
@@ -500,11 +633,20 @@ export function createApp({
     res.json({ ok: true, service: 'cannabeats-access' });
   });
 
-  app.get('/api/ready', (req, res) => {
+  app.get('/api/ready', async (req, res) => {
     try {
       const database = db.prepare('SELECT 1 AS ok').get();
       if (database.ok !== 1 || !existsSync(browserBundle)) {
         throw new HttpError(503, 'Access service is not ready');
+      }
+      if (stateClient) {
+        const contractResponse = await stateClient.contract();
+        if (!contractResponse.ok) throw new HttpError(503,'State service is not ready');
+        const contract = await contractResponse.json();
+        if (contract.httpContractVersion !== 1 || contract.schemaGeneration !== 2
+            || contract.protocolVersion !== 3) {
+          throw new HttpError(503,'State service contract is incompatible');
+        }
       }
       transitions.report('readiness', 'healthy', {
         event: 'service.readiness_changed',
@@ -534,6 +676,183 @@ export function createApp({
       spotifyRedirectUri: `${config.origin}/spotify/callback`,
       hostInstallerChannel: config.hostReleaseChannel,
     });
+  });
+
+  app.post('/api/internal/game/principal', (req, res) => {
+    if (!internalGameCaller(req)) throw new HttpError(403, 'Internal game authority required');
+    const principal = principalFromForwardedCredentials(req.body ?? {});
+    if (!principal) throw new HttpError(401, 'Sign in required');
+    res.json({
+      principal: {
+        id: principal.id,
+        displayName: principal.display_name,
+        role: principal.role,
+        kind: principal.kind,
+        ...(principal.sessionCode ? { sessionCode: principal.sessionCode } : {}),
+      },
+    });
+  });
+
+  app.post('/api/internal/game/guest-invite', async (req, res) => {
+    if (!internalGameCaller(req)) throw new HttpError(403, 'Internal game authority required');
+    if (!stateClient) throw new HttpError(503, 'State access gateway is unavailable');
+    const principal = principalFromForwardedCredentials(req.body ?? {});
+    if (!principal) throw new HttpError(401, 'Sign in required');
+    const actionId = persistentRequestId(req);
+    const code = normalizeGameCode(req.body?.code);
+    const lobby = await stateClient.lobby({ code, principalId: principal.id });
+    if (lobby.hostPrincipalId !== principal.id) throw new HttpError(403, 'Host access required');
+    if (!lobby.admissionOpen) throw new HttpError(409, 'Guest invitations are locked after the game starts');
+    const token = createHmac('sha256',config.gameServiceToken)
+      .update(`state-guest-invite\n${actionId}\n${code}\n${principal.id}`)
+      .digest('base64url');
+    const now = Date.now();
+    const expiresAt = now + GAME_GUEST_TTL_MS;
+    const inserted = db.prepare(`INSERT INTO state_guest_invites
+      (token_hash,action_id,lobby_code,created_by,created_at,expires_at)
+      VALUES (?,?,?,?,?,?) ON CONFLICT(action_id) DO NOTHING`)
+      .run(sha256(token),actionId,code,principal.id,now,expiresAt);
+    const invite = db.prepare(`SELECT token_hash,lobby_code,created_by,expires_at
+      FROM state_guest_invites WHERE action_id=?`).get(actionId);
+    if (!invite || invite.token_hash !== sha256(token) || invite.lobby_code !== code
+        || invite.created_by !== principal.id) {
+      throw new HttpError(409, 'Guest invitation identity conflicts with its prior request');
+    }
+    res.json({ guestInvite: token, expiresAt: invite.expires_at, replayed: inserted.changes === 0 });
+  });
+
+  app.post('/api/internal/game/admit', async (req, res) => {
+    if (!internalGameCaller(req)) throw new HttpError(403, 'Internal game authority required');
+    if (!stateClient) throw new HttpError(503, 'State access gateway is unavailable');
+    const actionId = persistentRequestId(req);
+    const code = normalizeGameCode(req.body?.code);
+    if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    const requireInvitation = req.body?.requireInvitation === true;
+    let admittedPrincipal = principalFromForwardedCredentials(req.body ?? {});
+    if (admittedPrincipal?.kind === 'guest' && admittedPrincipal.sessionCode !== code) {
+      throw new HttpError(404, 'Game session was not found');
+    }
+    let sessionCookie = null;
+    if (requireInvitation) {
+      const invitation = String(req.body?.invite ?? '');
+      if (!/^[A-Za-z0-9_-]{32,128}$/.test(invitation)) {
+        throw new HttpError(403, 'This guest invitation is invalid');
+      }
+      const invite = db.prepare(`SELECT expires_at FROM state_guest_invites
+        WHERE token_hash=? AND lobby_code=? AND expires_at>? AND revoked_at IS NULL`)
+        .get(sha256(invitation),code,Date.now());
+      if (!invite) throw new HttpError(403, 'This guest invitation is invalid or has expired');
+      if (!admittedPrincipal) {
+        const name = cleanText(req.body?.name, { field: 'Player name', maximum: 24 });
+        let admission = db.prepare(`SELECT user_id,display_name,expires_at
+          FROM state_guest_admissions WHERE action_id=?`).get(actionId);
+        if (!admission) {
+          const userId = randomUUID();
+          const now = Date.now();
+          const expiresAt = Math.min(invite.expires_at, now + GAME_GUEST_TTL_MS);
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            db.prepare(`INSERT INTO users (id,display_name,role,created_at)
+              VALUES (?,?,'player',?)`).run(userId,name,now);
+            db.prepare(`INSERT INTO state_guest_admissions
+              (action_id,user_id,lobby_code,display_name,created_at,expires_at)
+              VALUES (?,?,?,?,?,?)`).run(actionId,userId,code,name,now,expiresAt);
+            db.exec('COMMIT');
+            admission = { user_id: userId, display_name: name, expires_at: expiresAt };
+          } catch (error) {
+            db.exec('ROLLBACK');
+            throw error;
+          }
+        } else if (admission.display_name !== name) {
+          throw new HttpError(409, 'Admission identity conflicts with its prior request');
+        }
+        admittedPrincipal = {
+          id: admission.user_id, display_name: admission.display_name,
+          role: 'player', kind: 'guest', sessionCode: code,
+        };
+        const token = randomToken();
+        const now = Date.now();
+        db.prepare(`INSERT INTO state_guest_sessions
+          (token_hash,user_id,lobby_code,created_at,expires_at,last_seen_at)
+          VALUES (?,?,?,?,?,?)`).run(
+          sha256(token),admittedPrincipal.id,code,now,admission.expires_at,now,
+        );
+        sessionCookie = secureCookie(
+          'cb_guest',token,Math.max(1,Math.floor((admission.expires_at-now)/1000)),
+        );
+      }
+    }
+    if (!admittedPrincipal) throw new HttpError(401, 'Sign in required');
+    const admissionName = cleanText(
+      req.body?.name ?? admittedPrincipal.display_name,
+      { field: 'Player name', maximum: 24 },
+    );
+    let admissionRequest = db.prepare(`SELECT principal_id,lobby_code,display_name,
+        run_id,run_generation,revision
+      FROM state_admission_requests WHERE action_id=?`).get(actionId);
+    if (!admissionRequest) {
+      const context = await stateClient.admissionContext({ code, principalId: admittedPrincipal.id });
+      db.prepare(`INSERT INTO state_admission_requests
+        (action_id,principal_id,lobby_code,display_name,run_id,run_generation,revision,created_at)
+        VALUES (?,?,?,?,?,?,?,?)`).run(
+        actionId,admittedPrincipal.id,code,admissionName,context.runId,
+        context.runGeneration,context.revision,Date.now(),
+      );
+      admissionRequest = {
+        principal_id: admittedPrincipal.id, lobby_code: code, display_name: admissionName,
+        run_id: context.runId, run_generation: context.runGeneration, revision: context.revision,
+      };
+    } else if (admissionRequest.principal_id !== admittedPrincipal.id
+        || admissionRequest.lobby_code !== code || admissionRequest.display_name !== admissionName) {
+      throw new HttpError(409, 'Admission identity conflicts with its prior request');
+    }
+    const admission = await stateClient.admit({
+      actionId, code, principalId: admittedPrincipal.id,
+      name: admissionRequest.display_name,
+      expectedRunId: admissionRequest.run_id,
+      expectedRunGeneration: admissionRequest.run_generation,
+      expectedRevision: admissionRequest.revision,
+    });
+    res.json({
+      principal: {
+        id: admittedPrincipal.id, displayName: admittedPrincipal.display_name,
+        role: admittedPrincipal.role, kind: admittedPrincipal.kind,
+        ...(admittedPrincipal.sessionCode ? { sessionCode: admittedPrincipal.sessionCode } : {}),
+      },
+      admission,
+      ...(sessionCookie ? { sessionCookie } : {}),
+    });
+  });
+
+  app.post('/api/internal/game/desktop-handoff', (req, res) => {
+    if (!internalGameCaller(req)) throw new HttpError(403, 'Internal game authority required');
+    const ticket = String(req.body?.ticket ?? '');
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(ticket)) throw new HttpError(400, 'Desktop launch ticket is invalid');
+    const ticketHash = sha256(ticket);
+    const now = Date.now();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const pending = db.prepare(`SELECT ticket.desktop_session_hash,
+          COALESCE(ticket.room_code,ticket.session_code) AS lobby_code,
+          ticket.expires_at,desktop.expires_at AS desktop_expires_at,desktop.revoked_at
+        FROM desktop_web_tickets ticket JOIN desktop_sessions desktop
+          ON desktop.token_hash=ticket.desktop_session_hash
+        WHERE ticket.token_hash=?`).get(ticketHash);
+      db.prepare('DELETE FROM desktop_web_tickets WHERE token_hash=?').run(ticketHash);
+      if (!pending || pending.expires_at<=now || pending.desktop_expires_at<=now || pending.revoked_at) {
+        throw new HttpError(401, 'Desktop launch ticket expired or was already used');
+      }
+      const sessionToken = randomToken();
+      const expiresAt = Math.min(now + 12 * 60 * 60 * 1000,pending.desktop_expires_at);
+      db.prepare(`INSERT INTO desktop_web_sessions
+        (token_hash,desktop_session_hash,created_at,expires_at,last_seen_at)
+        VALUES (?,?,?,?,?)`).run(sha256(sessionToken),pending.desktop_session_hash,now,expiresAt,now);
+      db.exec('COMMIT');
+      res.json({ sessionToken,expiresAt,lobbyCode: pending.lobby_code ?? null });
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
   });
 
   app.post('/api/host-release/download', releaseDownloadLimiter, (req, res, next) => {
@@ -949,12 +1268,17 @@ export function createApp({
     });
   });
 
-  app.post('/api/desktop/game-launch', requireDesktopUser, (req, res) => {
+  app.post('/api/desktop/game-launch', requireDesktopUser, async (req, res) => {
     purgeExpired(db);
     const rawCode = String(req.body?.code ?? '').trim();
     const code = rawCode ? normalizeGameCode(rawCode) : '';
     if (rawCode && code.length !== 6) throw new HttpError(400, 'Game code is invalid');
     if (code) {
+      if (stateClient) {
+        await stateClient.addMembership({
+          commandId: persistentRequestId(req), code, principalId: req.user.id,
+        });
+      } else {
       const session = db.prepare('SELECT status FROM game_sessions WHERE code = ?').get(code);
       if (!session) throw new HttpError(404, 'Game session was not found');
       if (session.status === 'ended') throw new HttpError(409, 'This game session has ended');
@@ -964,15 +1288,17 @@ export function createApp({
         VALUES (?, ?, ?, ?)
         ON CONFLICT(session_code, user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
       `).run(code, req.user.id, now, now);
+      }
     }
     const ticket = randomToken();
     const now = Date.now();
     const expiresAt = now + DESKTOP_WEB_TICKET_TTL_MS;
-    db.prepare(`
-      INSERT INTO desktop_web_tickets
-        (token_hash, desktop_session_hash, session_code, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(sha256(ticket), req.user.token_hash, code || null, now, expiresAt);
+    if (stateClient) db.prepare(`INSERT INTO desktop_web_tickets
+      (token_hash,desktop_session_hash,room_code,session_code,created_at,expires_at)
+      VALUES (?,?,?,NULL,?,?)`).run(sha256(ticket),req.user.token_hash,code || null,now,expiresAt);
+    else db.prepare(`INSERT INTO desktop_web_tickets
+      (token_hash,desktop_session_hash,session_code,created_at,expires_at)
+      VALUES (?,?,?,?,?)`).run(sha256(ticket),req.user.token_hash,code || null,now,expiresAt);
     writeAuditEvent(db, req.user.id, 'desktop.game_launched', code);
     const launchUrl = new URL('/game/desktop', config.origin);
     launchUrl.searchParams.set('ticket', ticket);
@@ -989,34 +1315,54 @@ export function createApp({
     res.status(204).end();
   });
 
-  app.post('/api/game-sessions', requireUser, (req, res) => {
+  app.post('/api/game-sessions', requireUser, async (req, res) => {
     if (req.user.role !== 'host') throw new HttpError(403, 'Host role required');
-    res.status(201).json({ session: createGameSessionForHost(req.user.id) });
+    res.status(201).json({
+      session: await createGameSessionForHost(
+        req.user.id, stateClient ? persistentRequestId(req) : undefined,
+      ),
+    });
   });
 
-  app.get('/api/game-sessions/current', requireUser, (req, res) => {
+  app.get('/api/game-sessions/current', requireUser, async (req, res) => {
+    if (stateClient) {
+      const { lobbies } = await stateClient.lobbies({ principalId: req.user.id });
+      return res.json({ sessions: await Promise.all(
+        lobbies.map((session) => gameSessionView(session.code, req.user.id)),
+      ) });
+    }
     const sessions = db.prepare(`
       SELECT game_sessions.code FROM game_sessions
       JOIN game_session_members ON game_session_members.session_code = game_sessions.code
       WHERE game_session_members.user_id = ? AND game_sessions.status != 'ended'
       ORDER BY game_session_members.last_seen_at DESC
     `).all(req.user.id);
-    res.json({ sessions: sessions.map((session) => gameSessionView(session.code)) });
+    res.json({ sessions: await Promise.all(
+      sessions.map((session) => gameSessionView(session.code, req.user.id)),
+    ) });
   });
 
-  app.get('/api/game-sessions/:code', requireUser, (req, res) => {
+  app.get('/api/game-sessions/:code', requireUser, async (req, res) => {
     const code = normalizeGameCode(req.params.code);
     if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    if (stateClient) return res.json({ session: await gameSessionView(code, req.user.id) });
     const member = db.prepare(`
       SELECT 1 FROM game_session_members WHERE session_code = ? AND user_id = ?
     `).get(code, req.user.id);
     if (!member) throw new HttpError(404, 'Game session not found');
-    res.json({ session: gameSessionView(code) });
+    res.json({ session: await gameSessionView(code, req.user.id) });
   });
 
-  app.post('/api/desktop/game-sessions/join', requireDesktopUser, (req, res) => {
+  app.post('/api/desktop/game-sessions/join', requireDesktopUser, async (req, res) => {
     const code = normalizeGameCode(req.body?.code);
     if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
+    if (stateClient) {
+      await stateClient.addMembership({
+        commandId: persistentRequestId(req), code, principalId: req.user.id,
+      });
+      writeAuditEvent(db, req.user.id, 'game_session.joined', code);
+      return res.json({ session: await gameSessionView(code, req.user.id) });
+    }
     const session = db.prepare('SELECT status FROM game_sessions WHERE code = ?').get(code);
     if (!session) throw new HttpError(404, 'Game session not found');
     if (session.status === 'ended') throw new HttpError(409, 'This game session has ended');
@@ -1028,17 +1374,25 @@ export function createApp({
     `).run(code, req.user.id, now, now);
     db.prepare('UPDATE game_sessions SET updated_at = ? WHERE code = ?').run(now, code);
     writeAuditEvent(db, req.user.id, 'game_session.joined', code);
-    res.json({ session: gameSessionView(code) });
+    res.json({ session: await gameSessionView(code, req.user.id) });
   });
 
-  app.get('/api/desktop/game-sessions/current', requireDesktopUser, (req, res) => {
+  app.get('/api/desktop/game-sessions/current', requireDesktopUser, async (req, res) => {
+    if (stateClient) {
+      const { lobbies } = await stateClient.lobbies({ principalId: req.user.id });
+      return res.json({ sessions: await Promise.all(
+        lobbies.map((session) => gameSessionView(session.code, req.user.id)),
+      ) });
+    }
     const sessions = db.prepare(`
       SELECT game_sessions.code FROM game_sessions
       JOIN game_session_members ON game_session_members.session_code = game_sessions.code
       WHERE game_session_members.user_id = ? AND game_sessions.status != 'ended'
       ORDER BY game_session_members.last_seen_at DESC
     `).all(req.user.id);
-    res.json({ sessions: sessions.map((session) => gameSessionView(session.code)) });
+    res.json({ sessions: await Promise.all(
+      sessions.map((session) => gameSessionView(session.code, req.user.id)),
+    ) });
   });
 
   app.get('/api/passkeys', requireUser, (req, res) => {
@@ -1314,14 +1668,16 @@ export function createApp({
     });
   });
 
-  app.post('/api/host-agents/game-sessions/prepare', (req, res) => {
+  app.post('/api/host-agents/game-sessions/prepare', async (req, res) => {
     const agent = verifyHostAgentProof(req.body);
     if (agent.role !== 'host') throw new HttpError(403, 'Host role required');
     const hasExistingCode = typeof req.body?.code === 'string'
       && req.body.code.trim().length > 0;
     const session = hasExistingCode
-      ? existingGameSessionForHost(agent.user_id, req.body.code)
-      : createGameSessionForHost(agent.user_id);
+      ? await existingGameSessionForHost(agent.user_id, req.body.code)
+      : await createGameSessionForHost(
+        agent.user_id, stateClient ? persistentRequestId(req) : undefined,
+      );
     writeAuditEvent(
       db,
       agent.user_id,
@@ -1397,7 +1753,7 @@ export function createApp({
   });
 
   app.use((error, req, res, _next) => {
-    const status = error instanceof HttpError ? error.status : 500;
+    const status = error instanceof HttpError || error instanceof StateClientError ? error.status : 500;
     errorResponse(req, res, error, status);
   });
 

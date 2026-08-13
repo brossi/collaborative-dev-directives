@@ -257,6 +257,9 @@ class CompletionAcknowledgementTests(unittest.TestCase):
             "action": "outcome_unknown",
             "commandId": command_id,
             "claimGeneration": generation,
+            "requestId": controller.transition_request_id(
+                "outcome_unknown", command_id, generation,
+            ),
         })
         with controller.lock:
             self.assertEqual(controller.state["commandOutbox"]["phase"], "outcome_unknown")

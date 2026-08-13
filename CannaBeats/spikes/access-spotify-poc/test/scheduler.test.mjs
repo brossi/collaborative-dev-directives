@@ -31,17 +31,23 @@ test('scheduled backup and component checks have layered timeouts and local aler
   const historyScript = readFileSync(resolve('deploy/run-history-retention.sh'), 'utf8');
   const compose = readFileSync(resolve('compose.yaml'), 'utf8');
   const release = readFileSync(resolve('deploy/release.sh'), 'utf8');
-  const operationsDockerfile = readFileSync(resolve('../../web/Operations.Dockerfile'), 'utf8');
+  const stateDockerfile = readFileSync(resolve('../../state-service/Dockerfile'), 'utf8');
   assert.match(backupScript, /CANNABEATS_BACKUP_TIMEOUT_SECONDS/);
   assert.match(backupScript, /exec "\$timeout_command" --foreground --kill-after=/);
   assert.match(operationsScript, /CANNABEATS_OPERATIONS_TIMEOUT_SECONDS/);
   assert.match(operationsScript, /exec "\$timeout_command" --foreground --kill-after=/);
   assert.match(historyScript, /CANNABEATS_GAME_HISTORY_RETENTION_DAYS/);
   assert.match(historyScript, /run --rm --no-deps history[\s\\]+purge --retention-days/);
-  assert.match(compose, /history:\s+[\s\S]*CANNABEATS_HISTORY_IMAGE/);
-  assert.match(compose, /dockerfile: web\/Operations\.Dockerfile/);
+  assert.match(compose, /history:\s+[\s\S]*CANNABEATS_STATE_IMAGE/);
+  assert.match(compose, /history:\s+[\s\S]*CANNABEATS_STATE_SERVICE_ORIGIN/);
+  const historyService = compose.slice(compose.indexOf('  history:'),compose.indexOf('  operator:'));
+  assert.doesNotMatch(historyService, /cannabeats_poc_data:\/data/);
+  assert.match(operationsScript,/operator operator-status --format json --fail-on unavailable/);
+  const operatorService = compose.slice(compose.indexOf('  operator:'),compose.indexOf('\nvolumes:'));
+  assert.match(operatorService,/cannabeats_poc_data:\/data:ro/);
+  assert.doesNotMatch(operatorService,/state-operator-token/);
   assert.doesNotMatch(release, /services:\s+[\s\S]*history:\s+[\s\S]*image:/);
-  assert.match(operationsDockerfile, /ENTRYPOINT \["node", "scripts\/game-history\.mjs"\]/);
+  assert.match(stateDockerfile, /COPY --chown=node:node state-service\/scripts/);
   const runbook = readFileSync(resolve('../../docs/operations/baseline-protection.md'), 'utf8');
   assert.match(runbook, /install -d -o root -g root -m 0750 \/etc\/cannabeats/);
   assert.match(runbook, /systemctl start cannabeats-history-retention\.service/);
@@ -63,11 +69,24 @@ test('a command timeout remains a scheduler failure exit', async () => {
       env: {
         ...process.env,
         CANNABEATS_COMPOSE_DIR: composeDirectory,
+        CANNABEATS_RELEASE_DIR: join(root,'timeout-release-lock'),
         CANNABEATS_TIMEOUT_COMMAND: fakeTimeout,
       },
     }),
     (error) => error.code === 124,
   );
+});
+
+test('scheduled backup shares the release and rollback operation fence', async () => {
+  const composeDirectory = join(root,'locked-compose');
+  const releaseDirectory = join(root,'locked-release');
+  mkdirSync(composeDirectory,{ recursive: true });
+  mkdirSync(join(releaseDirectory,'operation.lock'),{ recursive: true });
+  writeFileSync(join(composeDirectory,'compose.yaml'),'services: {}\n');
+  await assert.rejects(run(resolve('deploy/run-backup.sh'),[],{ env: {
+    ...process.env,CANNABEATS_COMPOSE_DIR: composeDirectory,
+    CANNABEATS_RELEASE_DIR: releaseDirectory,CANNABEATS_TIMEOUT_COMMAND: '/usr/bin/true',
+  }}),(error) => /coordinated backup is active/i.test(error.stderr));
 });
 
 test('the local failure notifier creates an actionable durable alert without unit output', async () => {
@@ -92,4 +111,44 @@ esac
   assert.match(alert, /journalctl -u cannabeats-backup\.service/);
   assert.match(alert, /systemctl start cannabeats-backup\.service/);
   assert.doesNotMatch(alert, /environment|token|passphrase/i);
+});
+
+test('rendered cutover topology gives only State runtime write authority', async () => {
+  const { stdout } = await run(process.execPath,[resolve('deploy/verify-state-cutover.mjs')]);
+  const topology = JSON.parse(stdout);
+  assert.equal(topology.stateWriter,'state');
+  assert.deepEqual(topology.gameDatabaseMounts,[]);
+  assert.deepEqual(topology.historyDatabaseMounts,[]);
+  assert.equal(topology.migrationSourceReadOnly,true);
+});
+
+test('scheduled state-era backup and retention load the coordinated cutover topology', async () => {
+  const composeDirectory = join(root,'state-compose');
+  const releaseDirectory = join(root,'state-releases');
+  const fakeTimeout = join(root,'state-timeout');
+  const invocationLog = join(root,'state-timeout.log');
+  mkdirSync(composeDirectory,{ recursive: true });
+  mkdirSync(releaseDirectory,{ recursive: true });
+  writeFileSync(join(composeDirectory,'compose.yaml'),'services: {}\n');
+  writeFileSync(join(composeDirectory,'compose.state-cutover.yaml'),'services: {}\n');
+  writeFileSync(join(releaseDirectory,'current-compose.yaml'),`x-cannabeats-release:
+  state-cutover: true
+  release-epoch: epoch-test
+services: {}
+`);
+  writeFileSync(fakeTimeout,`#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "${invocationLog}"
+`);
+  chmodSync(fakeTimeout,0o755);
+  const environment = {
+    ...process.env,CANNABEATS_COMPOSE_DIR: composeDirectory,
+    CANNABEATS_RELEASE_OVERRIDE: join(releaseDirectory,'current-compose.yaml'),
+    CANNABEATS_RELEASE_DIR: releaseDirectory,
+    CANNABEATS_TIMEOUT_COMMAND: fakeTimeout,
+  };
+  await run(resolve('deploy/run-backup.sh'),[],{ env: environment });
+  await run(resolve('deploy/run-history-retention.sh'),[],{ env: environment });
+  const invocations = readFileSync(invocationLog,'utf8');
+  assert.match(invocations,/compose\.state-cutover\.yaml.*--profile state-cutover --profile operations.*backup run/);
+  assert.match(invocations,/compose\.state-cutover\.yaml.*--profile state-cutover --profile operations.*history purge/);
 });

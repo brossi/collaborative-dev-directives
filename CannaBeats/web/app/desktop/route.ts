@@ -1,5 +1,8 @@
 import { database, randomToken, sha256 } from "../../lib/server/database";
 import { observeRoute } from "../../lib/server/observability";
+import {
+  accessGatewayConfigured,createAccessGatewayClient,
+} from "../../lib/server/access-gateway.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,13 +10,28 @@ export const dynamic = "force-dynamic";
 const DESKTOP_WEB_COOKIE = "cb_desktop_web";
 const DESKTOP_WEB_SESSION_MS = 12 * 60 * 60 * 1000;
 
-function getDesktopLaunch(request: Request) {
+async function getDesktopLaunch(request: Request) {
   const url = new URL(request.url);
   const ticket = url.searchParams.get("ticket") ?? "";
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(ticket)) {
     return Response.json({ error: "Desktop launch ticket is invalid." }, { status: 400 });
   }
 
+  if (accessGatewayConfigured()) {
+    try {
+      const handoff = await createAccessGatewayClient().desktopHandoff({ ticket });
+      const basePath = process.env.NEXT_PUBLIC_CANNABEATS_BASE_PATH ?? "";
+      const destination = new URL(`${basePath || ""}/`,url.origin);
+      if (handoff.lobbyCode) destination.searchParams.set("session",handoff.lobbyCode);
+      const maxAge = Math.max(1,Math.floor((handoff.expiresAt-Date.now())/1000));
+      return new Response(null,{ status: 303,headers: {
+        "Cache-Control": "no-store",Location: destination.toString(),
+        "Set-Cookie": `${DESKTOP_WEB_COOKIE}=${encodeURIComponent(handoff.sessionToken)}; Path=${basePath || "/"}; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`,
+      } });
+    } catch {
+      return Response.json({ error: "Desktop launch ticket expired or was already used." },{ status: 401 });
+    }
+  }
   const ticketHash = sha256(ticket);
   const pending = database().prepare(`
     SELECT desktop_web_tickets.*, desktop_sessions.expires_at AS desktop_expires_at,

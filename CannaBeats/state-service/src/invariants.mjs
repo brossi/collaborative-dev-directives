@@ -159,9 +159,15 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
         (event.event_type='audio_lease_acquired' AND EXISTS (
           SELECT 1 FROM state_commands command WHERE command.command_id=event.action_id
             AND command.command_type='acquire_managed_lease')) OR
+        (event.event_type='audio_lease_acquired' AND EXISTS (
+          SELECT 1 FROM action_receipts receipt WHERE receipt.run_id=event.run_id
+            AND receipt.action_id=event.action_id AND receipt.action='select_audio')) OR
         (event.event_type='audio_lease_renewed' AND EXISTS (
           SELECT 1 FROM state_commands command WHERE command.command_id=event.action_id
             AND command.command_type='renew_managed_lease')) OR
+        (event.event_type='audio_lease_renewed' AND EXISTS (
+          SELECT 1 FROM action_receipts receipt WHERE receipt.run_id=event.run_id
+            AND receipt.action_id=event.action_id AND receipt.action='select_audio')) OR
         (event.event_type='audio_lease_expired' AND EXISTS (
           SELECT 1 FROM state_commands command WHERE command.command_id=event.action_id
             AND command.command_type='expire_managed_leases')) OR
@@ -222,10 +228,12 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
   const commandEventRows = db.prepare(`SELECT transition.command_id,transition.to_state,
       transition.claim_generation,transition.outcome_fingerprint,transition.error_category,
       transition.reason_code,transition.occurred_at,command.run_id,command.source_id,
-      command.kind,command.action_id,payload.requested_by_principal_id,stream.lifecycle
+      command.kind,command.action_id,payload.requested_by_principal_id,
+      lobby.host_principal_id,stream.lifecycle
     FROM managed_command_transitions transition
     JOIN managed_command_intents command ON command.id=transition.command_id
     LEFT JOIN managed_command_payloads payload ON payload.command_id=command.id
+    JOIN lobbies lobby ON lobby.code=command.lobby_code
     JOIN history_streams stream ON stream.run_id=command.run_id
     WHERE transition.to_state<>'executing' ORDER BY transition.command_id,transition.sequence`).all();
   const eventMatrix = {
@@ -249,8 +257,11 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
       violations.push(`managed command ${transition.command_id} failure category is invalid`);
     }
     if (transition.lifecycle === "purged") continue;
-    const [eventType,outcome,actorType] = eventMatrix[transition.to_state];
-    const actorRef = actorType === "host" ? transition.requested_by_principal_id
+    const [eventType,outcome,mappedActorType] = eventMatrix[transition.to_state];
+    const actorType = transition.to_state === "queued"
+      && transition.requested_by_principal_id !== transition.host_principal_id
+      ? "player" : mappedActorType;
+    const actorRef = ["host","player"].includes(actorType) ? transition.requested_by_principal_id
       : actorType === "source" ? transition.source_id : null;
     const reasonCode = ["failed", "outcome_unknown", "cancelled"].includes(transition.to_state)
       ? transition.reason_code : null;

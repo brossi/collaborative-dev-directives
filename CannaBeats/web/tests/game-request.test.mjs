@@ -94,6 +94,30 @@ test("a lost response body retries the identical action request", async () => {
   assert.equal(payload.action.replayed, true);
 });
 
+test("guest invitation response loss replays one durable capability", async () => {
+  const bodies = [];
+  const invite = "abcdefghijklmnopqrstuvwxyzABCDEFGH123456789";
+  const payload = await requestGame("/game/api/game", {
+    action: "guestInvite", code: "TEST23",
+  }, {
+    cryptoSource: fallbackCrypto,
+    fetchImpl: async (_input, init) => {
+      bodies.push(init.body);
+      if (bodies.length === 1) return {
+        ok: true,status: 200,headers: new Headers(),
+        json: async () => { throw new TypeError("response body was interrupted"); },
+      };
+      return Response.json({
+        guestInvite: invite,expiresAt: 2_000_000_000_000,
+        action: { id: JSON.parse(init.body).actionId,accepted: true,replayed: false },
+      });
+    },
+  });
+  assert.equal(bodies.length,2);
+  assert.equal(bodies[0],bodies[1]);
+  assert.equal(payload.guestInvite,invite);
+});
+
 test("retryable requests have a bounded timeout for every attempt", async () => {
   let attempts = 0;
   await assert.rejects(

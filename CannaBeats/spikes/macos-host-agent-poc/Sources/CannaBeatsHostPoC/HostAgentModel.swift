@@ -56,6 +56,7 @@ private struct HostGameSessionRequest: Encodable {
     let challengeToken: String
     let signature: String
     let code: String?
+    let commandId: String?
 }
 
 private struct HostGameSession: Decodable {
@@ -178,6 +179,7 @@ final class HostAgentModel: ObservableObject {
         static let serverOrigin = "host-poc.server-origin"
         static let agentID = "host-poc.agent-id"
         static let pairedUser = "host-poc.paired-user"
+        static let pendingGameCreationCommandID = "host-poc.pending-game-creation-command-id"
     }
 
     @Published var serverOrigin: String
@@ -209,6 +211,7 @@ final class HostAgentModel: ObservableObject {
     private var processDiscoveryTimer: Timer?
     private var baselineAudioProcessIDs: Set<UInt32> = []
     private var preparedRelayGrant: RelayGrant?
+    private var pendingGameCreationCommandID: String?
 
     init() {
         let defaults = UserDefaults.standard
@@ -218,6 +221,9 @@ final class HostAgentModel: ObservableObject {
             ?? "CannaBeats Host on this Mac"
         agentID = defaults.string(forKey: DefaultsKey.agentID)
         pairedUser = defaults.string(forKey: DefaultsKey.pairedUser) ?? ""
+        pendingGameCreationCommandID = defaults.string(
+            forKey: DefaultsKey.pendingGameCreationCommandID
+        )
 
         if agentID != nil {
             do {
@@ -395,7 +401,24 @@ final class HostAgentModel: ObservableObject {
         defer { isBusy = false }
 
         do {
-            let game = try await prepareGameSession(agentID: agentID, existingCode: existingCode)
+            let commandID: String?
+            if existingCode == nil {
+                let retained = pendingGameCreationCommandID ?? UUID().uuidString.lowercased()
+                pendingGameCreationCommandID = retained
+                UserDefaults.standard.set(retained, forKey: DefaultsKey.pendingGameCreationCommandID)
+                commandID = retained
+            } else {
+                commandID = nil
+            }
+            let game = try await prepareGameSession(
+                agentID: agentID,
+                existingCode: existingCode,
+                commandID: commandID
+            )
+            if existingCode == nil {
+                pendingGameCreationCommandID = nil
+                UserDefaults.standard.removeObject(forKey: DefaultsKey.pendingGameCreationCommandID)
+            }
             activeGameCode = game.session.code
             self.existingGameCode = formattedGameCode(game.session.code)
             gameSessionStatus = game.created
@@ -522,6 +545,7 @@ final class HostAgentModel: ObservableObject {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: DefaultsKey.agentID)
         defaults.removeObject(forKey: DefaultsKey.pairedUser)
+        defaults.removeObject(forKey: DefaultsKey.pendingGameCreationCommandID)
         signingKey = nil
         pairingSecret = nil
         pairingExpiresAt = nil
@@ -556,7 +580,8 @@ final class HostAgentModel: ObservableObject {
 
     private func prepareGameSession(
         agentID: String,
-        existingCode: String?
+        existingCode: String?,
+        commandID: String?
     ) async throws -> HostGameSessionResponse {
         let client = try HostAPIClient(originText: serverOrigin)
         let key: DeviceSigningKey
@@ -582,7 +607,8 @@ final class HostAgentModel: ObservableObject {
                 agentId: agentID,
                 challengeToken: challenge.challengeToken,
                 signature: signature,
-                code: existingCode
+                code: existingCode,
+                commandId: commandID
             )
         )
     }

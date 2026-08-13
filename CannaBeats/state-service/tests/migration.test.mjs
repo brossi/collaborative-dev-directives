@@ -152,6 +152,26 @@ test("drained migration is non-destructive, complete, and idempotent", () => {
   activator.close();
 });
 
+test("migration requires a fully checkpointed immutable source", () => {
+  const legacy = legacyFixture("source-with-wal");
+  const source = new DatabaseSync(legacy.path);
+  source.exec("PRAGMA wal_autocheckpoint=0");
+  source.prepare("UPDATE users SET display_name='Checkpoint required' WHERE id=?").run(legacy.host);
+  assert.equal(existsSync(`${legacy.path}-wal`),true);
+  assert.throws(() => migrateMonolith({
+    sourcePath: legacy.path,destinationPath: join(root,"source-with-wal-state.sqlite"),
+  }),/must be checkpointed/i);
+  source.close();
+});
+
+test("migration refuses a source with a rollback journal requiring recovery", () => {
+  const legacy = legacyFixture("source-with-hot-journal");
+  writeFileSync(`${legacy.path}-journal`,Buffer.alloc(512,0x5a));
+  assert.throws(() => migrateMonolith({
+    sourcePath: legacy.path,destinationPath: join(root,"source-with-journal-state.sqlite"),
+  }),/checkpointed and recovered/i);
+});
+
 test("migration replay recovers when publication left both names for one candidate inode", () => {
   const legacy = legacyFixture("publication-recovery");
   const destination = join(root, "publication-recovery-state.sqlite");
@@ -288,11 +308,12 @@ test("migration replay revalidates candidate authority and canonical content", (
   changed.prepare("UPDATE lobbies SET host_principal_id='tampered'").run();
   changed.close();
   const poisoned = developmentOwner(destination);
-  assert.throws(() => poisoned.activate({ commandId: randomUUID() }), /attestation is invalid/i);
+  assert.throws(() => poisoned.activate({ commandId: randomUUID() }),
+    /attestation is invalid|invariant validation failed/i);
   poisoned.close();
   assert.throws(() => migrateMonolith({
     sourcePath: legacy.path, destinationPath: destination,
-  }), /no longer matches/i);
+  }), /no longer matches|invariant validation failed/i);
 });
 
 test("migration requires the supported immutable source contract and exclusive publication lock", () => {

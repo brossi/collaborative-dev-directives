@@ -9,6 +9,7 @@ import {
   grantUserCapability,
   MANAGE_HOST_INVITATIONS,
   openDatabase,
+  purgeExpired,
   revokeUserCapability,
   sha256,
 } from '../db.mjs';
@@ -183,6 +184,32 @@ test('protected endpoints reject an anonymous caller', async () => {
     && entry.event === 'http.request_failed'));
   assert.equal((await post('/api/host/prove')).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/passkeys`)).status, 401);
+});
+
+test('the game gateway resolves principals only through its scoped internal credential', async () => {
+  let host = db.prepare("SELECT * FROM users WHERE role='host' LIMIT 1").get();
+  if (!host) {
+    const id = randomUUID();
+    db.prepare("INSERT INTO users (id,display_name,role,created_at) VALUES (?,?,'host',?)")
+      .run(id,'Gateway Host',Date.now());
+    host = db.prepare('SELECT * FROM users WHERE id=?').get(id);
+  }
+  const token = `principal-forward-${randomUUID()}`;
+  const now = Date.now();
+  db.prepare(`INSERT INTO sessions
+    (token_hash,user_id,created_at,expires_at,last_seen_at) VALUES (?,?,?,?,?)`)
+    .run(sha256(token),host.id,now,now + 60_000,now);
+  const denied = await nativePost('/api/internal/game/principal', {
+    cookie: `cb_session=${token}`,
+  });
+  assert.equal(denied.status, 403);
+  const accepted = await nativePost('/api/internal/game/principal', {
+    cookie: `cb_session=${token}`,
+  }, { 'X-CannaBeats-Internal-Token': config.gameServiceToken });
+  assert.equal(accepted.status, 200);
+  assert.deepEqual((await accepted.json()).principal, {
+    id: host.id, displayName: host.display_name, role: 'host', kind: 'account',
+  });
 });
 
 test('state-changing API calls require the exact configured origin', async () => {
@@ -570,4 +597,160 @@ test('the lobby API requires authority and exists independently of an engine run
   });
   assert.equal(current.status, 200);
   assert.ok((await current.json()).sessions.some((candidate) => candidate.code === session.code));
+});
+
+test('cutover access routes use only the state client for lobby authority', async () => {
+  const host = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  const token = `state-lobby-browser-${randomUUID()}`;
+  const now = Date.now();
+  db.prepare(`INSERT INTO sessions
+    (token_hash,user_id,created_at,expires_at,last_seen_at) VALUES (?,?,?,?,?)`)
+    .run(sha256(token),host.id,now,now + 60_000,now);
+  const stateLobbies = new Map();
+  const calls = [];
+  const stateClient = {
+    async createLobby({ commandId, code, principalId }) {
+      calls.push({ type: 'create', commandId, code, principalId });
+      stateLobbies.set(code, {
+        code, status: 'lobby', hostPrincipalId: principalId, runGeneration: 0,
+        members: [{ principalId, joinedAt: now }], createdAt: now, updatedAt: now,
+      });
+      return { code, status: 'lobby' };
+    },
+    async lobby({ code, principalId }) {
+      calls.push({ type: 'read', code, principalId });
+      return stateLobbies.get(code);
+    },
+    async lobbies({ principalId }) {
+      calls.push({ type: 'list', principalId });
+      return { lobbies: [...stateLobbies.values()].map(({ members: _members, ...lobby }) => lobby) };
+    },
+    async addMembership() { throw new Error('not used'); },
+  };
+  const cutover = createApp({ config, db, stateClient }).app.listen(0, '127.0.0.1');
+  await new Promise((resolve, reject) => {
+    cutover.once('listening', resolve);
+    cutover.once('error', reject);
+  });
+  try {
+    const cutoverOrigin = `http://127.0.0.1:${cutover.address().port}`;
+    const commandId = randomUUID();
+    const created = await fetch(`${cutoverOrigin}/api/game-sessions`, {
+      method: 'POST',
+      headers: {
+        Origin: origin, 'Content-Type': 'application/json',
+        Cookie: `cb_session=${token}`, 'Idempotency-Key': commandId,
+      },
+      body: '{}',
+    });
+    assert.equal(created.status, 201);
+    const session = (await created.json()).session;
+    assert.equal(calls[0].commandId, commandId);
+    assert.equal(calls[0].principalId, host.id);
+    assert.equal(db.prepare('SELECT 1 FROM game_sessions WHERE code=?').get(session.code), undefined);
+    const listed = await fetch(`${cutoverOrigin}/api/game-sessions/current`, {
+      headers: { Cookie: `cb_session=${token}` },
+    });
+    assert.equal(listed.status, 200);
+    assert.deepEqual((await listed.json()).sessions.map((entry) => entry.code), [session.code]);
+    assert.ok(calls.some((call) => call.type === 'list'));
+  } finally {
+    await new Promise((resolve) => cutover.close(resolve));
+  }
+});
+
+test('cutover guest admission reserves one access identity and delegates the player mutation', async () => {
+  const host = db.prepare("SELECT * FROM users WHERE role = 'host' LIMIT 1").get();
+  const browserToken = `state-admission-host-${randomUUID()}`;
+  const now = Date.now();
+  db.prepare(`INSERT INTO sessions
+    (token_hash,user_id,created_at,expires_at,last_seen_at) VALUES (?,?,?,?,?)`)
+    .run(sha256(browserToken),host.id,now,now + 60_000,now);
+  const runId = randomUUID();
+  const admitted = [];
+  const stateClient = {
+    async lobby({ code }) {
+      return { code,hostPrincipalId: host.id,admissionOpen: true };
+    },
+    async admissionContext() {
+      return { runId,runGeneration: 1,revision: 0,admissionOpen: true };
+    },
+    async admit(input) {
+      admitted.push(input);
+      return {
+        state: {
+          runId,code: input.code,runGeneration: 1,revision: 1,phase: 'lobby',round: 0,
+          players: [{ id: input.principalId,name: input.name,control: 'phone',timeline: [] }],
+        },
+        replayed: admitted.length > 1,
+      };
+    },
+  };
+  const cutover = createApp({ config,db,stateClient }).app.listen(0,'127.0.0.1');
+  await new Promise((resolve, reject) => {
+    cutover.once('listening',resolve);
+    cutover.once('error',reject);
+  });
+  try {
+    const cutoverOrigin = `http://127.0.0.1:${cutover.address().port}`;
+    const inviteActionId = randomUUID();
+    const inviteRequest = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CannaBeats-Internal-Token': config.gameServiceToken,
+      },
+      body: JSON.stringify({
+        actionId: inviteActionId,cookie: `cb_session=${browserToken}`,code: 'ABC234',
+      }),
+    };
+    const inviteResponse = await fetch(
+      `${cutoverOrigin}/api/internal/game/guest-invite`,inviteRequest,
+    );
+    assert.equal(inviteResponse.status,200);
+    const invitePayload = await inviteResponse.json();
+    assert.equal(invitePayload.replayed,false);
+    const invite = invitePayload.guestInvite;
+    const inviteReplay = await fetch(
+      `${cutoverOrigin}/api/internal/game/guest-invite`,inviteRequest,
+    );
+    assert.equal(inviteReplay.status,200);
+    const replayedInvite = await inviteReplay.json();
+    assert.equal(replayedInvite.guestInvite,invitePayload.guestInvite);
+    assert.equal(replayedInvite.expiresAt,invitePayload.expiresAt);
+    assert.equal(replayedInvite.replayed,true);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM state_guest_invites WHERE action_id=?')
+      .get(inviteActionId).count,1);
+    const actionId = randomUUID();
+    const body = { actionId,code: 'ABC234',name: 'Guest Phone',requireInvitation: true,invite };
+    const first = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(body),
+    });
+    assert.equal(first.status,200);
+    const firstPayload = await first.json();
+    assert.match(firstPayload.sessionCookie,/^cb_guest=/);
+    const replay = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(body),
+    });
+    assert.equal(replay.status,200);
+    const replayPayload = await replay.json();
+    assert.equal(replayPayload.principal.id,firstPayload.principal.id);
+    assert.equal(admitted.length,2);
+    assert.equal(admitted[0].principalId,admitted[1].principalId);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM state_guest_admissions WHERE action_id=?')
+      .get(actionId).count,1);
+    assert.equal(db.prepare('SELECT 1 FROM game_sessions WHERE code=?').get('ABC234'),undefined);
+    db.prepare('UPDATE state_guest_admissions SET expires_at=? WHERE action_id=?')
+      .run(now - 1,actionId);
+    db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE user_id=?')
+      .run(now - 1,firstPayload.principal.id);
+    purgeExpired(db,now);
+    assert.equal(db.prepare('SELECT 1 FROM users WHERE id=?').get(firstPayload.principal.id),undefined);
+  } finally {
+    await new Promise((resolve) => cutover.close(resolve));
+  }
 });

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync,mkdtempSync,rmSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
@@ -52,4 +53,53 @@ test('managed-source registration and rotation store only token hashes', async (
   assert.equal(disabled.prepare('SELECT enabled FROM managed_audio_sources WHERE id = ?')
     .get(registered.sourceId).enabled, 0);
   disabled.close();
+});
+
+test('state-owned CLI fails closed instead of mutating legacy managed-source rows', async () => {
+  const databasePath = join(root,'state-required.sqlite');
+  await assert.rejects(run(process.execPath,[
+    'cli.mjs','managed-source','register','--name','Must Not Persist',
+  ],{ env: {
+    ...process.env,DATABASE_PATH: databasePath,CANNABEATS_STATE_WRITES_REQUIRED: 'true',
+  } }),/State operator configuration is required/i);
+  assert.equal(existsSync(databasePath),false);
+});
+
+test('bounded operator status preserves broad component checks and adds State authority', async () => {
+  const databasePath = join(root,'operator-status.sqlite');
+  openDatabase(databasePath).close();
+  const server = createServer((request,response) => {
+    response.setHeader('content-type','application/json');
+    if (request.url.startsWith('/v1/admin/report')) return response.end(JSON.stringify({
+      generatedAt: Date.now(),authority: { status: 'active' },sessions: [],
+      sources: [{ enabled: true,lastSeenAt: Date.now(),lastErrorCategory: null }],
+      sanitizationPending: 0,
+    }));
+    if (request.url === '/v1/admin/validate') return response.end(JSON.stringify({ valid: true }));
+    if (request.url === '/api/ready' || request.url === '/game/api/ready') {
+      return response.end(JSON.stringify({ ready: true }));
+    }
+    response.statusCode = 404;
+    return response.end(JSON.stringify({ code: 'not_found' }));
+  });
+  await new Promise((resolve) => server.listen(0,'127.0.0.1',resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const result = JSON.parse((await run(process.execPath,[
+      'cli.mjs','operator-status','--format','json','--fail-on','unavailable',
+    ],{ env: {
+      ...process.env,DATABASE_PATH: databasePath,APP_ORIGIN: origin,
+      GAME_SERVICE_INTERNAL_ORIGIN: origin,CANNABEATS_STATE_SERVICE_ORIGIN: origin,
+      CANNABEATS_STATE_OPERATOR_TOKEN: 'bounded-operator-token',
+      CANNABEATS_STATE_WRITES_REQUIRED: 'true',
+    } })).stdout);
+    assert.equal(result.components.access.status,'healthy');
+    assert.equal(result.components.game.status,'healthy');
+    assert.equal(result.components.database.status,'healthy');
+    assert.equal(result.components.managedSource.status,'healthy');
+    assert.equal(result.components.state.status,'healthy');
+    assert.equal(result.validation.valid,true);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });

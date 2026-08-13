@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,linkSync,mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -42,6 +44,74 @@ test("idempotent state commands replay and conflicting identity reuse fails", ()
   assert.throws(() => owner.createLobby({
     commandId, code: "XYZ234", hostPrincipalId, now: 300,
   }), /identity conflicts/i);
+  owner.close();
+});
+
+test("admission is an idempotent generation-fenced owner command", () => {
+  const owner = developmentOwner(join(root,"admission-fence.sqlite"));
+  owner.activate({ now: 1 });
+  assert.deepEqual(owner.authorityStatus().admission,{ open: true,generation: 0 });
+  const closeId = randomUUID();
+  assert.deepEqual(owner.setAdmission({
+    commandId: closeId,open: false,expectedGeneration: 0,now: 2,
+  }),{ open: false,generation: 1,replayed: false });
+  assert.deepEqual(owner.setAdmission({
+    commandId: closeId,open: false,expectedGeneration: 0,now: 3,
+  }),{ open: false,generation: 1,replayed: true });
+  assert.throws(() => owner.createLobby({
+    commandId: randomUUID(),code: "CLS234",hostPrincipalId: randomUUID(),now: 4,
+  }),/admission is closed/i);
+  assert.throws(() => owner.setAdmission({
+    commandId: randomUUID(),open: true,expectedGeneration: 0,now: 5,
+  }),/generation is stale/i);
+  assert.deepEqual(owner.setAdmission({
+    commandId: randomUUID(),open: true,expectedGeneration: 1,now: 6,
+  }),{ open: true,generation: 2,replayed: false });
+  assert.equal(owner.createLobby({
+    commandId: randomUUID(),code: "OPN234",hostPrincipalId: randomUUID(),now: 7,
+  }).code,"OPN234");
+  owner.close();
+});
+
+test("rollback floor survives restoration of a pre-admission database snapshot", () => {
+  const path = join(root,"rollback-floor.sqlite");
+  const owner = developmentOwner(path);
+  owner.activate({ now: 1 });
+  const preAdmission = owner.exportSnapshot({ directory: root }).snapshot;
+  owner.createLobby({
+    commandId: randomUUID(),code: "FLR234",hostPrincipalId: randomUUID(),now: 5,
+  });
+  assert.equal(owner.authorityStatus().first_admitted_at,5);
+  owner.close();
+  for (const suffix of ["","-wal","-shm"]) rmSync(`${path}${suffix}`,{ force: true });
+  writeFileSync(path,preAdmission,{ mode: 0o600 });
+  const restored = developmentOwner(path);
+  assert.equal(restored.authorityStatus().first_admitted_at,5);
+  restored.close();
+});
+
+test("access lobby projection and membership are owner-scoped and idempotent", () => {
+  const owner = developmentOwner(join(root, "access-lobbies.sqlite"));
+  owner.activate({ now: 1 });
+  const host = randomUUID();
+  const member = randomUUID();
+  owner.createLobby({ commandId: randomUUID(), code: "ACC234", hostPrincipalId: host, now: 2 });
+  assert.deepEqual(owner.accessLobbies({ principalId: host }).map((lobby) => lobby.code), ["ACC234"]);
+  assert.throws(() => owner.accessLobby({ lobbyCode: "ACC234", principalId: member }), /membership/i);
+  const commandId = randomUUID();
+  assert.deepEqual(owner.addLobbyMember({
+    commandId, lobbyCode: "ACC234", principalId: member,
+    admittedByPrincipalId: member, now: 3,
+  }), { lobbyCode: "ACC234", principalId: member, joinedAt: 3, admitted: true, replayed: false });
+  assert.deepEqual(owner.addLobbyMember({
+    commandId, lobbyCode: "ACC234", principalId: member,
+    admittedByPrincipalId: member, now: 4,
+  }), { lobbyCode: "ACC234", principalId: member, joinedAt: 3, admitted: true, replayed: true });
+  const projection = owner.accessLobby({ lobbyCode: "ACC234", principalId: member });
+  assert.deepEqual(Object.keys(projection).sort(), [
+    "admissionOpen", "code", "createdAt", "hostPrincipalId", "members", "runGeneration", "status", "updatedAt",
+  ]);
+  assert.deepEqual(projection.members.map((entry) => entry.principalId).sort(), [host,member].sort());
   owner.close();
 });
 
@@ -115,6 +185,23 @@ test("activation runs the canonical invariant validator and rejects poisoned can
   reopened.close();
 });
 
+test("active startup and export reject semantically invalid state", () => {
+  const path = join(root,"semantic-export.sqlite");
+  const owner = developmentOwner(path);
+  owner.activate({ now: 1 });
+  const host = randomUUID();
+  owner.createLobby({ commandId: randomUUID(),code: "SEM234",hostPrincipalId: host,now: 2 });
+  owner.createRun({
+    commandId: randomUUID(),runId: randomUUID(),lobbyCode: "SEM234",actorPrincipalId: host,now: 3,
+  });
+  const writable = new DatabaseSync(path);
+  writable.prepare("UPDATE game_runs SET state='{}'").run();
+  writable.close();
+  assert.throws(() => owner.exportSnapshot({ directory: root }),/invariant validation failed/i);
+  owner.close();
+  assert.throws(() => developmentOwner(path),/invariant validation failed/i);
+});
+
 test("activation cannot be replay-short-circuited by a pre-seeded command receipt", () => {
   const path = join(root, "preseeded-activation.sqlite");
   const candidate = developmentOwner(path);
@@ -185,7 +272,7 @@ test("managed command authority is an append-only owner-issued protocol", () => 
   });
   const sourceId = randomUUID();
   owner.registerManagedSource({
-    sourceId, displayName: "Source", tokenHash: "hash", now: 105,
+    sourceId, displayName: "Source", tokenHash: "a".repeat(64), now: 105,
   });
   owner.acquireManagedLease({
     lobbyCode: "AUD234", sourceId, actorPrincipalId: host,
@@ -352,6 +439,101 @@ test("run mutation, receipt, event, coverage, and projection commit atomically",
   read.close();
 });
 
+test("action replay rechecks current membership and returns current authority", () => {
+  const path = join(root,"replay-membership.sqlite");
+  const owner = developmentOwner(path);
+  const host = randomUUID();
+  const guest = randomUUID();
+  const runId = randomUUID();
+  const admissionAction = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "REP234",hostPrincipalId: host,now: 2 });
+  owner.createRun({ lobbyCode: "REP234",runId,actorPrincipalId: host,now: 3 });
+  const admitted = owner.admitPlayer({
+    lobbyCode: "REP234",actorPrincipalId: guest,actionId: admissionAction,
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 0,
+    name: "Guest",now: 4,
+  });
+  assert.equal(admitted.revision,1);
+  const hostMutation = {
+    lobbyCode: "REP234",actorPrincipalId: host,actionId: randomUUID(),
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 1,
+    command: { type: "configure_rules",rules: { targetScore: 7 } },now: 5,
+  };
+  const configured = owner.applyGameCommand(hostMutation);
+  assert.equal(configured.revision,2);
+  const replayed = owner.applyGameCommand({ ...hostMutation,now: 6 });
+  assert.equal(replayed.replayed,true);
+  assert.equal(replayed.revision,2);
+  assert.equal(replayed.state.rules.targetScore,7);
+  owner.applyGameCommand({
+    lobbyCode: "REP234",actorPrincipalId: host,actionId: randomUUID(),
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 2,
+    command: { type: "remove_player",playerId: guest },now: 7,
+  });
+  assert.throws(() => owner.admitPlayer({
+    lobbyCode: "REP234",actorPrincipalId: guest,actionId: admissionAction,
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 0,
+    name: "Guest",now: 8,
+  }),/membership/i);
+  owner.close();
+});
+
+test("committed admission replays across a closed admission fence", () => {
+  const owner = developmentOwner(join(root,"admission-replay-fence.sqlite"));
+  owner.activate({ now: 1 });
+  const host = randomUUID();
+  const guest = randomUUID();
+  owner.createLobby({ commandId: randomUUID(),code: "ARF234",hostPrincipalId: host,now: 2 });
+  const run = owner.createRun({
+    commandId: randomUUID(),lobbyCode: "ARF234",actorPrincipalId: host,now: 3,
+  });
+  const request = {
+    lobbyCode: "ARF234",actorPrincipalId: guest,actionId: randomUUID(),
+    expectedRunId: run.runId,expectedRunGeneration: run.runGeneration,
+    expectedRevision: 0,name: "Fence Guest",now: 4,
+  };
+  const accepted = owner.admitPlayer(request);
+  owner.setAdmission({ commandId: randomUUID(),open: false,expectedGeneration: 0,now: 5 });
+  const replay = owner.admitPlayer({ ...request,now: 6 });
+  assert.equal(replay.replayed,true);
+  assert.equal(replay.revision,accepted.revision);
+  owner.close();
+});
+
+test("later lobbies preserve the first durable rollback floor", () => {
+  const rollbackFloorPath = join(root,"multi-lobby.rollback-floor.json");
+  const owner = developmentOwner(join(root,"multi-lobby.sqlite"),{ rollbackFloorPath });
+  owner.activate({ now: 1 });
+  owner.createLobby({
+    commandId: randomUUID(),code: "MLA234",hostPrincipalId: randomUUID(),now: 10,
+  });
+  owner.createLobby({
+    commandId: randomUUID(),code: "MLB234",hostPrincipalId: randomUUID(),now: 20,
+  });
+  assert.equal(owner.authorityStatus().first_admitted_at,10);
+  assert.equal(JSON.parse(readFileSync(rollbackFloorPath,"utf8")).firstAdmittedAt,10);
+  owner.close();
+});
+
+test("managed-source authority records are canonical and bounded", () => {
+  const owner = developmentOwner(join(root,"source-registration.sqlite"));
+  owner.activate({ now: 1 });
+  assert.throws(() => owner.registerManagedSource({
+    commandId: randomUUID(),sourceId: "not-a-uuid",displayName: "Source",
+    tokenHash: "a".repeat(64),now: 2,
+  }),/canonical UUID/i);
+  assert.throws(() => owner.registerManagedSource({
+    commandId: randomUUID(),sourceId: randomUUID(),displayName: "x".repeat(81),
+    tokenHash: "a".repeat(64),now: 3,
+  }),/1-80/i);
+  assert.throws(() => owner.registerManagedSource({
+    commandId: randomUUID(),sourceId: randomUUID(),displayName: "Source",
+    tokenHash: "not-a-digest",now: 4,
+  }),/SHA-256/i);
+  owner.close();
+});
+
 test("typed gameplay derives songs, roles, state, events, and member projections", () => {
   const path = join(root, "typed-gameplay.sqlite");
   const gameServices = createCatalogGameServices([
@@ -369,7 +551,7 @@ test("typed gameplay derives songs, roles, state, events, and member projections
   owner.createRun({ lobbyCode: "PLY234", runId, actorPrincipalId: host, now: 3 });
   const sourceId = randomUUID();
   owner.registerManagedSource({
-    sourceId, displayName: "Typed source", tokenHash: "typed-source-token", now: 4,
+    sourceId, displayName: "Typed source", tokenHash: "a".repeat(64), now: 4,
   });
   owner.acquireManagedLease({
     lobbyCode: "PLY234", sourceId, actorPrincipalId: host,
@@ -402,6 +584,12 @@ test("typed gameplay derives songs, roles, state, events, and member projections
   const begun = act(host, { type: "begin_round" });
   assert.equal(begun.managedCommands.length, 1);
   assert.equal(begun.managedCommands[0].state, "queued");
+  const history = owner.memberHistory({ runId,principalId: guest });
+  assert.equal(history.runId,runId);
+  assert.equal(history.lobbyId,"PLY234");
+  assert.equal(history.coverage.complete,true);
+  assert.ok(history.events.some((entry) => entry.type === "track_requested"));
+  assert.throws(() => owner.memberHistory({ runId,principalId: randomUUID() }), /not found/i);
   assert.throws(() => act(guest, { type: "place_song", playerId: guest, index: 0 }),
     /not this player's turn/i);
   revision -= 1;
@@ -424,6 +612,40 @@ test("typed gameplay derives songs, roles, state, events, and member projections
   assert.equal(read.prepare(`SELECT COUNT(*) AS count FROM action_receipts
     WHERE run_id=?`).get(runId).count, 6);
   read.close();
+});
+
+test("audio selection and controls share the room receipt and revision transaction", () => {
+  const gameServices = createCatalogGameServices([
+    { title: "One", artist: "Artist", year: 1960, uri: "spotify:track:one" },
+    { title: "Two", artist: "Artist", year: 1980, uri: "spotify:track:two" },
+    { title: "Three", artist: "Artist", year: 2000, uri: "spotify:track:three" },
+  ], { random: () => 0 });
+  const owner = developmentOwner(join(root, "typed-audio-actions.sqlite"), gameServices);
+  const host = randomUUID();
+  const runId = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ commandId: randomUUID(), code: "SND234", hostPrincipalId: host, now: 2 });
+  owner.createRun({ commandId: randomUUID(), lobbyCode: "SND234", runId, actorPrincipalId: host, now: 3 });
+  owner.registerManagedSource({
+    commandId: randomUUID(), sourceId, displayName: "Source", tokenHash: "a".repeat(64), now: 4,
+  });
+  owner.managedSourceWork({ authenticatedSourceId: sourceId, now: 5 });
+  let revision = 0;
+  const act = (command, now) => owner.applyGameCommand({
+    lobbyCode: "SND234", actorPrincipalId: host, actionId: randomUUID(),
+    expectedRunId: runId, expectedRunGeneration: 1, expectedRevision: revision++, command, now,
+  });
+  assert.equal(act({ type: "select_audio", mode: "managed" }, 6).revision, 1);
+  assert.equal(owner.audioView({ lobbyCode: "SND234", now: 7 }).mode, "managed");
+  act({ type: "add_host_player", name: "Host" }, 8);
+  act({ type: "start_game" }, 9);
+  assert.equal(act({ type: "begin_round" }, 10).managedCommands.length, 1);
+  assert.equal(act({ type: "control_audio", kind: "pause" }, 11).managedCommands.length, 1);
+  assert.equal(act({ type: "release_audio" }, 12).revision, 6);
+  assert.equal(owner.audioView({ lobbyCode: "SND234", now: 13 }).mode, "local");
+  assert.doesNotThrow(() => owner.validate());
+  owner.close();
 });
 
 test("a managed track request cannot commit separately from its room mutation", () => {
@@ -456,7 +678,7 @@ test("a managed track request cannot commit separately from its room mutation", 
   }), /managed playback authority is unavailable/i);
   assert.equal(owner.room({ lobbyCode: "ATM234", principalId: host }).state.phase, "ready");
   owner.registerManagedSource({
-    sourceId, displayName: "Atomic source", tokenHash: "atomic-source-token", now: 6,
+    sourceId, displayName: "Atomic source", tokenHash: "a".repeat(64), now: 6,
   });
   owner.acquireManagedLease({
     lobbyCode: "ATM234", sourceId, actorPrincipalId: host,
@@ -540,7 +762,7 @@ test("terminal evidence seals and purges atomically while unresolved commands fa
     now: 30,
   });
   owner.registerManagedSource({
-    sourceId, displayName: "History Source", tokenHash: "history-hash", now: 31,
+    sourceId, displayName: "History Source", tokenHash: "a".repeat(64), now: 31,
   });
   owner.acquireManagedLease({
     lobbyCode: "HIS234", sourceId, actorPrincipalId: host,
@@ -708,7 +930,7 @@ test("lease loss cancels queued work, makes delivered work unknown, and fences l
     now: 30,
   });
   owner.registerManagedSource({
-    sourceId, displayName: "Lease Source", tokenHash: "lease-hash", now: 31,
+    sourceId, displayName: "Lease Source", tokenHash: "a".repeat(64), now: 31,
   });
   const lease = owner.acquireManagedLease({
     lobbyCode: "LSE234", sourceId, actorPrincipalId: host,

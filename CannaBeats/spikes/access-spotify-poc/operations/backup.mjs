@@ -163,6 +163,28 @@ function validateMetadata(metadata, supportedVersion) {
       || metadata.database.tables.some((table) => typeof table !== 'string')) {
     throw new Error('Backup database manifest is invalid');
   }
+  if (metadata.databaseRole !== undefined && !['access', 'state'].includes(metadata.databaseRole)) {
+    throw new Error('Backup database role is invalid');
+  }
+  if (metadata.releaseEpoch !== undefined
+      && (typeof metadata.releaseEpoch !== 'string' || !/^[A-Za-z0-9._:-]{1,160}$/.test(metadata.releaseEpoch))) {
+    throw new Error('Backup release epoch is invalid');
+  }
+  if (metadata.recoverySetId !== undefined
+      && (typeof metadata.recoverySetId !== 'string'
+        || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+          .test(metadata.recoverySetId))) {
+    throw new Error('Backup recovery-set identity is invalid');
+  }
+  if (metadata.authorityFloor !== undefined) {
+    const floor = metadata.authorityFloor;
+    if (metadata.databaseRole !== 'state' || !floor || typeof floor !== 'object'
+        || floor.releaseEpoch !== metadata.releaseEpoch
+        || (floor.firstAdmittedAt !== null
+          && (!Number.isSafeInteger(floor.firstAdmittedAt) || floor.firstAdmittedAt <= 0))) {
+      throw new Error('Backup authority-floor metadata is invalid');
+    }
+  }
   decodedFixedLength(metadata.crypto.salt, 16, 'salt');
   decodedFixedLength(metadata.crypto.iv, 12, 'initialization vector');
   return metadata;
@@ -189,6 +211,10 @@ function encryptSnapshot(snapshotPath, encryptedPath, metadata, secret) {
     createdAt: metadata.createdAt,
     applicationVersion: metadata.applicationVersion,
     catalogVersion: metadata.catalogVersion,
+    ...(metadata.databaseRole ? { databaseRole: metadata.databaseRole } : {}),
+    ...(metadata.releaseEpoch ? { releaseEpoch: metadata.releaseEpoch } : {}),
+    ...(metadata.recoverySetId ? { recoverySetId: metadata.recoverySetId } : {}),
+    ...(metadata.authorityFloor ? { authorityFloor: metadata.authorityFloor } : {}),
     database: {
       bytes: snapshotBytes,
       sha256: hashFile(snapshotPath),
@@ -363,6 +389,10 @@ export async function createBackup({
   passphraseFile,
   applicationVersion = 'unknown',
   catalogVersion = 'unknown',
+  databaseRole,
+  releaseEpoch,
+  recoverySetId,
+  authorityFloor,
   now = new Date(),
   scratchDirectory = tmpdir(),
   beforePublish,
@@ -389,6 +419,10 @@ export async function createBackup({
       createdAt: now.toISOString(),
       applicationVersion,
       catalogVersion,
+      databaseRole,
+      releaseEpoch,
+      recoverySetId,
+      authorityFloor,
       ...database,
     }, passphrase(passphraseFile));
     publishPreparedFile(preparedPath, outputPath, beforePublish);
