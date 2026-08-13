@@ -1,10 +1,14 @@
 # S2-E listener, source, and relay diagnostics contract
 
-Status: revised design contract for the S2-E implementation checkpoint. This
-revision addresses the pre-implementation authority, timing, privacy, producer,
-capacity, and verification ambiguities found by the first adversarial design
-audit. No S2-E implementation or acceptance outcome is complete until the
-executable gates in this document pass.
+Status: the overall S2-E architecture and checkpoint framework are approved;
+detailed checkpoint specifications must still pass their individual closure
+gates. E1 has a revised audit-candidate packet pending independent review. Local
+executable-contract and listener prototypes are intentionally excluded from this
+specification checkpoint: they have no checkpoint identity, supply no evidence,
+and may be retained, revised, or removed only after their owning checkpoint
+authorizes implementation. No S2-E implementation or acceptance outcome is
+complete until its specification gate, boundary gate, and composed executable
+evidence pass.
 
 This contract defines a bounded diagnostic plane for locating managed-audio
 quality failures. It consumes the S2-D stream, lease, handoff, and recovery
@@ -581,30 +585,267 @@ and confidence enum. It never embeds raw input or arbitrary prose.
   locally implemented but not described as negligible-overhead in the real
   environment.
 
-## Implementation sequence
+## Implementation discipline
 
-1. Publish the capability/endpoint matrix, trace/attempt state machines,
-   producer assertion profiles, synchronization-anchor format, versioned report
-   schemas, finite enums, range validators, privacy projections, capacity
-   worksheet, and pure interval-aware comparison model with generated
-   adversarial tests.
-2. Extract and test the pure worklet accumulator/ring and browser lifecycle
-   harness, then add worklet/browser counters and the bounded local ring. Prove the advanced
-   local report works with upload disabled before building ingestion.
-3. Add the isolated diagnostics collector/store and dedicated physical volume,
-   authenticated Game ingestion, idempotency, logical/physical quotas,
-   retention, and read-only host/operator projections.
-4. Implement and pin the stable nonblocking source and relay diagnostic
-   interfaces, then add their isolated reporter tasks. Neither may
-   parse free-form logs or receive authority database write access.
-5. Add the advanced comparison view and copyable member/operator reports.
-6. Run local deterministic fault injection at source, relay, delivery, buffer,
-   and browser-output boundaries; verify classification, privacy, and resource
-   bounds.
-7. Hand the complete package to S2-F for real controller/browser/relay timing,
-   supported-client performance, restart, capacity, and cleanup evidence.
+S2-E checkpoints are scoped to one consistency boundary, not one user-facing
+feature. A checkpoint may consume a previously verified boundary, but it may not
+claim the consumer and producer are composed until a test crosses their real
+interface. Every checkpoint has the following entry and exit rules:
 
-Each step is checkpointed and audited before the next data producer is added.
+1. Publish the owned state, legal transitions, identity/epoch, atomicity point,
+   privacy projection, failure result, and resource bound before implementation.
+2. Build failing tests for the invariant, stale response, interruption, retry,
+   reset, and teardown schedules before changing the implementation.
+3. Test the real interface at least once. A pure model cannot verify a
+   MessagePort, HTTP, SQLite, React, process, or host boundary on its own.
+4. Compare every status/documentation claim to a named executable test. A
+   property without direct evidence is `implemented; verification pending`, not
+   `verified`.
+5. Run a targeted independent audit and checkpoint the result before attaching
+   the next consumer or data producer.
+
+The evidence record for each checkpoint contains: invariant IDs; test names;
+the exact source/tree identity; negative schedules exercised; resource results;
+privacy fields reviewed; deferred measurements with their S2-F owner; and an
+honest status from the checkpoint template. Status can advance only through the
+template's explicit design decision and implementation-authorization fields.
+
+## Pre-implementation specification closure gate
+
+`Designed` means more than a narrative and must be achieved before production
+code for a checkpoint begins. Each E1-E12 checkpoint publishes one reviewed
+specification packet using the
+[S2-E checkpoint specification template](s2-e-checkpoint-spec-template.md),
+with all of the following artifacts:
+
+1. **Boundary map:** the sole owner, trusted and untrusted inputs, output and
+   side-effect surfaces, downstream consumers, explicitly excluded concerns,
+   and the exact interface at which composition will later be tested.
+2. **Executable data contract:** plain-object requirements, own-property rules,
+   normalization and canonical encoding, identity spelling, exact required and
+   optional fields, per-field semantic operator, range and unit, nested privacy
+   classification, malformed-retained-data policy, and every cross-field truth
+   relationship. A list of fields without its relational truth table is not a
+   complete schema.
+3. **Lifecycle and interruption model:** legal states and edges, epoch or
+   generation ownership, atomicity/linearization point, idempotency identity,
+   and the result of interruption before and after each effect. It explicitly
+   covers stale response, exact retry, conflicting reuse, concurrent call,
+   reset, rotation, restart, timeout, cancellation, and teardown.
+4. **Failure and resource model:** finite errors; unknown, unsupported, and not
+   applicable semantics; logical and physical bounds; queue/backoff policy;
+   degraded/read-only behavior; cleanup ownership; and proof that the diagnostic
+   path cannot become an authority or availability dependency.
+5. **Privacy walk:** recursively inspect every field of ingestion, persistence,
+   member copy, host/operator read, audit event, error, and log projections.
+   Classifying only a containing object never authorizes all nested fields.
+6. **Evidence design:** invariant IDs; generated exhaustive matrices where the
+   domain is finite; hand-written adversarial schedules where it is not; the
+   retained reference/baseline; the real-interface composition test; resource
+   measurement; and the exact documentation claim each test can support.
+7. **Dependency firewall:** a checkpoint may consume only previously verified
+   semantics. Later-stage fields are opaque or stubbed. Its focused test command
+   must not execute a later checkpoint's validator, reducer, store, or adapter
+   and then borrow that green result as current evidence.
+
+The specification packet receives an adversarial design review before tests or
+implementation. Reviewers must attempt at least: inherited and non-plain input;
+alternate identity spelling; reordered canonical input; impossible cross-field
+values; nested privacy bypass; stale epoch; lost response; exact and conflicting
+retry; concurrent/reset/restart schedules; unsupported API; quota/cleanup
+failure; and a green test whose name claims more than its assertions. A finding
+changes the specification first. Implementation is not used to discover the
+missing rule.
+
+After the specification passes and explicitly authorizes implementation,
+failing tests are generated or written from its
+invariant IDs. The implementation gate cannot weaken the reviewed spec to make
+tests pass. Any newly discovered rule returns the checkpoint to `designed;
+review pending`, updates the packet, and reruns the design audit before code
+continues.
+
+## Predictable-failure matrix by checkpoint
+
+The following questions are mandatory additions to the common closure gate.
+They are specification work, not post-implementation audit suggestions.
+
+| Checkpoint | Specification must close before implementation |
+| --- | --- |
+| E1 | Plain/own JSON shape; lowercase canonical identities; exact per-kind envelopes and transitions; semantic operators such as ordinal, window sum, window aggregate, point, and instance cumulative; byte/frame/channel and signal truth tables; nested member/operator privacy; one validated copy/export wrapper; all-kind replay/conflict; malformed retained-read policy; and an E1 validator that does not execute E2 alignment or E3 diagnosis. |
+| E2 | Exact signed bytes and canonicalization order; physically possible clock inequalities and interval formula; issuer/audience/scope/key ownership; key distribution and retention; nonce/replay/expiry/renewal; consent start/stop versus accepted replay linearization; trace/run/lease/generation rotation; unrelated timebases; and fail-closed historical verification. |
+| E3 | Versioned health derivation from validated report fields; no caller-authored component, health, interval, or timebase labels; uncertainty-aware overlap and precedence; contradictory/missing evidence; exact contributing references; confidence semantics; and exhaustive classification plus `insufficient_evidence` matrices. |
+| E4 | Epoch-tagged MessagePort request/reply shapes; one atomic snapshot-and-rotate operation; acknowledgement and stale-message handling; reset during buffering, render, underrun, and re-prime; fixed sampling/aggregation definitions; overflow and teardown; pre-instrumentation playback baseline; allocation and render-path bounds; and no lost or cross-epoch observations. |
+| E5 | Once-only ordered attempt milestones; reconnect only after a new attempt; background sleep and timer-throttling coverage; visibility transitions; unsupported versus observed zero; structured finite errors; abort/retry/reset races; old worklet replies; and cleanup of every timer, observer, reader, node, listener, and AudioContext on every exit. |
+| E6 | Closed-panel subscription/render behavior; recursively projected copy shape; pseudonymous-field disclosure before copy; clipboard failure; accessibility announcement cadence; reset acknowledgement without playback mutation; malformed local data; bounded export; and proof that UI state is never measurement authority. |
+| E7 | Canonical schema/ledger identity; database transition and immutability rules; transactional ingest/idempotency; exact replay after retention; WAL/checkpoint/busy/crash schedules; physical database/index/WAL/temp/log accounting; reserve enforcement; secure deletion policy; startup recovery; backup exclusion; disposable rollback; and collector absence from every authority readiness dependency. |
+| E8 | Exhaustive capability and credential matrix; principal/source/relay assertion binding to method, path, request, run, lease, generation, and expiry; trusted server clock; request identity and response-loss replay; consent-generation races; delayed old assertions after handoff; bounded error mapping; and proof diagnostic failure cannot share a gameplay transaction. |
+| E9 | Exact finite source snapshot and local privilege boundary; monotonic counter/reset identity; reporter queue/backoff/drop semantics; credential rotation; malformed/hung collector; source/controller restart; no log or raw-error scraping; and unchanged authority poll cadence, lease fail-close, provider sequencing, and publisher state. |
+| E10 | Exact finite relay snapshot; generation creation and immutable binding; delayed old-generation reports; handoff/fence ordering; listener fan-out/backpressure counters; reporter queue and credentials; relay/collector restart; no peer/IP/path leakage; and unchanged audio delivery under collector failure. |
+| E11 | Fault oracle derived only from E1-E3 evidence; source/relay/delivery/buffer/output fault isolation; missing and contradictory evidence; role-scoped reads; privacy and retention after comparison; resource exhaustion and cleanup; provenance tying results to exact code/images; and real-interface composition rather than simulator constants. |
+| E12 | Exact local evidence inventory; measurement-only S2-F responsibilities; image/release/host identity; interruption/reboot/restore/rollback schedules; credential and resource cleanup; acceptance thresholds fixed before rehearsal; and an explicit route back to the owning E checkpoint when reality disproves the model. |
+
+## Revised implementation sequence
+
+Execution resumes at E1. Existing prototype code that spans E1-E6 may be
+retained, revised, or removed, but its presence does not advance checkpoint
+status. E2 and E4 both require verified E1. E4 may then proceed without verified
+E2-E3 because it consumes neither authority nor comparison semantics. E5
+requires verified E4; E6 requires verified E1 and E5; E7-E12 proceed in the
+numbered order. No collector work begins merely because a local report can
+already be rendered.
+
+### E1 — Measurement vocabulary and privacy schema
+
+Status: revised detailed specification is `design-review-pending`; implementation
+remains unauthorized. The primary adversarial review corrected the previously
+implicit rules for object shape, semantic operators, transitions, signal and
+cross-field truth, recursive copy privacy, all-kind identity, E2 isolation, and
+evidence scope. The specification checkpoint supplies the exact audit identity;
+an independent design audit remains required before the packet may become
+`designed`. This status does not advance E2 or authorize E1 implementation
+remediation.
+
+Detailed specification packet:
+[E1 measurement vocabulary and privacy](s2-e-e1-measurement-spec.md).
+
+Publish only the six exact report envelopes; precise field semantics including
+identity, ordinal, constant, window sum, window aggregate, point sample,
+instance cumulative, interval, and transition; finite enums; numeric ranges;
+versioned signal thresholds and relational truth tables; member/operator and
+copy/export projections; and canonical encoding/idempotency identity. Generated
+tests reject unknown fields,
+cross-semantic substitutions, prohibited data, malformed values, and conflicting
+identity reuse. No timing alignment, diagnosis, storage, browser wiring, or
+producer integration is in this checkpoint.
+
+Exit gate: every field eligible for persistence or copy has one executable
+semantic, relational, and recursive privacy rule; the validated export wrapper
+is defined; and all-kind exact replay/conflict behavior passes. E6 later proves
+that the browser copy action consumes this boundary without bypassing it.
+
+### E2 — Synchronization and correlation authority
+
+Implement the capability matrix, trace lifecycle, consent generation, producer
+assertion profiles, synchronization sample verification, interval mapping, key
+retention, and replay/expiry rules. Tests cover impossible timing, signature and
+key failure, stale generations, consent stop/replay linearization, unrelated
+timebases, renewal, reordering, and historical comparison. This checkpoint
+produces validated aligned intervals; it does not classify audio health.
+
+Exit gate: no caller can author run/lease/trace/role authority, and every mapped
+interval is derived from a cryptographically verified, physically possible
+sample or fails closed.
+
+### E3 — Evidence derivation and comparison reducer
+
+Build versioned reducers that derive finite component health observations from
+validated E1 reports and E2 intervals. The comparison function accepts only
+those derived observations; it never accepts caller-authored health, component,
+interval, or timebase labels. Tests exhaust the classification matrix and prove
+that missing, contradictory, overlapping, or unverifiable evidence returns
+`insufficient_evidence`.
+
+Exit gate: every diagnosis is reproducible from contributing validated report
+references and carries its interval/uncertainty evidence.
+
+### E4 — Worklet core and atomic cross-thread protocol
+
+Instrument the PCM core without React, fetch, or upload. Define one epoch-tagged
+MessagePort protocol for configure, PCM, state transitions, atomic
+snapshot-and-rotate, and diagnostic reset. Use the actual worklet wrapper and a
+deterministic MessagePort/AudioWorklet harness. Compare the instrumented core to
+the retained pre-instrumentation playback baseline across render, underrun,
+re-prime, overflow, reset, stale-message, and teardown schedules.
+
+Exit gate: observations cannot be lost or cross epochs; attempt-independent
+worklet events are coherent; allocation/storage bounds pass; and the deterministic
+baseline shows zero instrumentation-induced underruns or PCM divergence.
+
+### E5 — Browser attempt and window lifecycle
+
+Implement the listener attempt state machine, fixed-cadence window accumulator,
+background/visibility coverage, unsupported-API states, bounded local ring, and
+diagnostic-instance rotation without UI. A browser harness uses fake fetch
+streams, timers, AudioContext, MessagePort, PerformanceObserver, visibility,
+aborts, sleep/throttling, failures, retries, reset acknowledgements, and page
+teardown. It composes through the real hook-facing adapter and E4 protocol.
+
+Exit gate: milestones occur once in legal order, reconnect begins only with a
+new attempt, suspended coverage is not silently discarded, unsupported does not
+mean healthy zero, and every exit releases its observers, timers, streams, node,
+and AudioContext.
+
+### E6 — Local UI, copy, and rendering isolation
+
+Attach the verified E5 model to the advanced local panel while upload remains
+disabled. Rendering subscriptions activate only while the panel needs live
+display; collection remains bounded independently of React. Copy uses the E1
+member projection and discloses pseudonymous identifiers, role, browser, timing,
+and stream behavior before the local user action. Reset is composed through the
+acknowledged E4/E5 epoch transition.
+
+Exit gate: component tests prove closed-panel render isolation, accurate copy
+disclosure/projection, reset without playback mutation, accessible status
+behavior, and bounded report export.
+
+### E7 — Isolated collector and physical store
+
+Add the disposable collector/store and dedicated physical volume. Implement
+authenticated ingestion, exact idempotency, logical and physical quotas,
+retention, audit events, read-only projections, WAL/temp/log bounds, and
+degraded/read-only behavior. Game/State/audio readiness, backup, and rollback
+must not depend on diagnostics.
+
+Exit gate: process/SQLite/Compose tests prove capability separation, quota and
+reserve enforcement, retention, deletion, restore exclusion, schema disposal,
+and unchanged S2-D authority behavior under collector loss or corruption.
+
+### E8 — Game/State mediation and consent routing
+
+Wire trace management, listener grants, source authority assertions, relay
+generation binding, host reads, and forward-only consent through the reviewed
+capability graph. Test each real HTTP boundary and an exhaustive cross-scope
+allow/deny matrix. No source or relay reporter is attached yet.
+
+Exit gate: correlation is server-derived, exact replays retain their original
+finite result, revoked unseen work is rejected, and ingestion failure cannot
+change gameplay or playback transactions.
+
+### E9 — Source diagnostic interface and isolated reporter
+
+Implement and pin the finite publisher snapshot interface, then attach a
+separate bounded reporter using E8 authority. Audio and authority-poll paths do
+constant-time counter updates only and never wait for diagnostics.
+
+Exit gate: stable-interface, credential, malformed-response, hung-collector,
+restart, queue-bound, and no-free-form-output tests pass without changing source
+poll cadence, lease fail-close behavior, or publisher state.
+
+### E10 — Relay diagnostic interface and isolated reporter
+
+Implement and pin the finite relay-generation snapshot interface and attach its
+bounded reporter. Bind a generation once at start and never rebind delayed work
+after handoff.
+
+Exit gate: generation, fencing, fan-out, backpressure, credential, restart, and
+hung-collector tests pass without changing relay delivery or S2-D isolation.
+
+### E11 — Comparison experience and composed local fault injection
+
+Add host/operator comparison views over the E3 reducer and E7 projections.
+Inject deterministic faults separately at source, relay, delivery, buffer, and
+browser-output boundaries, then exercise contradictory/missing evidence,
+privacy, retention, deletion, resource exhaustion, and cleanup.
+
+Exit gate: the complete local acceptance gate below passes through real
+interfaces and no finding is justified solely by a pure-model test.
+
+### E12 — S2-F handoff
+
+Hand the verified local package to S2-F for real controller/browser/relay timing,
+supported-client performance, restart, capacity, installation, and cleanup
+evidence. Failed real measurements return to the owning E1-E11 boundary rather
+than being waived or fixed only in the rehearsal plan.
 
 ## Local acceptance gate
 

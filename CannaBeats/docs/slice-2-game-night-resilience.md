@@ -1,8 +1,10 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E design defined with implementation pending; S2-F host proof
-  remains pending
+  verified; S2-E architecture/checkpoint framework approved, E1 detailed
+  specification blocked pending revision, and executable-contract/listener
+  prototypes remain unverified inputs; collector/producers and S2-F host proof
+  remain pending
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1057,10 +1059,29 @@ The normative design and implementation sequence are maintained in the
   and relay snapshot interfaces plus isolated reporter tasks are required; a
   hung collector cannot run on authority-poll, capture, publisher, or relay
   fan-out paths.
-- Implementation proceeds capability/correlation schemas first, deterministic
-  worklet/browser harnesses and the local listener report second, isolated
-  ingestion third, and newly pinned source/relay interfaces last. Each step
-  receives its own checkpoint and audit.
+- Implementation is divided by consistency boundary, not by user-facing
+  feature: measurement/privacy schema; synchronization/correlation authority;
+  evidence derivation; worklet/MessagePort protocol; browser lifecycle; local
+  UI/copy; collector/store; Game/State routing; source reporter; relay reporter;
+  composed comparison; then S2-F. Each boundary receives its own failing tests,
+  real-interface composition test, checkpoint, claim-to-evidence review, and
+  targeted audit before the next consumer is attached.
+- The initial shared module, PCM worklet core, browser accumulator, bounded local
+  ring, and copy/reset panel are implemented prototypes. Their verification is
+  reopened after audit found that the former steps combined multiple boundaries
+  and tested pure pieces without crossing the MessagePort, browser lifecycle,
+  React, and evidence-derivation seams. They are inputs to the revised E1-E6
+  checkpoints, not completed S2-E acceptance outcomes.
+- A checkpoint is `verified` only when every documented property maps to a
+  named executable test at the same boundary. Model-only evidence cannot verify
+  an HTTP, SQLite, MessagePort, React, process, or host composition claim.
+- Before implementation, every E checkpoint must pass a specification-closure
+  audit covering its boundary map, exact data and relational truth contract,
+  lifecycle/interruption matrix, nested privacy walk, resource/failure model,
+  dependency firewall, and claim-to-test ledger. Predictable counterexamples
+  are enumerated per checkpoint in the normative S2-E contract; discovering one
+  later returns the checkpoint to design review rather than patching an implicit
+  rule directly into implementation.
 
 Gate: two common-timebase listeners can be compared with uncertainty-aware rules
 to localize an injected stutter; missing alignment yields
