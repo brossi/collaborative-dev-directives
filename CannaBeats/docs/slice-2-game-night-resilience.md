@@ -934,6 +934,28 @@ starting S2-D without claiming Slice 2 complete.
 
 ### S2-D: Session, seat, and host recovery
 
+The authority model and implementation order are maintained in the
+[S2-D recovery contract](operations/s2-d-recovery-contract.md). Browser storage
+is a recovery locator rather than seat authority, and source handoff is modeled
+as a finite State-owned transition before UI behavior is added.
+
+#### S2-D contract and recovery-projection checkpoint — 2026-08-13
+
+- State publishes exhaustive session-recovery and source-handoff outcome sets.
+  Their precedence and authority matrix are executable tests rather than UI
+  conditionals.
+- An authenticated principal can query a read-only State recovery projection.
+  It discovers only that principal's active memberships, identifies host
+  authority from the durable lobby owner, and identifies a phone seat only when
+  its player ID equals the guest principal ID.
+- Game composes that projection with the current room and audio views. The same
+  guest cookie therefore recovers the same phone seat even when browser
+  `sessionStorage` is absent; no display-name search or replacement seat is used.
+- The inventory confirmed that current wall-clock cleanup deletes expired guest
+  Access identity while State may still retain live membership. Run-aware guest
+  credential rotation and cleanup are intentionally the next persistence task;
+  this checkpoint does not claim expiry-boundary recovery complete.
+
 - Make same-device guest reclaim explicit across refresh, expiry boundaries,
   phone sleep, and short disconnects.
 - Recover authorized host control without creating a duplicate lobby or host.

@@ -67,6 +67,11 @@ export function createGameStateClient({
     return payload;
   }
   return Object.freeze({
+    recover: ({ principalId, preferredLobbyCode }) => request(
+      `/v1/recovery${preferredLobbyCode
+        ? `?preferredLobbyCode=${encodeURIComponent(preferredLobbyCode)}` : ""}`,
+      { principalId },
+    ),
     room: ({ code, principalId }) => request(`/v1/lobbies/${encodeURIComponent(code)}`, { principalId }),
     audio: ({ code, principalId }) => request(
       `/v1/lobbies/${encodeURIComponent(code)}/audio`, { principalId },

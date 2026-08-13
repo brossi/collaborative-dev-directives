@@ -11,6 +11,7 @@ import {
 import { validateStateDatabase } from "./invariants.mjs";
 import { candidateAuthorityDigest } from "./attestation.mjs";
 import { projectStateHistory } from "./history-projection.mjs";
+import { resolveSessionRecovery } from "./recovery-contract.mjs";
 
 const COMMAND_EDGES = new Map([
   ["queued:claim", "claimed"],
@@ -403,6 +404,40 @@ export class StateOwner {
         runGeneration: lobby.run_generation,
         createdAt: lobby.created_at, updatedAt: lobby.updated_at,
       }));
+  }
+
+  recoverPrincipal({ principalId, preferredLobbyCode = null }) {
+    if (typeof principalId !== "string" || !principalId) {
+      throw new Error("Recovery principal is required.");
+    }
+    const rows = this.#db.prepare(`SELECT l.code,l.status,l.host_principal_id,
+        l.active_run_id,l.run_generation,r.revision,r.state
+      FROM lobbies l JOIN lobby_members m ON m.lobby_code=l.code
+      LEFT JOIN game_runs r ON r.id=l.active_run_id
+      WHERE m.principal_id=? ORDER BY l.updated_at DESC,l.code`).all(principalId);
+    const resolution = resolveSessionRecovery({
+      authenticated: true,preferredLobbyCode,
+      memberships: rows.map((row) => ({
+        code: row.code,status: row.status,isHost: row.host_principal_id === principalId,
+      })),
+    });
+    const byCode = new Map(rows.map((row) => [row.code,row]));
+    return {
+      outcome: resolution.outcome,
+      lobbies: resolution.lobbies.map((entry) => {
+        const row = byCode.get(entry.code);
+        let seatPlayerId = null;
+        if (row.state) {
+          const state = validateRoomState(JSON.parse(row.state));
+          seatPlayerId = state.players.find((player) =>
+            player.control === "phone" && player.id === principalId)?.id ?? null;
+        }
+        return {
+          ...entry,runId: row.active_run_id ?? null,runGeneration: row.run_generation,
+          revision: row.revision ?? null,seatPlayerId,
+        };
+      }),
+    };
   }
 
   accessAdmissionContext({ lobbyCode }) {

@@ -1,0 +1,88 @@
+# S2-D recovery contract
+
+Status: foundational model under implementation. This document defines the
+authority and transition boundaries before UI or persistence changes are made.
+
+## Ownership
+
+- Access owns account and same-device guest credentials, credential rotation,
+  expiry, and the mapping from an authenticated credential to one opaque
+  principal ID.
+- State owns lobby membership, host identity, phone-seat control, active run,
+  room revision, action reconciliation, managed-source lease, command, and
+  handoff authority.
+- The browser owns no durable authority. `sessionStorage`, a saved lobby code,
+  and a pending-action record are locators that help choose recovery; deleting
+  or corrupting them cannot create, transfer, or remove a seat.
+- Game composes an Access principal with State projections. It does not infer a
+  seat from a player name or create a second lobby to recover host control.
+
+## Session and seat recovery
+
+Recovery resolves in this order:
+
+1. Reject an incompatible client contract before disclosing lobby state.
+2. Require a valid Access principal. A recognizable expired same-device
+   credential receives `credential_expired`; anonymous traffic receives
+   `authentication_required`.
+3. Reconcile any durable pending action before enabling a new mutation.
+4. Use a saved lobby code only when it is among the principal's current State
+   memberships.
+5. Resume the only active membership, offer an explicit choice when an account
+   has several, or report that there is no recoverable game.
+
+For a phone-controlled seat, the player ID is the guest principal ID. A valid
+same-device credential therefore recovers the same seat; it never searches by
+display name. An expired guest session must not cause Access to delete the
+principal while State still has a live membership. The implementation will use
+a run-aware recovery credential/retention policy and will not extend invite
+tokens or make cross-device transfer implicit.
+
+An authenticated host resumes a lobby only when State records that account
+principal as its host. Recovery cannot replace the host principal or create a
+new lobby as a fallback.
+
+## Client cursor recovery
+
+State's `(lobby code, run ID, run generation, revision)` is authoritative. A
+saved cursor may select a lobby but cannot overrule State. Recovery returns one
+of the finite outcomes published by the State contract. A pending action keeps
+mutations blocked until its original request identity becomes accepted,
+replayed, or definitively rejected.
+
+## Managed-source handoff
+
+The shared source has five externally meaningful states:
+
+- `available`: no lease and no unresolved prior external effect; acquisition is
+  allowed but listening is not yet allowed.
+- `owned`: the requesting lobby owns the live lease; listening is allowed.
+- `busy`: another lobby owns the live lease; acquisition and listening are
+  denied, with local playback offered.
+- `recovering`: this lobby has an unresolved prior effect; acquisition and
+  listening remain denied until reconciliation.
+- `quarantined`: another lobby's prior effect is unresolved after lease loss;
+  no new lobby may acquire or hear the relay until the source acknowledges a
+  safe terminal result or an operator applies a reviewed recovery action.
+
+Lease ownership alone is not sufficient for listener authorization during a
+handoff. The source must cross the unresolved-effect fence before a new owner is
+projected as listen-capable. Local playback remains an explicit, non-destructive
+fallback in every non-owned state.
+
+## Non-goals
+
+- Cross-device seat transfer
+- Name-based seat recovery
+- Automatic host reassignment
+- Exactly-once claims for external Spotify effects
+- Real-host controller/browser/Spotify and reboot proof, which remains S2-F
+
+## Development order
+
+1. Publish and test the finite recovery/handoff outcomes.
+2. Add a read-only principal-to-membership recovery projection.
+3. Replace wall-clock-only guest cleanup with run-aware credential recovery.
+4. Wire browser startup and stale-client handling to the recovery projection.
+5. Persist and enforce the source handoff/quarantine fence.
+6. Add busy/recovering/local-fallback UI and composed recovery scenarios.

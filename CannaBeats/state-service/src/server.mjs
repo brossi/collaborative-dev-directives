@@ -249,6 +249,13 @@ export function createStateServer({
           lobbyCode: lobbyResource[1], principalId,
         }));
       }
+      if (request.method === "GET" && url.pathname === "/v1/recovery") {
+        if (!requireCaller(gameCaller)) return;
+        if (!requirePrincipal("game")) return;
+        return writeJson(response,200,owner.recoverPrincipal({
+          principalId,preferredLobbyCode: url.searchParams.get("preferredLobbyCode"),
+        }));
+      }
       const lobbyAudio = url.pathname.match(/^\/v1\/lobbies\/([^/]+)\/audio$/);
       if (request.method === "GET" && lobbyAudio) {
         if (!requireCaller(gameCaller)) return;

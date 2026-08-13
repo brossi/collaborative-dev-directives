@@ -184,6 +184,15 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
         "advance_round", "skip_track", "select_audio", "release_audio",
         "control_audio", "abandon_game",
       ],
+      recovery: {
+        sessionOutcomes: [
+          "authentication_required", "credential_expired", "client_upgrade_required",
+          "action_reconciliation_required", "none", "choose", "resume",
+        ],
+        sourceHandoffOutcomes: [
+          "available", "owned", "busy", "recovering", "quarantined",
+        ],
+      },
       errors: {
         invalid_json: 400, invalid_request: 400, unauthorized: 401, forbidden: 403,
         principal_assertion_invalid: 403, source_forbidden: 403, not_found: 404,
@@ -332,6 +341,16 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     const roomPayload = await room.json();
     assert.equal(roomPayload.revision, 2);
     assert.equal(roomPayload.state.players[0].id, "opaque-principal-2");
+    const recovery = await fetch(`${origin}/v1/recovery?preferredLobbyCode=SRV234`, {
+      headers: guestHeaders,
+    });
+    assert.deepEqual(await recovery.json(), {
+      outcome: "resume",
+      lobbies: [{
+        code: "SRV234",status: "playing",isHost: false,runId,
+        runGeneration: 1,revision: 2,seatPlayerId: "opaque-principal-2",
+      }],
+    });
 
     const operatorHeaders = { ...headers, authorization: "Bearer operator-secret" };
     const operatorCannotImpersonate = await fetch(`${origin}/v1/lobbies`, {

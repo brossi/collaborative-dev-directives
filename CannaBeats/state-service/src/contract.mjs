@@ -1,4 +1,5 @@
 import { STATE_SCHEMA_GENERATION } from "./schema.mjs";
+import { SESSION_RECOVERY_OUTCOMES, SOURCE_HANDOFF_OUTCOMES } from "./recovery-contract.mjs";
 
 export const STATE_PROTOCOL_VERSION = 3;
 export const STATE_HTTP_CONTRACT_VERSION = 1;
@@ -49,6 +50,10 @@ export const STATE_SERVICE_CONTRACT = Object.freeze({
     accessLobby: 1,
   }),
   gameCommands: GAME_COMMAND_TYPES,
+  recovery: Object.freeze({
+    sessionOutcomes: SESSION_RECOVERY_OUTCOMES,
+    sourceHandoffOutcomes: SOURCE_HANDOFF_OUTCOMES,
+  }),
   errors: STATE_HTTP_ERROR_CODES,
 });
 

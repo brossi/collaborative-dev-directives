@@ -112,6 +112,23 @@ test("access lobby projection and membership are owner-scoped and idempotent", (
     "admissionOpen", "code", "createdAt", "hostPrincipalId", "members", "runGeneration", "status", "updatedAt",
   ]);
   assert.deepEqual(projection.members.map((entry) => entry.principalId).sort(), [host,member].sort());
+  assert.deepEqual(owner.recoverPrincipal({ principalId: member }), {
+    outcome: "resume",
+    lobbies: [{
+      code: "ACC234",status: "lobby",isHost: false,runId: null,
+      runGeneration: 0,revision: null,seatPlayerId: null,
+    }],
+  });
+  assert.deepEqual(owner.recoverPrincipal({ principalId: host }), {
+    outcome: "resume",
+    lobbies: [{
+      code: "ACC234",status: "lobby",isHost: true,runId: null,
+      runGeneration: 0,revision: null,seatPlayerId: null,
+    }],
+  });
+  assert.deepEqual(owner.recoverPrincipal({ principalId: randomUUID() }), {
+    outcome: "none",lobbies: [],
+  });
   owner.close();
 });
 

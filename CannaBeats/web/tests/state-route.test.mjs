@@ -140,3 +140,39 @@ test("state-backed admission and history never read the legacy game database", a
   ));
   assert.equal((await history.json()).history.runId,runId);
 });
+
+test("state-backed recovery derives the same phone seat without browser session authority", async () => {
+  configure();
+  const runId = randomUUID();
+  const recoveredRoom = room(runId,7);
+  recoveredRoom.isHost = false;
+  recoveredRoom.players = [{ id: "player-1",name: "Phone",control: "phone",timeline: [] }];
+  globalThis.fetch = async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/internal/game/principal") return Response.json({
+      principal: { id: "player-1",role: "player",kind: "guest",sessionCode: "ABC234" },
+    });
+    if (parsed.pathname === "/v1/recovery") return Response.json({
+      outcome: "resume",
+      lobbies: [{
+        code: "ABC234",status: "playing",isHost: false,runId,runGeneration: 1,
+        revision: 7,seatPlayerId: "player-1",
+      }],
+    });
+    if (parsed.pathname === "/v1/lobbies/ABC234") return Response.json({ state: recoveredRoom });
+    if (parsed.pathname === "/v1/lobbies/ABC234/audio") return Response.json({
+      selection: "managed",mode: "local",sourceOnline: false,status: "disconnected",
+    });
+    throw new Error(`unexpected ${url}`);
+  };
+  const response = await getStateGame(new Request(
+    "https://poc.example/game/api/game?recover=1",
+    { headers: { cookie: "cb_guest=same-device" } },
+  ));
+  assert.equal(response.status,200);
+  const payload = await response.json();
+  assert.deepEqual(payload.session,{ code: "ABC234",playerId: "player-1" });
+  assert.equal(payload.room.runId,runId);
+  assert.equal(payload.room.revision,7);
+  assert.equal(payload.recovery.outcome,"resume");
+});

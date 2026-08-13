@@ -15,17 +15,19 @@ test("game state client signs its principal and forwards the exact action identi
   });
   const actionId = randomUUID();
   const runId = randomUUID();
+  await client.recover({ principalId: "principal-1",preferredLobbyCode: "ABC123" });
   await client.action({
     actionId, code: "ABC123", expectedRunId: runId, expectedRunGeneration: 2,
     expectedRevision: 4, command: { type: "advance_round" }, principalId: "principal-1",
   });
-  assert.equal(calls[0].url, "http://state:3010/v1/lobbies/ABC123/actions");
-  assert.deepEqual(JSON.parse(calls[0].options.body), {
+  assert.equal(calls[0].url, "http://state:3010/v1/recovery?preferredLobbyCode=ABC123");
+  assert.equal(calls[1].url, "http://state:3010/v1/lobbies/ABC123/actions");
+  assert.deepEqual(JSON.parse(calls[1].options.body), {
     actionId, expectedRunId: runId, expectedRunGeneration: 2,
     expectedRevision: 4, command: { type: "advance_round" },
   });
   const claim = "game\ncannabeats-state\ngame\nprincipal-1\n30200";
-  assert.equal(calls[0].options.headers["x-cannabeats-principal-signature"],
+  assert.equal(calls[1].options.headers["x-cannabeats-principal-signature"],
     createHmac("sha256", "game-key").update(claim).digest("hex"));
 });
 

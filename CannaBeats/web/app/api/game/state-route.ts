@@ -86,6 +86,30 @@ export async function getStateGame(request: Request) {
   try {
     const actor = await principal(request);
     const url = new URL(request.url);
+    if (url.searchParams.get("recover") === "1") {
+      const state = createGameStateClient();
+      const preferredLobbyCode = url.searchParams.get("preferredLobbyCode")?.trim().toUpperCase();
+      const recovery = await state.recover({
+        principalId: actor.id,preferredLobbyCode: preferredLobbyCode || undefined,
+      });
+      if (recovery.outcome !== "resume" || recovery.lobbies.length !== 1) {
+        return Response.json({ recovery }, { headers: { "Cache-Control": "no-store" } });
+      }
+      const recovered = recovery.lobbies[0];
+      const [room,audio] = await Promise.all([
+        state.room({ code: recovered.code,principalId: actor.id }),
+        state.audio({ code: recovered.code,principalId: actor.id }),
+      ]);
+      return Response.json({
+        recovery,
+        session: {
+          code: recovered.code,
+          ...(recovered.seatPlayerId ? { playerId: recovered.seatPlayerId } : {}),
+        },
+        room: room.state,
+        audio,
+      }, { headers: { "Cache-Control": "no-store" } });
+    }
     const runId = url.searchParams.get("runId");
     if (runId) {
       const result = await createGameStateClient().history({ runId,principalId: actor.id });
