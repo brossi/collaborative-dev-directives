@@ -1,6 +1,8 @@
 # Slice 2: Game-night resilience
 
-- Status: single-writer S2-B/S2-C foundation locally rehearsed; independent audit pending
+- Status: single-writer S2-A/S2-B/S2-C foundation locally rehearsed and
+  cross-contract aligned; independent adversarial audit and S2-F host proof
+  remain pending
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -903,6 +905,33 @@ composed game-API verification pass. This confirms the implementation checkpoint
 the combined S2-B/S2-C gate remains open until the requested fresh full adversarial
 audit completes without unresolved in-scope blockers.
 
+#### Bounded S2-A/S2-B/S2-C alignment review — 2026-08-13
+
+The post-rehearsal cross-contract review found no unresolved S2-A/S2-B/S2-C
+implementation blocker to starting S2-D:
+
+- **Verified locally:** the cutover topology has one State-volume writer and no
+  enabled legacy game-state path; Access, Game, source, retention, backup, and
+  bounded operator callers use distinct authority; request identity, principal
+  assertion, run generation, claim generation, replay, and projection contracts
+  agree across those callers.
+- **Verified locally:** gameplay mutation, managed-command transition, receipt,
+  significant event, coverage, seal, purge, and sanitization evidence compose as
+  one authoritative history model. Coordinated recovery, admission fencing,
+  release selection, rollback floor, and interruption reconciliation share one
+  operation boundary and passed the focused executable schedule suite.
+- **S2-D-owned:** same-device seat and host recovery, stale-client recovery,
+  actionable busy/recovering/local-fallback states, and a source-handoff fence
+  that prevents residual A audio from reaching newly owning lobby B.
+- **S2-F-owned:** real controller/browser/Spotify and systemd integration,
+  digest-pinned disposable-host deployment, reboot/interruption evidence,
+  production alerting/capacity, and final removal of pre-cutover legacy writer
+  implementations after the rollback rehearsal gate.
+
+This was a bounded alignment review, not the still-required independent full
+adversarial closure audit. It establishes a stable dependency boundary for
+starting S2-D without claiming Slice 2 complete.
+
 ### S2-D: Session, seat, and host recovery
 
 - Make same-device guest reclaim explicit across refresh, expiry boundaries,
@@ -912,15 +941,15 @@ audit completes without unresolved in-scope blockers.
 - Present managed-source busy, recovering, retry, and explicit local-fallback
   states without exposing another lobby.
 
-Open findings assigned here by the targeted S2-B/S2-C audit:
+The single-writer foundation closed two prerequisites originally assigned here:
+relay listening now requires current lease ownership rather than a saved
+`managed` preference, and every managed command and outcome is bound to its run
+ID and run generation. S2-D retains the user-visible recovery behavior and this
+open handoff invariant:
 
-- Authorize relay listening from current lease ownership, not the lobby's saved
-  `managed` preference, so a waiting lobby cannot hear the current owner's relay.
 - Fence direct lease handoff and in-flight external playback: A→B must pause/stop
-  and acknowledge A before B may use the shared source, even if no poll observes
-  an intermediate lease-free state.
-- Bind command outcomes to run ID and run generation before adding run replacement,
-  so a late completion from an old run cannot be attributed to a recovered run.
+  and acknowledge or explicitly quarantine A before B may hear or control the
+  shared source, even if no poll observes an intermediate lease-free state.
 
 Gate: returning clients recover the same seat/round without hidden data; a
 second host cannot steal the source or ambiguously control the game.

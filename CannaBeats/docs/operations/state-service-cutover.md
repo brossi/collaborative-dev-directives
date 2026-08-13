@@ -1,6 +1,8 @@
 # State-service cutover and migration strategy
 
-Status: locally rehearsed development procedure; independent audit and S2-F host proof pending.
+Status: locally rehearsed development procedure with a completed bounded
+S2-A/S2-B/S2-C cross-contract alignment review; independent adversarial audit
+and S2-F host proof remain pending.
 
 This procedure separates identity/access data from game-night state without a
 dual-write interval. It assumes the refactor is operator-controlled and no live
