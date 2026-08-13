@@ -237,11 +237,13 @@ Candidate scope:
 - Measure audio startup, interruption, recovery, loudness, clipping, and underruns
 - Add periodic per-listener summaries for stream timing, chunk gaps, buffer depth and trend, underruns, re-primes, overflows, resets, AudioContext state, and coarse platform/client context
 - Add correlated source and relay summaries for published frames, dropped uploads, listener delivery, interruption, and restart behavior
+- Align copied and uploaded observations with server-issued synchronization anchors and explicit uncertainty; unrelated clocks cannot establish precedence
+- Keep uploaded signal evidence categorical and retain numeric loudness envelopes locally only
 - Provide an advanced local audio-diagnostics view and copyable report that remains useful if telemetry upload fails
 - Add stale-client and incompatible-version responses where necessary
 - Persist selected game events with lobby, run, round, server time, actor type, action ID, outcome, and redacted error context
 - Persist requested, delivered, acknowledged, failed, interrupted, recovered, and expired audio outcomes independently of command-queue cleanup
-- Carry correlation identifiers across the game API, access service, managed-source controller, and relay diagnostics
+- Carry correlation identifiers through scoped Game proxy endpoints, State work-bound assertions, and newly pinned source/relay machine interfaces without adding diagnostic authority to Access or State
 - Derive active, idle, stale, completed, and abandoned session states from meaningful actions, client presence, and lease activity
 
 Acceptance outcomes:
@@ -254,7 +256,7 @@ Acceptance outcomes:
 - A completed or abandoned game can be reconstructed chronologically through joins, start, track requests, placements, retractions, reveals, advances, skips, audio outcomes, and termination without relying on container logs.
 - The operator summary can explain whether playback was requested and acknowledged, why a command failed when known, and whether the session recovered.
 - Objective playtest timing and reliability facts can be derived from the event trail without requiring persistent player profiles.
-- Two listeners in the same session can be compared to determine whether a stutter originated at the source, relay, network delivery, browser feed, jitter buffer, resampling clock, or local audio output path.
+- Two listeners with a common synchronization anchor can be compared using explicit uncertainty to determine which source, relay, delivery, browser-feed, jitter-buffer, nominal-rate, or local-output evidence is consistent with a stutter; insufficient alignment fails closed.
 - Profiling transmits no audio samples, credentials, pre-reveal metadata, or persistent device fingerprint and has measured negligible effect on playback scheduling.
 
 Boundaries:

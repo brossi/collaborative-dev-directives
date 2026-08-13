@@ -1039,19 +1039,34 @@ The normative design and implementation sequence are maintained in the
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
+- Game mediates an exact capability graph for trace management, listener,
+  source and relay ingestion, and host reads. State attests run-host and
+  work-bound source authority; callers cannot author run, lease, trace, role, or
+  command correlation.
 - Listener, source, and relay observations use bounded versioned summaries,
-  ephemeral correlation identifiers, finite classifications, and a seven-day
-  disposable diagnostic store.
+  server synchronization anchors with explicit uncertainty, connection-attempt
+  identity, ephemeral correlation identifiers, finite classifications, and a
+  seven-day disposable diagnostic store.
 - The browser keeps a bounded local report that remains useful when upload or
   the collector fails. Cross-listener/source comparison is host/operator-only.
-- PCM, credentials, answer metadata, personal identifiers, full user agents,
-  arbitrary errors, and persistent device fingerprints are prohibited.
-- Implementation proceeds schema/comparison first, local listener report
-  second, isolated ingestion third, and source/relay producers last. Each step
+- Reports are disclosed as pseudonymous, not anonymous. PCM, numeric uploaded
+  amplitude envelopes, credentials, answer metadata, direct personal
+  identifiers, full user agents, arbitrary errors, and persistent device
+  fingerprints are prohibited.
+- The collector has its own physically bounded volume. Stable versioned source
+  and relay snapshot interfaces plus isolated reporter tasks are required; a
+  hung collector cannot run on authority-poll, capture, publisher, or relay
+  fan-out paths.
+- Implementation proceeds capability/correlation schemas first, deterministic
+  worklet/browser harnesses and the local listener report second, isolated
+  ingestion third, and newly pinned source/relay interfaces last. Each step
   receives its own checkpoint and audit.
 
-Gate: two listeners can be compared to localize an injected stutter, profiling
-contains no prohibited data, and playback scheduling impact is negligible.
+Gate: two common-timebase listeners can be compared with uncertainty-aware rules
+to localize an injected stutter; missing alignment yields
+`insufficient_evidence`; profiling contains no prohibited data; physical and
+logical resource bounds hold; and deterministic instrumentation adds no
+underruns. Real-client overhead and real-host measurements remain S2-F gates.
 
 ### S2-F: Real-environment rehearsal and closure
 
