@@ -1385,7 +1385,7 @@ export class StateOwner {
     if (!context?.run_id) throw new Error("Managed lease run authority is unavailable.");
     const transitions = this.#forfeitLease(context,reasonCode,now);
     const uncertain = transitions.some((entry) => entry.state === "outcome_unknown");
-    if (context.playback_status !== "playing" && !uncertain) {
+    if (context.playback_status === "paused" && !uncertain) {
       return { transitions,handoff: { state: "clear" } };
     }
     const handoffId = randomUUID();

@@ -804,6 +804,7 @@ export function createApp({
     const code = normalizeGameCode(req.body?.code);
     if (code.length !== 6) throw new HttpError(400, 'Game code is invalid');
     const requireInvitation = req.body?.requireInvitation === true;
+    const admissionNow = Date.now();
     let admittedPrincipal = principalFromForwardedCredentials(req.body ?? {});
     if (admittedPrincipal?.kind === 'guest' && admittedPrincipal.sessionCode !== code) {
       throw new HttpError(404, 'Game session was not found');
@@ -813,6 +814,12 @@ export function createApp({
       FROM state_admission_reservations WHERE action_id=?`).get(actionId);
     let guestAdmission = db.prepare(`SELECT user_id,lobby_code,display_name,expires_at,recovery_expires_at
       FROM state_guest_admissions WHERE action_id=?`).get(actionId);
+    if (reservation && reservation.retry_expires_at <= admissionNow) {
+      throw new HttpError(403,'Admission retry window expired');
+    }
+    if (guestAdmission && guestAdmission.recovery_expires_at <= admissionNow) {
+      throw new HttpError(403,'Admission retry window expired');
+    }
     if (reservation) {
       if (reservation.lobby_code !== code
           || (admittedPrincipal && admittedPrincipal.id !== reservation.principal_id)) {

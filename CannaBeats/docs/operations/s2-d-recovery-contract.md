@@ -1,6 +1,7 @@
 # S2-D recovery contract
 
-Status: local implementation verified; composed Docker requalification pending.
+Status: post-closure local implementation and full suites verified; composed
+Docker requalification for this remediation is pending.
 This document defines the authority and transition boundaries used by the
 current implementation.
 
@@ -50,6 +51,9 @@ for retry, but never stores the invitation capability outside the URL fragment.
 It receives no guest cookie until State accepts that same action. If State is
 unavailable or the response is lost, exact retry reuses the reservation;
 a different action cannot reuse the consumed invitation.
+The 24-hour retry boundary is enforced when the reservation is read, not only
+when background cleanup happens. Malformed browser locator records are removed
+and regenerated; they never extend or replace server authority.
 
 An authenticated host resumes a lobby only when State records that account
 principal as its host. Recovery cannot replace the host principal or create a
@@ -90,9 +94,11 @@ projected as listen-capable. Local playback remains an explicit, non-destructive
 fallback in every non-owned state.
 
 State schema generation 4 / managed-source protocol 4 persist the handoff as
-an immutable stop obligation. Releasing a source that is playing creates a
-State-issued `pause`; releasing it with delivered work first quarantines the
-source until that work reaches a definitive outcome, then exposes the pause.
+an immutable stop obligation. Only a positive `paused` source projection makes
+release safe without another stop. `playing`, `ready`, and `error` do not prove
+that a prior external effect has stopped, so those paths create a State-issued
+`pause`; releasing with delivered work first quarantines the source until that
+work reaches a definitive outcome, then exposes the pause.
 The old lease is removed immediately, but another lobby cannot acquire the
 source and cannot listen until the pause completes as `paused`. A source cannot
 be disabled across this boundary; token rotation preserves the stop authority.

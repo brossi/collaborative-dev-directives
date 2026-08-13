@@ -265,11 +265,15 @@ test("startup recovery preserves a pending lobby target for exact reconciliation
   recoveredRoom.isHost = false;
   recoveredRoom.players = [{ id: "player-1",name: "Phone",control: "phone",timeline: [] }];
   let recoveryQuery;
-  globalThis.fetch = async (url) => {
+  let accessRecoveryBody;
+  globalThis.fetch = async (url,options = {}) => {
     const parsed = new URL(url);
-    if (parsed.pathname === "/api/internal/game/recover-principal") return Response.json({
-      outcome: "authenticated",principal: { id: "player-1",role: "player",kind: "guest" },
-    });
+    if (parsed.pathname === "/api/internal/game/recover-principal") {
+      accessRecoveryBody = JSON.parse(options.body);
+      return Response.json({
+        outcome: "authenticated",principal: { id: "player-1",role: "player",kind: "guest" },
+      });
+    }
     if (parsed.pathname === "/v1/recovery") {
       recoveryQuery = parsed.searchParams;
       return Response.json({
@@ -293,5 +297,7 @@ test("startup recovery preserves a pending lobby target for exact reconciliation
   const payload = await response.json();
   assert.equal(payload.recovery.outcome,"action_reconciliation_required");
   assert.deepEqual(payload.session,{ code: "ABC234",playerId: "player-1" });
+  assert.equal(accessRecoveryBody.pendingActionLobbyCode,"ABC234",
+    "Access must receive the pending locator before deciding whether an expired active credential can recover");
   assert.equal(recoveryQuery.get("pendingActionLobbyCode"),"ABC234");
 });

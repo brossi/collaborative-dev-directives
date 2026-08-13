@@ -958,6 +958,10 @@ as a finite State-owned transition before UI behavior is added.
   active lobby. A terminal/missing membership revokes and removes the guest
   identity. Prior rows expand fail closed by using their old active expiry as
   their initial recovery expiry.
+- Pending-action lobby identity is forwarded through Game to Access before an
+  expired active credential is classified, so an ended run remains available
+  for exact terminal-action reconciliation. Admission retry expiry is enforced
+  on every authority read rather than depending on a cleanup route.
 - Guest admission derives one deterministic capability from its durable action
   identity. Exact replay therefore returns the same capability even after the
   invitation expires instead of creating a second session or requiring the
@@ -982,7 +986,8 @@ as a finite State-owned transition before UI behavior is added.
   but it withholds the cookie and reuses that exact reservation after a
   transient State failure instead of creating a second identity.
 - State schema generation 4 / source protocol 4 now persist lease handoff as a
-  first-class stop obligation. Playing or uncertain release paths cannot be
+  first-class stop obligation. Only positive `paused` evidence makes release
+  immediately safe; `playing`, `ready`, `error`, or uncertain paths cannot be
   reacquired by another lobby until the real source controller executes and
   acknowledges a State-issued pause. Busy, recovering, and quarantined lobby
   projections deny listening and offer explicit local playback instead.
@@ -1005,18 +1010,16 @@ as a finite State-owned transition before UI behavior is added.
   It uses the protocol simulator; real controller, browser, Spotify, and host
   restart evidence remains an S2-F gate.
 
-- Make same-device guest reclaim explicit across refresh, expiry boundaries,
-  phone sleep, and short disconnects.
-- Recover authorized host control without creating a duplicate lobby or host.
-- Add stale-client/version responses and coherent current-state recovery.
-- Present managed-source busy, recovering, retry, and explicit local-fallback
-  states without exposing another lobby.
+The local implementation now covers same-device guest reclaim, authorized host
+recovery, stale-client responses, coherent current-state recovery, and explicit
+managed-source busy/recovering/local-fallback states. Browser locators remain
+non-authoritative and malformed saved admission intents are discarded.
 
 The single-writer foundation closed two prerequisites originally assigned here:
 relay listening now requires current lease ownership rather than a saved
 `managed` preference, and every managed command and outcome is bound to its run
-ID and run generation. S2-D retains the user-visible recovery behavior and this
-open handoff invariant:
+ID and run generation. S2-D retains the user-visible recovery behavior and
+enforces this handoff invariant:
 
 - Fence direct lease handoff and in-flight external playback: A→B must pause/stop
   and acknowledge or explicitly quarantine A before B may hear or control the

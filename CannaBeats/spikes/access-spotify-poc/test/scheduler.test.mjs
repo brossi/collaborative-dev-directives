@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, test } from 'node:test';
 import { promisify } from 'node:util';
+import { assertRestoredRollbackFloor } from '../deploy/rehearsal-contract.mjs';
 
 const run = promisify(execFile);
 const root = mkdtempSync(join(tmpdir(), 'cannabeats-scheduler-test-'));
@@ -130,6 +131,21 @@ test('the relay service fence disconnects listeners at every publisher generatio
   assert.match(override,/--disconnect-listeners-on-source-disconnect\b/);
   assert.match(override,/--host 127\.0\.0\.1\b/);
   assert.match(runtimeRevision,/^[0-9a-f]{40}$/);
+});
+
+test('the restored topology must preserve the live rollback floor exactly', () => {
+  assert.equal(assertRestoredRollbackFloor({
+    liveAuthority: { first_admitted_at: 1234 },
+    restoredAuthority: { first_admitted_at: 1234 },
+  }),1234);
+  assert.throws(() => assertRestoredRollbackFloor({
+    liveAuthority: { first_admitted_at: 1234 },
+    restoredAuthority: { first_admitted_at: null },
+  }),/restored rollback floor is missing/i);
+  assert.throws(() => assertRestoredRollbackFloor({
+    liveAuthority: { first_admitted_at: 1234 },
+    restoredAuthority: { first_admitted_at: 1233 },
+  }),/does not match/i);
 });
 
 test('scheduled state-era backup and retention load the coordinated cutover topology', async () => {

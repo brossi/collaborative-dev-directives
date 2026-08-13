@@ -103,9 +103,12 @@ export async function getStateGame(request: Request) {
     if (!clientContractAccepted(request)) return clientUpgradeRequired();
     const url = new URL(request.url);
     if (url.searchParams.get("recover") === "1") {
+      const preferredLobbyCode = url.searchParams.get("preferredLobbyCode")?.trim().toUpperCase();
+      const pendingActionLobbyCode = url.searchParams.get("pendingActionLobbyCode")?.trim().toUpperCase();
       const access = await createAccessGatewayClient().recoverPrincipal({
         authorization: request.headers.get("authorization") ?? "",
         cookie: request.headers.get("cookie") ?? "",
+        pendingActionLobbyCode: pendingActionLobbyCode || undefined,
       });
       if (access.outcome !== "authenticated" || !access.principal) {
         return Response.json({ recovery: { outcome: access.outcome,lobbies: [] } }, {
@@ -118,8 +121,6 @@ export async function getStateGame(request: Request) {
         responseHeaders.set("Set-Cookie",access.sessionCookie);
       }
       const state = createGameStateClient();
-      const preferredLobbyCode = url.searchParams.get("preferredLobbyCode")?.trim().toUpperCase();
-      const pendingActionLobbyCode = url.searchParams.get("pendingActionLobbyCode")?.trim().toUpperCase();
       const recovery = await state.recover({
         principalId: actor.id,preferredLobbyCode: preferredLobbyCode || undefined,
         pendingActionLobbyCode: pendingActionLobbyCode || undefined,

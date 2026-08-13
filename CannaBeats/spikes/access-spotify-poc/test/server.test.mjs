@@ -882,6 +882,20 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.match(retriedPayload.sessionCookie,/^cb_guest=/);
     assert.ok(db.prepare(`SELECT completed_at FROM state_admission_requests
       WHERE action_id=?`).get(retryActionId).completed_at);
+    db.prepare(`UPDATE state_admission_reservations SET retry_expires_at=?
+      WHERE action_id=?`).run(now - 1,retryActionId);
+    db.prepare(`UPDATE state_guest_admissions SET recovery_expires_at=?
+      WHERE action_id=?`).run(now - 1,retryActionId);
+    const staleRetry = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CannaBeats-Internal-Token': config.gameServiceToken,
+      },
+      body: JSON.stringify(retryBody),
+    });
+    assert.equal(staleRetry.status,403,
+      'an expired admission reservation must fail at the authority read without waiting for cleanup');
     const originalGuestToken = /cb_guest=([^;]+)/.exec(firstPayload.sessionCookie)?.[1];
     assert.ok(originalGuestToken);
     db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE user_id=?')

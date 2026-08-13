@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { basename,dirname,join,resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { assertRestoredRollbackFloor } from "./rehearsal-contract.mjs";
 
 const deploymentDirectory = resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const repositoryRoot = resolve(deploymentDirectory,"../..");
@@ -448,6 +449,10 @@ try {
   });
   const restoredStateReady = await waitJson(`http://127.0.0.1:${restoredStatePort}/ready`,
     (body) => body.authority?.status === "active" && body.authority?.admission?.open === false);
+  const restoredFirstAdmittedAt = assertRestoredRollbackFloor({
+    liveAuthority: active.authority,
+    restoredAuthority: restoredStateReady.authority,
+  });
   await waitJson(`http://127.0.0.1:${restoredAccessPort}/api/ready`,(body) => body.ready === true);
   await waitJson(`http://127.0.0.1:${restoredGamePort}/game/api/ready`,(body) => body.ready === true);
   const restoredHistory = async (runId) => {
@@ -470,6 +475,7 @@ try {
   }
   record("restored-topology-qualified",{
     admissionGeneration: restoredStateReady.authority.admission.generation,
+    firstAdmittedAt: restoredFirstAdmittedAt,
     completedRunId: fixture.runId,abandonedRunId: gameplay.runId,
   });
   composeFor(restoredProject,cutover,["state-cutover"],["down","--remove-orphans"],{

@@ -36,3 +36,15 @@ test("an admission retry freezes its original identity even if the form name cha
   assert.deepEqual(changed,first);
   assert.equal(sequence,1);
 });
+
+test("malformed browser admission locators are discarded and regenerated", () => {
+  const storage = memoryStorage();
+  storage.setItem("cannabeats.admission.ABC234",JSON.stringify({
+    code: "ABC234",name: "",actionId: "x".repeat(256),
+  }));
+  const intent = durableAdmissionIntent({
+    code: "ABC234",name: "Guest",storage,createActionId: () => "replacement-action",
+  });
+  assert.deepEqual(intent,{ actionId: "replacement-action",code: "ABC234",name: "Guest" });
+  assert.equal(storage.dump(),JSON.stringify(intent));
+});
