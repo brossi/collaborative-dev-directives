@@ -214,6 +214,10 @@ Boundaries:
 
 Working plan: [Slice 2: Game-night resilience](slice-2-game-night-resilience.md)
 
+The listener/source/relay diagnostic portion of this slice is governed by the
+[S2-E diagnostics contract](operations/s2-e-diagnostics-contract.md). It uses a
+separate disposable observation plane rather than extending gameplay authority.
+
 Structural resilience contract: [ADR 0002](architecture/0002-resilience-protocols-are-persisted-state-machines.md)
 
 The amended Slice 2 foundation separates identity/access storage from a

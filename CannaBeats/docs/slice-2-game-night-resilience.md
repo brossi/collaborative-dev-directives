@@ -1,8 +1,8 @@
 # Slice 2: Game-night resilience
 
-- Status: single-writer S2-A/S2-B/S2-C foundation locally rehearsed and
-  cross-contract aligned; independent adversarial audit and S2-F host proof
-  remain pending
+- Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
+  verified; S2-E design defined with implementation pending; S2-F host proof
+  remains pending
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1034,13 +1034,21 @@ second host cannot steal the source or ambiguously control the game.
 
 ### S2-E: Listener, source, and relay diagnostics
 
-- Measure listener startup, chunk cadence/gaps, buffer depth/trend, underruns,
-  re-primes, overflows, resets, AudioContext state, loudness, and clipping.
-- Add correlated bounded source and relay summaries for frames, bytes, dropped
-  uploads, listeners, interruptions, and restarts.
-- Provide a local advanced diagnostic view and copyable report that works when
-  upload fails.
-- Measure profiling overhead and enforce privacy/cardinality limits.
+The normative design and implementation sequence are maintained in the
+[S2-E diagnostics contract](operations/s2-e-diagnostics-contract.md).
+
+- Diagnostics form a separate, non-authoritative plane. They cannot mutate
+  State, block audio/gameplay, or share the authority database or backup.
+- Listener, source, and relay observations use bounded versioned summaries,
+  ephemeral correlation identifiers, finite classifications, and a seven-day
+  disposable diagnostic store.
+- The browser keeps a bounded local report that remains useful when upload or
+  the collector fails. Cross-listener/source comparison is host/operator-only.
+- PCM, credentials, answer metadata, personal identifiers, full user agents,
+  arbitrary errors, and persistent device fingerprints are prohibited.
+- Implementation proceeds schema/comparison first, local listener report
+  second, isolated ingestion third, and source/relay producers last. Each step
+  receives its own checkpoint and audit.
 
 Gate: two listeners can be compared to localize an injected stutter, profiling
 contains no prohibited data, and playback scheduling impact is negligible.
