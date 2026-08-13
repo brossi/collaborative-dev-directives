@@ -351,6 +351,11 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
         runGeneration: 1,revision: 2,seatPlayerId: "opaque-principal-2",
       }],
     });
+    const pendingRecovery = await fetch(
+      `${origin}/v1/recovery?preferredLobbyCode=SRV234&pendingActionLobbyCode=SRV234`,
+      { headers: guestHeaders },
+    );
+    assert.equal((await pendingRecovery.json()).outcome,"action_reconciliation_required");
 
     const operatorHeaders = { ...headers, authorization: "Bearer operator-secret" };
     const operatorCannotImpersonate = await fetch(`${origin}/v1/lobbies`, {

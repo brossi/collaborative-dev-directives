@@ -406,7 +406,7 @@ export class StateOwner {
       }));
   }
 
-  recoverPrincipal({ principalId, preferredLobbyCode = null }) {
+  recoverPrincipal({ principalId, preferredLobbyCode = null, pendingActionLobbyCode = null }) {
     if (typeof principalId !== "string" || !principalId) {
       throw new Error("Recovery principal is required.");
     }
@@ -416,7 +416,7 @@ export class StateOwner {
       LEFT JOIN game_runs r ON r.id=l.active_run_id
       WHERE m.principal_id=? ORDER BY l.updated_at DESC,l.code`).all(principalId);
     const resolution = resolveSessionRecovery({
-      authenticated: true,preferredLobbyCode,
+      authenticated: true,preferredLobbyCode,pendingActionLobbyCode,
       memberships: rows.map((row) => ({
         code: row.code,status: row.status,isHost: row.host_principal_id === principalId,
       })),

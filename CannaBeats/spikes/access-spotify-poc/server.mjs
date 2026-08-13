@@ -41,6 +41,7 @@ const HOST_AGENT_PAIRING_LABEL = 'host_agent_pair:';
 const DESKTOP_PAIRING_LABEL = 'desktop_pair:';
 const GAME_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const GAME_GUEST_TTL_MS = 8 * 60 * 60 * 1000;
+const GAME_GUEST_RECOVERY_TTL_MS = 24 * 60 * 60 * 1000;
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -444,6 +445,73 @@ export function createApp({
     return null;
   }
 
+  function principalResponse(principal) {
+    return {
+      id: principal.id,
+      displayName: principal.display_name,
+      role: principal.role,
+      kind: principal.kind,
+      ...(principal.sessionCode ? { sessionCode: principal.sessionCode } : {}),
+    };
+  }
+
+  async function recoverForwardedPrincipal(credentials) {
+    const principal = principalFromForwardedCredentials(credentials);
+    if (principal) return { outcome: 'authenticated',principal: principalResponse(principal) };
+    const guestToken = parseCookies(credentials?.cookie).cb_guest;
+    if (!guestToken) return { outcome: 'authentication_required' };
+    if (!stateClient) throw new HttpError(503,'State access gateway is unavailable');
+    const now = Date.now();
+    const tokenHash = sha256(guestToken);
+    const candidate = db.prepare(`SELECT users.id,users.display_name,users.role,
+        state_guest_sessions.lobby_code,state_guest_sessions.recovery_expires_at
+      FROM state_guest_sessions JOIN users ON users.id=state_guest_sessions.user_id
+      WHERE state_guest_sessions.token_hash=? AND state_guest_sessions.recovery_expires_at>?
+        AND state_guest_sessions.revoked_at IS NULL`).get(tokenHash,now);
+    if (!candidate) return { outcome: 'credential_expired' };
+    const active = await stateClient.lobbies({ principalId: candidate.id });
+    if (!active.lobbies.some((lobby) => lobby.code === candidate.lobby_code)) {
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        db.prepare(`UPDATE state_guest_sessions SET revoked_at=?
+          WHERE token_hash=? AND revoked_at IS NULL`).run(now,tokenHash);
+        db.prepare(`UPDATE state_guest_admissions SET recovery_expires_at=?
+          WHERE user_id=? AND lobby_code=?`).run(now,candidate.id,candidate.lobby_code);
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+      purgeExpired(db,now);
+      return { outcome: 'credential_expired' };
+    }
+    const expiresAt = now + GAME_GUEST_TTL_MS;
+    const recoveryExpiresAt = now + GAME_GUEST_RECOVERY_TTL_MS;
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const refreshed = db.prepare(`UPDATE state_guest_sessions SET expires_at=?,
+          recovery_expires_at=?,last_seen_at=?
+        WHERE token_hash=? AND recovery_expires_at>? AND revoked_at IS NULL`)
+        .run(expiresAt,recoveryExpiresAt,now,tokenHash,now);
+      if (refreshed.changes !== 1) throw new HttpError(409,'Guest recovery changed concurrently');
+      db.prepare(`UPDATE state_guest_admissions SET recovery_expires_at=?
+        WHERE user_id=? AND lobby_code=?`).run(recoveryExpiresAt,candidate.id,candidate.lobby_code);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+    return {
+      outcome: 'authenticated',
+      principal: principalResponse({
+        ...candidate,kind: 'guest',sessionCode: candidate.lobby_code,
+      }),
+      sessionCookie: secureCookie(
+        'cb_guest',guestToken,Math.floor(GAME_GUEST_RECOVERY_TTL_MS / 1000),
+      ),
+    };
+  }
+
   function identityView(principalId) {
     const row = db.prepare('SELECT id,display_name,role FROM users WHERE id=?').get(principalId);
     return row ? { id: row.id, displayName: row.display_name, role: row.role } : null;
@@ -682,15 +750,12 @@ export function createApp({
     if (!internalGameCaller(req)) throw new HttpError(403, 'Internal game authority required');
     const principal = principalFromForwardedCredentials(req.body ?? {});
     if (!principal) throw new HttpError(401, 'Sign in required');
-    res.json({
-      principal: {
-        id: principal.id,
-        displayName: principal.display_name,
-        role: principal.role,
-        kind: principal.kind,
-        ...(principal.sessionCode ? { sessionCode: principal.sessionCode } : {}),
-      },
-    });
+    res.json({ principal: principalResponse(principal) });
+  });
+
+  app.post('/api/internal/game/recover-principal', async (req,res) => {
+    if (!internalGameCaller(req)) throw new HttpError(403,'Internal game authority required');
+    res.json(await recoverForwardedPrincipal(req.body ?? {}));
   });
 
   app.post('/api/internal/game/guest-invite', async (req, res) => {
@@ -734,51 +799,68 @@ export function createApp({
     }
     let sessionCookie = null;
     if (requireInvitation) {
-      const invitation = String(req.body?.invite ?? '');
-      if (!/^[A-Za-z0-9_-]{32,128}$/.test(invitation)) {
-        throw new HttpError(403, 'This guest invitation is invalid');
-      }
-      const invite = db.prepare(`SELECT expires_at FROM state_guest_invites
-        WHERE token_hash=? AND lobby_code=? AND expires_at>? AND revoked_at IS NULL`)
-        .get(sha256(invitation),code,Date.now());
-      if (!invite) throw new HttpError(403, 'This guest invitation is invalid or has expired');
       if (!admittedPrincipal) {
         const name = cleanText(req.body?.name, { field: 'Player name', maximum: 24 });
-        let admission = db.prepare(`SELECT user_id,display_name,expires_at
+        let admission = db.prepare(`SELECT user_id,lobby_code,display_name,expires_at,recovery_expires_at
           FROM state_guest_admissions WHERE action_id=?`).get(actionId);
+        let invite = null;
+        if (!admission) {
+          const invitation = String(req.body?.invite ?? '');
+          if (!/^[A-Za-z0-9_-]{32,128}$/.test(invitation)) {
+            throw new HttpError(403, 'This guest invitation is invalid');
+          }
+          invite = db.prepare(`SELECT expires_at FROM state_guest_invites
+            WHERE token_hash=? AND lobby_code=? AND expires_at>? AND revoked_at IS NULL`)
+            .get(sha256(invitation),code,Date.now());
+          if (!invite) throw new HttpError(403, 'This guest invitation is invalid or has expired');
+        }
         if (!admission) {
           const userId = randomUUID();
           const now = Date.now();
-          const expiresAt = Math.min(invite.expires_at, now + GAME_GUEST_TTL_MS);
+          const expiresAt = now + GAME_GUEST_TTL_MS;
+          const recoveryExpiresAt = now + GAME_GUEST_RECOVERY_TTL_MS;
           db.exec('BEGIN IMMEDIATE');
           try {
             db.prepare(`INSERT INTO users (id,display_name,role,created_at)
               VALUES (?,?,'player',?)`).run(userId,name,now);
             db.prepare(`INSERT INTO state_guest_admissions
-              (action_id,user_id,lobby_code,display_name,created_at,expires_at)
-              VALUES (?,?,?,?,?,?)`).run(actionId,userId,code,name,now,expiresAt);
+              (action_id,user_id,lobby_code,display_name,created_at,expires_at,recovery_expires_at)
+              VALUES (?,?,?,?,?,?,?)`).run(
+              actionId,userId,code,name,now,expiresAt,recoveryExpiresAt,
+            );
             db.exec('COMMIT');
-            admission = { user_id: userId, display_name: name, expires_at: expiresAt };
+            admission = {
+              user_id: userId,lobby_code: code,display_name: name,expires_at: expiresAt,
+              recovery_expires_at: recoveryExpiresAt,
+            };
           } catch (error) {
             db.exec('ROLLBACK');
             throw error;
           }
-        } else if (admission.display_name !== name) {
+        } else if (admission.display_name !== name || admission.lobby_code !== code) {
           throw new HttpError(409, 'Admission identity conflicts with its prior request');
         }
         admittedPrincipal = {
           id: admission.user_id, display_name: admission.display_name,
           role: 'player', kind: 'guest', sessionCode: code,
         };
-        const token = randomToken();
+        const token = createHmac('sha256',config.gameServiceToken)
+          .update(`state-guest-session\n${actionId}\n${admittedPrincipal.id}\n${code}`)
+          .digest('base64url');
         const now = Date.now();
         db.prepare(`INSERT INTO state_guest_sessions
-          (token_hash,user_id,lobby_code,created_at,expires_at,last_seen_at)
-          VALUES (?,?,?,?,?,?)`).run(
-          sha256(token),admittedPrincipal.id,code,now,admission.expires_at,now,
+          (token_hash,user_id,lobby_code,created_at,expires_at,recovery_expires_at,last_seen_at)
+          VALUES (?,?,?,?,?,?,?) ON CONFLICT(token_hash) DO NOTHING`).run(
+          sha256(token),admittedPrincipal.id,code,now,admission.expires_at,
+          admission.recovery_expires_at,now,
         );
+        const session = db.prepare(`SELECT user_id,lobby_code,recovery_expires_at,revoked_at
+          FROM state_guest_sessions WHERE token_hash=?`).get(sha256(token));
+        if (!session || session.user_id !== admittedPrincipal.id || session.lobby_code !== code) {
+          throw new HttpError(409,'Guest session identity conflicts with its prior request');
+        }
         sessionCookie = secureCookie(
-          'cb_guest',token,Math.max(1,Math.floor((admission.expires_at-now)/1000)),
+          'cb_guest',token,Math.max(1,Math.floor((session.recovery_expires_at-now)/1000)),
         );
       }
     }

@@ -338,6 +338,57 @@ export default function Home() {
     }
   }, [applyRoomPayload, beginRoomRequest]);
 
+  const recoverSession = useCallback(async (preferredCode?: string) => {
+    const sequence = beginRoomRequest();
+    const params = new URLSearchParams({ recover: "1",clientContractVersion: "1" });
+    if (preferredCode) params.set("preferredLobbyCode",preferredCode);
+    const pending = loadPendingGameIntent(sessionStorage);
+    if (pending?.code) params.set("pendingActionLobbyCode",String(pending.code));
+    const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, {
+      cache: "no-store",
+    });
+    const payload = await response.json() as {
+      recovery?: { outcome?: string };
+      session?: GameSession;
+      room?: RoomView;
+      audio?: AudioControlView;
+      error?: string;
+    };
+    if (!response.ok) throw new Error(payload.error ?? "Unable to recover the game session.");
+    if (!["resume","action_reconciliation_required"].includes(payload.recovery?.outcome ?? "")
+        || !payload.session || !payload.room || !payload.audio) {
+      sessionStorage.removeItem(SESSION_KEY);
+      setSession(null);
+      roomCursor.current = { room: null,sequence };
+      setRoom(null);
+      if (payload.recovery?.outcome === "choose") {
+        setError("Choose which active game to resume from the account lobby list.");
+      } else if (preferredCode && ["credential_expired","client_upgrade_required"].includes(
+        payload.recovery?.outcome ?? "",
+      )) {
+        setError(payload.recovery?.outcome === "client_upgrade_required"
+          ? "Reload after updating CannaBeats to resume this game."
+          : "This phone credential has expired. Ask the host for a new invitation.");
+      }
+      return null;
+    }
+    const next: GameSession = {
+      code: payload.session.code,
+      ...(payload.session.playerId ? { playerId: payload.session.playerId } : {}),
+      joinOrigin: `${window.location.origin}${CANNABEATS_BASE_PATH}`,
+    };
+    if (payload.recovery?.outcome === "action_reconciliation_required") {
+      setBusy(true);
+      setBlockedOutcome(true);
+      setError("Confirming an interrupted action before continuing…");
+    }
+    applyRoomPayload(payload,sequence,next.code);
+    sessionStorage.setItem(SESSION_KEY,JSON.stringify(next));
+    setSession(next);
+    setError("");
+    return next;
+  }, [applyRoomPayload,beginRoomRequest]);
+
   useEffect(() => {
     const sharedCode = new URLSearchParams(window.location.search).get("session")?.trim().toUpperCase();
     const saved = sessionStorage.getItem(SESSION_KEY);
@@ -361,17 +412,21 @@ export default function Home() {
           .catch((reason: Error) => setError(reason.message));
         return;
       }
-      if (!saved) return;
-      try {
-        const restored = JSON.parse(saved) as GameSession;
-        setSession(restored);
-        void refresh(restored).catch(() => setError("The room is temporarily unavailable. Retrying…"));
-      } catch {
-        sessionStorage.removeItem(SESSION_KEY);
+      let preferredCode: string | undefined;
+      if (saved) {
+        try {
+          const restored = JSON.parse(saved) as GameSession;
+          preferredCode = restored.code;
+        } catch {
+          sessionStorage.removeItem(SESSION_KEY);
+        }
       }
+      void recoverSession(preferredCode).catch(() => {
+        if (preferredCode) setError("The room is temporarily unavailable. Retrying…");
+      });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [applyRoomPayload, beginRoomRequest, refresh]);
+  }, [applyRoomPayload, beginRoomRequest, recoverSession, refresh]);
 
   useEffect(() => {
     if (!session) return;

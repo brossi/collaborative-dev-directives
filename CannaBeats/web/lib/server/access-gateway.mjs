@@ -52,6 +52,9 @@ export function createAccessGatewayClient({
     principal: ({ authorization, cookie }) => request("/api/internal/game/principal", {
       authorization: authorization ?? "", cookie: cookie ?? "",
     }),
+    recoverPrincipal: ({ authorization, cookie }) => request("/api/internal/game/recover-principal", {
+      authorization: authorization ?? "",cookie: cookie ?? "",
+    }),
     guestInvite: ({ authorization, cookie, actionId, code }) => request("/api/internal/game/guest-invite", {
       authorization: authorization ?? "", cookie: cookie ?? "", actionId, code,
     }),

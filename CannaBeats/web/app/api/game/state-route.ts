@@ -11,6 +11,8 @@ type Principal = {
   sessionCode?: string;
 };
 
+const GAME_CLIENT_CONTRACT_VERSION = "1";
+
 const ACTION_MAP = {
   abandon: "abandon_game",
   addPlayer: "add_host_player",
@@ -84,16 +86,37 @@ function runIdForPrepare(actionId: string) {
 
 export async function getStateGame(request: Request) {
   try {
-    const actor = await principal(request);
     const url = new URL(request.url);
     if (url.searchParams.get("recover") === "1") {
+      if (url.searchParams.get("clientContractVersion") !== GAME_CLIENT_CONTRACT_VERSION) {
+        return Response.json({
+          recovery: { outcome: "client_upgrade_required",lobbies: [] },
+        }, { headers: { "Cache-Control": "no-store" } });
+      }
+      const access = await createAccessGatewayClient().recoverPrincipal({
+        authorization: request.headers.get("authorization") ?? "",
+        cookie: request.headers.get("cookie") ?? "",
+      });
+      if (access.outcome !== "authenticated" || !access.principal) {
+        return Response.json({ recovery: { outcome: access.outcome,lobbies: [] } }, {
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
+      const actor = access.principal as Principal;
+      const responseHeaders = new Headers({ "Cache-Control": "no-store" });
+      if (typeof access.sessionCookie === "string" && access.sessionCookie) {
+        responseHeaders.set("Set-Cookie",access.sessionCookie);
+      }
       const state = createGameStateClient();
       const preferredLobbyCode = url.searchParams.get("preferredLobbyCode")?.trim().toUpperCase();
+      const pendingActionLobbyCode = url.searchParams.get("pendingActionLobbyCode")?.trim().toUpperCase();
       const recovery = await state.recover({
         principalId: actor.id,preferredLobbyCode: preferredLobbyCode || undefined,
+        pendingActionLobbyCode: pendingActionLobbyCode || undefined,
       });
-      if (recovery.outcome !== "resume" || recovery.lobbies.length !== 1) {
-        return Response.json({ recovery }, { headers: { "Cache-Control": "no-store" } });
+      if (!["resume","action_reconciliation_required"].includes(recovery.outcome)
+          || recovery.lobbies.length !== 1) {
+        return Response.json({ recovery }, { headers: responseHeaders });
       }
       const recovered = recovery.lobbies[0];
       const [room,audio] = await Promise.all([
@@ -108,8 +131,9 @@ export async function getStateGame(request: Request) {
         },
         room: room.state,
         audio,
-      }, { headers: { "Cache-Control": "no-store" } });
+      }, { headers: responseHeaders });
     }
+    const actor = await principal(request);
     const runId = url.searchParams.get("runId");
     if (runId) {
       const result = await createGameStateClient().history({ runId,principalId: actor.id });

@@ -33,10 +33,14 @@ Recovery resolves in this order:
 
 For a phone-controlled seat, the player ID is the guest principal ID. A valid
 same-device credential therefore recovers the same seat; it never searches by
-display name. An expired guest session must not cause Access to delete the
-principal while State still has a live membership. The implementation will use
-a run-aware recovery credential/retention policy and will not extend invite
-tokens or make cross-device transfer implicit.
+display name. An expired guest session does not cause Access to delete the
+principal while State still reports the same active lobby membership.
+Admission creates a separate 24-hour same-device recovery boundary; ordinary
+game calls still stop at the eight-hour active-session boundary. Recovery
+revalidates membership through the Access-scoped State projection and refreshes
+both boundaries. It does not extend the invite token or make cross-device
+transfer implicit. When State no longer reports that lobby, Access revokes the
+recovery capability and removes its guest identity records.
 
 An authenticated host resumes a lobby only when State records that account
 principal as its host. Recovery cannot replace the host principal or create a
@@ -83,6 +87,13 @@ fallback in every non-owned state.
 1. Publish and test the finite recovery/handoff outcomes.
 2. Add a read-only principal-to-membership recovery projection.
 3. Replace wall-clock-only guest cleanup with run-aware credential recovery.
+   Implemented with separate active/recovery expiries, State membership
+   revalidation, idempotent admission credentials, and a fail-closed expand
+   migration for prior rows.
 4. Wire browser startup and stale-client handling to the recovery projection.
+   Implemented with an explicit client contract version checked before Access
+   or State identity disclosure. A durable pending action supplies its lobby
+   target during startup, restores the current projection with controls blocked,
+   and then reuses the existing exact-request reconciliation loop.
 5. Persist and enforce the source handoff/quarantine fence.
 6. Add busy/recovering/local-fallback UI and composed recovery scenarios.

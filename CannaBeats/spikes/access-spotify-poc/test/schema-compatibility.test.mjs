@@ -58,6 +58,54 @@ test('database initialization migrates schema version zero to the current versio
   db.close();
 });
 
+test('guest identity migration preserves the prior active boundary as a fail-closed recovery boundary', () => {
+  const databasePath = join(root,'guest-recovery-expand.sqlite');
+  const current = openDatabase(databasePath);
+  current.prepare(`INSERT INTO users (id,display_name,role,created_at)
+    VALUES ('guest-legacy','Legacy Phone','player',1)`).run();
+  current.prepare(`INSERT INTO state_guest_admissions
+    (action_id,user_id,lobby_code,display_name,created_at,expires_at,recovery_expires_at)
+    VALUES ('admission-legacy','guest-legacy','ABC234','Legacy Phone',1,100,100)`).run();
+  current.prepare(`INSERT INTO state_guest_sessions
+    (token_hash,user_id,lobby_code,created_at,expires_at,recovery_expires_at,last_seen_at)
+    VALUES ('token-legacy','guest-legacy','ABC234',1,100,100,1)`).run();
+  current.close();
+
+  const legacy = new DatabaseSync(databasePath);
+  legacy.exec(`
+    PRAGMA foreign_keys=OFF;
+    CREATE TABLE state_guest_admissions_legacy (
+      action_id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lobby_code TEXT NOT NULL,display_name TEXT NOT NULL,created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    INSERT INTO state_guest_admissions_legacy
+      SELECT action_id,user_id,lobby_code,display_name,created_at,expires_at
+      FROM state_guest_admissions;
+    DROP TABLE state_guest_admissions;
+    ALTER TABLE state_guest_admissions_legacy RENAME TO state_guest_admissions;
+    CREATE TABLE state_guest_sessions_legacy (
+      token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lobby_code TEXT NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,revoked_at INTEGER
+    );
+    INSERT INTO state_guest_sessions_legacy
+      SELECT token_hash,user_id,lobby_code,created_at,expires_at,last_seen_at,revoked_at
+      FROM state_guest_sessions;
+    DROP TABLE state_guest_sessions;
+    ALTER TABLE state_guest_sessions_legacy RENAME TO state_guest_sessions;
+    PRAGMA foreign_keys=ON;
+  `);
+  legacy.close();
+
+  const expanded = openDatabase(databasePath);
+  assert.equal(expanded.prepare(`SELECT recovery_expires_at FROM state_guest_admissions
+    WHERE action_id='admission-legacy'`).get().recovery_expires_at,100);
+  assert.equal(expanded.prepare(`SELECT recovery_expires_at FROM state_guest_sessions
+    WHERE token_hash='token-legacy'`).get().recovery_expires_at,100);
+  expanded.close();
+});
+
 test('the expand bridge reads schema two without lowering its version', () => {
   const databasePath = join(root, 'bridge-v2.sqlite');
   const versionTwo = new DatabaseSync(databasePath);

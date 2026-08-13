@@ -257,7 +257,8 @@ function migrate(db) {
       lobby_code TEXT NOT NULL,
       display_name TEXT NOT NULL,
       created_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL
+      expires_at INTEGER NOT NULL,
+      recovery_expires_at INTEGER NOT NULL
     );
     CREATE UNIQUE INDEX IF NOT EXISTS state_guest_admissions_user_lobby
       ON state_guest_admissions(user_id,lobby_code);
@@ -268,6 +269,7 @@ function migrate(db) {
       lobby_code TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
+      recovery_expires_at INTEGER NOT NULL,
       last_seen_at INTEGER NOT NULL,
       revoked_at INTEGER
     );
@@ -371,6 +373,20 @@ function migrate(db) {
       db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS state_guest_invites_action_id
         ON state_guest_invites(action_id) WHERE action_id IS NOT NULL`);
     }
+    const stateGuestAdmissionColumns = new Set(db.prepare('PRAGMA table_info(state_guest_admissions)').all()
+      .map((column) => column.name));
+    if (!stateGuestAdmissionColumns.has('recovery_expires_at')) {
+      db.exec('ALTER TABLE state_guest_admissions ADD COLUMN recovery_expires_at INTEGER');
+      db.exec(`UPDATE state_guest_admissions SET recovery_expires_at=expires_at
+        WHERE recovery_expires_at IS NULL`);
+    }
+    const stateGuestSessionColumns = new Set(db.prepare('PRAGMA table_info(state_guest_sessions)').all()
+      .map((column) => column.name));
+    if (!stateGuestSessionColumns.has('recovery_expires_at')) {
+      db.exec('ALTER TABLE state_guest_sessions ADD COLUMN recovery_expires_at INTEGER');
+      db.exec(`UPDATE state_guest_sessions SET recovery_expires_at=expires_at
+        WHERE recovery_expires_at IS NULL`);
+    }
     const gameSessionColumns = new Set(db.prepare('PRAGMA table_info(game_sessions)').all().map((column) => column.name));
     if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
     const ticketColumns = new Set(db.prepare('PRAGMA table_info(desktop_web_tickets)').all().map((column) => column.name));
@@ -397,16 +413,17 @@ export function purgeExpired(db, now = Date.now()) {
   db.prepare('DELETE FROM game_guest_invites WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM game_guest_sessions WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM state_guest_invites WHERE expires_at <= ?').run(now);
-  db.prepare('DELETE FROM state_guest_sessions WHERE expires_at <= ?').run(now);
+  db.prepare(`DELETE FROM state_guest_sessions
+    WHERE recovery_expires_at <= ? OR revoked_at IS NOT NULL`).run(now);
   db.prepare(`DELETE FROM users WHERE id IN (
     SELECT admission.user_id FROM state_guest_admissions admission
-    WHERE admission.expires_at <= ? AND NOT EXISTS (
+    WHERE admission.recovery_expires_at <= ? AND NOT EXISTS (
       SELECT 1 FROM state_guest_sessions session
-      WHERE session.user_id=admission.user_id AND session.expires_at>?
+      WHERE session.user_id=admission.user_id AND session.recovery_expires_at>?
         AND session.revoked_at IS NULL
     )
   )`).run(now,now);
-  db.prepare('DELETE FROM state_guest_admissions WHERE expires_at <= ?').run(now);
+  db.prepare('DELETE FROM state_guest_admissions WHERE recovery_expires_at <= ?').run(now);
   db.prepare(`
     DELETE FROM users WHERE id IN (
       SELECT user_id FROM game_guest_users WHERE expires_at <= ?

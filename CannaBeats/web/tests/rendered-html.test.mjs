@@ -55,7 +55,10 @@ test("lobby game sessions survive reloads and transient connection gaps", async 
     readFile(new URL("../scripts/play-lan.mjs", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /setSession\(restored\)/);
+  assert.match(page, /recoverSession\(preferredCode\)/);
+  assert.match(page, /new URLSearchParams\(\{ recover: "1",clientContractVersion: "1" \}\)/);
+  assert.match(page, /pendingActionLobbyCode/);
+  assert.match(page, /setSession\(next\)/);
   assert.match(page, /Rejoining the game…/);
   assert.match(page, /Your place is saved\. We’ll reconnect automatically\./);
   assert.match(page, /temporarily unavailable\. Retrying…/);

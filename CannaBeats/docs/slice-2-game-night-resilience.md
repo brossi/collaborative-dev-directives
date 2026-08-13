@@ -951,10 +951,27 @@ as a finite State-owned transition before UI behavior is added.
 - Game composes that projection with the current room and audio views. The same
   guest cookie therefore recovers the same phone seat even when browser
   `sessionStorage` is absent; no display-name search or replacement seat is used.
-- The inventory confirmed that current wall-clock cleanup deletes expired guest
-  Access identity while State may still retain live membership. Run-aware guest
-  credential rotation and cleanup are intentionally the next persistence task;
-  this checkpoint does not claim expiry-boundary recovery complete.
+- Access now separates the one-use invite, eight-hour active guest session, and
+  rolling 24-hour same-device recovery boundary. Normal game calls reject an
+  expired active session; the dedicated recovery route refreshes it only after
+  State confirms that the same opaque principal still belongs to the same
+  active lobby. A terminal/missing membership revokes and removes the guest
+  identity. Prior rows expand fail closed by using their old active expiry as
+  their initial recovery expiry.
+- Guest admission derives one deterministic capability from its durable action
+  identity. Exact replay therefore returns the same capability even after the
+  invitation expires instead of creating a second session or requiring the
+  one-use invitation again.
+- Browser startup now calls the composed recovery endpoint even when
+  `sessionStorage` is absent. A returned refreshed HttpOnly cookie is forwarded
+  to the browser, and a resumable projection restores the same lobby/phone seat
+  before polling begins.
+- Startup carries an explicit browser contract version. An incompatible or
+  versionless pre-cutover client receives `client_upgrade_required` before
+  Access or State is asked to resolve identity. If browser storage contains an
+  unresolved action, its lobby locator is passed into State recovery; the
+  authoritative room is restored with controls blocked and the exact original
+  request identity is reconciled before normal mutations resume.
 
 - Make same-device guest reclaim explicit across refresh, expiry boundaries,
   phone sleep, and short disconnects.

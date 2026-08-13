@@ -149,8 +149,10 @@ test("state-backed recovery derives the same phone seat without browser session 
   recoveredRoom.players = [{ id: "player-1",name: "Phone",control: "phone",timeline: [] }];
   globalThis.fetch = async (url) => {
     const parsed = new URL(url);
-    if (parsed.pathname === "/api/internal/game/principal") return Response.json({
+    if (parsed.pathname === "/api/internal/game/recover-principal") return Response.json({
+      outcome: "authenticated",
       principal: { id: "player-1",role: "player",kind: "guest",sessionCode: "ABC234" },
+      sessionCookie: "cb_guest=refreshed; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400",
     });
     if (parsed.pathname === "/v1/recovery") return Response.json({
       outcome: "resume",
@@ -166,13 +168,92 @@ test("state-backed recovery derives the same phone seat without browser session 
     throw new Error(`unexpected ${url}`);
   };
   const response = await getStateGame(new Request(
-    "https://poc.example/game/api/game?recover=1",
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=1",
     { headers: { cookie: "cb_guest=same-device" } },
   ));
   assert.equal(response.status,200);
+  assert.match(response.headers.get("set-cookie"),/^cb_guest=refreshed/);
   const payload = await response.json();
   assert.deepEqual(payload.session,{ code: "ABC234",playerId: "player-1" });
   assert.equal(payload.room.runId,runId);
   assert.equal(payload.room.revision,7);
   assert.equal(payload.recovery.outcome,"resume");
+});
+
+test("expired same-device recovery stops before State and returns the finite credential outcome", async () => {
+  configure();
+  let stateCalled = false;
+  globalThis.fetch = async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/internal/game/recover-principal") {
+      return Response.json({ outcome: "credential_expired" });
+    }
+    stateCalled = true;
+    throw new Error(`unexpected ${url}`);
+  };
+  const response = await getStateGame(new Request(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=1&preferredLobbyCode=ABC234",
+    { headers: { cookie: "cb_guest=expired" } },
+  ));
+  assert.equal(response.status,200);
+  assert.deepEqual(await response.json(),{
+    recovery: { outcome: "credential_expired",lobbies: [] },
+  });
+  assert.equal(stateCalled,false);
+  assert.equal(response.headers.get("set-cookie"),null);
+});
+
+test("an incompatible client is rejected before Access or State identity disclosure", async () => {
+  configure();
+  let dependencyCalled = false;
+  globalThis.fetch = async () => {
+    dependencyCalled = true;
+    throw new Error("dependency must not be called");
+  };
+  const response = await getStateGame(new Request(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=0",
+    { headers: { cookie: "cb_guest=still-secret" } },
+  ));
+  assert.deepEqual(await response.json(),{
+    recovery: { outcome: "client_upgrade_required",lobbies: [] },
+  });
+  assert.equal(dependencyCalled,false);
+});
+
+test("startup recovery preserves a pending lobby target for exact reconciliation", async () => {
+  configure();
+  const runId = randomUUID();
+  const recoveredRoom = room(runId,7);
+  recoveredRoom.isHost = false;
+  recoveredRoom.players = [{ id: "player-1",name: "Phone",control: "phone",timeline: [] }];
+  let recoveryQuery;
+  globalThis.fetch = async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/internal/game/recover-principal") return Response.json({
+      outcome: "authenticated",principal: { id: "player-1",role: "player",kind: "guest" },
+    });
+    if (parsed.pathname === "/v1/recovery") {
+      recoveryQuery = parsed.searchParams;
+      return Response.json({
+        outcome: "action_reconciliation_required",
+        lobbies: [{
+          code: "ABC234",status: "playing",isHost: false,runId,runGeneration: 1,
+          revision: 7,seatPlayerId: "player-1",
+        }],
+      });
+    }
+    if (parsed.pathname === "/v1/lobbies/ABC234") return Response.json({ state: recoveredRoom });
+    if (parsed.pathname === "/v1/lobbies/ABC234/audio") return Response.json({
+      selection: "managed",mode: "local",sourceOnline: false,status: "disconnected",
+    });
+    throw new Error(`unexpected ${url}`);
+  };
+  const response = await getStateGame(new Request(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=1&pendingActionLobbyCode=ABC234",
+    { headers: { cookie: "cb_guest=same-device" } },
+  ));
+  const payload = await response.json();
+  assert.equal(payload.recovery.outcome,"action_reconciliation_required");
+  assert.deepEqual(payload.session,{ code: "ABC234",playerId: "player-1" });
+  assert.equal(recoveryQuery.get("pendingActionLobbyCode"),"ABC234");
 });

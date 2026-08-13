@@ -254,6 +254,7 @@ export function createStateServer({
         if (!requirePrincipal("game")) return;
         return writeJson(response,200,owner.recoverPrincipal({
           principalId,preferredLobbyCode: url.searchParams.get("preferredLobbyCode"),
+          pendingActionLobbyCode: url.searchParams.get("pendingActionLobbyCode"),
         }));
       }
       const lobbyAudio = url.pathname.match(/^\/v1\/lobbies\/([^/]+)\/audio$/);

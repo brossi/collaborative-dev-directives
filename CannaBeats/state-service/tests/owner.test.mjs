@@ -119,6 +119,9 @@ test("access lobby projection and membership are owner-scoped and idempotent", (
       runGeneration: 0,revision: null,seatPlayerId: null,
     }],
   });
+  assert.equal(owner.recoverPrincipal({
+    principalId: member,pendingActionLobbyCode: "ACC234",
+  }).outcome,"action_reconciliation_required");
   assert.deepEqual(owner.recoverPrincipal({ principalId: host }), {
     outcome: "resume",
     lobbies: [{

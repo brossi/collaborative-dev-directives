@@ -47,3 +47,22 @@ test("guest invitation calls carry the durable action identity", async () => {
     actionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",code: "ABC234",
   });
 });
+
+test("recovery uses the dedicated Access credential lifecycle boundary", async () => {
+  let call;
+  const client = createAccessGatewayClient({
+    origin: "http://access:3002",token: "token",
+    fetchImpl: async (url,options) => {
+      call = { url,body: JSON.parse(options.body) };
+      return Response.json({
+        outcome: "authenticated",
+        principal: { id: "guest-1",role: "player",kind: "guest" },
+        sessionCookie: "cb_guest=refreshed; Path=/; HttpOnly",
+      });
+    },
+  });
+  const result = await client.recoverPrincipal({ cookie: "cb_guest=stale" });
+  assert.equal(call.url,"http://access:3002/api/internal/game/recover-principal");
+  assert.deepEqual(call.body,{ authorization: "",cookie: "cb_guest=stale" });
+  assert.equal(result.outcome,"authenticated");
+});

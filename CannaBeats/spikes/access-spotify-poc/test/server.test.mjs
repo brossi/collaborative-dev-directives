@@ -668,6 +668,7 @@ test('cutover guest admission reserves one access identity and delegates the pla
     .run(sha256(browserToken),host.id,now,now + 60_000,now);
   const runId = randomUUID();
   const admitted = [];
+  let guestLobbyRecoverable = true;
   const stateClient = {
     async lobby({ code }) {
       return { code,hostPrincipalId: host.id,admissionOpen: true };
@@ -684,6 +685,12 @@ test('cutover guest admission reserves one access identity and delegates the pla
         },
         replayed: admitted.length > 1,
       };
+    },
+    async lobbies({ principalId }) {
+      return { lobbies: guestLobbyRecoverable ? [{
+        code: 'ABC234',status: 'playing',hostPrincipalId: host.id,runGeneration: 1,
+        principalId,
+      }] : [] };
     },
   };
   const cutover = createApp({ config,db,stateClient }).app.listen(0,'127.0.0.1');
@@ -731,6 +738,8 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.equal(first.status,200);
     const firstPayload = await first.json();
     assert.match(firstPayload.sessionCookie,/^cb_guest=/);
+    db.prepare('UPDATE state_guest_invites SET expires_at=? WHERE action_id=?')
+      .run(now - 1,inviteActionId);
     const replay = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
@@ -739,16 +748,63 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.equal(replay.status,200);
     const replayPayload = await replay.json();
     assert.equal(replayPayload.principal.id,firstPayload.principal.id);
+    assert.equal(
+      /cb_guest=([^;]+)/.exec(replayPayload.sessionCookie)?.[1],
+      /cb_guest=([^;]+)/.exec(firstPayload.sessionCookie)?.[1],
+    );
     assert.equal(admitted.length,2);
     assert.equal(admitted[0].principalId,admitted[1].principalId);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM state_guest_admissions WHERE action_id=?')
       .get(actionId).count,1);
     assert.equal(db.prepare('SELECT 1 FROM game_sessions WHERE code=?').get('ABC234'),undefined);
-    db.prepare('UPDATE state_guest_admissions SET expires_at=? WHERE action_id=?')
-      .run(now - 1,actionId);
+    const originalGuestToken = /cb_guest=([^;]+)/.exec(firstPayload.sessionCookie)?.[1];
+    assert.ok(originalGuestToken);
     db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE user_id=?')
       .run(now - 1,firstPayload.principal.id);
+
+    const expiredPrincipal = await fetch(`${cutoverOrigin}/api/internal/game/principal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({ cookie: `cb_guest=${originalGuestToken}` }),
+    });
+    assert.equal(expiredPrincipal.status,401);
+
+    const recovered = await fetch(`${cutoverOrigin}/api/internal/game/recover-principal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({ cookie: `cb_guest=${originalGuestToken}` }),
+    });
+    assert.equal(recovered.status,200);
+    const recoveredPayload = await recovered.json();
+    assert.equal(recoveredPayload.outcome,'authenticated');
+    assert.equal(recoveredPayload.principal.id,firstPayload.principal.id);
+    assert.match(recoveredPayload.sessionCookie,/^cb_guest=/);
+    const rotatedGuestToken = /cb_guest=([^;]+)/.exec(recoveredPayload.sessionCookie)?.[1];
+    assert.equal(rotatedGuestToken,originalGuestToken);
+
+    const rotatedPrincipal = await fetch(`${cutoverOrigin}/api/internal/game/principal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({ cookie: `cb_guest=${rotatedGuestToken}` }),
+    });
+    assert.equal(rotatedPrincipal.status,200);
+
+    const recoveryBoundary = db.prepare(`SELECT recovery_expires_at
+      FROM state_guest_sessions WHERE token_hash=?`).get(sha256(rotatedGuestToken));
+    assert.ok(recoveryBoundary.recovery_expires_at > now);
     purgeExpired(db,now);
+    assert.ok(db.prepare('SELECT 1 FROM users WHERE id=?').get(firstPayload.principal.id));
+
+    guestLobbyRecoverable = false;
+    db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE token_hash=?')
+      .run(now - 1,sha256(rotatedGuestToken));
+    const ended = await fetch(`${cutoverOrigin}/api/internal/game/recover-principal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({ cookie: `cb_guest=${rotatedGuestToken}` }),
+    });
+    assert.equal(ended.status,200);
+    assert.deepEqual(await ended.json(),{ outcome: 'credential_expired' });
     assert.equal(db.prepare('SELECT 1 FROM users WHERE id=?').get(firstPayload.principal.id),undefined);
   } finally {
     await new Promise((resolve) => cutover.close(resolve));
