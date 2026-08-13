@@ -36,6 +36,7 @@ export const STATE_HTTP_ERROR_CODES = Object.freeze({
   payload_too_large: 413,
   idempotency_conflict: 409,
   stale_context: 409,
+  source_recovery_required: 409,
   state_conflict: 409,
   database_busy: 503,
   internal_error: 500,
@@ -131,6 +132,9 @@ export function classifyStateHttpError(error) {
   }
   if (/\b(?:activation contract|candidate authority|authority attestation|migrated candidate)\b/i.test(message)) {
     return { status: 409, code: "state_conflict" };
+  }
+  if (/managed source.*(?:quarantined|confirm safe playback)/i.test(message)) {
+    return { status: 409,code: "source_recovery_required" };
   }
   if (FORBIDDEN.some((pattern) => pattern.test(message))) return { status: 403, code: "forbidden" };
   if (NOT_FOUND.some((pattern) => pattern.test(message))) return { status: 404, code: "not_found" };

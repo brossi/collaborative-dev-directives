@@ -343,7 +343,7 @@ The decision satisfies the letter and intent of Slice 2 as follows:
 | --- | --- |
 | duplicate/retried playback cannot execute twice | stable action identity creates one command; durable claim generation grants at most one external execution authorization |
 | network loss or source restart converges coherently | server command state and source outbox survive process loss; executing work becomes actionable `outcome_unknown`, never implicit retry |
-| a second host cannot steal the source | claim is bound to source, lobby, run, run generation, and lease authority; schema generation 3 / protocol 4 persist an append-only stop obligation, deny acquisition and listening during quarantine, and permit lease-less execution only for the State-issued pause |
+| a second host cannot steal the source | claim is bound to source, lobby, run, run generation, and lease authority; schema generation 4 / protocol 4 persist an append-only stop obligation, deny acquisition and listening during quarantine, permit lease-less execution only for the State-issued pause, and journal reviewed paused attestations before clearing a failed stop |
 | requested, delivered, acknowledged, failed, interrupted, recovered, and expired outcomes remain explainable | events are derived from command transitions and command identity survives lease cleanup |
 | completed and abandoned games reconstruct chronologically | terminalization and sealing require one matching terminal event plus bounded late audio outcomes |
 | retention is run-scoped, bounded, and non-destructive to active games | only database-proven `sealed` history may enter an atomic purge transition |

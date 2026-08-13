@@ -204,6 +204,14 @@ export function createStateServer({
         if (!requirePrincipal("access")) return;
         return writeJson(response, 200, { lobbies: owner.accessLobbies({ principalId }) });
       }
+      if (request.method === "GET" && url.pathname === "/v1/access/recovery") {
+        if (!requireCaller(accessCaller)) return;
+        if (!requirePrincipal("access")) return;
+        return writeJson(response,200,owner.recoverPrincipal({
+          principalId,preferredLobbyCode: url.searchParams.get("preferredLobbyCode"),
+          pendingActionLobbyCode: url.searchParams.get("pendingActionLobbyCode"),
+        }));
+      }
       const accessLobbyResource = url.pathname.match(/^\/v1\/access\/lobbies\/([^/]+)$/);
       if (request.method === "GET" && accessLobbyResource) {
         if (!requireCaller(accessCaller)) return;
@@ -328,6 +336,17 @@ export function createStateServer({
         if (!requireCaller(operatorCaller)) return;
         requireRequestId(body, "commandId");
         return writeJson(response, 200, owner.expireManagedLeases({ commandId: body.commandId, now }));
+      }
+      const handoffResolution = url.pathname.match(
+        /^\/v1\/admin\/source-handoffs\/([^/]+)\/resolve$/,
+      );
+      if (request.method === "POST" && handoffResolution) {
+        if (!requireCaller(operatorCaller)) return;
+        requireRequestId(body,"commandId");
+        return writeJson(response,200,owner.resolveManagedSourceHandoff({
+          commandId: body.commandId,handoffId: handoffResolution[1],
+          resolution: body.resolution,now,
+        }));
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/history/seal") {
         if (!requireCaller(operatorCaller)) return;

@@ -40,7 +40,7 @@ Required evidence before touching a rehearsal host:
 4. Release metadata names the state image digest, schema generation, protocol
    version, and compatible client range as one release unit.
 
-The current development contract is state schema generation 3 and managed-source
+The current development contract is state schema generation 4 and managed-source
 protocol 4. Earlier unpublished candidate databases must be reconstructed.
 
 Before starting State, create the host authority directory configured by
@@ -101,7 +101,7 @@ an already-published candidate verifies the manifest and returns a replay.
 
 Start the state service against the candidate and verify `/ready` reports:
 
-- `schemaGeneration: 3`;
+- `schemaGeneration: 4`;
 - `protocolVersion: 4`; and
 - `authority.status: candidate`.
 

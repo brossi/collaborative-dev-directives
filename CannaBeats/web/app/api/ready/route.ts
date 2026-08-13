@@ -18,7 +18,7 @@ async function getReadiness() {
       ]);
       const stateBody = await state.json() as Record<string, unknown>;
       persistenceReady = state.ok && access.ok
-        && stateBody.schemaGeneration === 3 && stateBody.protocolVersion === 4
+        && stateBody.schemaGeneration === 4 && stateBody.protocolVersion === 4
         && stateBody.httpContractVersion === 1;
     } else {
       const databaseCheck = database().prepare("SELECT 1 AS ok").get() as { ok: number } | undefined;

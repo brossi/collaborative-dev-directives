@@ -122,6 +122,15 @@ test("access lobby projection and membership are owner-scoped and idempotent", (
   assert.equal(owner.recoverPrincipal({
     principalId: member,pendingActionLobbyCode: "ACC234",
   }).outcome,"action_reconciliation_required");
+  assert.deepEqual(owner.recoverPrincipal({
+    principalId: member,pendingActionLobbyCode: "MISS23",
+  }),{
+    outcome: "resume",pendingActionRejected: true,
+    lobbies: [{
+      code: "ACC234",status: "lobby",isHost: false,runId: null,
+      runGeneration: 0,revision: null,seatPlayerId: null,
+    }],
+  });
   assert.deepEqual(owner.recoverPrincipal({ principalId: host }), {
     outcome: "resume",
     lobbies: [{
@@ -310,6 +319,14 @@ test("managed command authority is an append-only owner-issued protocol", () => 
     authenticatedSourceId: sourceId, claimGeneration, now: 120,
   });
   assert.equal(claimed.state, "claimed");
+  const claimRecovery = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 121 });
+  assert.deepEqual(claimRecovery.command,{
+    id: command.commandId,kind: "pause",trackUri: null,recovery: true,
+  });
+  assert.deepEqual(claimRecovery.recovery,{
+    commandId: command.commandId,state: "claimed",claimGeneration,
+    kind: "pause",trackUri: null,
+  });
   assert.match(claimed.claimGeneration, /^[0-9a-f-]{36}$/i);
   assert.deepEqual(owner.transitionManagedCommand({
     requestId: claimRequest, commandId: command.commandId, action: "claim",
@@ -664,6 +681,36 @@ test("audio selection and controls share the room receipt and revision transacti
   assert.equal(act({ type: "control_audio", kind: "pause" }, 11).managedCommands.length, 1);
   assert.equal(act({ type: "release_audio" }, 12).revision, 6);
   assert.equal(owner.audioView({ lobbyCode: "SND234", now: 13 }).mode, "local");
+  assert.doesNotThrow(() => owner.validate());
+  owner.close();
+});
+
+test("in-game source selection reaps an expired lease owned by another lobby", () => {
+  const owner = developmentOwner(join(root,"cross-lobby-select-expiry.sqlite"));
+  const oldHost = randomUUID();
+  const newHost = randomUUID();
+  const oldRun = randomUUID();
+  const newRun = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "OLD345",hostPrincipalId: oldHost,now: 2 });
+  owner.createRun({ lobbyCode: "OLD345",runId: oldRun,actorPrincipalId: oldHost,now: 3 });
+  owner.createLobby({ code: "NEW456",hostPrincipalId: newHost,now: 4 });
+  owner.createRun({ lobbyCode: "NEW456",runId: newRun,actorPrincipalId: newHost,now: 5 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Shared source",tokenHash: "7".repeat(64),now: 6,
+  });
+  owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 7 });
+  owner.acquireManagedLease({
+    lobbyCode: "OLD345",sourceId,actorPrincipalId: oldHost,leaseDurationMs: 5,now: 8,
+  });
+  const selected = owner.applyGameCommand({
+    lobbyCode: "NEW456",actorPrincipalId: newHost,actionId: randomUUID(),
+    expectedRunId: newRun,expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "select_audio",mode: "managed" },now: 14,
+  });
+  assert.equal(selected.revision,1);
+  assert.equal(owner.audioView({ lobbyCode: "NEW456",now: 14 }).handoff.outcome,"owned");
   assert.doesNotThrow(() => owner.validate());
   owner.close();
 });
@@ -1053,6 +1100,149 @@ test("lease loss cancels queued work, makes delivered work unknown, and fences l
   owner.close();
 });
 
+test("releasing a lease preserves work that was already outcome-unknown", () => {
+  const path = join(root,"preexisting-unknown-handoff.sqlite");
+  const owner = developmentOwner(path);
+  const hostA = randomUUID();
+  const hostB = randomUUID();
+  const runA = randomUUID();
+  const runB = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "UNK234",hostPrincipalId: hostA,now: 2 });
+  owner.createRun({ lobbyCode: "UNK234",runId: runA,actorPrincipalId: hostA,now: 3 });
+  owner.createLobby({ code: "NXT345",hostPrincipalId: hostB,now: 4 });
+  owner.createRun({ lobbyCode: "NXT345",runId: runB,actorPrincipalId: hostB,now: 5 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Unknown Source",tokenHash: "c".repeat(64),now: 6,
+  });
+  const lease = owner.acquireManagedLease({
+    lobbyCode: "UNK234",sourceId,actorPrincipalId: hostA,leaseDurationMs: 100,now: 7,
+  });
+  const command = owner.createManagedCommand({
+    sourceId,lobbyCode: "UNK234",runId: runA,runGeneration: 1,kind: "resume",
+    requestedByPrincipalId: hostA,now: 8,
+  });
+  const generation = randomUUID();
+  owner.transitionManagedCommand({
+    commandId: command.commandId,action: "claim",authenticatedSourceId: sourceId,
+    claimGeneration: generation,now: 9,
+  });
+  owner.transitionManagedCommand({
+    commandId: command.commandId,action: "begin",authenticatedSourceId: sourceId,
+    claimGeneration: generation,now: 10,
+  });
+  owner.transitionManagedCommand({
+    commandId: command.commandId,action: "lose_authority",authenticatedSourceId: sourceId,
+    claimGeneration: generation,reasonCode: "game_api_unavailable",now: 11,
+  });
+
+  const released = owner.releaseManagedLease({
+    leaseId: lease.leaseId,actorPrincipalId: hostA,now: 12,
+  });
+  assert.equal(released.handoff.state,"stop_required");
+  assert.deepEqual(released.transitions,[{
+    commandId: command.commandId,state: "outcome_unknown",
+  }]);
+  assert.equal(owner.audioView({ lobbyCode: "NXT345",now: 13 }).handoff.outcome,"quarantined");
+  assert.throws(() => owner.acquireManagedLease({
+    lobbyCode: "NXT345",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 13,
+  }),/handoff|quarantined/i);
+  const uncertain = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 13 });
+  assert.equal(uncertain.command,null);
+  assert.deepEqual(uncertain.recovery,{
+    commandId: command.commandId,state: "outcome_unknown",claimGeneration: generation,
+    kind: "resume",trackUri: null,action: "reconcile_provider",
+  });
+  owner.transitionManagedCommand({
+    commandId: command.commandId,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: generation,
+    outcomeFingerprint: { ok: true,playbackStatus: "playing",errorCategory: null },now: 14,
+  });
+  const stop = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 15 });
+  assert.equal(stop.command.kind,"pause");
+  assert.equal(stop.command.handoff,true);
+  owner.close();
+});
+
+test("acquisition atomically reaps an expired safe lease", () => {
+  const path = join(root,"lazy-expiry.sqlite");
+  const owner = developmentOwner(path);
+  const host = randomUUID();
+  const runId = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "EXP234",hostPrincipalId: host,now: 2 });
+  owner.createRun({ lobbyCode: "EXP234",runId,actorPrincipalId: host,now: 3 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Expiry Source",tokenHash: "d".repeat(64),now: 4,
+  });
+  owner.acquireManagedLease({
+    lobbyCode: "EXP234",sourceId,actorPrincipalId: host,leaseDurationMs: 5,now: 5,
+  });
+
+  const reacquired = owner.acquireManagedLease({
+    lobbyCode: "EXP234",sourceId,actorPrincipalId: host,leaseDurationMs: 10,now: 11,
+  });
+  assert.equal(reacquired.expiresAt,21);
+  assert.equal(owner.audioView({ lobbyCode: "EXP234",now: 12 }).handoff.outcome,"owned");
+  assert.doesNotThrow(() => owner.validate(),
+    "lazy expiry must commit evidence accepted by the canonical validator");
+  owner.close();
+  const reopened = developmentOwner(path);
+  assert.equal(reopened.audioView({ lobbyCode: "EXP234",now: 12 }).handoff.outcome,"owned");
+  reopened.close();
+});
+
+test("acquisition persists recovery work when an expired lease may still be playing", () => {
+  const path = join(root,"lazy-playing-expiry.sqlite");
+  const owner = developmentOwner(path);
+  const hostA = randomUUID();
+  const hostB = randomUUID();
+  const runA = randomUUID();
+  const runB = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "OLD234",hostPrincipalId: hostA,now: 2 });
+  owner.createRun({ lobbyCode: "OLD234",runId: runA,actorPrincipalId: hostA,now: 3 });
+  owner.createLobby({ code: "NEW345",hostPrincipalId: hostB,now: 4 });
+  owner.createRun({ lobbyCode: "NEW345",runId: runB,actorPrincipalId: hostB,now: 5 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Playing Expiry Source",tokenHash: "f".repeat(64),now: 6,
+  });
+  const lease = owner.acquireManagedLease({
+    lobbyCode: "OLD234",sourceId,actorPrincipalId: hostA,leaseDurationMs: 5,now: 7,
+  });
+  const resume = owner.createManagedCommand({
+    sourceId,lobbyCode: "OLD234",runId: runA,runGeneration: 1,kind: "resume",
+    requestedByPrincipalId: hostA,now: 8,
+  });
+  const generation = randomUUID();
+  for (const [action,now] of [["claim",9],["begin",10]]) owner.transitionManagedCommand({
+    commandId: resume.commandId,action,authenticatedSourceId: sourceId,
+    claimGeneration: generation,now,
+  });
+  owner.transitionManagedCommand({
+    commandId: resume.commandId,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: generation,
+    outcomeFingerprint: { ok: true,playbackStatus: "playing",errorCategory: null },now: 11,
+  });
+
+  const result = owner.acquireManagedLease({
+    commandId: randomUUID(),lobbyCode: "NEW345",sourceId,actorPrincipalId: hostB,
+    leaseDurationMs: 100,now: 13,
+  });
+  assert.equal(result.status,"recovery_required");
+  assert.equal(result.expiredLeaseId,lease.leaseId);
+  assert.equal(result.handoff.state,"stop_required");
+  const work = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 13 });
+  assert.equal(work.command.kind,"pause");
+  assert.equal(work.command.handoff,true);
+  assert.equal(owner.audioView({ lobbyCode: "NEW345",now: 13 }).handoff.outcome,"quarantined");
+  assert.doesNotThrow(() => owner.validate());
+  owner.close();
+});
+
 test("a playing source must acknowledge the handoff stop before another lobby can acquire it", () => {
   const path = join(root,"source-handoff.sqlite");
   const owner = developmentOwner(path);
@@ -1106,17 +1296,31 @@ test("a playing source must acknowledge the handoff stop before another lobby ca
     lobbyCode: "NXT234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 31,
   }),/handoff|quarantined/i);
 
+  owner.applyGameCommand({
+    lobbyCode: "HND234",actorPrincipalId: hostA,actionId: randomUUID(),
+    expectedRunId: runA,expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "abandon_game" },now: 32,
+  });
+  assert.doesNotThrow(() => owner.validate(),
+    "terminal reconciliation must preserve an already-open handoff stop");
+
   const work = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 32 });
   assert.equal(work.lease,null);
   assert.equal(work.command.kind,"pause");
   assert.equal(work.command.handoff,true);
   const stopGeneration = randomUUID();
-  for (const [action,now] of [["claim",33],["begin",34]]) {
-    owner.transitionManagedCommand({
-      commandId: work.command.id,action,authenticatedSourceId: sourceId,
-      claimGeneration: stopGeneration,now,
-    });
-  }
+  owner.transitionManagedCommand({
+    commandId: work.command.id,action: "claim",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now: 33,
+  });
+  const retryableClaim = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 33 });
+  assert.equal(retryableClaim.command.id,work.command.id);
+  assert.equal(retryableClaim.command.recovery,true);
+  assert.equal(retryableClaim.recovery.action,"retry_claim");
+  owner.transitionManagedCommand({
+    commandId: work.command.id,action: "begin",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now: 34,
+  });
   owner.transitionManagedCommand({
     commandId: work.command.id,action: "complete",authenticatedSourceId: sourceId,
     claimGeneration: stopGeneration,
@@ -1126,5 +1330,142 @@ test("a playing source must acknowledge the handoff stop before another lobby ca
   assert.equal(owner.acquireManagedLease({
     lobbyCode: "NXT234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 36,
   }).lobbyCode,"NXT234");
+  owner.close();
+});
+
+test("a reviewed paused attestation recovers a failed handoff stop", () => {
+  const path = join(root,"reviewed-handoff-recovery.sqlite");
+  const owner = developmentOwner(path);
+  const hostA = randomUUID();
+  const hostB = randomUUID();
+  const runA = randomUUID();
+  const runB = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "RCV234",hostPrincipalId: hostA,now: 2 });
+  owner.createRun({ lobbyCode: "RCV234",runId: runA,actorPrincipalId: hostA,now: 3 });
+  owner.createLobby({ code: "NEW234",hostPrincipalId: hostB,now: 4 });
+  owner.createRun({ lobbyCode: "NEW234",runId: runB,actorPrincipalId: hostB,now: 5 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Recovery Source",tokenHash: "e".repeat(64),now: 6,
+  });
+  const lease = owner.acquireManagedLease({
+    lobbyCode: "RCV234",sourceId,actorPrincipalId: hostA,leaseDurationMs: 100,now: 7,
+  });
+  const playing = owner.createManagedCommand({
+    sourceId,lobbyCode: "RCV234",runId: runA,runGeneration: 1,kind: "resume",
+    requestedByPrincipalId: hostA,now: 8,
+  });
+  const playingGeneration = randomUUID();
+  for (const [action,now] of [["claim",9],["begin",10]]) owner.transitionManagedCommand({
+    commandId: playing.commandId,action,authenticatedSourceId: sourceId,
+    claimGeneration: playingGeneration,now,
+  });
+  owner.transitionManagedCommand({
+    commandId: playing.commandId,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: playingGeneration,
+    outcomeFingerprint: { ok: true,playbackStatus: "playing",errorCategory: null },now: 11,
+  });
+  const released = owner.releaseManagedLease({
+    leaseId: lease.leaseId,actorPrincipalId: hostA,now: 12,
+  });
+  const work = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 13 });
+  const stopGeneration = randomUUID();
+  for (const [action,now] of [["claim",13],["begin",14]]) owner.transitionManagedCommand({
+    commandId: work.command.id,action,authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now,
+  });
+  owner.transitionManagedCommand({
+    commandId: work.command.id,action: "fail",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,
+    outcomeFingerprint: { ok: false,playbackStatus: "error",errorCategory: "spotify_unavailable" },
+    reasonCode: "spotify_unavailable",now: 15,
+  });
+  assert.equal(owner.audioView({ lobbyCode: "NEW234",now: 16 }).handoff.outcome,"quarantined");
+  assert.throws(() => owner.acquireManagedLease({
+    lobbyCode: "NEW234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 16,
+  }),/handoff|quarantined/i);
+  assert.deepEqual(owner.operatorReport({ now: 16 }).sourceHandoffs,[{
+    handoffId: released.handoff.id,sourceId,priorLobbyCode: "RCV234",
+    stopCommandId: work.command.id,state: "quarantined",updatedAt: 15,
+    commandState: "failed",playbackStatus: "error",
+  }]);
+
+  const recoveryCommand = randomUUID();
+  const recovered = owner.resolveManagedSourceHandoff({
+    commandId: recoveryCommand,handoffId: released.handoff.id,
+    resolution: "confirmed_paused",now: 17,
+  });
+  assert.deepEqual(recovered,{
+    handoffId: released.handoff.id,state: "safe",resolution: "confirmed_paused",replayed: false,
+  });
+  assert.deepEqual(owner.resolveManagedSourceHandoff({
+    commandId: recoveryCommand,handoffId: released.handoff.id,
+    resolution: "confirmed_paused",now: 18,
+  }),{ ...recovered,replayed: true });
+  assert.equal(owner.acquireManagedLease({
+    lobbyCode: "NEW234",sourceId,actorPrincipalId: hostB,leaseDurationMs: 100,now: 19,
+  }).lobbyCode,"NEW234");
+  owner.close();
+});
+
+test("a reviewed pause atomically resolves an unknown handoff command", () => {
+  const path = join(root,"reviewed-unknown-handoff.sqlite");
+  const owner = developmentOwner(path);
+  const host = randomUUID();
+  const runId = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ code: "ATT234",hostPrincipalId: host,now: 2 });
+  owner.createRun({ lobbyCode: "ATT234",runId,actorPrincipalId: host,now: 3 });
+  owner.registerManagedSource({
+    sourceId,displayName: "Attested Source",tokenHash: "1".repeat(64),now: 4,
+  });
+  const lease = owner.acquireManagedLease({
+    lobbyCode: "ATT234",sourceId,actorPrincipalId: host,leaseDurationMs: 100,now: 5,
+  });
+  const resume = owner.createManagedCommand({
+    sourceId,lobbyCode: "ATT234",runId,runGeneration: 1,kind: "resume",
+    requestedByPrincipalId: host,now: 6,
+  });
+  const resumeGeneration = randomUUID();
+  for (const [action,now] of [["claim",7],["begin",8]]) owner.transitionManagedCommand({
+    commandId: resume.commandId,action,authenticatedSourceId: sourceId,
+    claimGeneration: resumeGeneration,now,
+  });
+  owner.transitionManagedCommand({
+    commandId: resume.commandId,action: "complete",authenticatedSourceId: sourceId,
+    claimGeneration: resumeGeneration,
+    outcomeFingerprint: { ok: true,playbackStatus: "playing",errorCategory: null },now: 9,
+  });
+  const released = owner.releaseManagedLease({
+    leaseId: lease.leaseId,actorPrincipalId: host,now: 10,
+  });
+  const work = owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 11 });
+  const stopGeneration = randomUUID();
+  for (const [action,now] of [["claim",11],["begin",12]]) owner.transitionManagedCommand({
+    commandId: work.command.id,action,authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,now,
+  });
+  owner.transitionManagedCommand({
+    commandId: work.command.id,action: "lose_authority",authenticatedSourceId: sourceId,
+    claimGeneration: stopGeneration,reasonCode: "game_api_unavailable",now: 13,
+  });
+
+  owner.resolveManagedSourceHandoff({
+    commandId: randomUUID(),handoffId: released.handoff.id,
+    resolution: "confirmed_paused",now: 14,
+  });
+  const read = openStateStoreReadOnly(path);
+  assert.deepEqual({ ...read.prepare(`SELECT command_state,playback_status
+    FROM managed_command_current WHERE id=?`).get(work.command.id) },{
+    command_state: "completed",playback_status: "paused",
+  });
+  assert.deepEqual({ ...read.prepare(`SELECT actor_type,actor_ref FROM game_events
+    WHERE command_ref=? AND event_type='audio_command_completed'`).get(work.command.id) },{
+    actor_type: "system",actor_ref: null,
+  });
+  read.close();
+  assert.doesNotThrow(() => owner.validate());
   owner.close();
 });

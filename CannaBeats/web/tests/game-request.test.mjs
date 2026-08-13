@@ -5,6 +5,7 @@ import {
   actionUuid,
   commitGamePayload,
   commitJoinResult,
+  commitRecoveryResult,
   commitRoomSnapshot,
   clearPendingGameIntent,
   GameApiError,
@@ -59,6 +60,7 @@ test("action UUID generation works without secure-context randomUUID", () => {
 
 test("a lost response body retries the identical action request", async () => {
   const bodies = [];
+  const contractVersions = [];
   let attempts = 0;
   const payload = await requestGame("/game/api/game", {
     action: "place",
@@ -73,6 +75,7 @@ test("a lost response body retries the identical action request", async () => {
     fetchImpl: async (_input, init) => {
       attempts += 1;
       bodies.push(init.body);
+      contractVersions.push(new Headers(init.headers).get("x-cannabeats-client-contract"));
       if (attempts === 1) {
         return {
           ok: true,
@@ -90,6 +93,7 @@ test("a lost response body retries the identical action request", async () => {
   });
 
   assert.equal(attempts, 2);
+  assert.deepEqual(contractVersions, ["2", "2"]);
   assert.equal(bodies[0], bodies[1]);
   assert.equal(payload.action.replayed, true);
 });
@@ -777,4 +781,18 @@ test("join validation suppresses room and session side effects for an invalid re
   assert.equal(committed.playerId, joinedPlayerId);
   assert.equal(roomApplications, 1);
   assert.equal(sessionWrites, 1);
+});
+
+test("a superseded recovery choice cannot overwrite the accepted browser session", () => {
+  const lobbyA = { ...room,code: "CHS234" };
+  const lobbyB = { ...room,code: "CHS235" };
+  let sessionWrites = 0;
+  assert.equal(commitRecoveryResult(
+    { room: lobbyA },lobbyA.code,() => lobbyB,() => { sessionWrites += 1; },
+  ),false);
+  assert.equal(sessionWrites,0);
+  assert.equal(commitRecoveryResult(
+    { room: lobbyB },lobbyB.code,(incoming) => incoming,() => { sessionWrites += 1; },
+  ),true);
+  assert.equal(sessionWrites,1);
 });

@@ -29,12 +29,14 @@ test("QR players get a focused name entry page", async () => {
 
   assert.match(join, /What should we call you\?/);
   assert.match(join, /action: invitation \? "joinGuest" : "join"/);
+  assert.match(join, /createActionId: actionUuid/);
+  assert.match(join, /actionId: intent\.actionId/);
   assert.match(join, /sessionStorage\.setItem\(SESSION_KEY/);
   assert.match(join, /window\.location\.replace\(cannabeatsPath\("\/"\)\)/);
   assert.doesNotMatch(join, /Host a game/);
 });
 
-test("player names persist locally but remain editable", async () => {
+test("player names persist locally and an in-flight admission freezes its identity", async () => {
   const [join, session, page] = await Promise.all([
     readFile(new URL("../app/join/[code]/join-room.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/session.ts", import.meta.url), "utf8"),
@@ -43,7 +45,8 @@ test("player names persist locally but remain editable", async () => {
 
   assert.match(session, /PLAYER_NAME_KEY = "cannabeats-player-name"/);
   assert.match(join, /localStorage\.getItem\(PLAYER_NAME_KEY\)/);
-  assert.match(join, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
+  assert.match(join, /localStorage\.setItem\(PLAYER_NAME_KEY, intent\.name\)/);
+  assert.match(join, /disabled=\{lockedName !== null\}/);
   assert.match(join, /onChange=\{\(event\) => setName\(event\.target\.value\)\}/);
   assert.match(page, /localStorage\.getItem\(PLAYER_NAME_KEY\)/);
   assert.match(page, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
@@ -56,7 +59,9 @@ test("lobby game sessions survive reloads and transient connection gaps", async 
   ]);
 
   assert.match(page, /recoverSession\(preferredCode\)/);
-  assert.match(page, /new URLSearchParams\(\{ recover: "1",clientContractVersion: "1" \}\)/);
+  assert.match(page, /clientContractVersion: GAME_CLIENT_CONTRACT_VERSION/);
+  assert.match(page, /Choose a game to resume/);
+  assert.match(page, /chooseRecovery\(choice\.code\)/);
   assert.match(page, /pendingActionLobbyCode/);
   assert.match(page, /setSession\(next\)/);
   assert.match(page, /Rejoining the game…/);

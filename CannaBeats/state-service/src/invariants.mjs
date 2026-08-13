@@ -170,7 +170,10 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
             AND receipt.action_id=event.action_id AND receipt.action='select_audio')) OR
         (event.event_type='audio_lease_expired' AND EXISTS (
           SELECT 1 FROM state_commands command WHERE command.command_id=event.action_id
-            AND command.command_type='expire_managed_leases')) OR
+            AND command.command_type IN ('expire_managed_leases','acquire_managed_lease'))) OR
+        (event.event_type='audio_lease_expired' AND EXISTS (
+          SELECT 1 FROM action_receipts receipt
+          WHERE receipt.action_id=event.action_id AND receipt.action='select_audio')) OR
         (event.event_type='audio_lease_released' AND (
           EXISTS (SELECT 1 FROM state_commands command WHERE command.command_id=event.action_id
             AND command.command_type='release_managed_lease') OR
@@ -258,9 +261,14 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
     }
     if (transition.lifecycle === "purged") continue;
     const [eventType,outcome,mappedActorType] = eventMatrix[transition.to_state];
-    const actorType = transition.to_state === "queued"
-      && transition.requested_by_principal_id !== transition.host_principal_id
-      ? "player" : mappedActorType;
+    const reviewedCompletion = transition.to_state === "completed" && db.prepare(`SELECT 1
+      FROM managed_source_handoffs handoff
+      JOIN managed_source_handoff_resolutions resolution ON resolution.handoff_id=handoff.id
+      WHERE handoff.stop_command_id=?`).get(transition.command_id);
+    const actorType = reviewedCompletion ? "system"
+      : transition.to_state === "queued"
+        && transition.requested_by_principal_id !== transition.host_principal_id
+        ? "player" : mappedActorType;
     const actorRef = ["host","player"].includes(actorType) ? transition.requested_by_principal_id
       : actorType === "source" ? transition.source_id : null;
     const reasonCode = ["failed", "outcome_unknown", "cancelled"].includes(transition.to_state)
@@ -354,7 +362,7 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
     WHERE NOT EXISTS (SELECT 1 FROM managed_source_handoff_transitions transition
       WHERE transition.handoff_id=handoff.id AND transition.sequence=1
         AND transition.from_state IS NULL
-        AND transition.to_state IN ('stop_required','quarantined'))`).get().count;
+        AND transition.to_state='stop_required')`).get().count;
   if (orphanHandoffs) violations.push("managed-source handoff lacks its initial transition");
   const discontinuousHandoffs = db.prepare(`SELECT COUNT(*) AS count
     FROM managed_source_handoff_transitions transition
@@ -375,9 +383,14 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
       (handoff.handoff_state='stop_claimed' AND command.command_state='claimed') OR
       (handoff.handoff_state='stop_executing' AND command.command_state='executing') OR
       (handoff.handoff_state='quarantined'
-        AND command.command_state IN ('queued','failed','outcome_unknown')) OR
-      (handoff.handoff_state='safe' AND command.command_state='completed'
-        AND command.playback_status='paused')
+        AND command.command_state IN ('failed','outcome_unknown')) OR
+      (handoff.handoff_state='safe' AND (
+        (command.command_state='completed' AND command.playback_status='paused') OR
+        (command.command_state IN ('failed','outcome_unknown')
+          AND EXISTS (SELECT 1 FROM managed_source_handoff_resolutions resolution
+            WHERE resolution.handoff_id=handoff.id
+              AND resolution.resolution='confirmed_paused'))
+      ))
     )`).get().count;
   if (staleHandoffProjection) violations.push("managed-source handoff projection is stale");
   const contradictoryCommandRunAuthority = db.prepare(`SELECT COUNT(*) AS count

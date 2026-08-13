@@ -79,5 +79,11 @@ export function createAccessStateClient({
       `/v1/access/lobbies/${encodeURIComponent(code)}`, { principalId },
     ),
     lobbies: ({ principalId }) => request("/v1/access/lobbies", { principalId }),
+    recover: ({ principalId,preferredLobbyCode,pendingActionLobbyCode }) => {
+      const query = new URLSearchParams();
+      if (preferredLobbyCode) query.set("preferredLobbyCode",preferredLobbyCode);
+      if (pendingActionLobbyCode) query.set("pendingActionLobbyCode",pendingActionLobbyCode);
+      return request(`/v1/access/recovery?${query}`, { principalId });
+    },
   });
 }

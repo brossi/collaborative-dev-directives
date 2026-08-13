@@ -4,12 +4,16 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../../../lib/session";
 import { cannabeatsPath } from "../../../lib/paths";
+import { actionUuid } from "../../../lib/game-request";
+import { clearAdmissionIntent,durableAdmissionIntent } from "../../../lib/admission-intent";
+import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../../../lib/game-client-contract.ts";
 
 export default function JoinRoom({ code }: { code: string }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [invitation, setInvitation] = useState<string | null>(null);
+  const [lockedName,setLockedName] = useState<string | null>(null);
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -27,13 +31,21 @@ export default function JoinRoom({ code }: { code: string }) {
     setError("");
     try {
       const chosenName = name.trim();
+      const intent = durableAdmissionIntent({
+        code,name: chosenName,storage: sessionStorage,createActionId: actionUuid,
+      });
+      setLockedName(intent.name);
       const response = await fetch(cannabeatsPath("/api/game"), {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          [GAME_CLIENT_CONTRACT_HEADER]: GAME_CLIENT_CONTRACT_VERSION,
+        },
         body: JSON.stringify({
           action: invitation ? "joinGuest" : "join",
+          actionId: intent.actionId,
           code,
-          name: chosenName,
+          name: intent.name,
           ...(invitation ? { invite: invitation } : {}),
         }),
       });
@@ -41,7 +53,8 @@ export default function JoinRoom({ code }: { code: string }) {
       if (!response.ok || !payload.playerId) throw new Error(payload.error ?? "Unable to join this lobby.");
 
       const session: GameSession = { code, playerId: payload.playerId };
-      localStorage.setItem(PLAYER_NAME_KEY, chosenName);
+      localStorage.setItem(PLAYER_NAME_KEY, intent.name);
+      clearAdmissionIntent(code,sessionStorage);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
       window.location.replace(cannabeatsPath("/"));
     } catch (reason) {
@@ -63,6 +76,7 @@ export default function JoinRoom({ code }: { code: string }) {
             <input
               autoComplete="name"
               autoFocus
+              disabled={lockedName !== null}
               maxLength={24}
               onChange={(event) => setName(event.target.value)}
               placeholder="Name or nickname"
@@ -75,6 +89,9 @@ export default function JoinRoom({ code }: { code: string }) {
           </button>
         </form>
         {error && <p className="error-message" role="alert">{error}</p>}
+        {lockedName && error && (
+          <p className="helper">This retry keeps the original name and request identity.</p>
+        )}
         <Link className="join-back" href={cannabeatsPath("/")}>Enter a different lobby code</Link>
       </section>
     </main>

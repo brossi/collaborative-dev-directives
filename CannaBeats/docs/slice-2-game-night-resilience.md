@@ -226,7 +226,7 @@ new purge guards use additive v5 identities and have exact forward-upgrade
 coverage.
 
 The fresh audit again kept the gate open. Its counterexamples are now encoded in
-the state suite. State schema generation 3 / protocol 4 persist a monotonic
+the state suite. State schema generation 4 / protocol 4 persist a monotonic
 command dispatch sequence, controller-issued claim generation, normalized
 playback/error evidence, and an exact event projection for every non-executing
 command transition. All remote mutation IDs are mandatory. Readiness is bounded;
@@ -962,21 +962,41 @@ as a finite State-owned transition before UI behavior is added.
   identity. Exact replay therefore returns the same capability even after the
   invitation expires instead of creating a second session or requiring the
   one-use invitation again.
+- The QR client now persists that admission action separately from the invite
+  capability and reuses it across reload/response loss. Access validates and
+  binds one-use invitation consumption for anonymous guests and already-known
+  principals alike; an existing session is not an invitation bypass.
 - Browser startup now calls the composed recovery endpoint even when
   `sessionStorage` is absent. A returned refreshed HttpOnly cookie is forwarded
   to the browser, and a resumable projection restores the same lobby/phone seat
   before polling begins.
-- Startup carries an explicit browser contract version. An incompatible or
+- Startup and every ordinary Game request carry browser contract version 2 in
+  `x-cannabeats-client-contract`. An incompatible or
   versionless pre-cutover client receives `client_upgrade_required` before
   Access or State is asked to resolve identity. If browser storage contains an
   unresolved action, its lobby locator is passed into State recovery; the
   authoritative room is restored with controls blocked and the exact original
   request identity is reconciled before normal mutations resume.
-- State schema generation 3 / source protocol 4 now persist lease handoff as a
+- Multi-membership recovery now renders a bounded lobby chooser. Guest invites
+  are one-use: Access may reserve the principal/action before the State call,
+  but it withholds the cookie and reuses that exact reservation after a
+  transient State failure instead of creating a second identity.
+- State schema generation 4 / source protocol 4 now persist lease handoff as a
   first-class stop obligation. Playing or uncertain release paths cannot be
   reacquired by another lobby until the real source controller executes and
   acknowledges a State-issued pause. Busy, recovering, and quarantined lobby
   projections deny listening and offer explicit local playback instead.
+  A failed or uncertain stop remains quarantined until the source reconciles it
+  or an operator records a narrow, immutable `confirmed_paused` resolution.
+- Expiry paths share one owner transition, committed claim recovery returns the
+  same command/generation, and unknown outcomes expose read-only provider
+  reconciliation rather than effect replay. A reviewed paused resolution also
+  terminates an unknown stop command atomically. Existing relay responses are
+  revalidated against their exact lease generation once per second and are
+  closed on ownership loss. The pinned relay is configured to disconnect every
+  listener when its publisher generation ends, so a stale lobby-A response
+  cannot carry lobby-B bytes; the application check remains a second fence.
+  Exact packaged installation and timing remain S2-F evidence gates.
 - The local Docker cutover rehearsal now composes two independent lobbies with
   the source protocol: lobby A plays and releases, lobby B is denied while the
   stop obligation is unresolved, the source acknowledges the lease-less pause,

@@ -9,6 +9,7 @@ import {
   clearPendingGameIntent,
   commitGamePayload,
   commitJoinResult,
+  commitRecoveryResult,
   commitRoomSnapshot,
   GameApiError,
   loadPendingGameIntent,
@@ -20,6 +21,7 @@ import {
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 import { useManagedAudioStream, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
+import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../lib/game-client-contract.ts";
 
 async function gameRequest(
   body: Record<string, unknown>,
@@ -286,6 +288,7 @@ export default function Home() {
   const [blockedOutcome, setBlockedOutcome] = useState(false);
   const [pendingIntentVersion, setPendingIntentVersion] = useState(0);
   const [error, setError] = useState("");
+  const [recoveryChoices, setRecoveryChoices] = useState<Array<{ code: string; isHost: boolean }>>([]);
   const [artworkByUri, setArtworkByUri] = useState<Record<string, SpotifyTrackArtwork>>({});
   const spotify = useSpotifyPlayer();
   const managedAudio = useManagedAudioStream();
@@ -327,6 +330,7 @@ export default function Home() {
     try {
       const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, {
         cache: "no-store",
+        headers: { [GAME_CLIENT_CONTRACT_HEADER]: GAME_CLIENT_CONTRACT_VERSION },
         signal: controller.signal,
       });
       const payload = await response.json() as { room?: RoomView; audio?: AudioControlView; error?: string };
@@ -340,21 +344,32 @@ export default function Home() {
 
   const recoverSession = useCallback(async (preferredCode?: string) => {
     const sequence = beginRoomRequest();
-    const params = new URLSearchParams({ recover: "1",clientContractVersion: "1" });
+    const params = new URLSearchParams({ recover: "1",clientContractVersion: GAME_CLIENT_CONTRACT_VERSION });
     if (preferredCode) params.set("preferredLobbyCode",preferredCode);
     const pending = loadPendingGameIntent(sessionStorage);
     if (pending?.code) params.set("pendingActionLobbyCode",String(pending.code));
     const response = await fetch(`${cannabeatsPath("/api/game")}?${params}`, {
       cache: "no-store",
+      headers: { [GAME_CLIENT_CONTRACT_HEADER]: GAME_CLIENT_CONTRACT_VERSION },
     });
     const payload = await response.json() as {
-      recovery?: { outcome?: string };
+      recovery?: {
+        outcome?: string;
+        pendingActionRejected?: boolean;
+        lobbies?: Array<{ code: string; isHost: boolean }>;
+      };
       session?: GameSession;
       room?: RoomView;
       audio?: AudioControlView;
       error?: string;
     };
     if (!response.ok) throw new Error(payload.error ?? "Unable to recover the game session.");
+    if (payload.recovery?.pendingActionRejected) {
+      clearPendingGameIntent(sessionStorage);
+      setBlockedOutcome(false);
+      setBusy(false);
+      setPendingIntentVersion((version) => version + 1);
+    }
     if (!["resume","action_reconciliation_required"].includes(payload.recovery?.outcome ?? "")
         || !payload.session || !payload.room || !payload.audio) {
       sessionStorage.removeItem(SESSION_KEY);
@@ -362,7 +377,8 @@ export default function Home() {
       roomCursor.current = { room: null,sequence };
       setRoom(null);
       if (payload.recovery?.outcome === "choose") {
-        setError("Choose which active game to resume from the account lobby list.");
+        setRecoveryChoices(payload.recovery.lobbies ?? []);
+        setError("Choose which active game to resume.");
       } else if (preferredCode && ["credential_expired","client_upgrade_required"].includes(
         payload.recovery?.outcome ?? "",
       )) {
@@ -377,17 +393,36 @@ export default function Home() {
       ...(payload.session.playerId ? { playerId: payload.session.playerId } : {}),
       joinOrigin: `${window.location.origin}${CANNABEATS_BASE_PATH}`,
     };
+    setRecoveryChoices([]);
     if (payload.recovery?.outcome === "action_reconciliation_required") {
       setBusy(true);
       setBlockedOutcome(true);
       setError("Confirming an interrupted action before continuing…");
     }
-    applyRoomPayload(payload,sequence,next.code);
-    sessionStorage.setItem(SESSION_KEY,JSON.stringify(next));
-    setSession(next);
-    setError("");
+    const committed = commitRecoveryResult(payload,next.code,
+      (incoming) => applyRoomPayload({ ...payload,room: incoming },sequence,next.code),() => {
+        sessionStorage.setItem(SESSION_KEY,JSON.stringify(next));
+        setSession(next);
+      });
+    if (!committed) return null;
+    setError(payload.recovery?.pendingActionRejected
+      ? "The interrupted action no longer has game authority and was not retried."
+      : "");
     return next;
   }, [applyRoomPayload,beginRoomRequest]);
+
+  const chooseRecovery = useCallback(async (code: string) => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await recoverSession(code);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to resume this game.");
+    } finally {
+      setBusy(false);
+    }
+  },[busy,recoverSession]);
 
   useEffect(() => {
     const sharedCode = new URLSearchParams(window.location.search).get("session")?.trim().toUpperCase();
@@ -793,6 +828,23 @@ export default function Home() {
             <label>Your name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={24} required /></label>
             <button className="secondary-button" disabled={busy}>Join lobby</button>
           </form>
+          {recoveryChoices.length > 0 && (
+            <div className="entry-block" aria-label="Active games">
+              <p className="step-label">Your active games</p>
+              <h2>Choose a game to resume</h2>
+              {recoveryChoices.map((choice) => (
+                <button
+                  className="secondary-button"
+                  key={choice.code}
+                  disabled={busy}
+                  onClick={() => void chooseRecovery(choice.code)}
+                  type="button"
+                >
+                  {choice.code}{choice.isHost ? " — Host" : " — Player"}
+                </button>
+              ))}
+            </div>
+          )}
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>
       </main>

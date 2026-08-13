@@ -15,6 +15,7 @@ import {
 } from '../db.mjs';
 import { createHostOnboarding, renderHostOnboardingEmail } from '../onboarding.mjs';
 import { createApp, readConfig } from '../server.mjs';
+import { StateClientError } from '../state-client.mjs';
 
 const origin = 'https://poc.test';
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'cannabeats-poc-test-'));
@@ -669,21 +670,47 @@ test('cutover guest admission reserves one access identity and delegates the pla
   const runId = randomUUID();
   const admitted = [];
   let guestLobbyRecoverable = true;
+  let admissionRevision = 0;
+  let raceNextAdmission = false;
+  let failNextAdmission = false;
+  let failNextAdmissionContext = false;
+  const stateAdmissionReceipts = new Map();
   const stateClient = {
     async lobby({ code }) {
       return { code,hostPrincipalId: host.id,admissionOpen: true };
     },
     async admissionContext() {
-      return { runId,runGeneration: 1,revision: 0,admissionOpen: true };
+      if (failNextAdmissionContext) {
+        failNextAdmissionContext = false;
+        throw new StateClientError(503,'state_unavailable');
+      }
+      const revision = admissionRevision;
+      if (raceNextAdmission) {
+        raceNextAdmission = false;
+        admissionRevision += 1;
+      }
+      return { runId,runGeneration: 1,revision,admissionOpen: true };
     },
     async admit(input) {
+      if (failNextAdmission) {
+        failNextAdmission = false;
+        throw new StateClientError(503,'state_unavailable');
+      }
+      const prior = stateAdmissionReceipts.get(input.actionId);
+      if (!prior && input.expectedRevision !== admissionRevision) {
+        throw new StateClientError(409,'state_conflict');
+      }
       admitted.push(input);
+      if (!prior) {
+        stateAdmissionReceipts.set(input.actionId,input);
+        admissionRevision += 1;
+      }
       return {
         state: {
           runId,code: input.code,runGeneration: 1,revision: 1,phase: 'lobby',round: 0,
           players: [{ id: input.principalId,name: input.name,control: 'phone',timeline: [] }],
         },
-        replayed: admitted.length > 1,
+        replayed: Boolean(prior),
       };
     },
     async lobbies({ principalId }) {
@@ -691,6 +718,11 @@ test('cutover guest admission reserves one access identity and delegates the pla
         code: 'ABC234',status: 'playing',hostPrincipalId: host.id,runGeneration: 1,
         principalId,
       }] : [] };
+    },
+    async recover({ principalId,pendingActionLobbyCode }) {
+      return { outcome: 'action_reconciliation_required',lobbies: [{
+        code: pendingActionLobbyCode,status: 'ended',isHost: false,principalId,
+      }] };
     },
   };
   const cutover = createApp({ config,db,stateClient }).app.listen(0,'127.0.0.1');
@@ -728,6 +760,16 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.equal(replayedInvite.replayed,true);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM state_guest_invites WHERE action_id=?')
       .get(inviteActionId).count,1);
+    const authenticatedInviteBypass = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({
+        actionId: randomUUID(),cookie: `cb_session=${browserToken}`,code: 'ABC234',
+        name: 'Host',requireInvitation: true,invite: 'definitely-invalid',
+      }),
+    });
+    assert.equal(authenticatedInviteBypass.status,403,
+      'an existing principal must not bypass invitation validation');
     const actionId = randomUUID();
     const body = { actionId,code: 'ABC234',name: 'Guest Phone',requireInvitation: true,invite };
     const first = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
@@ -738,6 +780,12 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.equal(first.status,200);
     const firstPayload = await first.json();
     assert.match(firstPayload.sessionCookie,/^cb_guest=/);
+    const reusedInvite = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({ ...body,actionId: randomUUID(),name: 'Second Guest' }),
+    });
+    assert.equal(reusedInvite.status,403);
     db.prepare('UPDATE state_guest_invites SET expires_at=? WHERE action_id=?')
       .run(now - 1,inviteActionId);
     const replay = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
@@ -756,7 +804,84 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.equal(admitted[0].principalId,admitted[1].principalId);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM state_guest_admissions WHERE action_id=?')
       .get(actionId).count,1);
+    assert.equal(db.prepare(`SELECT COUNT(*) AS count FROM state_admission_reservations
+      WHERE action_id=?`).get(actionId).count,1);
     assert.equal(db.prepare('SELECT 1 FROM game_sessions WHERE code=?').get('ABC234'),undefined);
+
+    const recoveryInviteActionId = randomUUID();
+    const recoveryInviteResponse = await fetch(
+      `${cutoverOrigin}/api/internal/game/guest-invite`,{
+        ...inviteRequest,
+        body: JSON.stringify({
+          actionId: recoveryInviteActionId,cookie: `cb_session=${browserToken}`,code: 'ABC234',
+        }),
+      },
+    );
+    const recoveryInvite = (await recoveryInviteResponse.json()).guestInvite;
+    const recoveryActionId = randomUUID();
+    const recoveryBody = {
+      actionId: recoveryActionId,code: 'ABC234',name: 'Racing Guest',
+      requireInvitation: true,invite: recoveryInvite,
+    };
+    raceNextAdmission = true;
+    const conflicted = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(recoveryBody),
+    });
+    const conflictedPayload = await conflicted.json();
+    assert.equal(conflicted.status,200,JSON.stringify(conflictedPayload));
+    const healed = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(recoveryBody),
+    });
+    assert.equal(healed.status,200);
+    const healedPayload = await healed.json();
+    assert.match(healedPayload.sessionCookie,/^cb_guest=/);
+    assert.equal(admitted.at(-1).expectedRevision,2);
+    assert.ok(db.prepare(`SELECT completed_at FROM state_admission_requests
+      WHERE action_id=?`).get(recoveryActionId).completed_at);
+
+    const retryInviteActionId = randomUUID();
+    const retryInviteResponse = await fetch(
+      `${cutoverOrigin}/api/internal/game/guest-invite`,{
+        ...inviteRequest,
+        body: JSON.stringify({
+          actionId: retryInviteActionId,cookie: `cb_session=${browserToken}`,code: 'ABC234',
+        }),
+      },
+    );
+    const retryInvite = (await retryInviteResponse.json()).guestInvite;
+    const retryActionId = randomUUID();
+    const retryBody = {
+      actionId: retryActionId,code: 'ABC234',name: 'Retry Guest',
+      requireInvitation: true,invite: retryInvite,
+    };
+    failNextAdmission = true;
+    const unavailable = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(retryBody),
+    });
+    assert.equal(unavailable.status,503);
+    const reserved = db.prepare(`SELECT admission.user_id,request.completed_at
+      FROM state_guest_admissions admission
+      JOIN state_admission_requests request ON request.action_id=admission.action_id
+      WHERE admission.action_id=?`).get(retryActionId);
+    assert.ok(reserved.user_id);
+    assert.equal(reserved.completed_at,null);
+    const retried = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(retryBody),
+    });
+    assert.equal(retried.status,200);
+    const retriedPayload = await retried.json();
+    assert.equal(retriedPayload.principal.id,reserved.user_id);
+    assert.match(retriedPayload.sessionCookie,/^cb_guest=/);
+    assert.ok(db.prepare(`SELECT completed_at FROM state_admission_requests
+      WHERE action_id=?`).get(retryActionId).completed_at);
     const originalGuestToken = /cb_guest=([^;]+)/.exec(firstPayload.sessionCookie)?.[1];
     assert.ok(originalGuestToken);
     db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE user_id=?')
@@ -798,6 +923,17 @@ test('cutover guest admission reserves one access identity and delegates the pla
     guestLobbyRecoverable = false;
     db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE token_hash=?')
       .run(now - 1,sha256(rotatedGuestToken));
+    const endedPending = await fetch(`${cutoverOrigin}/api/internal/game/recover-principal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify({
+        cookie: `cb_guest=${rotatedGuestToken}`,pendingActionLobbyCode: 'ABC234',
+      }),
+    });
+    assert.equal(endedPending.status,200);
+    assert.equal((await endedPending.json()).outcome,'authenticated');
+    db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE token_hash=?')
+      .run(now - 1,sha256(rotatedGuestToken));
     const ended = await fetch(`${cutoverOrigin}/api/internal/game/recover-principal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
@@ -806,6 +942,70 @@ test('cutover guest admission reserves one access identity and delegates the pla
     assert.equal(ended.status,200);
     assert.deepEqual(await ended.json(),{ outcome: 'credential_expired' });
     assert.equal(db.prepare('SELECT 1 FROM users WHERE id=?').get(firstPayload.principal.id),undefined);
+
+    const accountInviteActionId = randomUUID();
+    const accountInviteResponse = await fetch(
+      `${cutoverOrigin}/api/internal/game/guest-invite`,{
+        ...inviteRequest,
+        body: JSON.stringify({
+          actionId: accountInviteActionId,cookie: `cb_session=${browserToken}`,code: 'ABC234',
+        }),
+      },
+    );
+    const accountInvite = (await accountInviteResponse.json()).guestInvite;
+    const accountAdmissionBody = {
+      actionId: randomUUID(),cookie: `cb_session=${browserToken}`,code: 'ABC234',
+      name: 'Host',requireInvitation: true,invite: accountInvite,
+    };
+    const accountAdmission = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(accountAdmissionBody),
+    });
+    assert.equal(accountAdmission.status,200);
+    db.prepare('UPDATE state_guest_invites SET expires_at=? WHERE action_id=?')
+      .run(now - 1,accountInviteActionId);
+    const accountAdmissionReplay = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(accountAdmissionBody),
+    });
+    assert.equal(accountAdmissionReplay.status,200,
+      'the exact authenticated admission action must replay after invitation expiry');
+
+    const reservedInviteActionId = randomUUID();
+    const reservedInviteResponse = await fetch(
+      `${cutoverOrigin}/api/internal/game/guest-invite`,{
+        ...inviteRequest,
+        body: JSON.stringify({
+          actionId: reservedInviteActionId,cookie: `cb_session=${browserToken}`,code: 'ABC234',
+        }),
+      },
+    );
+    const reservedInvite = (await reservedInviteResponse.json()).guestInvite;
+    const reservedActionId = randomUUID();
+    const reservedBody = {
+      actionId: reservedActionId,cookie: `cb_session=${browserToken}`,code: 'ABC234',
+      name: 'Host',requireInvitation: true,invite: reservedInvite,
+    };
+    failNextAdmissionContext = true;
+    const contextUnavailable = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(reservedBody),
+    });
+    assert.equal(contextUnavailable.status,503);
+    assert.ok(db.prepare(`SELECT principal_id FROM state_admission_reservations
+      WHERE action_id=?`).get(reservedActionId));
+    db.prepare('DELETE FROM state_guest_invites WHERE action_id=?').run(reservedInviteActionId);
+    const contextRetry = await fetch(`${cutoverOrigin}/api/internal/game/admit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json','X-CannaBeats-Internal-Token': config.gameServiceToken },
+      body: JSON.stringify(reservedBody),
+    });
+    assert.equal(contextRetry.status,200,
+      'a durable principal reservation must outlive invitation consumption and context failure');
+
   } finally {
     await new Promise((resolve) => cutover.close(resolve));
   }

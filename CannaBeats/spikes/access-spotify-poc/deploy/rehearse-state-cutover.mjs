@@ -123,8 +123,8 @@ function writeReleaseRecord(path,{ stateCutover }) {
   schema-max-version: 2
   schema-target-version: 1
   state-cutover: ${stateCutover}
-  state-schema-min-generation: ${stateCutover ? 3 : 0}
-  state-schema-max-generation: ${stateCutover ? 3 : 0}
+  state-schema-min-generation: ${stateCutover ? 4 : 0}
+  state-schema-max-generation: ${stateCutover ? 4 : 0}
   state-protocol-min-version: ${stateCutover ? 4 : 0}
   state-protocol-max-version: ${stateCutover ? 4 : 0}
   state-http-contract-version: ${stateCutover ? 1 : 0}
@@ -247,7 +247,7 @@ try {
   record("migrate-monolith");
   const migrationRun = compose(base,["state-migration"],["run","--rm","state-migrate"],{ capture: true });
   const migration = parseLastJson(migrationRun.stdout);
-  if (migration.replayed || migration.schemaGeneration !== 3 || migration.protocolVersion !== 4) {
+  if (migration.replayed || migration.schemaGeneration !== 4 || migration.protocolVersion !== 4) {
     throw new Error(`Unexpected migration result: ${JSON.stringify(migration)}`);
   }
   record("migration-validated",{
@@ -257,7 +257,7 @@ try {
 
   compose(cutover,["state-cutover"],["up","-d","state"]);
   const candidate = await waitJson(`http://127.0.0.1:${statePort}/ready`,
-    (body) => body.authority?.status === "candidate" && body.schemaGeneration === 3
+    (body) => body.authority?.status === "candidate" && body.schemaGeneration === 4
       && body.protocolVersion === 4);
   record("candidate-ready",{ authority: candidate.authority.status });
   const activationToken = readFileSync(join(secretsDirectory,"state-activation-token"),"utf8").trim();
@@ -275,7 +275,7 @@ try {
   record("candidate-mutation-rejected");
   const activation = await postJson(`http://127.0.0.1:${statePort}/v1/admin/activate`,activationToken,{
     commandId: randomUUID(),expectedSourceDigest: migration.sourceDatabaseDigest,
-    expectedCandidateDigest: migration.candidateDigest,expectedSchemaGeneration: 3,
+    expectedCandidateDigest: migration.candidateDigest,expectedSchemaGeneration: 4,
     expectedProtocolVersion: 4,releaseEpoch,
   });
   if (activation.status !== "active") throw new Error("State activation did not succeed.");
@@ -357,7 +357,10 @@ try {
   const liveHistory = async (runId) => {
     const response = await fetch(
       `http://127.0.0.1:${gamePort}/game/api/game?runId=${encodeURIComponent(runId)}`,
-      { headers: { cookie: `cb_session=${fixture.browserSession}` },signal: AbortSignal.timeout(10_000) },
+      { headers: {
+        cookie: `cb_session=${fixture.browserSession}`,
+        "x-cannabeats-client-contract": "2",
+      },signal: AbortSignal.timeout(10_000) },
     );
     if (!response.ok) throw new Error(`Live history ${runId} failed with ${response.status}.`);
     return (await response.json()).history;
@@ -450,7 +453,10 @@ try {
   const restoredHistory = async (runId) => {
     const response = await fetch(
       `http://127.0.0.1:${restoredGamePort}/game/api/game?runId=${encodeURIComponent(runId)}`,
-      { headers: { cookie: `cb_session=${fixture.browserSession}` },signal: AbortSignal.timeout(10_000) },
+      { headers: {
+        cookie: `cb_session=${fixture.browserSession}`,
+        "x-cannabeats-client-contract": "2",
+      },signal: AbortSignal.timeout(10_000) },
     );
     if (!response.ok) throw new Error(`Restored history ${runId} failed with ${response.status}.`);
     return await response.json();

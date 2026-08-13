@@ -6,6 +6,7 @@ import {
   RUN_BOUND_MUTATION_ACTIONS,
 } from "./game-action-contract.ts";
 import type { GameRules } from "./rules";
+import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "./game-client-contract.ts";
 
 // Every run-bound mutation is receipt-backed by the server, so every dispatched
 // intent can be retried only with its exact action identity and payload.
@@ -282,6 +283,24 @@ export function commitJoinResult(
   return { playerId: payload.playerId, room: acceptedRoom };
 }
 
+export function commitRecoveryResult(
+  payload: GameApiPayload,
+  expectedCode: string,
+  applyRoom: (room: RoomView) => RoomView | null,
+  persistSession: () => void,
+) {
+  if (!validRoomViewShape(payload.room)
+      || payload.room.code !== expectedCode.trim().toUpperCase()) {
+    throw new GameApiError(
+      "The game returned an incomplete recovery result.",502,"invalid_response",payload.correlationId,
+    );
+  }
+  const acceptedRoom = applyRoom(payload.room);
+  if (acceptedRoom !== payload.room) return false;
+  persistSession();
+  return true;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -501,7 +520,10 @@ export async function requestGame(
     try {
       const response = await fetchImpl(endpoint, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          [GAME_CLIENT_CONTRACT_HEADER]: GAME_CLIENT_CONTRACT_VERSION,
+        },
         body: serializedBody,
         signal: controller.signal,
       });

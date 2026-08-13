@@ -11,7 +11,9 @@ import {
 import { validateStateDatabase } from "./invariants.mjs";
 import { candidateAuthorityDigest } from "./attestation.mjs";
 import { projectStateHistory } from "./history-projection.mjs";
-import { resolveSessionRecovery,resolveSourceHandoff } from "./recovery-contract.mjs";
+import {
+  resolveManagedRecoveryWork,resolveSessionRecovery,resolveSourceHandoff,
+} from "./recovery-contract.mjs";
 import { STATE_PROTOCOL_VERSION } from "./contract.mjs";
 import { STATE_SCHEMA_GENERATION } from "./schema.mjs";
 
@@ -428,6 +430,7 @@ export class StateOwner {
     const byCode = new Map(rows.map((row) => [row.code,row]));
     return {
       outcome: resolution.outcome,
+      ...(resolution.pendingActionRejected ? { pendingActionRejected: true } : {}),
       lobbies: resolution.lobbies.map((entry) => {
         const row = byCode.get(entry.code);
         let seatPlayerId = null;
@@ -940,6 +943,21 @@ export class StateOwner {
     }));
   }
 
+  managedSourceHandoffs({ includeSafe = false,since = 0 } = {}) {
+    return this.#db.prepare(`SELECT handoff.id,handoff.source_id,handoff.prior_lobby_code,
+        handoff.stop_command_id,handoff.handoff_state,handoff.occurred_at,
+        command.command_state,command.playback_status
+      FROM managed_source_handoff_current handoff
+      JOIN managed_command_current command ON command.id=handoff.stop_command_id
+      WHERE (?=1 OR handoff.handoff_state<>'safe') AND handoff.occurred_at>=?
+      ORDER BY handoff.occurred_at,handoff.id`).all(includeSafe ? 1 : 0,since).map((handoff) => ({
+      handoffId: handoff.id,sourceId: handoff.source_id,
+      priorLobbyCode: handoff.prior_lobby_code,stopCommandId: handoff.stop_command_id,
+      state: handoff.handoff_state,updatedAt: handoff.occurred_at,
+      commandState: handoff.command_state,playbackStatus: handoff.playback_status,
+    }));
+  }
+
   operatorReport({ sinceHours = 24, now = Date.now() } = {}) {
     if (!Number.isInteger(sinceHours) || sinceHours < 1 || sinceHours > 24 * 31) {
       throw new Error("Operator report window is invalid.");
@@ -961,6 +979,7 @@ export class StateOwner {
       generatedAt: now,sinceHours,authority: this.authorityStatus(),
       sanitizationPending: this.readiness().sanitizationPending,
       sources: this.managedSources(),
+      sourceHandoffs: this.managedSourceHandoffs({ includeSafe: true,since: cutoff }),
       sessions: sessions.map((row) => {
         let phase = null;
         try { phase = validateRoomState(JSON.parse(row.state)).phase; } catch { /* report null */ }
@@ -1055,27 +1074,57 @@ export class StateOwner {
         FROM managed_source_handoff_current
         WHERE source_id=? AND handoff_state<>'safe'`).get(authenticatedSourceId);
       if (!handoff) return { protocolVersion: STATE_PROTOCOL_VERSION, lease: null, command: null };
-      if (handoff.handoff_state === "stop_required") {
-        const command = this.#db.prepare(`SELECT current.id,current.kind,payload.track_uri
-          FROM managed_command_current current
-          JOIN managed_command_payloads payload ON payload.command_id=current.id
-          WHERE current.id=? AND current.command_state='queued'`).get(handoff.stop_command_id);
-        if (!command) throw new Error("Managed source handoff stop authority is inconsistent.");
+      const priorUncertain = this.#db.prepare(`SELECT current.id,current.command_state,
+          current.claim_generation,current.kind,payload.track_uri
+        FROM managed_command_current current
+        JOIN managed_command_payloads payload ON payload.command_id=current.id
+        WHERE current.source_id=? AND current.lobby_code=? AND current.id<>?
+          AND current.command_state IN ('claimed','executing','outcome_unknown')
+        ORDER BY current.dispatch_sequence LIMIT 1`).get(
+        authenticatedSourceId,handoff.prior_lobby_code,handoff.stop_command_id,
+      );
+      const handoffView = { id: handoff.id,state: handoff.handoff_state,
+        priorLobbyCode: handoff.prior_lobby_code };
+      if (priorUncertain) {
         return {
-          protocolVersion: STATE_PROTOCOL_VERSION,lease: null,
-          handoff: { id: handoff.id,state: handoff.handoff_state,
-            priorLobbyCode: handoff.prior_lobby_code },
-          command: { id: command.id,kind: command.kind,trackUri: command.track_uri,handoff: true },
+          protocolVersion: STATE_PROTOCOL_VERSION,lease: null,command: null,handoff: handoffView,
+          recovery: {
+            commandId: priorUncertain.id,state: priorUncertain.command_state,
+            claimGeneration: priorUncertain.claim_generation,kind: priorUncertain.kind,
+            trackUri: priorUncertain.track_uri,
+            action: resolveManagedRecoveryWork({
+              leasePresent: false,handoffState: handoff.handoff_state,
+              commandState: priorUncertain.command_state,
+            }).action,
+          },
         };
       }
+      const stop = this.#db.prepare(`SELECT current.id,current.command_state,
+          current.claim_generation,current.kind,payload.track_uri
+        FROM managed_command_current current
+        JOIN managed_command_payloads payload ON payload.command_id=current.id
+        WHERE current.id=?`).get(handoff.stop_command_id);
+      if (!stop) throw new Error("Managed source handoff stop authority is inconsistent.");
+      const recoveryAction = resolveManagedRecoveryWork({
+        leasePresent: false,handoffState: handoff.handoff_state,commandState: stop.command_state,
+      }).action;
       return {
-        protocolVersion: STATE_PROTOCOL_VERSION,lease: null,command: null,
-        handoff: { id: handoff.id,state: handoff.handoff_state,
-          priorLobbyCode: handoff.prior_lobby_code },
+        protocolVersion: STATE_PROTOCOL_VERSION,lease: null,handoff: handoffView,
+        command: ["claim","retry_claim"].includes(recoveryAction) ? {
+          id: stop.id,kind: stop.kind,trackUri: stop.track_uri,handoff: true,
+          ...(recoveryAction === "retry_claim" ? { recovery: true } : {}),
+        } : null,
+        recovery: recoveryAction === "idle" ? undefined : {
+          commandId: stop.id,state: stop.command_state,claimGeneration: stop.claim_generation,
+          kind: stop.kind,trackUri: stop.track_uri,action: recoveryAction,
+        },
       };
     }
-    const inFlight = this.#db.prepare(`SELECT id,command_state FROM managed_command_current
-      WHERE source_id=? AND lobby_code=?
+    const inFlight = this.#db.prepare(`SELECT current.id,current.command_state,
+        current.claim_generation,current.kind,payload.track_uri
+      FROM managed_command_current current
+      JOIN managed_command_payloads payload ON payload.command_id=current.id
+      WHERE current.source_id=? AND current.lobby_code=?
         AND command_state IN ('claimed','executing','outcome_unknown')
       ORDER BY dispatch_sequence LIMIT 1`).get(authenticatedSourceId,lease.lobby_code);
     if (inFlight) {
@@ -1085,8 +1134,15 @@ export class StateOwner {
           id: lease.lease_id, lobbyCode: lease.lobby_code,
           expiresAt: lease.expires_at, playbackStatus: lease.playback_status,
         },
-        command: null,
-        recovery: { commandId: inFlight.id, state: inFlight.command_state },
+        command: inFlight.command_state === "claimed" ? {
+          id: inFlight.id,kind: inFlight.kind,trackUri: inFlight.track_uri,
+          recovery: true,
+        } : null,
+        recovery: {
+          commandId: inFlight.id,state: inFlight.command_state,
+          claimGeneration: inFlight.claim_generation,kind: inFlight.kind,
+          trackUri: inFlight.track_uri,
+        },
       };
     }
     const command = this.#db.prepare(`SELECT current.id,current.kind,payload.track_uri
@@ -1157,11 +1213,17 @@ export class StateOwner {
         WHERE l.code=? AND l.status='playing' AND l.host_principal_id=?`)
         .get(sourceId,lobbyCode,actorPrincipalId);
       if (!authority) throw new Error("Managed lease authority is unavailable.");
+      const expiredLeases = this.#db.prepare(`SELECT id,source_id,lobby_code
+        FROM managed_leases
+        WHERE expires_at<=? AND (source_id=? OR lobby_code=?) ORDER BY id`)
+        .all(now,sourceId,lobbyCode);
+      const recovery = this.#expireLeaseAuthority(expiredLeases,commandId,now);
       const conflict = this.#db.prepare(`SELECT id FROM managed_leases
         WHERE source_id=? OR lobby_code=?`).get(sourceId,lobbyCode);
       if (conflict) throw new Error("Managed source or lobby is already leased.");
       const handoff = this.#db.prepare(`SELECT 1 FROM managed_source_handoff_current
         WHERE source_id=? AND handoff_state<>'safe'`).get(sourceId);
+      if (handoff && recovery) return recovery;
       if (handoff) throw new Error("Managed source handoff is quarantined until playback is safe.");
       const leaseId = randomUUID();
       const expiresAt = now + leaseDurationMs;
@@ -1229,27 +1291,78 @@ export class StateOwner {
       this.#assertActive();
       const leases = this.#db.prepare(`SELECT id,source_id,lobby_code
         FROM managed_leases WHERE expires_at<=? ORDER BY id`).all(now);
-      const expired = leases.map((lease) => {
-        const released = this.#releaseLeaseAuthority(lease,"lease_expired",commandId,now);
-        this.#recordLeaseEvent({
-          lobbyCode: lease.lobby_code, actionId: commandId, actorPrincipalId: null,
-          type: "audio_lease_expired", outcome: "interrupted", detailCode: "managed",
-          reasonCode: "lease_expired", now,
-        });
-        return { leaseId: lease.id, ...released };
-      });
+      const expired = this.#expireLeaseAuthority(leases,commandId,now,{ all: true });
       return { boundary: now, expired };
+    });
+  }
+
+  #expireLeaseAuthority(leases,actionId,now,{ all = false } = {}) {
+    const expired = [];
+    for (const lease of leases) {
+      const released = this.#releaseLeaseAuthority(lease,"lease_expired",actionId,now);
+      this.#recordLeaseEvent({
+        lobbyCode: lease.lobby_code,actionId,actorPrincipalId: null,
+        type: "audio_lease_expired",outcome: "interrupted",detailCode: "managed",
+        reasonCode: "lease_expired",now,
+      });
+      expired.push({ leaseId: lease.id,...released });
+    }
+    if (all) return expired;
+    const blocked = expired.find((entry) => entry.handoff.state !== "clear");
+    return blocked ? {
+      status: "recovery_required",expiredLeaseId: blocked.leaseId,
+      transitions: blocked.transitions,handoff: blocked.handoff,
+    } : null;
+  }
+
+  resolveManagedSourceHandoff({
+    commandId, handoffId, resolution, now = Date.now(),
+  }) {
+    const request = { handoffId,resolution };
+    return this.#once(commandId,"resolve_managed_source_handoff",request,now,() => {
+      this.#assertActive();
+      if (!UUID_PATTERN.test(handoffId) || resolution !== "confirmed_paused") {
+        throw new Error("Managed source handoff resolution is invalid.");
+      }
+      const handoff = this.#db.prepare(`SELECT id,handoff_state,stop_command_id
+        FROM managed_source_handoff_current WHERE id=?`).get(handoffId);
+      if (!handoff || handoff.handoff_state !== "quarantined") {
+        throw new Error("Managed source handoff is not awaiting reviewed recovery.");
+      }
+      const command = this.#db.prepare(`SELECT command_state,claim_generation FROM managed_command_current
+        WHERE id=?`).get(handoff.stop_command_id);
+      if (!command || !["failed","outcome_unknown"].includes(command.command_state)) {
+        throw new Error("Managed source handoff does not have a reviewable terminal uncertainty.");
+      }
+      this.#db.prepare(`INSERT INTO managed_source_handoff_resolutions
+        (handoff_id,command_id,resolution,resolved_at) VALUES (?,?,?,?)`)
+        .run(handoffId,commandId,resolution,now);
+      if (command.command_state === "outcome_unknown") {
+        const outcome = { ok: true,playbackStatus: "paused",errorCategory: null };
+        this.#appendManagedCommandTransition({
+          commandId: handoff.stop_command_id,currentState: "outcome_unknown",
+          nextState: "completed",claimGeneration: command.claim_generation,
+          outcomeFingerprint: fingerprint(outcome),playbackStatus: "paused",now,
+        });
+        this.#recordManagedCommandEvent(handoff.stop_command_id,"completed",null,now);
+      }
+      this.#transitionSourceHandoff(handoff,"safe",now);
+      return { handoffId,state: "safe",resolution };
     });
   }
 
   #forfeitLease(lease, reasonCode, now) {
     const commands = this.#db.prepare(`SELECT id,command_state,claim_generation
       FROM managed_command_current WHERE source_id=? AND lobby_code=?
-        AND command_state IN ('queued','claimed','executing')`).all(
+        AND command_state IN ('queued','claimed','executing','outcome_unknown')`).all(
       lease.source_id,lease.lobby_code,
     );
     const transitions = [];
     for (const command of commands) {
+      if (command.command_state === "outcome_unknown") {
+        transitions.push({ commandId: command.id,state: "outcome_unknown" });
+        continue;
+      }
       const next = command.command_state === "queued" ? "cancelled" : "outcome_unknown";
       this.#appendManagedCommandTransition({
         commandId: command.id, currentState: command.command_state, nextState: next,
@@ -1288,7 +1401,7 @@ export class StateOwner {
       handoffId,context.source_id,context.lobby_code,context.run_id,context.run_generation,
       stopCommandId,reasonCode,now,
     );
-    const state = uncertain ? "quarantined" : "stop_required";
+    const state = "stop_required";
     this.#db.prepare(`INSERT INTO managed_source_handoff_transitions
       (handoff_id,sequence,from_state,to_state,occurred_at) VALUES (?,1,NULL,?,?)`)
       .run(handoffId,state,now);
@@ -1379,6 +1492,9 @@ export class StateOwner {
       if (effect?.type === "select_audio") {
         this.#db.prepare("UPDATE lobbies SET audio_mode=?,updated_at=? WHERE code=?")
           .run(effect.mode,now,lobbyCode);
+        const expired = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
+          WHERE expires_at<=? ORDER BY id`).all(now);
+        const expiryRecovery = this.#expireLeaseAuthority(expired,actionId,now);
         const existing = this.#db.prepare(`SELECT id,source_id,lobby_code FROM managed_leases
           WHERE lobby_code=?`).get(lobbyCode);
         if (effect.mode === "local") {
@@ -1402,6 +1518,7 @@ export class StateOwner {
           });
           continue;
         }
+        if (expiryRecovery) continue;
         const source = this.#db.prepare(`SELECT source.id FROM managed_sources source
           LEFT JOIN managed_leases lease ON lease.source_id=source.id
           LEFT JOIN managed_source_handoff_current handoff ON handoff.source_id=source.id
@@ -1627,7 +1744,11 @@ export class StateOwner {
         command.requested_by_principal_id === command.host_principal_id ? "host" : "player",
         command.requested_by_principal_id],
       claimed: ["audio_command_delivered", "accepted", "source", command.source_id],
-      completed: ["audio_command_completed", "completed", "source", command.source_id],
+      completed: this.#db.prepare(`SELECT 1 FROM managed_source_handoffs handoff
+        JOIN managed_source_handoff_resolutions resolution ON resolution.handoff_id=handoff.id
+        WHERE handoff.stop_command_id=?`).get(commandId)
+        ? ["audio_command_completed", "completed", "system", null]
+        : ["audio_command_completed", "completed", "source", command.source_id],
       failed: ["audio_command_failed", "failed", "source", command.source_id],
       outcome_unknown: ["audio_command_outcome_unknown", "unknown", "system", null],
       cancelled: ["audio_command_cancelled", "cancelled", "system", null],
@@ -1655,7 +1776,9 @@ export class StateOwner {
     }
     const commands = this.#db.prepare(`SELECT id,command_state,claim_generation
       FROM managed_command_current WHERE run_id=?
-        AND command_state IN ('queued','claimed','executing')`).all(runId);
+        AND command_state IN ('queued','claimed','executing')
+        AND id NOT IN (SELECT stop_command_id FROM managed_source_handoff_current
+          WHERE handoff_state<>'safe')`).all(runId);
     for (const command of commands) {
       const next = command.command_state === "queued" ? "cancelled" : "outcome_unknown";
       this.#appendManagedCommandTransition({

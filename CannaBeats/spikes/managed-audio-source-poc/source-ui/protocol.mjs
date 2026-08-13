@@ -9,3 +9,12 @@ export function shouldExecuteManagedControllerCommand(controller) {
   if (controller.lease) return true;
   return controller.command?.handoff === true && controller.command?.kind === "pause";
 }
+
+export function reconcileManagedProviderObservation(command, playback) {
+  if (!command || !playback || typeof playback.paused !== "boolean") return null;
+  if (command.kind === "pause" && playback.paused) return "paused";
+  if (command.kind === "resume" && !playback.paused) return "playing";
+  if (command.kind === "play" && !playback.paused && typeof command.trackUri === "string"
+      && playback.trackUri === command.trackUri) return "playing";
+  return null;
+}

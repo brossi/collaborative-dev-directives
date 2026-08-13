@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { afterEach, test } from "node:test";
 import { getStateGame,postStateGame } from "../app/api/game/state-route.ts";
+import {
+  GAME_CLIENT_CONTRACT_HEADER,
+  GAME_CLIENT_CONTRACT_VERSION,
+} from "../lib/game-client-contract.ts";
 
 const originalFetch = globalThis.fetch;
 const originalEnvironment = Object.fromEntries([
@@ -28,6 +32,14 @@ function configure() {
   process.env.CANNABEATS_STATE_GAME_TOKEN = "state-game-token";
   process.env.CANNABEATS_STATE_GAME_PRINCIPAL_ASSERTION_KEY = "state-game-key";
   process.env.CANNABEATS_APP_ORIGIN = "https://poc.example";
+}
+
+function stateRequest(url, init = {}) {
+  const headers = new Headers(init.headers);
+  if (!headers.has(GAME_CLIENT_CONTRACT_HEADER)) {
+    headers.set(GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION);
+  }
+  return new Request(url, { ...init, headers });
 }
 
 function room(runId, revision = 0) {
@@ -71,7 +83,7 @@ test("state-backed prepare resolves identity externally and creates one idempote
     }
     throw new Error(`unexpected ${url}`);
   };
-  const response = await postStateGame(new Request("https://poc.example/game/api/game", {
+  const response = await postStateGame(stateRequest("https://poc.example/game/api/game", {
     method: "POST",
     headers: { origin: "https://poc.example", "content-type": "application/json", cookie: "cb_session=x" },
     body: JSON.stringify({ action: "prepare", actionId, code: "ABC234" }),
@@ -95,7 +107,7 @@ test("state-backed game actions translate legacy wire names into typed owner com
     actionBody = JSON.parse(options.body);
     return Response.json({ state: room(runId, 5), replayed: false });
   };
-  const response = await postStateGame(new Request("https://poc.example/game/api/game", {
+  const response = await postStateGame(stateRequest("https://poc.example/game/api/game", {
     method: "POST",
     headers: { origin: "https://poc.example", "content-type": "application/json", cookie: "cb_session=x" },
     body: JSON.stringify({
@@ -128,13 +140,13 @@ test("state-backed admission and history never read the legacy game database", a
     });
     throw new Error(`unexpected ${url}`);
   };
-  const admission = await postStateGame(new Request("https://poc.example/game/api/game", {
+  const admission = await postStateGame(stateRequest("https://poc.example/game/api/game", {
     method: "POST",headers: { origin: "https://poc.example","content-type": "application/json" },
     body: JSON.stringify({ action: "join",actionId,code: "ABC234",name: "Phone" }),
   }));
   assert.equal(admission.status,201);
   assert.equal((await admission.json()).playerId,"player-1");
-  const history = await getStateGame(new Request(
+  const history = await getStateGame(stateRequest(
     `https://poc.example/game/api/game?runId=${runId}`,
     { headers: { cookie: "cb_session=x" } },
   ));
@@ -167,8 +179,8 @@ test("state-backed recovery derives the same phone seat without browser session 
     });
     throw new Error(`unexpected ${url}`);
   };
-  const response = await getStateGame(new Request(
-    "https://poc.example/game/api/game?recover=1&clientContractVersion=1",
+  const response = await getStateGame(stateRequest(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=2",
     { headers: { cookie: "cb_guest=same-device" } },
   ));
   assert.equal(response.status,200);
@@ -191,8 +203,8 @@ test("expired same-device recovery stops before State and returns the finite cre
     stateCalled = true;
     throw new Error(`unexpected ${url}`);
   };
-  const response = await getStateGame(new Request(
-    "https://poc.example/game/api/game?recover=1&clientContractVersion=1&preferredLobbyCode=ABC234",
+  const response = await getStateGame(stateRequest(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=2&preferredLobbyCode=ABC234",
     { headers: { cookie: "cb_guest=expired" } },
   ));
   assert.equal(response.status,200);
@@ -210,13 +222,39 @@ test("an incompatible client is rejected before Access or State identity disclos
     dependencyCalled = true;
     throw new Error("dependency must not be called");
   };
-  const response = await getStateGame(new Request(
-    "https://poc.example/game/api/game?recover=1&clientContractVersion=0",
-    { headers: { cookie: "cb_guest=still-secret" } },
+  const response = await getStateGame(stateRequest(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=1",
+    { headers: { cookie: "cb_guest=still-secret", [GAME_CLIENT_CONTRACT_HEADER]: "1" } },
   ));
+  assert.equal(response.status,426);
   assert.deepEqual(await response.json(),{
     recovery: { outcome: "client_upgrade_required",lobbies: [] },
+    error: "Reload after updating CannaBeats to continue.",
+    code: "client_upgrade_required",
   });
+  assert.equal(dependencyCalled,false);
+});
+
+test("versionless ordinary reads and mutations stop before identity or state disclosure", async () => {
+  configure();
+  let dependencyCalled = false;
+  globalThis.fetch = async () => {
+    dependencyCalled = true;
+    throw new Error("dependency must not be called");
+  };
+  const read = await getStateGame(new Request(
+    "https://poc.example/game/api/game?code=ABC234",
+    { headers: { cookie: "cb_guest=still-secret" } },
+  ));
+  const mutation = await postStateGame(new Request("https://poc.example/game/api/game", {
+    method: "POST",
+    headers: { origin: "https://poc.example", "content-type": "application/json" },
+    body: JSON.stringify({ action: "prepare", actionId: randomUUID(), code: "ABC234" }),
+  }));
+  assert.equal(read.status,426);
+  assert.equal(mutation.status,426);
+  assert.equal((await read.json()).code,"client_upgrade_required");
+  assert.equal((await mutation.json()).code,"client_upgrade_required");
   assert.equal(dependencyCalled,false);
 });
 
@@ -248,8 +286,8 @@ test("startup recovery preserves a pending lobby target for exact reconciliation
     });
     throw new Error(`unexpected ${url}`);
   };
-  const response = await getStateGame(new Request(
-    "https://poc.example/game/api/game?recover=1&clientContractVersion=1&pendingActionLobbyCode=ABC234",
+  const response = await getStateGame(stateRequest(
+    "https://poc.example/game/api/game?recover=1&clientContractVersion=2&pendingActionLobbyCode=ABC234",
     { headers: { cookie: "cb_guest=same-device" } },
   ));
   const payload = await response.json();

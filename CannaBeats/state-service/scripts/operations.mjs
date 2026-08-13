@@ -35,8 +35,29 @@ if (command === "operator" && action === "status") {
   console.log(JSON.stringify({ validation,report }));
   process.exit(0);
 }
+if (command === "source-handoff" && action === "resolve") {
+  const handoffId = argument("handoff-id","");
+  const confirmedPaused = process.argv.includes("--confirm-paused");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    .test(handoffId) || !confirmedPaused) {
+    throw new Error(
+      "A canonical --handoff-id and explicit --confirm-paused acknowledgement are required.",
+    );
+  }
+  const result = await state(`/v1/admin/source-handoffs/${handoffId}/resolve`, {
+    method: "POST",body: {
+      commandId: requestId(`handoff-confirmed-paused:${handoffId}`),
+      resolution: "confirmed_paused",
+    },
+  });
+  console.log(JSON.stringify(result));
+  process.exit(0);
+}
 if (command !== "history" || action !== "purge") {
-  throw new Error("Usage: node scripts/operations.mjs history purge --retention-days 90 | operator status");
+  throw new Error(
+    "Usage: node scripts/operations.mjs history purge --retention-days 90 | operator status | "
+    + "source-handoff resolve --handoff-id UUID --confirm-paused",
+  );
 }
 const retentionDays = Number(argument("retention-days",90));
 if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 365) {

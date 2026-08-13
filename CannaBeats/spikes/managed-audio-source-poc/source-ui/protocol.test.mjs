@@ -1,13 +1,28 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  classifyManagedCommandFailure,shouldExecuteManagedControllerCommand,
+  classifyManagedCommandFailure,reconcileManagedProviderObservation,
+  shouldExecuteManagedControllerCommand,
 } from "./protocol.mjs";
 
 test("provider authorization and execution ambiguity remain fail closed", () => {
   assert.equal(classifyManagedCommandFailure("prepare"),"failed");
   assert.equal(classifyManagedCommandFailure("begin"),"outcome_unknown");
   assert.equal(classifyManagedCommandFailure("provider"),"outcome_unknown");
+});
+
+test("unknown effects reconcile only from matching read-only provider evidence", () => {
+  assert.equal(reconcileManagedProviderObservation({ kind: "pause" },{ paused: true }),"paused");
+  assert.equal(reconcileManagedProviderObservation({ kind: "resume" },{ paused: false }),"playing");
+  assert.equal(reconcileManagedProviderObservation(
+    { kind: "play",trackUri: "spotify:track:right" },
+    { paused: false,trackUri: "spotify:track:right" },
+  ),"playing");
+  assert.equal(reconcileManagedProviderObservation(
+    { kind: "play",trackUri: "spotify:track:right" },
+    { paused: false,trackUri: "spotify:track:wrong" },
+  ),null);
+  assert.equal(reconcileManagedProviderObservation({ kind: "pause" },{ paused: false }),null);
 });
 
 test("only a State-issued pause handoff executes without a live lease", () => {

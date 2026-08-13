@@ -24,6 +24,30 @@ export const SOURCE_HANDOFF_STATES = Object.freeze([
   "quarantined",
 ]);
 
+export const MANAGED_RECOVERY_ACTIONS = Object.freeze([
+  "idle","claim","retry_claim","reconcile_provider","operator_review",
+]);
+
+export function resolveManagedRecoveryWork({ leasePresent, handoffState = null, commandState = null } = {}) {
+  if (typeof leasePresent !== "boolean"
+      || (handoffState !== null && !SOURCE_HANDOFF_STATES.includes(handoffState))
+      || (commandState !== null && ![
+        "queued","claimed","executing","outcome_unknown","failed","completed","cancelled",
+      ].includes(commandState))) {
+    throw new Error("Managed recovery product state is invalid.");
+  }
+  if (commandState === null || ["completed","cancelled"].includes(commandState)) {
+    return { action: handoffState === "quarantined" ? "operator_review" : "idle" };
+  }
+  if (commandState === "queued") return { action: "claim" };
+  if (commandState === "claimed") return { action: "retry_claim" };
+  if (["executing","outcome_unknown"].includes(commandState)) {
+    return { action: "reconcile_provider" };
+  }
+  if (commandState === "failed") return { action: "operator_review" };
+  throw new Error("Managed recovery product state is not actionable.");
+}
+
 const SOURCE_HANDOFF_EDGES = new Map([
   ["clear:release_safe", "clear"],
   ["clear:release_playing", "stop_required"],
@@ -35,6 +59,7 @@ const SOURCE_HANDOFF_EDGES = new Map([
   ["stop_executing:fail", "quarantined"],
   ["stop_executing:lose_authority", "quarantined"],
   ["quarantined:reconcile_paused", "clear"],
+  ["quarantined:confirm_paused", "clear"],
 ]);
 
 export function transitionSourceHandoff(state, action) {
@@ -66,7 +91,8 @@ export function resolveSessionRecovery({
       || typeof contractCompatible !== "boolean" || !Array.isArray(memberships)) {
     throw new Error("Recovery input is invalid.");
   }
-  const active = memberships.map(lobby).filter((entry) => entry.status !== "ended");
+  const normalized = memberships.map(lobby);
+  const active = normalized.filter((entry) => entry.status !== "ended");
   const preferred = preferredLobbyCode === null ? null : String(preferredLobbyCode).toUpperCase();
   const pending = pendingActionLobbyCode === null ? null : String(pendingActionLobbyCode).toUpperCase();
 
@@ -75,8 +101,13 @@ export function resolveSessionRecovery({
     return { outcome: credentialExpired ? "credential_expired" : "authentication_required", lobbies: [] };
   }
   if (pending) {
-    const target = active.find((entry) => entry.code === pending) ?? null;
-    return { outcome: "action_reconciliation_required", lobbies: target ? [target] : [] };
+    const target = normalized.find((entry) => entry.code === pending) ?? null;
+    if (target) return { outcome: "action_reconciliation_required",lobbies: [target] };
+    const fallback = resolveSessionRecovery({
+      authenticated,credentialExpired,contractCompatible,
+      preferredLobbyCode: preferred,memberships: normalized,
+    });
+    return { ...fallback,pendingActionRejected: true };
   }
   const preferredLobby = preferred ? active.find((entry) => entry.code === preferred) : null;
   if (preferredLobby) return { outcome: "resume", lobbies: [preferredLobby] };

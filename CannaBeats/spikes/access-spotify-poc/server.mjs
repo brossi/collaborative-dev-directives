@@ -469,8 +469,19 @@ export function createApp({
       WHERE state_guest_sessions.token_hash=? AND state_guest_sessions.recovery_expires_at>?
         AND state_guest_sessions.revoked_at IS NULL`).get(tokenHash,now);
     if (!candidate) return { outcome: 'credential_expired' };
-    const active = await stateClient.lobbies({ principalId: candidate.id });
-    if (!active.lobbies.some((lobby) => lobby.code === candidate.lobby_code)) {
+    const pendingActionLobbyCode = typeof credentials?.pendingActionLobbyCode === 'string'
+      ? credentials.pendingActionLobbyCode.trim().toUpperCase() : '';
+    const authority = pendingActionLobbyCode
+      ? await stateClient.recover({
+        principalId: candidate.id,pendingActionLobbyCode,
+        preferredLobbyCode: candidate.lobby_code,
+      })
+      : await stateClient.lobbies({ principalId: candidate.id });
+    const retainsMembership = pendingActionLobbyCode
+      ? (authority.lobbies ?? []).some((lobby) => lobby.code === candidate.lobby_code)
+        || authority.lobby?.code === candidate.lobby_code
+      : authority.lobbies.some((lobby) => lobby.code === candidate.lobby_code);
+    if (!retainsMembership) {
       db.exec('BEGIN IMMEDIATE');
       try {
         db.prepare(`UPDATE state_guest_sessions SET revoked_at=?
@@ -711,7 +722,7 @@ export function createApp({
         const contractResponse = await stateClient.contract();
         if (!contractResponse.ok) throw new HttpError(503,'State service is not ready');
         const contract = await contractResponse.json();
-        if (contract.httpContractVersion !== 1 || contract.schemaGeneration !== 3
+        if (contract.httpContractVersion !== 1 || contract.schemaGeneration !== 4
             || contract.protocolVersion !== 4) {
           throw new HttpError(503,'State service contract is incompatible');
         }
@@ -798,22 +809,66 @@ export function createApp({
       throw new HttpError(404, 'Game session was not found');
     }
     let sessionCookie = null;
-    if (requireInvitation) {
+    let reservation = db.prepare(`SELECT principal_id,lobby_code,display_name,retry_expires_at,completed_at
+      FROM state_admission_reservations WHERE action_id=?`).get(actionId);
+    let guestAdmission = db.prepare(`SELECT user_id,lobby_code,display_name,expires_at,recovery_expires_at
+      FROM state_guest_admissions WHERE action_id=?`).get(actionId);
+    if (reservation) {
+      if (reservation.lobby_code !== code
+          || (admittedPrincipal && admittedPrincipal.id !== reservation.principal_id)) {
+        throw new HttpError(409,'Admission identity conflicts with its prior request');
+      }
+      if (!admittedPrincipal) {
+        if (!guestAdmission || guestAdmission.user_id !== reservation.principal_id) {
+          throw new HttpError(409,'Admission identity cannot be recovered');
+        }
+        const user = db.prepare('SELECT id,display_name,role FROM users WHERE id=?')
+          .get(reservation.principal_id);
+        if (!user) throw new HttpError(409,'Admission identity cannot be recovered');
+        admittedPrincipal = { ...user,kind: 'guest',sessionCode: code };
+      }
+    } else if (requireInvitation) {
+      const priorAdmission = guestAdmission;
+      const invitation = String(req.body?.invite ?? '');
+      if (!priorAdmission && !/^[A-Za-z0-9_-]{32,128}$/.test(invitation)) {
+        throw new HttpError(403, 'This guest invitation is invalid');
+      }
+      const invitationHash = priorAdmission ? null : sha256(invitation);
+      if (admittedPrincipal && !priorAdmission) {
+        const now = Date.now();
+        const admissionName = cleanText(
+          req.body?.name ?? admittedPrincipal.display_name,
+          { field: 'Player name',maximum: 24 },
+        );
+        db.exec('BEGIN IMMEDIATE');
+        try {
+          const consumed = db.prepare(`UPDATE state_guest_invites
+            SET revoked_at=COALESCE(revoked_at,?),redeemed_action_id=COALESCE(redeemed_action_id,?)
+            WHERE token_hash=? AND lobby_code=?
+              AND (redeemed_action_id=? OR (expires_at>? AND revoked_at IS NULL))`)
+            .run(now,actionId,invitationHash,code,actionId,now);
+          if (consumed.changes !== 1) {
+            throw new HttpError(403,'This guest invitation is invalid, expired, or already used');
+          }
+          db.prepare(`INSERT INTO state_admission_reservations
+            (action_id,principal_id,lobby_code,display_name,created_at,retry_expires_at,completed_at)
+            VALUES (?,?,?,?,?,?,NULL)`).run(
+            actionId,admittedPrincipal.id,code,admissionName,now,
+            now + GAME_GUEST_RECOVERY_TTL_MS,
+          );
+          db.exec('COMMIT');
+          reservation = {
+            principal_id: admittedPrincipal.id,lobby_code: code,display_name: admissionName,
+            retry_expires_at: now + GAME_GUEST_RECOVERY_TTL_MS,completed_at: null,
+          };
+        } catch (error) {
+          db.exec('ROLLBACK');
+          throw error;
+        }
+      }
       if (!admittedPrincipal) {
         const name = cleanText(req.body?.name, { field: 'Player name', maximum: 24 });
-        let admission = db.prepare(`SELECT user_id,lobby_code,display_name,expires_at,recovery_expires_at
-          FROM state_guest_admissions WHERE action_id=?`).get(actionId);
-        let invite = null;
-        if (!admission) {
-          const invitation = String(req.body?.invite ?? '');
-          if (!/^[A-Za-z0-9_-]{32,128}$/.test(invitation)) {
-            throw new HttpError(403, 'This guest invitation is invalid');
-          }
-          invite = db.prepare(`SELECT expires_at FROM state_guest_invites
-            WHERE token_hash=? AND lobby_code=? AND expires_at>? AND revoked_at IS NULL`)
-            .get(sha256(invitation),code,Date.now());
-          if (!invite) throw new HttpError(403, 'This guest invitation is invalid or has expired');
-        }
+        let admission = priorAdmission;
         if (!admission) {
           const userId = randomUUID();
           const now = Date.now();
@@ -821,6 +876,13 @@ export function createApp({
           const recoveryExpiresAt = now + GAME_GUEST_RECOVERY_TTL_MS;
           db.exec('BEGIN IMMEDIATE');
           try {
+            const consumed = db.prepare(`UPDATE state_guest_invites
+              SET revoked_at=?,redeemed_action_id=?
+              WHERE token_hash=? AND lobby_code=? AND expires_at>? AND revoked_at IS NULL`)
+              .run(now,actionId,invitationHash,code,now);
+            if (consumed.changes !== 1) {
+              throw new HttpError(403,'This guest invitation is invalid, expired, or already used');
+            }
             db.prepare(`INSERT INTO users (id,display_name,role,created_at)
               VALUES (?,?,'player',?)`).run(userId,name,now);
             db.prepare(`INSERT INTO state_guest_admissions
@@ -828,10 +890,19 @@ export function createApp({
               VALUES (?,?,?,?,?,?,?)`).run(
               actionId,userId,code,name,now,expiresAt,recoveryExpiresAt,
             );
+            db.prepare(`INSERT INTO state_admission_reservations
+              (action_id,principal_id,lobby_code,display_name,created_at,retry_expires_at,completed_at)
+              VALUES (?,?,?,?,?,?,NULL)`).run(
+              actionId,userId,code,name,now,recoveryExpiresAt,
+            );
             db.exec('COMMIT');
             admission = {
               user_id: userId,lobby_code: code,display_name: name,expires_at: expiresAt,
               recovery_expires_at: recoveryExpiresAt,
+            };
+            reservation = {
+              principal_id: userId,lobby_code: code,display_name: name,
+              retry_expires_at: recoveryExpiresAt,completed_at: null,
             };
           } catch (error) {
             db.exec('ROLLBACK');
@@ -839,7 +910,20 @@ export function createApp({
           }
         } else if (admission.display_name !== name || admission.lobby_code !== code) {
           throw new HttpError(409, 'Admission identity conflicts with its prior request');
+        } else {
+          const now = Date.now();
+          db.prepare(`INSERT INTO state_admission_reservations
+            (action_id,principal_id,lobby_code,display_name,created_at,retry_expires_at,completed_at)
+            VALUES (?,?,?,?,?,?,NULL)`).run(
+            actionId,admission.user_id,code,admission.display_name,now,
+            admission.recovery_expires_at,
+          );
+          reservation = {
+            principal_id: admission.user_id,lobby_code: code,display_name: admission.display_name,
+            retry_expires_at: admission.recovery_expires_at,completed_at: null,
+          };
         }
+        guestAdmission = admission;
         admittedPrincipal = {
           id: admission.user_id, display_name: admission.display_name,
           role: 'player', kind: 'guest', sessionCode: code,
@@ -864,37 +948,97 @@ export function createApp({
         );
       }
     }
+    if (admittedPrincipal?.kind === 'guest' && guestAdmission && !sessionCookie) {
+      const token = createHmac('sha256',config.gameServiceToken)
+        .update(`state-guest-session\n${actionId}\n${admittedPrincipal.id}\n${code}`)
+        .digest('base64url');
+      const now = Date.now();
+      db.prepare(`INSERT INTO state_guest_sessions
+        (token_hash,user_id,lobby_code,created_at,expires_at,recovery_expires_at,last_seen_at)
+        VALUES (?,?,?,?,?,?,?) ON CONFLICT(token_hash) DO NOTHING`).run(
+        sha256(token),admittedPrincipal.id,code,now,guestAdmission.expires_at,
+        guestAdmission.recovery_expires_at,now,
+      );
+      const session = db.prepare(`SELECT user_id,lobby_code,recovery_expires_at,revoked_at
+        FROM state_guest_sessions WHERE token_hash=?`).get(sha256(token));
+      if (!session || session.user_id !== admittedPrincipal.id || session.lobby_code !== code) {
+        throw new HttpError(409,'Guest session identity conflicts with its prior request');
+      }
+      sessionCookie = secureCookie(
+        'cb_guest',token,Math.max(1,Math.floor((session.recovery_expires_at-now)/1000)),
+      );
+    }
     if (!admittedPrincipal) throw new HttpError(401, 'Sign in required');
-    const admissionName = cleanText(
+    const requestedAdmissionName = cleanText(
       req.body?.name ?? admittedPrincipal.display_name,
       { field: 'Player name', maximum: 24 },
     );
+    if (!reservation) {
+      const now = Date.now();
+      db.prepare(`INSERT INTO state_admission_reservations
+        (action_id,principal_id,lobby_code,display_name,created_at,retry_expires_at,completed_at)
+        VALUES (?,?,?,?,?,?,NULL)`).run(
+        actionId,admittedPrincipal.id,code,requestedAdmissionName,now,
+        now + GAME_GUEST_RECOVERY_TTL_MS,
+      );
+      reservation = {
+        principal_id: admittedPrincipal.id,lobby_code: code,display_name: requestedAdmissionName,
+        retry_expires_at: now + GAME_GUEST_RECOVERY_TTL_MS,completed_at: null,
+      };
+    }
+    if (reservation.principal_id !== admittedPrincipal.id || reservation.lobby_code !== code
+        || reservation.display_name !== requestedAdmissionName) {
+      throw new HttpError(409,'Admission identity conflicts with its prior request');
+    }
+    const admissionName = reservation.display_name;
     let admissionRequest = db.prepare(`SELECT principal_id,lobby_code,display_name,
-        run_id,run_generation,revision
+        run_id,run_generation,revision,completed_at
       FROM state_admission_requests WHERE action_id=?`).get(actionId);
     if (!admissionRequest) {
       const context = await stateClient.admissionContext({ code, principalId: admittedPrincipal.id });
       db.prepare(`INSERT INTO state_admission_requests
-        (action_id,principal_id,lobby_code,display_name,run_id,run_generation,revision,created_at)
-        VALUES (?,?,?,?,?,?,?,?)`).run(
+        (action_id,principal_id,lobby_code,display_name,run_id,run_generation,revision,
+         created_at,completed_at)
+        VALUES (?,?,?,?,?,?,?,?,NULL) ON CONFLICT(action_id) DO NOTHING`).run(
         actionId,admittedPrincipal.id,code,admissionName,context.runId,
         context.runGeneration,context.revision,Date.now(),
       );
-      admissionRequest = {
-        principal_id: admittedPrincipal.id, lobby_code: code, display_name: admissionName,
-        run_id: context.runId, run_generation: context.runGeneration, revision: context.revision,
-      };
-    } else if (admissionRequest.principal_id !== admittedPrincipal.id
+      admissionRequest = db.prepare(`SELECT principal_id,lobby_code,display_name,
+        run_id,run_generation,revision,completed_at
+        FROM state_admission_requests WHERE action_id=?`).get(actionId);
+    }
+    if (admissionRequest.principal_id !== admittedPrincipal.id
         || admissionRequest.lobby_code !== code || admissionRequest.display_name !== admissionName) {
       throw new HttpError(409, 'Admission identity conflicts with its prior request');
     }
-    const admission = await stateClient.admit({
-      actionId, code, principalId: admittedPrincipal.id,
-      name: admissionRequest.display_name,
+    const stateAdmission = () => stateClient.admit({
+      actionId,code,principalId: admittedPrincipal.id,name: admissionRequest.display_name,
       expectedRunId: admissionRequest.run_id,
       expectedRunGeneration: admissionRequest.run_generation,
       expectedRevision: admissionRequest.revision,
     });
+    let admission;
+    try {
+      admission = await stateAdmission();
+    } catch (error) {
+      if (!(error instanceof StateClientError) || error.code !== 'state_conflict'
+          || admissionRequest.completed_at !== null) throw error;
+      const refreshed = await stateClient.admissionContext({
+        code,principalId: admittedPrincipal.id,
+      });
+      db.prepare(`UPDATE state_admission_requests SET run_id=?,run_generation=?,revision=?
+        WHERE action_id=? AND completed_at IS NULL AND run_id=? AND run_generation=? AND revision=?`)
+        .run(refreshed.runId,refreshed.runGeneration,refreshed.revision,actionId,
+          admissionRequest.run_id,admissionRequest.run_generation,admissionRequest.revision);
+      admissionRequest = db.prepare(`SELECT principal_id,lobby_code,display_name,
+        run_id,run_generation,revision,completed_at
+        FROM state_admission_requests WHERE action_id=?`).get(actionId);
+      admission = await stateAdmission();
+    }
+    db.prepare(`UPDATE state_admission_requests SET completed_at=COALESCE(completed_at,?)
+      WHERE action_id=?`).run(Date.now(),actionId);
+    db.prepare(`UPDATE state_admission_reservations SET completed_at=COALESCE(completed_at,?)
+      WHERE action_id=?`).run(Date.now(),actionId);
     res.json({
       principal: {
         id: admittedPrincipal.id, displayName: admittedPrincipal.display_name,

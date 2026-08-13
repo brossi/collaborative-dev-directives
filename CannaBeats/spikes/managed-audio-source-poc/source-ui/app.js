@@ -1,5 +1,6 @@
 import {
-  classifyManagedCommandFailure,shouldExecuteManagedControllerCommand,
+  classifyManagedCommandFailure,reconcileManagedProviderObservation,
+  shouldExecuteManagedControllerCommand,
 } from './protocol.mjs';
 
 const REFRESH_KEY = 'cannabeats.managed.spotify.refreshToken';
@@ -14,6 +15,7 @@ const state = {
   deviceId: null,
   managedLeaseId: null,
   managedCommandId: null,
+  managedRecoveryId: null,
   readiness: {
     spotifyAuthorization: 'unknown',
     player: 'not_ready',
@@ -299,10 +301,39 @@ async function reportManagedCommandUnknown(command) {
   if (!response.ok) throw new Error(`Managed unknown outcome was not recorded (${response.status})`);
 }
 
+async function inspectManagedCommandOutcome(command) {
+  await ensurePlayerReady();
+  const playback = await state.player.getCurrentState();
+  return reconcileManagedProviderObservation(command,playback ? {
+    paused: playback.paused,
+    trackUri: playback.track_window?.current_track?.uri ?? null,
+  } : null);
+}
+
 async function pollManagedController() {
   const response = await fetch('http://127.0.0.1:4782/state', { cache: 'no-store' });
   if (!response.ok) throw new Error(`Managed source controller is unavailable (${response.status})`);
   const controller = await response.json();
+  if (controller.commandRecovery) {
+    log('A managed command has an unknown provider outcome and requires reconciliation.');
+    const recoveryCommand = controller.commandRecovery.command;
+    if (recoveryCommand && recoveryCommand.id !== state.managedRecoveryId) {
+      state.managedRecoveryId = recoveryCommand.id;
+      try {
+        const playbackStatus = await inspectManagedCommandOutcome(recoveryCommand);
+        if (playbackStatus) {
+          await completeManagedCommand(recoveryCommand,true,playbackStatus,null);
+          log(`Managed ${recoveryCommand.kind} outcome was reconciled from provider state.`);
+        } else {
+          log(`Managed ${recoveryCommand.kind} outcome remains unknown; no effect was repeated.`);
+        }
+      } catch (error) {
+        log(`Managed ${recoveryCommand.kind} reconciliation is still pending: ${error.message}`);
+      } finally {
+        state.managedRecoveryId = null;
+      }
+    }
+  }
   if (!controller.lease) {
     if (state.managedLeaseId && state.player) {
       await state.player.pause().catch(() => {});
@@ -312,9 +343,6 @@ async function pollManagedController() {
     if (!shouldExecuteManagedControllerCommand(controller)) return;
   } else {
     state.managedLeaseId = controller.lease.id;
-  }
-  if (controller.commandRecovery) {
-    log('A managed command has an unknown provider outcome and requires reconciliation.');
   }
   const command = controller.command;
   if (!command || command.id === state.managedCommandId) return;

@@ -125,6 +125,10 @@ def public_state():
             public["commandRecovery"] = {
                 "status": "outcome_unknown",
                 "reasonCode": "execution_started_without_durable_outcome",
+                "command": {
+                    **outbox["command"],
+                    "claimGeneration": outbox["generation"],
+                },
             }
     if public.get("lastError") is not None:
         public["gameApi"] = {"status": "unavailable", "reasonCode": "game_api_unavailable"}
@@ -322,6 +326,15 @@ def load_durable_command_state():
     return load_pending_completion()
 
 
+def source_protocol_version(payload):
+    if not isinstance(payload, dict):
+        raise ValueError("Managed source protocol response is invalid")
+    version = payload.get("protocolVersion")
+    if type(version) is not int or version not in {1, 2, 4}:
+        raise ValueError("Managed source protocol version is unsupported")
+    return version
+
+
 def claim_polled_command(command, request_correlation_id=None, api=api_call, protocol_version=2):
     command_id = str(uuid.UUID(str(command.get("id"))))
     with lock:
@@ -361,6 +374,24 @@ def claim_polled_command(command, request_correlation_id=None, api=api_call, pro
             state["commandOutbox"] = current
             persist_command_outbox(current)
     return {"accepted": True, "claimGeneration": outbox["generation"]}
+
+
+def sync_authoritative_recovery(payload):
+    recovery = payload.get("recovery") if isinstance(payload, dict) else None
+    if not isinstance(recovery, dict):
+        return False
+    with lock:
+        current = state.get("commandOutbox")
+        if not current or current.get("commandId") != recovery.get("commandId"):
+            return False
+        if current.get("phase") == "claim_pending" \
+                and recovery.get("state") == "outcome_unknown" \
+                and current.get("generation") == recovery.get("claimGeneration"):
+            reconciled = {**current, "phase": "outcome_unknown"}
+            persist_command_outbox(reconciled)
+            state["commandOutbox"] = reconciled
+            return True
+    return False
 
 
 def accept_browser_begin(payload, api=api_call):
@@ -580,8 +611,8 @@ def poll_loop():
             retry_unresolved_execution()
             retry_pending_completion()
             payload, request_correlation_id = api_call({"action": "poll"})
-            protocol_version = payload.get("protocolVersion") \
-                if payload.get("protocolVersion") in {2, 3, 4} else 1
+            protocol_version = source_protocol_version(payload)
+            sync_authoritative_recovery(payload)
             lease = payload.get("lease")
             command = payload.get("command")
             if command:

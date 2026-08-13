@@ -19,7 +19,12 @@ async function json(url,options = {}) {
   return body;
 }
 const cookie = `cb_session=${browserSession}`;
-const browserHeaders = { cookie,origin: expectedOrigin,"content-type": "application/json" };
+const browserHeaders = {
+  cookie,
+  origin: expectedOrigin,
+  "content-type": "application/json",
+  "x-cannabeats-client-contract": "2",
+};
 const createGame = async () => {
   const idempotencyKey = randomUUID();
   const created = await json(`${accessOrigin}/api/game-sessions`,{
@@ -66,9 +71,14 @@ await act(gameA,"begin");
 const work = await source({ action: "poll" });
 if (!work.command) throw new Error("Managed source did not receive the round command.");
 const claimGeneration = randomUUID();
-await source({
+const claimRequest = {
   action: "claim",requestId: randomUUID(),commandId: work.command.id,claimGeneration,
-});
+};
+await source(claimRequest);
+const replayedClaim = await source(claimRequest);
+if (replayedClaim.replayed !== true || replayedClaim.status !== "claimed") {
+  throw new Error("Managed source claim did not survive an ambiguous acknowledgement retry.");
+}
 await source({
   action: "begin",requestId: randomUUID(),commandId: work.command.id,claimGeneration,
 });
@@ -83,9 +93,10 @@ let blockedStatus = null;
 try {
   await act(gameB,"audioAcquire");
 } catch (error) {
-  blockedStatus = /409/.test(error.message) ? "quarantined" : null;
+  blockedStatus = /409/.test(error.message) && /source_recovery_required/.test(error.message)
+    ? "recovery_required" : null;
 }
-if (blockedStatus !== "quarantined") {
+if (blockedStatus !== "recovery_required") {
   throw new Error("A second lobby acquired the source before the handoff stop completed.");
 }
 const handoffWork = await source({ action: "poll" });
@@ -104,12 +115,21 @@ await source({
   action: "complete",requestId: randomUUID(),commandId: handoffWork.command.id,
   claimGeneration: stopGeneration,ok: true,playbackStatus: "paused",
 });
+const handoffReport = await json(`${stateOrigin}/v1/admin/report`,{
+  headers: { authorization: `Bearer ${operatorToken}` },
+});
+const completedHandoff = handoffReport.sourceHandoffs?.find((entry) =>
+  entry.stopCommandId === handoffWork.command.id && entry.state === "safe");
+if (!completedHandoff || completedHandoff.commandState !== "completed"
+    || completedHandoff.playbackStatus !== "paused") {
+  throw new Error("The source handoff was not proven safe by its exact pause completion.");
+}
 await act(gameB,"audioAcquire");
 await act(gameB,"audioRelease");
 
 await act(gameA,"abandon");
 const history = await json(`${gameOrigin}/game/api/game?runId=${encodeURIComponent(gameA.room.runId)}`,{
-  headers: { cookie },
+  headers: browserHeaders,
 });
 const projectedHistory = history.history;
 const requiredEvents = [
@@ -132,7 +152,9 @@ console.log(JSON.stringify({
   revision: gameA.room.revision,sourceId,
   commandId: work.command.id,terminalOutcome: projectedHistory.current.terminalOutcome,
   historyLifecycle: projectedHistory.retention.lifecycle,
-  sourceHandoff: "safe",secondLobbyAcquired: true,
+  sourceHandoff: completedHandoff.state,handoffCommandId: handoffWork.command.id,
+  handoffCommandState: completedHandoff.commandState,
+  handoffPlaybackStatus: completedHandoff.playbackStatus,secondLobbyAcquired: true,
   eventTypes: [...eventTypes].sort(),
   reportAuthority: report.authority?.status,
 }));

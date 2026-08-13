@@ -156,6 +156,43 @@ class CompletionAcknowledgementTests(unittest.TestCase):
         self.assertEqual(observed[0][1], observed[0][2])
         self.assertEqual(controller.public_state()["command"]["claimGeneration"], observed[0][1])
 
+    def test_claim_response_loss_retries_the_same_durable_generation(self):
+        command_id = "00000000-0000-4000-8000-000000000045"
+        command = {"id": command_id, "kind": "pause", "trackUri": None, "recovery": True}
+        lost = Mock(side_effect=OSError("claim response lost"))
+        with self.assertRaises(OSError):
+            controller.claim_polled_command(command, api=lost, protocol_version=4)
+        pending = controller.load_command_outbox()
+        self.assertEqual(pending["phase"], "claim_pending")
+
+        accepted = Mock(return_value=(
+            {"accepted": True, "status": "claimed", "replayed": True}, None,
+        ))
+        controller.claim_polled_command(command, api=accepted, protocol_version=4)
+        self.assertEqual(
+            accepted.call_args.args[0]["claimGeneration"], pending["generation"],
+        )
+        self.assertEqual(controller.load_command_outbox()["phase"], "claimed")
+
+    def test_expiry_after_lost_claim_adopts_state_unknown_before_handoff_work(self):
+        command_id = "00000000-0000-4000-8000-000000000046"
+        with self.assertRaises(OSError):
+            controller.claim_polled_command(
+                {"id": command_id,"kind": "resume","trackUri": None},
+                api=Mock(side_effect=OSError("claim response lost")),protocol_version=4,
+            )
+        pending = controller.load_command_outbox()
+        self.assertTrue(controller.sync_authoritative_recovery({
+            "protocolVersion": 4,"lease": None,"command": None,
+            "recovery": {
+                "commandId": command_id,"state": "outcome_unknown",
+                "claimGeneration": pending["generation"],"kind": "resume","trackUri": None,
+                "action": "reconcile_provider",
+            },
+        }))
+        self.assertEqual(controller.load_command_outbox()["phase"],"outcome_unknown")
+        self.assertEqual(controller.public_state()["commandRecovery"]["command"]["id"],command_id)
+
     def test_bridge_controller_executes_slice1_commands_without_claim_or_begin_calls(self):
         command_id = "00000000-0000-4000-8000-000000000025"
         api = Mock()
@@ -251,6 +288,16 @@ class CompletionAcknowledgementTests(unittest.TestCase):
             self.assertEqual(controller.state["commandOutbox"]["protocolVersion"], 4)
             self.assertTrue(controller.state["commandOutbox"]["command"]["handoff"])
 
+    def test_source_protocol_negotiation_rejects_missing_future_and_unpublished_versions(self):
+        self.assertEqual(controller.source_protocol_version({"protocolVersion": 1}), 1)
+        self.assertEqual(controller.source_protocol_version({"protocolVersion": 2}), 2)
+        self.assertEqual(controller.source_protocol_version({"protocolVersion": 4}), 4)
+        for payload in [{}, {"protocolVersion": None}, {"protocolVersion": 3},
+                        {"protocolVersion": 5}, {"protocolVersion": "4"}]:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    controller.source_protocol_version(payload)
+
     def test_restarted_executing_command_reports_unknown_to_server_once(self):
         generation = "00000000-0000-4000-8000-000000000015"
         command_id = "00000000-0000-4000-8000-000000000016"
@@ -323,6 +370,13 @@ class CompletionAcknowledgementTests(unittest.TestCase):
         with controller.lock:
             controller.state["commandOutbox"] = unknown
         controller.persist_command_outbox(unknown)
+        self.assertEqual(controller.public_state()["commandRecovery"], {
+            "status": "outcome_unknown",
+            "reasonCode": "execution_started_without_durable_outcome",
+            "command": {
+                "id": command_id,"kind": "play","claimGeneration": generation,
+            },
+        })
         accepted = Mock(return_value=({"completed": True, "replayed": False}, None))
         controller.accept_browser_completion({
             "commandId": command_id, "claimGeneration": generation,

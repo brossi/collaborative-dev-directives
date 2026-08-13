@@ -211,7 +211,8 @@ function migrate(db) {
       created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
-      revoked_at INTEGER
+      revoked_at INTEGER,
+      redeemed_action_id TEXT
     );
     CREATE INDEX IF NOT EXISTS game_guest_invites_session_code
       ON game_guest_invites(session_code);
@@ -284,8 +285,24 @@ function migrate(db) {
       run_id TEXT NOT NULL,
       run_generation INTEGER NOT NULL,
       revision INTEGER NOT NULL,
-      created_at INTEGER NOT NULL
+      created_at INTEGER NOT NULL,
+      completed_at INTEGER
     );
+
+    -- Durable identity reservation for the complete Access -> State admission
+    -- saga.  Invitation consumption and principal selection commit with this
+    -- row, so an exact browser retry does not depend on the short-lived invite.
+    CREATE TABLE IF NOT EXISTS state_admission_reservations (
+      action_id TEXT PRIMARY KEY,
+      principal_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lobby_code TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      retry_expires_at INTEGER NOT NULL,
+      completed_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS state_admission_reservations_expiry
+      ON state_admission_reservations(retry_expires_at);
 
     CREATE TABLE IF NOT EXISTS rooms (
       code TEXT PRIMARY KEY,
@@ -373,6 +390,11 @@ function migrate(db) {
       db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS state_guest_invites_action_id
         ON state_guest_invites(action_id) WHERE action_id IS NOT NULL`);
     }
+    if (!stateGuestInviteColumns.has('redeemed_action_id')) {
+      db.exec('ALTER TABLE state_guest_invites ADD COLUMN redeemed_action_id TEXT');
+    }
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS state_guest_invites_redeemed_action
+      ON state_guest_invites(redeemed_action_id) WHERE redeemed_action_id IS NOT NULL`);
     const stateGuestAdmissionColumns = new Set(db.prepare('PRAGMA table_info(state_guest_admissions)').all()
       .map((column) => column.name));
     if (!stateGuestAdmissionColumns.has('recovery_expires_at')) {
@@ -386,6 +408,12 @@ function migrate(db) {
       db.exec('ALTER TABLE state_guest_sessions ADD COLUMN recovery_expires_at INTEGER');
       db.exec(`UPDATE state_guest_sessions SET recovery_expires_at=expires_at
         WHERE recovery_expires_at IS NULL`);
+    }
+    const stateAdmissionRequestColumns = new Set(
+      db.prepare('PRAGMA table_info(state_admission_requests)').all().map((column) => column.name),
+    );
+    if (!stateAdmissionRequestColumns.has('completed_at')) {
+      db.exec('ALTER TABLE state_admission_requests ADD COLUMN completed_at INTEGER');
     }
     const gameSessionColumns = new Set(db.prepare('PRAGMA table_info(game_sessions)').all().map((column) => column.name));
     if (!gameSessionColumns.has('active_run_id')) db.exec('ALTER TABLE game_sessions ADD COLUMN active_run_id TEXT');
@@ -413,6 +441,8 @@ export function purgeExpired(db, now = Date.now()) {
   db.prepare('DELETE FROM game_guest_invites WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM game_guest_sessions WHERE expires_at <= ?').run(now);
   db.prepare('DELETE FROM state_guest_invites WHERE expires_at <= ?').run(now);
+  db.prepare(`DELETE FROM state_admission_reservations
+    WHERE retry_expires_at <= ?`).run(now);
   db.prepare(`DELETE FROM state_guest_sessions
     WHERE recovery_expires_at <= ? OR revoked_at IS NOT NULL`).run(now);
   db.prepare(`DELETE FROM users WHERE id IN (

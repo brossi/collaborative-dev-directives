@@ -2,12 +2,27 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   resolveSessionRecovery,
+  resolveManagedRecoveryWork,
   resolveSourceHandoff,
   SESSION_RECOVERY_OUTCOMES,
   SOURCE_HANDOFF_OUTCOMES,
   SOURCE_HANDOFF_STATES,
   transitionSourceHandoff,
 } from "../src/recovery-contract.mjs";
+
+test("every persisted managed recovery product state has one finite action", () => {
+  const cases = [
+    [{ leasePresent: true,commandState: "queued" },"claim"],
+    [{ leasePresent: true,commandState: "claimed" },"retry_claim"],
+    [{ leasePresent: true,commandState: "executing" },"reconcile_provider"],
+    [{ leasePresent: false,handoffState: "stop_required",commandState: "queued" },"claim"],
+    [{ leasePresent: false,handoffState: "stop_claimed",commandState: "claimed" },"retry_claim"],
+    [{ leasePresent: false,handoffState: "stop_executing",commandState: "executing" },"reconcile_provider"],
+    [{ leasePresent: false,handoffState: "quarantined",commandState: "outcome_unknown" },"reconcile_provider"],
+    [{ leasePresent: false,handoffState: "quarantined",commandState: "failed" },"operator_review"],
+  ];
+  for (const [input,action] of cases) assert.equal(resolveManagedRecoveryWork(input).action,action);
+});
 
 const host = { code: "HOST23", status: "playing", isHost: true };
 const guest = { code: "PLAY23", status: "playing", isHost: false };
@@ -33,6 +48,20 @@ test("session recovery outcomes form one precedence-ordered authority matrix", (
     observed.add(outcome);
   }
   assert.deepEqual([...SESSION_RECOVERY_OUTCOMES].sort(), [...observed].sort());
+});
+
+test("terminal pending actions remain reconcilable and missing locators reject explicitly", () => {
+  const ended = { code: "END234",status: "ended",isHost: true };
+  const active = { code: "ACT234",status: "playing",isHost: true };
+  assert.deepEqual(resolveSessionRecovery({
+    authenticated: true,pendingActionLobbyCode: ended.code,memberships: [ended],
+  }),{ outcome: "action_reconciliation_required",lobbies: [ended] });
+  assert.deepEqual(resolveSessionRecovery({
+    authenticated: true,pendingActionLobbyCode: "OLD234",memberships: [active],
+  }),{ outcome: "resume",lobbies: [active],pendingActionRejected: true });
+  assert.deepEqual(resolveSessionRecovery({
+    authenticated: true,pendingActionLobbyCode: "OLD234",memberships: [],
+  }),{ outcome: "none",lobbies: [],pendingActionRejected: true });
 });
 
 test("source handoff authority requires a confirmed safe stop before reuse", () => {

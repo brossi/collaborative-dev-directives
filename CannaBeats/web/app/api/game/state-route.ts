@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import type { AudioControlView, RoomView } from "../../../lib/game";
 import { createAccessGatewayClient, AccessGatewayError } from "../../../lib/server/access-gateway.mjs";
 import { createGameStateClient, StateGatewayError } from "../../../lib/server/state-client.mjs";
+import {
+  GAME_CLIENT_CONTRACT_HEADER,
+  GAME_CLIENT_CONTRACT_VERSION,
+} from "../../../lib/game-client-contract.ts";
 
 type Principal = {
   id: string;
@@ -10,8 +14,6 @@ type Principal = {
   kind: "account" | "guest";
   sessionCode?: string;
 };
-
-const GAME_CLIENT_CONTRACT_VERSION = "1";
 
 const ACTION_MAP = {
   abandon: "abandon_game",
@@ -76,6 +78,18 @@ function mutationOriginAccepted(request: Request) {
   return supplied === expected;
 }
 
+function clientContractAccepted(request: Request) {
+  return request.headers.get(GAME_CLIENT_CONTRACT_HEADER) === GAME_CLIENT_CONTRACT_VERSION;
+}
+
+function clientUpgradeRequired() {
+  return Response.json({
+    recovery: { outcome: "client_upgrade_required", lobbies: [] },
+    error: "Reload after updating CannaBeats to continue.",
+    code: "client_upgrade_required",
+  }, { status: 426, headers: { "Cache-Control": "no-store" } });
+}
+
 function runIdForPrepare(actionId: string) {
   const bytes = Buffer.from(createHash("sha256").update(`prepare:${actionId}`).digest("hex").slice(0, 32), "hex");
   bytes[6] = (bytes[6] & 0x0f) | 0x50;
@@ -86,13 +100,9 @@ function runIdForPrepare(actionId: string) {
 
 export async function getStateGame(request: Request) {
   try {
+    if (!clientContractAccepted(request)) return clientUpgradeRequired();
     const url = new URL(request.url);
     if (url.searchParams.get("recover") === "1") {
-      if (url.searchParams.get("clientContractVersion") !== GAME_CLIENT_CONTRACT_VERSION) {
-        return Response.json({
-          recovery: { outcome: "client_upgrade_required",lobbies: [] },
-        }, { headers: { "Cache-Control": "no-store" } });
-      }
       const access = await createAccessGatewayClient().recoverPrincipal({
         authorization: request.headers.get("authorization") ?? "",
         cookie: request.headers.get("cookie") ?? "",
@@ -161,6 +171,7 @@ export async function getStateGame(request: Request) {
 
 export async function postStateGame(request: Request) {
   try {
+    if (!clientContractAccepted(request)) return clientUpgradeRequired();
     if (!mutationOriginAccepted(request)) return Response.json({
       error: "Request origin was not accepted.", code: "forbidden",
     }, { status: 403 });

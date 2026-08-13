@@ -122,6 +122,16 @@ test('rendered cutover topology gives only State runtime write authority', async
   assert.equal(topology.migrationSourceReadOnly,true);
 });
 
+test('the relay service fence disconnects listeners at every publisher generation boundary', () => {
+  const override = readFileSync(resolve('deploy/btaudio-relay-generation-fence.conf'),'utf8');
+  const runtimeRevision = readFileSync(resolve('deploy/btaudio-runtime.version'),'utf8').trim();
+  assert.match(override,/^ExecStart=$/m);
+  assert.match(override,/--relay\b/);
+  assert.match(override,/--disconnect-listeners-on-source-disconnect\b/);
+  assert.match(override,/--host 127\.0\.0\.1\b/);
+  assert.match(runtimeRevision,/^[0-9a-f]{40}$/);
+});
+
 test('scheduled state-era backup and retention load the coordinated cutover topology', async () => {
   const composeDirectory = join(root,'state-compose');
   const releaseDirectory = join(root,'state-releases');

@@ -11,6 +11,7 @@ const AUTHORITATIVE_TABLES = [
   ["managed_command_transitions", "command_id,sequence"], ["purge_tombstones", "run_id"],
   ["managed_source_handoffs", "id"],
   ["managed_source_handoff_transitions", "handoff_id,sequence"],
+  ["managed_source_handoff_resolutions", "handoff_id"],
   ["purge_sanitization", "run_id"],
 ];
 

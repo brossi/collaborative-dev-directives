@@ -106,6 +106,7 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
     ["POST", `/v1/admin/managed-sources/${commandId}/rotate`, "operator"],
     ["POST", `/v1/admin/managed-sources/${commandId}/disable`, "operator"],
     ["POST", "/v1/admin/expire-managed-leases", "operator"],
+    ["POST", `/v1/admin/source-handoffs/${commandId}/resolve`, "operator"],
     ["POST", "/v1/admin/history/seal", "operator"],
     ["POST", "/v1/admin/history/purge", "operator"],
     ["POST", "/v1/admin/history/sanitize", "operator"],
@@ -175,7 +176,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     assert.deepEqual(await contractResponse.json(), {
       service: "cannabeats-state",
       httpContractVersion: 1,
-      schemaGeneration: 3,
+      schemaGeneration: 4,
       protocolVersion: 4,
       projections: { room: 1, history: 1, accessLobby: 1 },
       gameCommands: [
@@ -200,7 +201,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
         invalid_json: 400, invalid_request: 400, unauthorized: 401, forbidden: 403,
         principal_assertion_invalid: 403, source_forbidden: 403, not_found: 404,
         payload_too_large: 413, idempotency_conflict: 409, stale_context: 409,
-        state_conflict: 409, database_busy: 503, internal_error: 500,
+        source_recovery_required: 409,state_conflict: 409,database_busy: 503,internal_error: 500,
       },
     });
     const readiness = await (await fetch(`${origin}/ready`)).json();
@@ -250,7 +251,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       method: "POST", headers: { ...headers, authorization: "Bearer activation-secret" },
       body: JSON.stringify({
         commandId: randomUUID(), expectedSourceDigest: "a".repeat(64),
-        expectedCandidateDigest: "b".repeat(64), expectedSchemaGeneration: 3,
+        expectedCandidateDigest: "b".repeat(64), expectedSchemaGeneration: 4,
         expectedProtocolVersion: 4, releaseEpoch: "release-test",
       }),
     });
@@ -260,7 +261,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       body: JSON.stringify({
         commandId: "451653d1-0077-43f9-90db-68c9c71b6630",
         expectedSourceDigest: null, expectedCandidateDigest: null,
-        expectedSchemaGeneration: 3, expectedProtocolVersion: 4,
+        expectedSchemaGeneration: 4, expectedProtocolVersion: 4,
         releaseEpoch: "development", now: -1,
       }),
     });
@@ -272,7 +273,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
     });
     assert.equal(exported.status,200);
     assert.equal(exported.headers.get("x-cannabeats-release-epoch"),"development");
-    assert.equal(exported.headers.get("x-cannabeats-schema-generation"),"3");
+    assert.equal(exported.headers.get("x-cannabeats-schema-generation"),"4");
     assert.equal(exported.headers.get("x-cannabeats-protocol-version"),"4");
     const snapshot = Buffer.from(await exported.arrayBuffer());
     assert.equal(createHash("sha256").update(snapshot).digest("hex"),
@@ -359,6 +360,13 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       { headers: guestHeaders },
     );
     assert.equal((await pendingRecovery.json()).outcome,"action_reconciliation_required");
+    const accessPendingRecovery = await fetch(
+      `${origin}/v1/access/recovery?pendingActionLobbyCode=SRV234`,{
+        headers: { ...guestHeaders,authorization: "Bearer access-secret",
+          ...principalHeaders("opaque-principal-2","access") },
+      },
+    );
+    assert.equal((await accessPendingRecovery.json()).outcome,"action_reconciliation_required");
 
     const operatorHeaders = { ...headers, authorization: "Bearer operator-secret" };
     const operatorCannotImpersonate = await fetch(`${origin}/v1/lobbies`, {
