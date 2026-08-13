@@ -123,10 +123,10 @@ function writeReleaseRecord(path,{ stateCutover }) {
   schema-max-version: 2
   schema-target-version: 1
   state-cutover: ${stateCutover}
-  state-schema-min-generation: ${stateCutover ? 2 : 0}
-  state-schema-max-generation: ${stateCutover ? 2 : 0}
-  state-protocol-min-version: ${stateCutover ? 3 : 0}
-  state-protocol-max-version: ${stateCutover ? 3 : 0}
+  state-schema-min-generation: ${stateCutover ? 3 : 0}
+  state-schema-max-generation: ${stateCutover ? 3 : 0}
+  state-protocol-min-version: ${stateCutover ? 4 : 0}
+  state-protocol-max-version: ${stateCutover ? 4 : 0}
   state-http-contract-version: ${stateCutover ? 1 : 0}
   release-epoch: ${stateCutover ? releaseEpoch : ""}
 services:
@@ -247,7 +247,7 @@ try {
   record("migrate-monolith");
   const migrationRun = compose(base,["state-migration"],["run","--rm","state-migrate"],{ capture: true });
   const migration = parseLastJson(migrationRun.stdout);
-  if (migration.replayed || migration.schemaGeneration !== 2 || migration.protocolVersion !== 3) {
+  if (migration.replayed || migration.schemaGeneration !== 3 || migration.protocolVersion !== 4) {
     throw new Error(`Unexpected migration result: ${JSON.stringify(migration)}`);
   }
   record("migration-validated",{
@@ -257,8 +257,8 @@ try {
 
   compose(cutover,["state-cutover"],["up","-d","state"]);
   const candidate = await waitJson(`http://127.0.0.1:${statePort}/ready`,
-    (body) => body.authority?.status === "candidate" && body.schemaGeneration === 2
-      && body.protocolVersion === 3);
+    (body) => body.authority?.status === "candidate" && body.schemaGeneration === 3
+      && body.protocolVersion === 4);
   record("candidate-ready",{ authority: candidate.authority.status });
   const activationToken = readFileSync(join(secretsDirectory,"state-activation-token"),"utf8").trim();
   const operatorToken = readFileSync(join(secretsDirectory,"state-operator-token"),"utf8").trim();
@@ -344,6 +344,10 @@ try {
     throw new Error(`Rehearsal client failed:\n${clientRun.stderr}\n${diagnostics.stdout}\n${diagnostics.stderr}`);
   }
   const gameplay = parseLastJson(clientRun.stdout);
+  if (gameplay.sourceHandoff !== "safe" || gameplay.secondLobbyAcquired !== true
+      || typeof gameplay.secondCode !== "string") {
+    throw new Error("Rehearsal did not prove the two-lobby source handoff fence.");
+  }
   record("post-cutover-gameplay-and-history",gameplay);
   const sealed = await postJson(`http://127.0.0.1:${statePort}/v1/admin/history/seal`,operatorToken,{
     commandId: randomUUID(),runId: gameplay.runId,
@@ -362,7 +366,9 @@ try {
     liveHistory(fixture.runId),liveHistory(gameplay.runId),
   ]);
   const completedEventTypes = liveCompletedHistory.events.map((event) => event.type);
-  const abandonedEventTypes = liveAbandonedHistory.events.map((event) => event.type).sort();
+  const abandonedEventTypes = [...new Set(
+    liveAbandonedHistory.events.map((event) => event.type),
+  )].sort();
   if (liveCompletedHistory.current?.terminalOutcome !== "completed"
       || liveCompletedHistory.coverage?.complete !== true
       || liveCompletedHistory.retention?.lifecycle !== "sealed"

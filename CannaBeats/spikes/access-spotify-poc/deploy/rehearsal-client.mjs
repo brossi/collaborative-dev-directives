@@ -20,27 +20,33 @@ async function json(url,options = {}) {
 }
 const cookie = `cb_session=${browserSession}`;
 const browserHeaders = { cookie,origin: expectedOrigin,"content-type": "application/json" };
-const accessHeaders = { ...browserHeaders,"idempotency-key": randomUUID() };
-const created = await json(`${accessOrigin}/api/game-sessions`,{
-  method: "POST",headers: accessHeaders,body: JSON.stringify({ commandId: accessHeaders["idempotency-key"] }),
-});
-const code = created.session.code;
-let prepared = await json(`${gameOrigin}/game/api/game`,{
-  method: "POST",headers: browserHeaders,
-  body: JSON.stringify({ action: "prepare",actionId: randomUUID(),code }),
-});
-let room = prepared.room;
-const act = async (action,extra = {}) => {
+const createGame = async () => {
+  const idempotencyKey = randomUUID();
+  const created = await json(`${accessOrigin}/api/game-sessions`,{
+    method: "POST",headers: { ...browserHeaders,"idempotency-key": idempotencyKey },
+    body: JSON.stringify({ commandId: idempotencyKey }),
+  });
+  const context = { code: created.session.code,room: null };
+  const prepared = await json(`${gameOrigin}/game/api/game`,{
+    method: "POST",headers: browserHeaders,
+    body: JSON.stringify({ action: "prepare",actionId: randomUUID(),code: context.code }),
+  });
+  context.room = prepared.room;
+  return context;
+};
+const act = async (context,action,extra = {}) => {
   const result = await json(`${gameOrigin}/game/api/game`,{
     method: "POST",headers: browserHeaders,body: JSON.stringify({
-      action,actionId: randomUUID(),code,expectedRunId: room.runId,
-      expectedRunGeneration: room.runGeneration,expectedRevision: room.revision,...extra,
+      action,actionId: randomUUID(),code: context.code,expectedRunId: context.room.runId,
+      expectedRunGeneration: context.room.runGeneration,
+      expectedRevision: context.room.revision,...extra,
     }),
   });
-  room = result.room;
+  context.room = result.room;
   return result;
 };
-await act("addPlayer",{ name: "Docker Player" });
+const gameA = await createGame();
+await act(gameA,"addPlayer",{ name: "Docker Player" });
 const sourceId = randomUUID();
 await json(`${stateOrigin}/v1/admin/managed-sources`,{
   method: "POST",headers: { authorization: `Bearer ${operatorToken}`,"content-type": "application/json" },
@@ -54,9 +60,9 @@ const source = async (body) => json(`${gameOrigin}/game/api/audio-source`,{
   body: JSON.stringify(body),
 });
 await source({ action: "poll" });
-await act("audioAcquire");
-await act("start");
-await act("begin");
+await act(gameA,"audioAcquire");
+await act(gameA,"start");
+await act(gameA,"begin");
 const work = await source({ action: "poll" });
 if (!work.command) throw new Error("Managed source did not receive the round command.");
 const claimGeneration = randomUUID();
@@ -70,8 +76,39 @@ await source({
   action: "complete",requestId: randomUUID(),commandId: work.command.id,claimGeneration,
   ok: true,playbackStatus: "playing",
 });
-await act("abandon");
-const history = await json(`${gameOrigin}/game/api/game?runId=${encodeURIComponent(room.runId)}`,{
+
+const gameB = await createGame();
+await act(gameA,"audioRelease");
+let blockedStatus = null;
+try {
+  await act(gameB,"audioAcquire");
+} catch (error) {
+  blockedStatus = /409/.test(error.message) ? "quarantined" : null;
+}
+if (blockedStatus !== "quarantined") {
+  throw new Error("A second lobby acquired the source before the handoff stop completed.");
+}
+const handoffWork = await source({ action: "poll" });
+if (handoffWork.lease !== null || handoffWork.command?.kind !== "pause"
+    || handoffWork.command?.handoff !== true) {
+  throw new Error("Managed source did not receive its lease-less handoff stop.");
+}
+const stopGeneration = randomUUID();
+for (const action of ["claim","begin"]) {
+  await source({
+    action,requestId: randomUUID(),commandId: handoffWork.command.id,
+    claimGeneration: stopGeneration,
+  });
+}
+await source({
+  action: "complete",requestId: randomUUID(),commandId: handoffWork.command.id,
+  claimGeneration: stopGeneration,ok: true,playbackStatus: "paused",
+});
+await act(gameB,"audioAcquire");
+await act(gameB,"audioRelease");
+
+await act(gameA,"abandon");
+const history = await json(`${gameOrigin}/game/api/game?runId=${encodeURIComponent(gameA.room.runId)}`,{
   headers: { cookie },
 });
 const projectedHistory = history.history;
@@ -91,9 +128,11 @@ const report = await json(`${stateOrigin}/v1/admin/report`,{
   headers: { authorization: `Bearer ${operatorToken}` },
 });
 console.log(JSON.stringify({
-  code,runId: room.runId,revision: room.revision,sourceId,
+  code: gameA.code,secondCode: gameB.code,runId: gameA.room.runId,
+  revision: gameA.room.revision,sourceId,
   commandId: work.command.id,terminalOutcome: projectedHistory.current.terminalOutcome,
   historyLifecycle: projectedHistory.retention.lifecycle,
+  sourceHandoff: "safe",secondLobbyAcquired: true,
   eventTypes: [...eventTypes].sort(),
   reportAuthority: report.authority?.status,
 }));

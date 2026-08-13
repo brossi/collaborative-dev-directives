@@ -40,8 +40,8 @@ Required evidence before touching a rehearsal host:
 4. Release metadata names the state image digest, schema generation, protocol
    version, and compatible client range as one release unit.
 
-The current development contract is state schema generation 2 and managed-source
-protocol 3. Earlier unpublished candidate databases must be reconstructed.
+The current development contract is state schema generation 3 and managed-source
+protocol 4. Earlier unpublished candidate databases must be reconstructed.
 
 Before starting State, create the host authority directory configured by
 `CANNABEATS_STATE_AUTHORITY_DIR` with mode `0700` and ownership matching the

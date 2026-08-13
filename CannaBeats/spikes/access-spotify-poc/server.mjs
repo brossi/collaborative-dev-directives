@@ -711,8 +711,8 @@ export function createApp({
         const contractResponse = await stateClient.contract();
         if (!contractResponse.ok) throw new HttpError(503,'State service is not ready');
         const contract = await contractResponse.json();
-        if (contract.httpContractVersion !== 1 || contract.schemaGeneration !== 2
-            || contract.protocolVersion !== 3) {
+        if (contract.httpContractVersion !== 1 || contract.schemaGeneration !== 3
+            || contract.protocolVersion !== 4) {
           throw new HttpError(503,'State service contract is incompatible');
         }
       }

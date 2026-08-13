@@ -114,5 +114,7 @@ generation-3 candidate and activated against its exact attestation.
    append-only handoff intent/transition graph, acquisition and listener fences,
    terminal-history reconciliation, and real-controller protocol handling.
 6. Add busy/recovering/local-fallback UI and composed recovery scenarios. The
-   UI outcomes and explicit local fallback are implemented; the full composed
-   scenario matrix remains the next verification task.
+   UI outcomes and explicit local fallback are implemented. The local Docker
+   cutover rehearsal now proves the two-lobby quarantine/stop/acquire sequence
+   together with restored-topology and restart qualification. Real controller,
+   browser, Spotify, and host-restart execution remains an S2-F gate.
