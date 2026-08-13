@@ -1,7 +1,7 @@
 # S2-D recovery contract
 
-Status: post-closure local implementation and full suites verified; composed
-Docker requalification for this remediation is pending.
+Status: post-remediation local implementation, full suites, and clean composed
+Docker requalification verified at checkpoint `25cd9a6`.
 This document defines the authority and transition boundaries used by the
 current implementation.
 
@@ -53,7 +53,10 @@ unavailable or the response is lost, exact retry reuses the reservation;
 a different action cannot reuse the consumed invitation.
 The 24-hour retry boundary is enforced when the reservation is read, not only
 when background cleanup happens. Malformed browser locator records are removed
-and regenerated; they never extend or replace server authority.
+and regenerated; they never extend or replace server authority. An expired
+reservation crosses Access and Game as the finite `410 expired` outcome, which
+releases the browser locator so a fresh invitation can start a new action.
+Transient and outcome-unknown responses retain the exact original action.
 
 An authenticated host resumes a lobby only when State records that account
 principal as its host. Recovery cannot replace the host principal or create a

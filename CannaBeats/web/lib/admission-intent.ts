@@ -7,15 +7,29 @@ export type AdmissionIntent = {
 type AdmissionStorage = Pick<Storage,"getItem" | "setItem" | "removeItem">;
 
 const keyFor = (code: string) => `cannabeats.admission.${code}`;
+const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function validSavedIntent(value: Partial<AdmissionIntent>, code: string): value is AdmissionIntent {
   return value.code === code
     && typeof value.name === "string"
     && value.name.trim().length > 0
+    && value.name === value.name.trim()
     && value.name.length <= 24
     && typeof value.actionId === "string"
-    && value.actionId.length > 0
-    && value.actionId.length <= 128;
+    && ACTION_ID.test(value.actionId);
+}
+
+export function releaseExpiredAdmissionIntent({
+  status,responseCode,code,storage,
+}: {
+  status: number;
+  responseCode: unknown;
+  code: string;
+  storage: AdmissionStorage;
+}) {
+  if (status !== 410 || responseCode !== "expired") return false;
+  clearAdmissionIntent(code,storage);
+  return true;
 }
 
 export function durableAdmissionIntent({

@@ -961,7 +961,9 @@ as a finite State-owned transition before UI behavior is added.
 - Pending-action lobby identity is forwarded through Game to Access before an
   expired active credential is classified, so an ended run remains available
   for exact terminal-action reconciliation. Admission retry expiry is enforced
-  on every authority read rather than depending on a cleanup route.
+  on every authority read rather than depending on a cleanup route. Its finite
+  `410 expired` response releases the browser locator; transient failures keep
+  the original action identity for exact retry.
 - Guest admission derives one deterministic capability from its durable action
   identity. Exact replay therefore returns the same capability even after the
   invitation expires instead of creating a second session or requiring the
@@ -1007,6 +1009,8 @@ as a finite State-owned transition before UI behavior is added.
   stop obligation is unresolved, the source acknowledges the lease-less pause,
   and only then may lobby B acquire. The same run also qualifies the restored
   topology, restart recovery, terminal history, purge, and rollback refusal.
+  The restored State topology must also expose the exact live
+  `first_admitted_at` rollback floor before it qualifies.
   It uses the protocol simulator; real controller, browser, Spotify, and host
   restart evidence remains an S2-F gate.
 

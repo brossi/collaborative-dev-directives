@@ -1,25 +1,25 @@
 {
   "format": "cannabeats-state-cutover-rehearsal",
   "formatVersion": 1,
-  "startedAt": "2026-08-13T19:56:20.265Z",
-  "project": "cannabeats-rehearsal-31904-142ae0f0",
-  "releaseEpoch": "local-rehearsal-31904-142ae0f0",
+  "startedAt": "2026-08-13T20:32:24.809Z",
+  "project": "cannabeats-rehearsal-50123-3e7ac711",
+  "releaseEpoch": "local-rehearsal-50123-3e7ac711",
   "steps": [
     {
       "step": "build-images",
-      "at": "2026-08-13T19:56:20.320Z",
-      "gitCommit": "f2307caaed43f6aef5061f8d375b296a06a38e19",
+      "at": "2026-08-13T20:32:24.889Z",
+      "gitCommit": "25cd9a652240dc80ee5e2c01cbfed0487427725a",
       "worktreeDirty": false
     },
     {
       "step": "create-drained-monolith",
-      "at": "2026-08-13T19:56:24.875Z",
-      "legacyRunId": "4b7eb40d-feec-4546-a111-6036e2694465",
+      "at": "2026-08-13T20:32:45.089Z",
+      "legacyRunId": "09b4cc98-4bfc-45a3-a381-d75f951c1d95",
       "legacyCode": "OLD234"
     },
     {
       "step": "pre-cutover-backup-and-drain-proved",
-      "at": "2026-08-13T19:56:25.130Z",
+      "at": "2026-08-13T20:32:45.297Z",
       "backup": "pre-cutover-monolith.cbbackup",
       "drain": {
         "active": 0,
@@ -27,20 +27,20 @@
         "commands": 0
       },
       "priorImages": {
-        "access-spotify-poc": "sha256:d6ef5b9a5f9f05ed082d20121336029350f5f9b302daf2bb75544361bd35f94f",
-        "game": "sha256:4496e4ac39b4c1e0c5e76e887f29a264f1c11a5224ab733090017125621611c7",
-        "state-service": "sha256:83070380cf27301a9a7344961ade68295a0a1cd54fc7a74d7c45a5978bf39cda"
+        "access-spotify-poc": "sha256:7927a448ec422e27de97ce650624b76e4f3d1a76f243a1fe208f23da91c8905a",
+        "game": "sha256:bf62fd91fb404ad165b78558ae142c1198bed3767f68e2eed0ef346baa844549",
+        "state-service": "sha256:66394a89e90a3e64deff3ab6e54dab850a138560f54024a26238cfd29181cab4"
       }
     },
     {
       "step": "migrate-monolith",
-      "at": "2026-08-13T19:56:26.145Z"
+      "at": "2026-08-13T20:32:46.193Z"
     },
     {
       "step": "migration-validated",
-      "at": "2026-08-13T19:56:26.672Z",
-      "sourceDigest": "7cab52ac61a2bebb540b9f6ef8e56bc0ad65480f987da749533f8601eab232eb",
-      "candidateDigest": "4595e39042abe0232d970f08e475aa3c69efc7ebb6ecf7028d59351e4305b523",
+      "at": "2026-08-13T20:32:46.799Z",
+      "sourceDigest": "1b6e5c28dbb1de10d6ea2e25fa2c7697e6a85a40bfb0f92ae42e4f75c08055dc",
+      "candidateDigest": "778f4468508144bbb942066d25ef93904e87a1fb042ccbe73209e5a9e6686365",
       "rowCounts": {
         "lobbies": 1,
         "members": 1,
@@ -54,37 +54,37 @@
     },
     {
       "step": "candidate-ready",
-      "at": "2026-08-13T19:56:28.095Z",
+      "at": "2026-08-13T20:32:48.295Z",
       "authority": "candidate"
     },
     {
       "step": "candidate-mutation-rejected",
-      "at": "2026-08-13T19:56:28.116Z"
+      "at": "2026-08-13T20:32:48.327Z"
     },
     {
       "step": "candidate-activated-pre-admission",
-      "at": "2026-08-13T19:56:28.130Z"
+      "at": "2026-08-13T20:32:48.341Z"
     },
     {
       "step": "pre-admission-rollback-proved",
-      "at": "2026-08-13T19:56:33.088Z",
+      "at": "2026-08-13T20:32:53.293Z",
       "accessReady": true,
       "gameReady": true,
       "mechanism": "rollback-release.sh"
     },
     {
       "step": "post-cutover-gameplay-and-history",
-      "at": "2026-08-13T19:56:42.351Z",
-      "code": "2V4FPR",
-      "secondCode": "YBSG74",
-      "runId": "9f4c04c2-037f-5ed4-844c-bd143023ddb1",
+      "at": "2026-08-13T20:33:02.738Z",
+      "code": "J77J3Q",
+      "secondCode": "WSUM23",
+      "runId": "0857d91e-90b1-5d94-847a-244c5b1cffac",
       "revision": 6,
-      "sourceId": "82d106c0-9998-438a-bb05-36e2742f1069",
-      "commandId": "eb0378c9-102d-407b-89f8-63b86581477a",
+      "sourceId": "6484a39c-69d0-4b3a-b752-8710434afc68",
+      "commandId": "17088082-df12-4b79-acf4-6a750756153c",
       "terminalOutcome": "abandoned",
       "historyLifecycle": "terminal_pending",
       "sourceHandoff": "safe",
-      "handoffCommandId": "2d89bfd3-d8f8-4e98-95f6-5103ce6acca4",
+      "handoffCommandId": "12263f07-5981-4f13-9939-0c53befcc7c1",
       "handoffCommandState": "completed",
       "handoffPlaybackStatus": "paused",
       "secondLobbyAcquired": true,
@@ -104,12 +104,12 @@
     },
     {
       "step": "abandoned-history-sealed",
-      "at": "2026-08-13T19:56:42.357Z",
-      "runId": "9f4c04c2-037f-5ed4-844c-bd143023ddb1"
+      "at": "2026-08-13T20:33:02.743Z",
+      "runId": "0857d91e-90b1-5d94-847a-244c5b1cffac"
     },
     {
       "step": "pre-backup-history-oracle",
-      "at": "2026-08-13T19:56:42.370Z",
+      "at": "2026-08-13T20:33:02.755Z",
       "completedEventTypes": [
         "game_completed"
       ],
@@ -128,43 +128,44 @@
     },
     {
       "step": "post-admission-rollback-floor",
-      "at": "2026-08-13T19:56:42.371Z",
-      "firstAdmittedAt": 1786651002003
+      "at": "2026-08-13T20:33:02.756Z",
+      "firstAdmittedAt": 1786653182397
     },
     {
       "step": "coordinated-backup-and-restore-proved",
-      "at": "2026-08-13T19:56:45.621Z",
-      "manifest": "cannabeats-2026-08-13T195643Z-coordinated.cbmanifest"
+      "at": "2026-08-13T20:33:05.788Z",
+      "manifest": "cannabeats-2026-08-13T203303Z-coordinated.cbmanifest"
     },
     {
       "step": "restored-topology-qualified",
-      "at": "2026-08-13T19:56:54.506Z",
+      "at": "2026-08-13T20:33:14.465Z",
       "admissionGeneration": 2,
-      "completedRunId": "4b7eb40d-feec-4546-a111-6036e2694465",
-      "abandonedRunId": "9f4c04c2-037f-5ed4-844c-bd143023ddb1"
+      "firstAdmittedAt": 1786653182397,
+      "completedRunId": "09b4cc98-4bfc-45a3-a381-d75f951c1d95",
+      "abandonedRunId": "0857d91e-90b1-5d94-847a-244c5b1cffac"
     },
     {
       "step": "completed-history-purge-exercised",
-      "at": "2026-08-13T19:56:55.591Z",
-      "runId": "4b7eb40d-feec-4546-a111-6036e2694465",
+      "at": "2026-08-13T20:33:15.544Z",
+      "runId": "09b4cc98-4bfc-45a3-a381-d75f951c1d95",
       "lifecycle": "purged"
     },
     {
       "step": "restart-recovery-proved",
-      "at": "2026-08-13T19:56:57.458Z",
+      "at": "2026-08-13T20:33:17.424Z",
       "purgedEvents": 0
     },
     {
       "step": "post-admission-monolith-rollback-refused",
-      "at": "2026-08-13T19:56:57.846Z"
+      "at": "2026-08-13T20:33:17.755Z"
     }
   ],
   "images": {
-    "access-spotify-poc": "sha256:d6ef5b9a5f9f05ed082d20121336029350f5f9b302daf2bb75544361bd35f94f",
-    "game": "sha256:4496e4ac39b4c1e0c5e76e887f29a264f1c11a5224ab733090017125621611c7",
-    "state-service": "sha256:83070380cf27301a9a7344961ade68295a0a1cd54fc7a74d7c45a5978bf39cda"
+    "access-spotify-poc": "sha256:7927a448ec422e27de97ce650624b76e4f3d1a76f243a1fe208f23da91c8905a",
+    "game": "sha256:bf62fd91fb404ad165b78558ae142c1198bed3767f68e2eed0ef346baa844549",
+    "state-service": "sha256:66394a89e90a3e64deff3ab6e54dab850a138560f54024a26238cfd29181cab4"
   },
-  "finishedAt": "2026-08-13T19:56:59.112Z",
+  "finishedAt": "2026-08-13T20:33:18.881Z",
   "status": "passed",
   "cleanup": {
     "status": "passed",

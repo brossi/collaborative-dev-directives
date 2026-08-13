@@ -815,10 +815,10 @@ export function createApp({
     let guestAdmission = db.prepare(`SELECT user_id,lobby_code,display_name,expires_at,recovery_expires_at
       FROM state_guest_admissions WHERE action_id=?`).get(actionId);
     if (reservation && reservation.retry_expires_at <= admissionNow) {
-      throw new HttpError(403,'Admission retry window expired');
+      throw new HttpError(410,'Admission retry window expired');
     }
     if (guestAdmission && guestAdmission.recovery_expires_at <= admissionNow) {
-      throw new HttpError(403,'Admission retry window expired');
+      throw new HttpError(410,'Admission retry window expired');
     }
     if (reservation) {
       if (reservation.lobby_code !== code

@@ -153,6 +153,24 @@ test("state-backed admission and history never read the legacy game database", a
   assert.equal((await history.json()).history.runId,runId);
 });
 
+test("an expired admission locator remains a finite terminal response through Game", async () => {
+  configure();
+  globalThis.fetch = async (url) => {
+    if (new URL(url).pathname === "/api/internal/game/admit") {
+      return Response.json({ code: "expired",error: "Admission retry window expired" },{ status: 410 });
+    }
+    throw new Error(`unexpected ${url}`);
+  };
+  const response = await postStateGame(stateRequest("https://poc.example/game/api/game",{
+    method: "POST",headers: { origin: "https://poc.example","content-type": "application/json" },
+    body: JSON.stringify({
+      action: "joinGuest",actionId: randomUUID(),code: "ABC234",name: "Phone",invite: "fresh",
+    }),
+  }));
+  assert.equal(response.status,410);
+  assert.equal((await response.json()).code,"expired");
+});
+
 test("state-backed recovery derives the same phone seat without browser session authority", async () => {
   configure();
   const runId = randomUUID();

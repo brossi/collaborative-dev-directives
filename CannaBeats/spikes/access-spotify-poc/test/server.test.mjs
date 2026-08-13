@@ -894,8 +894,9 @@ test('cutover guest admission reserves one access identity and delegates the pla
       },
       body: JSON.stringify(retryBody),
     });
-    assert.equal(staleRetry.status,403,
+    assert.equal(staleRetry.status,410,
       'an expired admission reservation must fail at the authority read without waiting for cleanup');
+    assert.equal((await staleRetry.json()).code,'expired');
     const originalGuestToken = /cb_guest=([^;]+)/.exec(firstPayload.sessionCookie)?.[1];
     assert.ok(originalGuestToken);
     db.prepare('UPDATE state_guest_sessions SET expires_at=? WHERE user_id=?')

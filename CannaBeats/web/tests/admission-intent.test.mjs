@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clearAdmissionIntent,durableAdmissionIntent } from "../lib/admission-intent.ts";
+import {
+  clearAdmissionIntent,durableAdmissionIntent,releaseExpiredAdmissionIntent,
+} from "../lib/admission-intent.ts";
 
 function memoryStorage() {
   const values = new Map();
@@ -16,7 +18,7 @@ test("guest admission retries reuse one durable action without persisting the in
   const storage = memoryStorage();
   let sequence = 0;
   const input = { code: "ABC234",name: "Guest",storage,
-    createActionId: () => `action-${++sequence}` };
+    createActionId: () => `123e4567-e89b-42d3-a456-${String(++sequence).padStart(12,"0")}` };
   const first = durableAdmissionIntent(input);
   const retry = durableAdmissionIntent(input);
   assert.deepEqual(retry,first);
@@ -30,9 +32,9 @@ test("an admission retry freezes its original identity even if the form name cha
   const storage = memoryStorage();
   let sequence = 0;
   const first = durableAdmissionIntent({ code: "ABC234",name: "Guest",storage,
-    createActionId: () => `action-${++sequence}` });
+    createActionId: () => `123e4567-e89b-42d3-a456-${String(++sequence).padStart(12,"0")}` });
   const changed = durableAdmissionIntent({ code: "ABC234",name: "Different",storage,
-    createActionId: () => `action-${++sequence}` });
+    createActionId: () => `123e4567-e89b-42d3-a456-${String(++sequence).padStart(12,"0")}` });
   assert.deepEqual(changed,first);
   assert.equal(sequence,1);
 });
@@ -40,11 +42,29 @@ test("an admission retry freezes its original identity even if the form name cha
 test("malformed browser admission locators are discarded and regenerated", () => {
   const storage = memoryStorage();
   storage.setItem("cannabeats.admission.ABC234",JSON.stringify({
-    code: "ABC234",name: "",actionId: "x".repeat(256),
+    code: "ABC234",name: "Guest",actionId: "not-a-uuid",
   }));
+  const replacement = "123e4567-e89b-42d3-a456-426614174000";
   const intent = durableAdmissionIntent({
-    code: "ABC234",name: "Guest",storage,createActionId: () => "replacement-action",
+    code: "ABC234",name: "Guest",storage,createActionId: () => replacement,
   });
-  assert.deepEqual(intent,{ actionId: "replacement-action",code: "ABC234",name: "Guest" });
+  assert.deepEqual(intent,{ actionId: replacement,code: "ABC234",name: "Guest" });
   assert.equal(storage.dump(),JSON.stringify(intent));
+});
+
+test("only the finite expired response releases a durable admission locator", () => {
+  const storage = memoryStorage();
+  const original = "123e4567-e89b-42d3-a456-426614174000";
+  durableAdmissionIntent({ code: "ABC234",name: "Guest",storage,createActionId: () => original });
+  assert.equal(releaseExpiredAdmissionIntent({
+    status: 503,responseCode: "dependency_unavailable",code: "ABC234",storage,
+  }),false);
+  assert.match(storage.dump(),new RegExp(original));
+  assert.equal(releaseExpiredAdmissionIntent({
+    status: 410,responseCode: "expired",code: "ABC234",storage,
+  }),true);
+  const replacement = "123e4567-e89b-42d3-a456-426614174001";
+  assert.equal(durableAdmissionIntent({
+    code: "ABC234",name: "Guest",storage,createActionId: () => replacement,
+  }).actionId,replacement);
 });

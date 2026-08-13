@@ -5,7 +5,9 @@ import Link from "next/link";
 import { PLAYER_NAME_KEY, SESSION_KEY, type GameSession } from "../../../lib/session";
 import { cannabeatsPath } from "../../../lib/paths";
 import { actionUuid } from "../../../lib/game-request";
-import { clearAdmissionIntent,durableAdmissionIntent } from "../../../lib/admission-intent";
+import {
+  clearAdmissionIntent,durableAdmissionIntent,releaseExpiredAdmissionIntent,
+} from "../../../lib/admission-intent";
 import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../../../lib/game-client-contract.ts";
 
 export default function JoinRoom({ code }: { code: string }) {
@@ -49,8 +51,15 @@ export default function JoinRoom({ code }: { code: string }) {
           ...(invitation ? { invite: invitation } : {}),
         }),
       });
-      const payload = await response.json() as { error?: string; playerId?: string };
-      if (!response.ok || !payload.playerId) throw new Error(payload.error ?? "Unable to join this lobby.");
+      const payload = await response.json() as { code?: string; error?: string; playerId?: string };
+      if (!response.ok || !payload.playerId) {
+        if (releaseExpiredAdmissionIntent({
+          status: response.status,responseCode: payload.code,code,storage: sessionStorage,
+        })) {
+          setLockedName(null);
+        }
+        throw new Error(payload.error ?? "Unable to join this lobby.");
+      }
 
       const session: GameSession = { code, playerId: payload.playerId };
       localStorage.setItem(PLAYER_NAME_KEY, intent.name);
