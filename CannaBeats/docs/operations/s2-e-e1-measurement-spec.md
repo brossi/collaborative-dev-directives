@@ -136,7 +136,9 @@ types may also be exported):
 - `validateMeasurementSeries(reports)` accepts a dense array of `1..256`
   normalized reports, returns `undefined` on success, and throws
   `E1ContractError('report_invalid')` for a bound or relation failure;
-- `classifySignalWindow(counts)` returns the paired categorical signal result;
+- `classifySignalWindow(observedFrames, silentFrames, clippedFrames,
+  sourceChannels)` validates four primitive scalars and returns the paired
+  categorical signal result;
 - `projectMemberMeasurementJson(bytes)` and
   `projectOperatorMeasurementJson(bytes)` cross the same bounded JSON boundary
   and return recursively allowlisted frozen projections;
@@ -581,8 +583,8 @@ The pre-implementation suite must include:
   relation checks;
 - malformed retained values proving the constant safe sentinel;
 - E1 import graph proving no E2/E3 symbol executes; and
-- deliberately weakened fixtures proving the generated matrix fails when one
-  required row or assertion is removed.
+- systematic fixed-shape matrices covering every required field, transition
+  type, finite category/reason tuple, and declared relational boundary.
 
 Quota/disk/persistence/cleanup are E7-owned; network timeout and acknowledgement
 are E8-owned; worklet reset is E4-owned; browser cancellation/teardown is
@@ -593,7 +595,7 @@ are E9 and E10-owned. They are not E1 evidence.
 
 | Claim | Invariant IDs | Negative schedules | Real interface | Planned evidence | Permitted wording before pass |
 | --- | --- | --- | --- | --- | --- |
-| Exact six-kind schema/history | E1-SHAPE-001/002, E1-SEM-001/002/003 | malformed JSON, unknown, missing, impossible fields and impossible history | bounded JSON-byte API | Generated shape/truth/history matrices | designed only |
+| Exact six-kind schema/history | E1-SHAPE-001/002, E1-SEM-001/002/003 | malformed JSON, unknown, missing, impossible fields and impossible history | bounded JSON-byte API | Systematic fixed shape/truth/history matrices | designed only |
 | Stable canonical identity | E1-ID-001/002, E1-CANON-001/002 | reorder, alternate spelling, size edge | E1 module import | ECMAScript JSON numeric/string vectors plus all-kind identity matrix | designed only |
 | Exact replay/conflict | E1-REPLAY-001 | exact, conflict, distinct, concurrent equivalent | E1 module import | Six-kind Cartesian replay suite | designed only |
 | Legal signal categories and producer helper | E1-SIGNAL-001 | zero, silent, isolated/sustained thresholds, invalid counts and category pairs | E1 classifier export | Exhaustive boundary table; E4 separately proves producer use | designed only |

@@ -169,10 +169,16 @@ test('all six shapes reject missing and unknown fields', () => {
     unknown.measurements.prohibited = true;
     expectCode('report_invalid', () => validateMeasurementJson(bytes(unknown)));
 
-    const missing = structuredClone(fixture);
-    delete missing.measurements.type;
-    if (!fixture.kind.endsWith('_transition')) delete missing.measurements[Object.keys(missing.measurements)[0]];
-    expectCode('report_invalid', () => validateMeasurementJson(bytes(missing)));
+    for (const field of Object.keys(fixture)) {
+      const missing = structuredClone(fixture);
+      delete missing[field];
+      expectCode('report_invalid', () => validateMeasurementJson(bytes(missing)));
+    }
+    for (const field of Object.keys(fixture.measurements)) {
+      const missing = structuredClone(fixture);
+      delete missing.measurements[field];
+      expectCode('report_invalid', () => validateMeasurementJson(bytes(missing)));
+    }
   }
 });
 
@@ -217,6 +223,44 @@ test('every transition type has one exact accepted tuple', () => {
   }
 });
 
+test('transition reason/category matrices reject every alternate category', () => {
+  const sourceReasons = [
+    ['capture_stopped', 'requested', 'observed'],
+    ['capture_stopped', 'input_unavailable', 'error'],
+    ['capture_stopped', 'authority_lost', 'observed'],
+    ['capture_stopped', 'process_restart', 'observed'],
+    ['capture_stopped', 'unknown', 'unknown'],
+    ['publisher_stopped', 'publisher_unavailable', 'error'],
+    ['publisher_stopped', 'authority_lost', 'observed'],
+    ['publisher_stopped', 'unknown', 'unknown'],
+    ['publisher_restarted', 'publisher_unavailable', 'error'],
+    ['publisher_restarted', 'process_restart', 'observed'],
+    ['publisher_restarted', 'unknown', 'unknown'],
+  ];
+  const relayReasons = [
+    ['process_stopped', 'requested', 'observed'],
+    ['process_stopped', 'process_restart', 'observed'],
+    ['process_stopped', 'authority_lost', 'observed'],
+    ['process_stopped', 'unknown', 'unknown'],
+    ['generation_stopped', 'publisher_closed', 'observed'],
+    ['generation_stopped', 'generation_replaced', 'observed'],
+    ['generation_stopped', 'unknown', 'unknown'],
+    ['generation_fenced', 'generation_replaced', 'observed'],
+    ['generation_fenced', 'backpressure', 'error'],
+    ['generation_fenced', 'unknown', 'unknown'],
+  ];
+  for (const [kind, rows] of [['source_transition', sourceReasons], ['relay_transition', relayReasons]]) {
+    for (const [type, reason, expected] of rows) {
+      const valid = base(kind, 0, { measurements: { type, category: expected, reason } });
+      assert.equal(validateMeasurementJson(bytes(valid)).measurements.category, expected);
+      for (const alternate of ['observed', 'error', 'unknown'].filter((value) => value !== expected)) {
+        const invalid = base(kind, 0, { measurements: { type, category: alternate, reason } });
+        expectCode('report_invalid', () => validateMeasurementJson(bytes(invalid)));
+      }
+    }
+  }
+});
+
 test('bounded byte boundary and exact shape reject predictable malformed inputs', () => {
   expectCode('report_invalid', () => validateMeasurementJson({}));
   expectCode('report_invalid', () => validateMeasurementJson(Buffer.from('{')));
@@ -234,6 +278,42 @@ test('bounded byte boundary and exact shape reject predictable malformed inputs'
   }
   const negativeZero = Buffer.from(JSON.stringify(listenerWindow()).replace('"sequence":0', '"sequence":-0'));
   expectCode('report_invalid', () => validateMeasurementJson(negativeZero));
+  expectCode('report_invalid', () => validateMeasurementJson(Uint8Array.from([0xc3, 0x28])));
+  expectCode('report_invalid', () => validateMeasurementJson(Buffer.from(JSON.stringify(listenerWindow()).replace('"safari"', '"\\ud800"'))));
+
+  for (const invalidUuid of [
+    '00000000-0000-0000-0000-000000000000',
+    '123e4567-e89b-42d3-7456-426614174000',
+    INSTANCE.toUpperCase(),
+  ]) {
+    expectCode('report_invalid', () => validateMeasurementJson(bytes({ ...listenerWindow(), instanceId: invalidUuid })));
+  }
+});
+
+test('hostile byte views and forged normalized objects fail with finite contract results', () => {
+  const hostile = Uint8Array.from(bytes(listenerWindow()));
+  let byteLengthAccessed = false;
+  Object.defineProperty(hostile, 'byteLength', { get() { byteLengthAccessed = true; throw new Error('caller_secret'); } });
+  assert.equal(validateMeasurementJson(hostile).kind, 'listener_window');
+  assert.equal(byteLengthAccessed, false);
+
+  const proxy = new Proxy(Uint8Array.from(bytes(listenerWindow())), {});
+  expectCode('report_invalid', () => validateMeasurementJson(proxy));
+  assert.deepEqual(projectRetainedMeasurementJson(proxy, 'member'), { status: 'unavailable', reason: 'invalid_retained_report' });
+
+  let accessed = false;
+  const forged = Object.create(null);
+  Object.defineProperty(forged, 'schemaVersion', { enumerable: true, get() { accessed = true; return 1; } });
+  Object.freeze(forged);
+  expectCode('report_invalid', () => canonicalMeasurementBytes(forged));
+  assert.equal(accessed, false);
+});
+
+test('fractional monotonic timestamps are accepted and checked without rounded overflow', () => {
+  const fractional = listenerWindow(0, { monotonicStartMs: 0.5, durationMs: 9999.5 });
+  assert.equal(validateMeasurementJson(bytes(fractional)).monotonicStartMs, 0.5);
+  const overflowing = listenerWindow(0, { monotonicStartMs: Number.MAX_SAFE_INTEGER, durationMs: 0.1 });
+  expectCode('report_invalid', () => validateMeasurementJson(bytes(overflowing)));
 });
 
 test('canonical bytes are independent of caller property order', () => {
@@ -269,9 +349,17 @@ test('cross-field truth tables reject impossible listener, source, and relay val
   const impossible = [
     listenerWindow(0, { measurements: { receivedFrames: 1, receivedBytes: 4, chunkCount: 2 } }),
     listenerWindow(0, { measurements: { receivedFrames: 0, receivedBytes: 0, chunkCount: 0, signalPresence: 'present' } }),
+    listenerWindow(0, { measurements: { chunkGap: { status: 'observed', count: 98, meanMs: 10, maxMs: 20 } } }),
+    listenerWindow(0, { measurements: { bufferDepth: { status: 'observed', sampleCount: 1, currentMs: 10, minMs: 20, maxMs: 30, meanMs: 25, trendMsPerSecond: 0 } } }),
+    listenerWindow(0, { measurements: { underrunCount: 1, underrunDurationMs: 0 } }),
+    listenerWindow(0, { measurements: { overflowCount: 1, discardedFrames: 0 } }),
+    listenerWindow(0, { measurements: { nominalRateRatio: 2 } }),
+    listenerWindow(0, { measurements: { longTasks: { status: 'observed', count: 0, maxDurationMs: 1 } } }),
     sourceWindow(0, { measurements: { publishedFrames: 48_001 } }),
+    sourceWindow(0, { measurements: { publishedBytes: 1 } }),
     relayWindow(0, { measurements: { activeListenerCount: 2 } }),
     relayWindow(0, { measurements: { deliveredBytes: 3 } }),
+    relayWindow(0, { measurements: { backpressureClosureCount: 1, generationFenceDisconnectCount: 1 } }),
   ];
   for (const value of impossible) {
     expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
@@ -279,12 +367,13 @@ test('cross-field truth tables reject impossible listener, source, and relay val
 });
 
 test('signal classifier covers zero, silent, present, isolated, and sustained windows', () => {
-  assert.deepEqual(classifySignalWindow({ observedFrames: 0, silentFrames: 0, clippedFrames: 0, sourceChannels: 2 }), { signalPresence: 'unknown', clippingSeverity: 'unknown' });
-  assert.deepEqual(classifySignalWindow({ observedFrames: 100, silentFrames: 100, clippedFrames: 0, sourceChannels: 2 }), { signalPresence: 'silent', clippingSeverity: 'none' });
-  assert.deepEqual(classifySignalWindow({ observedFrames: 100, silentFrames: 0, clippedFrames: 0, sourceChannels: 2 }), { signalPresence: 'present', clippingSeverity: 'none' });
-  assert.deepEqual(classifySignalWindow({ observedFrames: 1000, silentFrames: 0, clippedFrames: 1, sourceChannels: 2 }), { signalPresence: 'present', clippingSeverity: 'isolated' });
-  assert.deepEqual(classifySignalWindow({ observedFrames: 100, silentFrames: 0, clippedFrames: 1, sourceChannels: 2 }), { signalPresence: 'present', clippingSeverity: 'sustained' });
-  expectCode('report_invalid', () => classifySignalWindow({ observedFrames: 1, silentFrames: 1, clippedFrames: 1, sourceChannels: 2 }));
+  assert.deepEqual(classifySignalWindow(0, 0, 0, 2), { signalPresence: 'unknown', clippingSeverity: 'unknown' });
+  assert.deepEqual(classifySignalWindow(100, 100, 0, 2), { signalPresence: 'silent', clippingSeverity: 'none' });
+  assert.deepEqual(classifySignalWindow(100, 0, 0, 2), { signalPresence: 'present', clippingSeverity: 'none' });
+  assert.deepEqual(classifySignalWindow(1000, 0, 1, 2), { signalPresence: 'present', clippingSeverity: 'isolated' });
+  assert.deepEqual(classifySignalWindow(100, 0, 1, 2), { signalPresence: 'present', clippingSeverity: 'sustained' });
+  expectCode('report_invalid', () => classifySignalWindow(1, 1, 1, 2));
+  expectCode('report_invalid', () => classifySignalWindow({}, 0, 0, 2));
 });
 
 test('series validation enforces family, constants, cumulative values, and 256 bound', () => {
@@ -304,9 +393,25 @@ test('series validation enforces family, constants, cumulative values, and 256 b
   expectCode('report_invalid', () => validateMeasurementSeries([first, validateMeasurementJson(bytes(listenerWindow(1)))]));
   expectCode('report_invalid', () => validateMeasurementSeries([]));
 
+  const changedConstant = validateMeasurementJson(bytes(sourceWindow(1, {
+    measurements: { sampleRate: 44_100 },
+  })));
+  expectCode('report_invalid', () => validateMeasurementSeries([first, changedConstant]));
+  const overlap = validateMeasurementJson(bytes(sourceWindow(1, { monotonicStartMs: 9_999 })));
+  expectCode('report_invalid', () => validateMeasurementSeries([first, overlap]));
+
   const max = Array.from({ length: 256 }, (_, sequence) => validateMeasurementJson(bytes(sourceTransition(sequence))));
   assert.equal(validateMeasurementSeries(max), undefined);
   expectCode('report_invalid', () => validateMeasurementSeries([...max, validateMeasurementJson(bytes(sourceTransition(256)))]));
+});
+
+test('listener reconnect transitions do not corrupt successive-window accounting', () => {
+  const first = validateMeasurementJson(bytes(listenerWindow(0)));
+  const reconnect = validateMeasurementJson(bytes(listenerTransition(1, 'reconnect', { connectionAttemptSequence: 1 })));
+  const second = validateMeasurementJson(bytes(listenerWindow(2, {
+    measurements: { connectionAttemptSequence: 1, reconnectCount: 1 },
+  })));
+  assert.equal(validateMeasurementSeries([first, reconnect, second]), undefined);
 });
 
 test('listener milestone series enforces once, precedence, and terminal/stop ordering', () => {
@@ -347,12 +452,13 @@ test('local export is exact, member-only, canonical, and series-validated', () =
     schemaVersion: 1,
     status: 'local_only',
     uploadState: 'disabled',
-    generatedAtMonotonicMs: 20_000,
+    generatedAtMonotonicMs: 20_000.5,
     instanceId: INSTANCE,
     summaries: [first, second],
   };
   const normalized = validateLocalDiagnosticExportJson(bytes(wrapper));
   assert.equal(normalized.summaries.length, 2);
+  assert.equal(normalized.generatedAtMonotonicMs, 20_000.5);
   assert.deepEqual(validateLocalDiagnosticExportJson(canonicalLocalDiagnosticExportBytes(normalized)), normalized);
 
   expectCode('report_invalid', () => validateLocalDiagnosticExportJson(bytes({ ...wrapper, summaries: [] })));
@@ -368,5 +474,6 @@ test('local export is exact, member-only, canonical, and series-validated', () =
 
 test('E1 module has no later-checkpoint imports', async () => {
   const source = await readFile(new URL('../lib/s2e-e1-contract.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /^\s*import\s/m);
   assert.doesNotMatch(source, /s2e-e[2-9]|alignment|collector|sqlite|react|audio-worklet/i);
 });

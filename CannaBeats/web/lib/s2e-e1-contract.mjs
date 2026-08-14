@@ -57,6 +57,7 @@ function finite(value, min, max, { integer = false, positive = false } = {}) {
 
 const uint = (value) => finite(value, 0, MAX_SAFE, { integer: true });
 const positiveUint = (value) => finite(value, 1, MAX_SAFE, { integer: true, positive: true });
+const monotonicMs = (value) => finite(value, 0, MAX_SAFE);
 const windowMs = (value) => finite(value, 0, 60000);
 const latencyMs = windowMs;
 const boolean = (value) => {
@@ -341,11 +342,11 @@ function normalizeReport(value) {
     kind: literal(kind),
     instanceId: uuid,
     sequence: uint,
-    monotonicStartMs: uint,
+    monotonicStartMs: monotonicMs,
     durationMs: duration,
     measurements: measurementValidator,
   });
-  if (output.monotonicStartMs + output.durationMs > MAX_SAFE) fail();
+  if (output.durationMs > MAX_SAFE - output.monotonicStartMs) fail();
   return output;
 }
 
@@ -357,20 +358,17 @@ function deepFreeze(value) {
 }
 
 function parseBytes(input, maximum) {
-  if (!(input instanceof Uint8Array) || input instanceof DataView || input.byteLength > maximum) fail();
-  let text;
   try {
-    text = decoder.decode(input);
+    if (!ArrayBuffer.isView(input) || !(input instanceof Uint8Array)) fail();
+    const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
+    const byteLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'byteLength').get.call(input);
+    if (byteLength > maximum) fail();
+    const copy = new Uint8Array(byteLength);
+    Uint8Array.prototype.set.call(copy, input);
+    return JSON.parse(decoder.decode(copy));
   } catch {
     fail();
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    fail();
-  }
-  return parsed;
 }
 
 function encodeNormalized(value) {
@@ -384,8 +382,24 @@ function normalizeAndSize(value) {
 }
 
 function assertNormalized(report) {
-  if (!isRecord(report) || !Object.isFrozen(report)) fail();
+  assertNormalizedTree(report);
   return normalizeAndSize(report);
+}
+
+function assertNormalizedTree(value, arraysAllowed = false) {
+  if (Array.isArray(value)) {
+    if (!arraysAllowed || !Object.isFrozen(value)) fail();
+    for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+      if (Object.hasOwn(descriptor, 'get') || Object.hasOwn(descriptor, 'set')) fail();
+    }
+    for (const item of value) assertNormalizedTree(item, arraysAllowed);
+    return;
+  }
+  if (!isRecord(value) || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value)) fail();
+  for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+    if (Object.hasOwn(descriptor, 'get') || Object.hasOwn(descriptor, 'set') || !descriptor.enumerable) fail();
+    if (descriptor.value && typeof descriptor.value === 'object') assertNormalizedTree(descriptor.value, arraysAllowed);
+  }
 }
 
 export function validateMeasurementJson(input) {
@@ -441,7 +455,8 @@ export function validateMeasurementSeries(reports) {
   let previousSequence = -1;
   const priorWindows = new Map();
   const priorKinds = new Map();
-  let priorAttempt = -1;
+  let latestAttempt = -1;
+  let previousWindowAttempt = -1;
   const milestones = new Map();
   const terminals = new Map();
   const stopped = new Set();
@@ -468,15 +483,16 @@ export function validateMeasurementSeries(reports) {
     }
     if (report.kind === 'listener_window') {
       const attempt = report.measurements.connectionAttemptSequence;
-      if (attempt < priorAttempt) fail();
-      if (priorAttempt >= 0 && attempt === priorAttempt && report.measurements.reconnectCount !== 0) fail();
-      if (priorAttempt >= 0 && attempt > priorAttempt && report.measurements.reconnectCount > attempt - priorAttempt) fail();
-      priorAttempt = attempt;
+      if (attempt < latestAttempt) fail();
+      if (previousWindowAttempt >= 0 && attempt === previousWindowAttempt && report.measurements.reconnectCount !== 0) fail();
+      if (previousWindowAttempt >= 0 && attempt > previousWindowAttempt && report.measurements.reconnectCount > attempt - previousWindowAttempt) fail();
+      previousWindowAttempt = attempt;
+      latestAttempt = attempt;
     }
     if (report.kind === 'listener_transition') {
       const { connectionAttemptSequence: attempt, type } = report.measurements;
-      if (attempt < priorAttempt) fail();
-      priorAttempt = attempt;
+      if (attempt < latestAttempt) fail();
+      latestAttempt = attempt;
       if (milestoneOrder.has(type)) {
         const prior = milestones.get(attempt);
         const current = { order: milestoneOrder.get(type), elapsed: report.measurements.elapsedMs };
@@ -499,11 +515,13 @@ export function validateMeasurementSeries(reports) {
   }
 }
 
-export function classifySignalWindow(counts) {
-  const output = exactRecord(counts, {
-    observedFrames: uint, silentFrames: uint, clippedFrames: uint,
-    sourceChannels: enumeration([1, 2]),
-  });
+export function classifySignalWindow(observedFrames, silentFrames, clippedFrames, sourceChannels) {
+  const output = {
+    observedFrames: uint(observedFrames),
+    silentFrames: uint(silentFrames),
+    clippedFrames: uint(clippedFrames),
+    sourceChannels: enumeration([1, 2])(sourceChannels),
+  };
   if (output.silentFrames + output.clippedFrames > output.observedFrames) fail();
   if (output.observedFrames === 0) return { signalPresence: 'unknown', clippingSeverity: 'unknown' };
   if (output.silentFrames === output.observedFrames) return { signalPresence: 'silent', clippingSeverity: 'none' };
@@ -547,7 +565,7 @@ function normalizeExport(value) {
     schemaVersion: literal(1),
     status: literal('local_only'),
     uploadState: literal('disabled'),
-    generatedAtMonotonicMs: uint,
+    generatedAtMonotonicMs: monotonicMs,
     instanceId: uuid,
     summaries: (summaries) => {
       if (!Array.isArray(summaries) || summaries.length < 1 || summaries.length > MAX_SERIES) fail();
@@ -576,6 +594,6 @@ export function validateLocalDiagnosticExportJson(input) {
 }
 
 export function canonicalLocalDiagnosticExportBytes(value) {
-  if (!isRecord(value) || !Object.isFrozen(value)) fail();
+  assertNormalizedTree(value, true);
   return encodeNormalized(normalizeExportAndSize(value));
 }
