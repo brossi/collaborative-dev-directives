@@ -257,3 +257,12 @@ sidecars, and fail-closed local gaps for delayed, ambiguous, or contradictory
 epochs. Fetch/AudioContext resource ownership and production attachment remain
 unimplemented. Focused E1+E4+E5 verification passes 42/42; closure is not yet
 claimed. Lint, the production build, and the full web suite pass 208/208.
+
+Implementation increment 3 adds the unattached browser resource scope: one
+abort controller, stream reader, observer, E4 port, node, and AudioContext; two
+named timers and two listeners; generation-style late-callback fencing; and
+ordered idempotent cleanup that returns only finite failure categories. Fetch
+attempt orchestration still remains unattached and unimplemented. Focused
+resource verification passes 5/5; cleanup invokes every independent resource
+before awaiting asynchronous cancellation. Lint, the production build, and the
+full web suite pass 213/213. Closure is not yet claimed.
