@@ -1046,6 +1046,9 @@ remain separate unimplemented boundaries.
 E3 evidence comparison is locally verified at `9075294`; its isolated
 fixed-rule classifier passed targeted independent closure. E7/E8/E11/E12
 integration remains separate and unverified.
+E4 worklet instrumentation and its atomic MessagePort protocol are locally
+verified at `bf4d760`; E5 browser lifecycle may consume the verified wrapper,
+while the production listener remains on the retained baseline until E5 closes.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
