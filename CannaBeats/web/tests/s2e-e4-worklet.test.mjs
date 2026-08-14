@@ -61,6 +61,28 @@ test("request receipts replay exactly and reject conflicting or stale reuse", ()
   assert.equal(core.epoch, 2);
 });
 
+test("every finite request rejection is effect-free and replay-safe", () => {
+  const unconfigured = harness();
+  rotate(unconfigured.core, "snapshot-and-rotate", 1, 1, 2);
+  assert.equal(unconfigured.messages.at(-1).code, "not_configured");
+  const notConfigured = unconfigured.messages.at(-1);
+  rotate(unconfigured.core, "snapshot-and-rotate", 1, 1, 2);
+  assert.equal(unconfigured.messages.at(-1), notConfigured);
+
+  const configured = harness();
+  configure(configured.core);
+  configure(configured.core, 2, 2);
+  assert.equal(configured.messages.at(-1).code, "invalid_state");
+  rotate(configured.core, "snapshot-and-rotate", 3, 9, 10);
+  assert.equal(configured.messages.at(-1).code, "stale_epoch");
+  rotate(configured.core, "snapshot-and-rotate", 4, 1, 3);
+  assert.equal(configured.messages.at(-1).code, "invalid_rotation");
+  rotate(configured.core, "stop-and-rotate", 5, 1, 2);
+  rotate(configured.core, "snapshot-and-rotate", 6, 2, 3);
+  assert.equal(configured.messages.at(-1).code, "invalid_state");
+  assert.equal(configured.core.epoch, 2);
+});
+
 test("stop reply is replayable and stopped configure advances exactly one epoch", () => {
   const { core, messages } = harness();
   configure(core);
@@ -158,6 +180,11 @@ test("reset and stop reply before state and clear playback deterministically", (
   assert.equal(messages[0].operation, "reset");
   assert.equal(core.metrics.resetCount, 1);
   assert.equal(core.writeFrame, 0);
+  const resetReply = messages[0];
+  rotate(core, "reset-and-rotate", 2, 1, 2);
+  assert.equal(messages.at(-1), resetReply);
+  assert.equal(core.epoch, 2);
+  assert.equal(core.metrics.resetCount, 1);
 
   messages.length = 0;
   rotate(core, "stop-and-rotate", 3, 2, 3);
@@ -166,6 +193,65 @@ test("reset and stop reply before state and clear playback deterministically", (
   const silent = output();
   core.process(silent);
   assert.equal(silent[0].every((value) => value === 0), true);
+});
+
+test("malformed PCM cannot mutate counters, ring, or request sequencing", () => {
+  const { core } = harness();
+  configure(core);
+  const before = {
+    receivedFrames: core.metrics.receivedFrames,
+    writeFrame: core.writeFrame,
+    requestHighWater: core.requestHighWater,
+  };
+  const malformed = [
+    { type: "pcm", epoch: 1, buffer: {} },
+    { type: "pcm", epoch: 1, buffer: new ArrayBuffer(3) },
+    { type: "pcm", epoch: 1, buffer: new ArrayBuffer((1024 * 1024) + 4) },
+    { type: "pcm", epoch: 1, buffer: new ArrayBuffer(4), extra: true },
+  ];
+  for (const message of malformed) core.receive(message);
+  assert.deepEqual({
+    receivedFrames: core.metrics.receivedFrames,
+    writeFrame: core.writeFrame,
+    requestHighWater: core.requestHighWater,
+  }, before);
+});
+
+test("baseline and E4 enter silence and re-prime on the same schedule", () => {
+  const { core } = harness(48000);
+  const baseline = new PcmPlayerBaseline(48000);
+  configure(core, 1, 1, 8000, 1);
+  baseline.configure(8000, 1);
+  const first = pcm(2500, 1);
+  core.receive({ type: "pcm", epoch: 1, buffer: first.slice(0) });
+  baseline.receive(first.slice(0));
+
+  let observedSilence = false;
+  for (let iteration = 0; iteration < 200; iteration += 1) {
+    const actual = output();
+    const expected = output();
+    core.process(actual);
+    baseline.process(expected);
+    assert.deepEqual([...actual[0]], [...expected[0]]);
+    if (actual[0].every((value) => value === 0) && core.hasRenderedPcm) {
+      observedSilence = true;
+      break;
+    }
+  }
+  assert.equal(observedSilence, true);
+  assert.equal(core.inUnderrun, true);
+  assert.equal(baseline.primed, false);
+
+  const recovery = pcm(3000, 1, (frame) => 1000 + (frame % 100));
+  core.receive({ type: "pcm", epoch: 1, buffer: recovery.slice(0) });
+  baseline.receive(recovery.slice(0));
+  const actual = output();
+  const expected = output();
+  core.process(actual);
+  baseline.process(expected);
+  assert.deepEqual([...actual[0]], [...expected[0]]);
+  assert.equal(core.inUnderrun, false);
+  assert.equal(baseline.primed, true);
 });
 
 test("overflow preserves phase and signal thresholds match E1", () => {

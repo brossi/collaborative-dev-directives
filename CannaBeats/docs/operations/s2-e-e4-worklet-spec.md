@@ -17,7 +17,7 @@
 
 Implementation checkpoint: the bounded core, unattached public E4 wrapper,
 retained baseline, and actual-MessagePort harness are implemented. Focused E4
-verification passes 10/10; the full web build and suite pass 194/194. The
+verification passes 13/13; the last full web build and suite pass 197/197. The
 existing production worklet remains unchanged until E5 composes the verified
 port. Independent implementation closure is pending.
 
