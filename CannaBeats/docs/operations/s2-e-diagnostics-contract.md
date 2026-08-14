@@ -801,7 +801,7 @@ baseline shows zero instrumentation-induced underruns or PCM divergence.
 
 ### E5 — Browser attempt and window lifecycle
 
-Status: `implementation-authorized`. The independently reviewed bounded design is maintained in
+Status: `implementation-in-progress`. The independently reviewed bounded design is maintained in
 [E5 browser attempt and window lifecycle](s2-e-e5-browser-lifecycle-spec.md).
 It deliberately excludes React/UI, copying, upload, persistence, and production
 attachment.

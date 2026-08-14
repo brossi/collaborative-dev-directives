@@ -4,7 +4,7 @@
 
 - Checkpoint: E5 — browser attempt, measurement window, and cleanup lifecycle
 - Scope revision: `E5-spec-v1`
-- Status: `implementation-authorized`
+- Status: `implementation-in-progress`
 - Risk class: `B — boundary-bearing` because this code owns browser resources,
   fetch-attempt ordering, and the acknowledged E4 epoch boundary
 - Required verified checkpoints: E1 at `736a401`; E4 at `bf4d760`
@@ -242,3 +242,10 @@ remain E12; their local state definitions and cleanup behavior are E5-owned.
 - Production attachment: unauthorized until independent E5 implementation
   closure.
 - E6/E7 work: unauthorized by this packet.
+
+Implementation increment 1 adds the unattached E4 port adapter and bounded
+attempt/milestone lifecycle with actual E4-core composition tests. Window/E1
+projection, observer attribution, fetch/AudioContext resource ownership, and
+production attachment remain for later E5 increments; this checkpoint makes no
+closure claim. Focused E4+E5 verification passes 20/20; lint, the production
+build, and the full web suite pass 204/204.
