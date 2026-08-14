@@ -4,19 +4,22 @@
 
 - Checkpoint: E3 — evidence derivation and comparison
 - Scope revision: `E3-spec-v1`
-- Status: `closure-review`
+- Status: `locally-verified`
 - Risk class: `A — isolated`
+- Exact verified source/tree: `907529480f3908811bd4cae15a8c4167dabc4ecb` /
+  `bb1296657af8d5dcc8b2d5b25181c068e7641ab9`
 - Required prior verified checkpoints: E1 at `736a401`; E2 at `df41d2c`
 - Explicitly excluded later checkpoints: persistence and queries (E7), HTTP and
   authorization (E8), producer adapters (E9/E10), UI/composed faults (E11), and
   real-host measurements (E12)
 - Reviewers and review date: primary Codex review 2026-08-14; independent
-  closure required before E11 or another consumer attaches
+  timing/provenance, rule-truth, and contract/evidence closure 2026-08-14
 
 Implementation checkpoint: the fixed classifier and focused table are
 implemented. Combined E1-E3 verification passes 39/39 with 98.27% E3 line and
-89.54% E3 branch coverage. Independent closure is pending; no consumer is
-authorized yet.
+89.54% E3 branch coverage. Three independent closure perspectives found no
+open P0/P1; later checkpoints may consume the pure boundary without claiming
+E7/E8/E11/E12 integration.
 
 ## Boundary and scale
 
@@ -223,7 +226,7 @@ Focused command:
 node --test web/tests/s2e-e3-comparison.test.mjs
 ```
 
-Planned fixed-table evidence covers all five positive rows; no anomaly; missing
+Fixed-table evidence covers all five positive rows; no anomaly; missing
 component; mixed trace/timebase; invalid cumulative pair; duplicate listener;
 zero and nine listeners; one versus multiple isolated candidates; exact 250/100
 ms thresholds; strict precedence, equality, overlap, and uncertainty; forged
@@ -233,5 +236,5 @@ envelope rejection; output projection; and an E1/E2-only import firewall.
 - Approved scope: one pure E3 module and focused fixed-table tests.
 - Prohibited scope: E7-E12, persistence, routes, authorization, UI, producers,
   generalized rules, scoring, configuration, or diagnosis prose.
-- Decision: `proceed-isolated`
+- Closure decision: `locally-verified`
 - Implementation authorized: `yes`, only for the approved isolated scope.

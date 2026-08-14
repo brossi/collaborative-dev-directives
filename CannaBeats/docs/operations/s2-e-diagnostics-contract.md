@@ -5,6 +5,7 @@ scale filter and each detailed checkpoint must pass its own closure gate. E1 is
 locally verified at its recorded exact implementation target. E2's isolated
 pure model is also locally verified at `df41d2c`; persistence, routing, and
 authenticated integration remain owned by E7/E8.
+E3's isolated comparison reducer is locally verified at `9075294`.
 The earlier broad executable-contract and listener prototypes remain archived
 outside the active branch and supply no evidence.
 
@@ -762,9 +763,10 @@ sample or fails closed.
 
 ### E3 — Evidence derivation and comparison reducer
 
-Status: `closure-review`. The isolated pure classifier and fixed-table tests are
-implemented; no persistence, route, UI, producer integration, or consumer is
-authorized before independent closure.
+Status: `locally-verified` at `9075294`. The isolated pure classifier and
+fixed-table tests passed independent timing/provenance, rule-truth, and
+contract/evidence closure. Persistence, routes, UI, and producer integration
+remain later checkpoints.
 
 Detailed specification packet:
 [E3 evidence derivation and comparison](s2-e-e3-comparison-spec.md).
