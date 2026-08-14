@@ -32,8 +32,10 @@ function canonicalUuid(value) {
 }
 
 export class E5BrowserSession {
-  constructor({ streamUrl, client, dependencies, onStatus = () => {} }) {
-    if (typeof streamUrl !== 'string' || !streamUrl || !client || !dependencies
+  constructor({ streamUrl, workletUrl = '/s2e-e4-worklet.js', client, dependencies, onStatus = (_status) => {} }) {
+    if (typeof streamUrl !== 'string' || !streamUrl
+      || typeof workletUrl !== 'string' || !workletUrl.startsWith('/')
+      || !client || !dependencies
       || typeof dependencies.now !== 'function' || typeof dependencies.uuid !== 'function'
       || typeof dependencies.fetch !== 'function'
       || typeof dependencies.createAbortController !== 'function'
@@ -43,6 +45,7 @@ export class E5BrowserSession {
       || typeof dependencies.cancelTimeout !== 'function'
       || typeof onStatus !== 'function') throw new E5LifecycleError('session_invalid');
     this.streamUrl = streamUrl;
+    this.workletUrl = workletUrl;
     this.clientTemplate = client;
     this.dependencies = dependencies;
     this.onStatus = onStatus;
@@ -86,7 +89,7 @@ export class E5BrowserSession {
       this.context = this.scope.ownContext(context);
       await this.context.resume();
       this.#requireActiveInitialization();
-      await this.context.audioWorklet.addModule('/s2e-e4-worklet.js');
+      await this.context.audioWorklet.addModule(this.workletUrl);
       this.#requireActiveInitialization();
       this.node = this.scope.ownNode(this.dependencies.createWorkletNode(this.context));
       this.node.connect(this.context.destination);

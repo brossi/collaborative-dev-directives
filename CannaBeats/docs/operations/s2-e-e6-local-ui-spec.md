@@ -4,7 +4,7 @@
 
 - Checkpoint: E6 — local UI, copy, and rendering isolation
 - Scope revision: `E6-spec-v1`
-- Status: `implementation-in-progress`
+- Status: `closure-review`
 - Risk class: `B — boundary-bearing` because the local copy action discloses a
   privacy-projected diagnostic report
 - Required verified checkpoints: E1 at `736a401`; E5 at `087b8ea`
@@ -115,3 +115,18 @@ network path is attached. Focused E1/E5/E6 verification passes 34/34; lint, the
 production build, and the full web suite pass 242/242. The React subscription,
 clipboard invocation, reset control, and production E5 attachment remain for
 the next increment and no E6 closure claim is made.
+
+Increment 2 replaces the retained production listener hook with the verified
+E5 session and attaches the E6 panel. The base-path-aware E4 module and exact
+processor name are explicit, replacement sessions await prior teardown, and
+insecure-context UUID generation retains the existing cryptographic fallback.
+The native details panel is closed by default; its one-second refresh exists
+only while open. Clipboard and reset controls share one pending UI state, copy
+uses only the increment-1 E1 boundary, and accessibility announcements are
+limited to stream-status changes and action results rather than periodic panel
+refreshes. The production build and full web suite pass 243/243; focused
+E5/E6 verification passes 40/40; lint and `git diff --check` pass. A local
+browser smoke check loaded the client without a production-bundle error; the
+development-only CSP warning and unavailable local Access dependency do not
+qualify the in-lobby panel. Independent E6 closure remains pending, so this is
+an attached release candidate rather than a local-verification claim.

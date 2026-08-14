@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { actionUuid } from "./game-request";
 import { cannabeatsPath } from "./paths";
+import { E5BrowserSession } from "./s2e-e5-browser-session.mjs";
+import { createE6LocalCopy, projectE6LocalPanel } from "./s2e-e6-local-panel.mjs";
 
 export type ManagedAudioStatus = "idle" | "connecting" | "waiting" | "buffering" | "playing" | "error";
+export type ManagedAudioDiagnostics = ReturnType<typeof projectE6LocalPanel>;
 
 const STATUS_LABELS: Record<ManagedAudioStatus, string> = {
   idle: "Shared audio is off",
@@ -14,119 +18,163 @@ const STATUS_LABELS: Record<ManagedAudioStatus, string> = {
   error: "Shared audio needs to reconnect",
 };
 
+function browserProfile() {
+  const agent = navigator.userAgent;
+  const match = agent.match(/(?:Chrome|CriOS)\/(\d+)/)
+    ?? agent.match(/Firefox\/(\d+)/)
+    ?? agent.match(/Version\/(\d+).*Safari/);
+  const browserFamily = /(?:Chrome|CriOS)\//.test(agent) ? "chromium"
+    : /Firefox\//.test(agent) ? "firefox"
+      : /Safari\//.test(agent) && /Version\//.test(agent) ? "safari" : "other";
+  const osFamily = /Android/.test(agent) ? "android"
+    : /iPhone|iPad|iPod/.test(agent) ? "ios"
+      : /Mac OS X/.test(agent) ? "macos"
+        : /Windows/.test(agent) ? "windows"
+          : /CrOS/.test(agent) ? "chromeos"
+            : /Linux/.test(agent) ? "linux" : "other";
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches === true;
+  return {
+    baseLatencyMs: { status: "unknown" },
+    outputLatencyMs: { status: "unknown" },
+    browserFamily,
+    browserMajor: match ? { status: "observed", value: Number(match[1]) } : { status: "unknown" },
+    osFamily,
+    displayMode: standalone ? "standalone" : "browser",
+    implementationVersion: 1,
+  };
+}
+
+function observedLatency(seconds: unknown) {
+  const milliseconds = typeof seconds === "number" ? seconds * 1000 : NaN;
+  return Number.isFinite(milliseconds) && milliseconds >= 0 && milliseconds <= 60_000
+    ? { status: "observed", value: milliseconds }
+    : { status: "unsupported" };
+}
+
 export function useManagedAudioStream() {
   const [enabled, setEnabled] = useState(false);
-  const [ready, setReady] = useState(false);
   const [status, setStatus] = useState<ManagedAudioStatus>("idle");
-  const contextRef = useRef<AudioContext | null>(null);
-  const nodeRef = useRef<AudioWorkletNode | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
+  const sessionRef = useRef<InstanceType<typeof E5BrowserSession> | null>(null);
   const generationRef = useRef(0);
 
   const stop = useCallback(() => {
     generationRef.current += 1;
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-    nodeRef.current?.disconnect();
-    nodeRef.current = null;
-    const context = contextRef.current;
-    contextRef.current = null;
-    if (context) void context.close();
+    const session = sessionRef.current;
+    sessionRef.current = null;
     setEnabled(false);
-    setReady(false);
     setStatus("idle");
+    if (session) void session.stop("requested");
   }, []);
 
   const start = useCallback(async (code: string) => {
-    stop();
+    generationRef.current += 1;
     const generation = generationRef.current;
+    const priorSession = sessionRef.current;
+    sessionRef.current = null;
     setEnabled(true);
     setStatus("connecting");
-    try {
-      const context = new AudioContext({ latencyHint: "interactive" });
-      contextRef.current = context;
-      await context.resume();
-      await context.audioWorklet.addModule(cannabeatsPath("/pcm-player-worklet.js"));
-      if (generation !== generationRef.current) return;
-      const node = new AudioWorkletNode(context, "cannabeats-pcm-player", {
+    if (priorSession) await priorSession.stop("requested");
+    if (generation !== generationRef.current) return;
+    const client = browserProfile();
+    const supportsLongTasks = typeof PerformanceObserver !== "undefined"
+      && PerformanceObserver.supportedEntryTypes?.includes("longtask");
+    const dependencies = {
+      now: () => performance.now(),
+      uuid: () => actionUuid(),
+      fetch: window.fetch.bind(window),
+      createAbortController: () => new AbortController(),
+      createAudioContext: async () => {
+        const context = new AudioContext({ latencyHint: "interactive" });
+        client.baseLatencyMs = observedLatency(context.baseLatency);
+        client.outputLatencyMs = observedLatency((context as AudioContext & { outputLatency?: number }).outputLatency);
+        return context;
+      },
+      createWorkletNode: (context: AudioContext) => new AudioWorkletNode(context, "cannabeats-e4-pcm-player", {
         numberOfInputs: 0,
         numberOfOutputs: 1,
         outputChannelCount: [2],
-      });
-      node.connect(context.destination);
-      node.port.onmessage = (event: MessageEvent<{ type?: string }>) => {
+      }),
+      scheduleTimeout: (callback: () => void, delay: number) => window.setTimeout(callback, delay),
+      cancelTimeout: (timer: number) => window.clearTimeout(timer),
+      visibilityTarget: document,
+      ...(supportsLongTasks ? {
+        createLongTaskObserver: (callback: (entries: PerformanceObserverEntryList) => void) => new PerformanceObserver(callback),
+      } : {}),
+    };
+    const session = new E5BrowserSession({
+      streamUrl: `${cannabeatsPath("/api/audio-stream")}?${new URLSearchParams({ code })}`,
+      workletUrl: cannabeatsPath("/s2e-e4-worklet.js"),
+      client,
+      dependencies,
+      onStatus: (next: string) => {
         if (generation !== generationRef.current) return;
-        if (event.data.type === "playing") setStatus("playing");
-        if (event.data.type === "buffering") setStatus((current) => current === "waiting" ? current : "buffering");
-      };
-      nodeRef.current = node;
-
-      while (generation === generationRef.current) {
-        const controller = new AbortController();
-        controllerRef.current = controller;
-        try {
-          setStatus((current) => current === "playing" ? current : "connecting");
-          const response = await fetch(`${cannabeatsPath("/api/audio-stream")}?${new URLSearchParams({ code })}`, {
-            cache: "no-store",
-            signal: controller.signal,
-          });
-          if (response.status === 503) {
-            setStatus("waiting");
-            await new Promise((resolve) => window.setTimeout(resolve, 1500));
-            continue;
-          }
-          if (!response.ok || !response.body) throw new Error(`Shared audio request failed (${response.status}).`);
-          const sampleRate = Number(response.headers.get("x-audio-rate"));
-          const channels = Number(response.headers.get("x-audio-channels"));
-          const encoding = response.headers.get("x-audio-encoding");
-          if (!Number.isFinite(sampleRate) || sampleRate < 8000 || ![1, 2].includes(channels) || encoding !== "s16le") {
-            throw new Error("The shared audio format is unsupported.");
-          }
-          node.port.postMessage({ type: "configure", sampleRate, channels });
-          setReady(true);
-          setStatus("buffering");
-          const reader = response.body.getReader();
-          let remainder = new Uint8Array(0);
-          const bytesPerFrame = channels * 2;
-          while (generation === generationRef.current) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const combined = new Uint8Array(remainder.length + value.length);
-            combined.set(remainder);
-            combined.set(value, remainder.length);
-            const alignedLength = combined.length - (combined.length % bytesPerFrame);
-            if (alignedLength) {
-              const pcm = combined.slice(0, alignedLength);
-              node.port.postMessage({ type: "pcm", buffer: pcm.buffer }, [pcm.buffer]);
-            }
-            remainder = combined.slice(alignedLength);
-          }
-          setReady(false);
-          node.port.postMessage({ type: "reset" });
-        } catch (reason) {
-          if (controller.signal.aborted || generation !== generationRef.current) return;
-          const message = reason instanceof Error ? reason.message : "Shared audio failed.";
-          if (/\((401|403|404|409)\)/.test(message) || message.includes("unsupported")) {
-            setReady(false);
-            setStatus("error");
-            return;
-          }
-          setReady(false);
-          setStatus("waiting");
+        if (["connecting", "waiting", "buffering", "playing", "error"].includes(next)) {
+          setStatus(next as ManagedAudioStatus);
+        } else if (next === "stopped") {
+          setStatus("idle");
+          setEnabled(false);
         }
-        if (generation === generationRef.current) {
-          await new Promise((resolve) => window.setTimeout(resolve, 1500));
-        }
-      }
+      },
+    });
+    sessionRef.current = session;
+    try {
+      await session.start();
+      if (generation !== generationRef.current) await session.stop("requested");
     } catch {
       if (generation === generationRef.current) {
-        setReady(false);
+        sessionRef.current = null;
+        setEnabled(false);
         setStatus("error");
       }
     }
-  }, [stop]);
+  }, []);
 
-  useEffect(() => stop, [stop]);
+  const diagnostics = useCallback((): ManagedAudioDiagnostics | null => {
+    const session = sessionRef.current;
+    if (!session?.lifecycle) return null;
+    try {
+      return projectE6LocalPanel({ status: session.status, lifecycle: session.lifecycle });
+    } catch {
+      return null;
+    }
+  }, []);
 
-  return { enabled, ready, status, label: STATUS_LABELS[status], start, stop };
+  const copyDiagnostics = useCallback(async () => {
+    const session = sessionRef.current;
+    if (!session?.lifecycle || !navigator.clipboard?.writeText) throw new Error("copy_failed");
+    const copy = createE6LocalCopy({
+      lifecycle: session.lifecycle,
+      generatedAtMonotonicMs: performance.now(),
+    });
+    try {
+      await navigator.clipboard.writeText(copy.text);
+    } catch {
+      throw new Error("copy_failed");
+    }
+    return "copied" as const;
+  }, []);
+
+  const resetDiagnostics = useCallback(async () => {
+    const session = sessionRef.current;
+    if (!session) throw new Error("reset_failed");
+    try {
+      await session.resetDiagnostics();
+    } catch {
+      throw new Error("reset_failed");
+    }
+    return "reset" as const;
+  }, []);
+
+  useEffect(() => () => {
+    generationRef.current += 1;
+    const session = sessionRef.current;
+    sessionRef.current = null;
+    if (session) void session.stop("page_teardown");
+  }, []);
+
+  const ready = status === "buffering" || status === "playing";
+  return {
+    enabled, ready, status, label: STATUS_LABELS[status], start, stop,
+    diagnostics, copyDiagnostics, resetDiagnostics,
+  };
 }

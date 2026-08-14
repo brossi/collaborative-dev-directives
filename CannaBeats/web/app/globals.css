@@ -99,6 +99,19 @@ button:disabled { cursor: not-allowed; opacity: .42; transform: none !important;
 .shared-audio-panel.compact { margin: .75rem 0; padding: .65rem .85rem; border-width: 1px; border-radius: 12px; box-shadow: none; }
 .shared-audio-panel.compact .step-label { display: none; }
 .shared-audio-panel.compact .secondary-button { min-height: 38px; padding: .5rem .85rem; }
+.shared-audio-panel.has-diagnostics { flex-wrap: wrap; }
+.audio-diagnostics { flex: 1 0 100%; border-top: 1px solid var(--line); }
+.audio-diagnostics summary { width: fit-content; padding-top: .75rem; color: var(--green); cursor: pointer; font-size: .78rem; font-weight: 800; }
+.audio-diagnostics-body { display: grid; gap: .75rem; padding-top: .75rem; }
+.audio-diagnostics-body .helper, .audio-copy-disclosure, .audio-diagnostics-notice { margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.45; }
+.audio-diagnostics-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin: 0; }
+.audio-diagnostics-grid div { min-width: 0; padding: .55rem; border-radius: 10px; background: rgba(255,255,255,.6); }
+.audio-diagnostics-grid dt { color: var(--muted); font-size: .62rem; font-weight: 800; text-transform: uppercase; }
+.audio-diagnostics-grid dd { overflow: hidden; margin: .15rem 0 0; font-family: var(--font-geist-mono), monospace; font-size: .72rem; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.audio-copy-disclosure { padding: .65rem .75rem; border-left: 3px solid var(--green); background: rgba(255,255,255,.45); }
+.audio-diagnostics-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.audio-diagnostics-actions .text-button { padding-left: 0; font-size: .74rem; }
+.audio-diagnostics-notice { color: var(--green); font-weight: 750; }
 
 .host-round-bar { position: sticky; top: 0; z-index: 10; min-height: 112px; display: grid; grid-template-columns: 104px minmax(0, 1fr) minmax(210px, auto); align-items: center; gap: clamp(1rem, 3vw, 2rem); padding: .35rem 0 .75rem; border-bottom: 2px solid var(--ink); background: color-mix(in srgb, var(--paper) 94%, transparent); backdrop-filter: blur(8px); }
 .host-brand-icon { display: block; width: 104px; height: 104px; object-fit: cover; border-radius: 17px; }

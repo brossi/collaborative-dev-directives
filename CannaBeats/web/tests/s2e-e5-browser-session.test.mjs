@@ -155,7 +155,7 @@ function response({ status = 200, sampleRate = 48000, channels = 2, reader }) {
 
 function sessionHarness({
   responses, addModuleFails = false, observer = true, observerTakeFails = false,
-  holdSnapshots = false, deferContext = false,
+  holdSnapshots = false, deferContext = false, workletUrl,
 } = {}) {
   let now = 0;
   let uuidOrdinal = 1;
@@ -167,9 +167,11 @@ function sessionHarness({
     destination: {},
     resumed: false,
     closed: false,
+    loadedModule: null,
     audioWorklet: {
-      async addModule() {
+      async addModule(path) {
         if (addModuleFails) throw new Error('module detail');
+        context.loadedModule = path;
       },
     },
     async resume() { context.resumed = true; },
@@ -217,6 +219,7 @@ function sessionHarness({
   };
   const session = new E5BrowserSession({
     streamUrl: '/api/audio-stream?code=ABC234',
+    ...(workletUrl ? { workletUrl } : {}),
     client: {
       baseLatencyMs: { status: 'observed', value: 5 },
       outputLatencyMs: { status: 'unsupported' },
@@ -237,6 +240,16 @@ function sessionHarness({
   };
 }
 
+test('session loads the caller-selected base-path worklet module', async () => {
+  const harness = sessionHarness({
+    responses: [response({ reader: pendingReader([]) })],
+    workletUrl: '/game/s2e-e4-worklet.js',
+  });
+  await harness.session.start();
+  assert.equal(harness.context.loadedModule, '/game/s2e-e4-worklet.js');
+  await harness.session.stop('requested');
+});
+
 test('unattached session composes fetch, E4, E1 window rotation, and cleanup', async () => {
   const samples = new Int16Array(20);
   samples.fill(1000);
@@ -246,6 +259,7 @@ test('unattached session composes fetch, E4, E1 window rotation, and cleanup', a
   await waitFor(() => harness.core.metrics.receivedFrames === 10, 'PCM delivery');
   assert.equal(harness.node.connected, true);
   assert.equal(harness.context.resumed, true);
+  assert.equal(harness.context.loadedModule, '/s2e-e4-worklet.js');
   harness.setNow(9000);
   assert.equal(harness.timers.fireDelay(9000), true);
   await waitFor(() => harness.session.lifecycle.windows.length === 1, 'E1 window');
