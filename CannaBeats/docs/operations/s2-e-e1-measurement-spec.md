@@ -4,13 +4,12 @@
 
 - Checkpoint: E1 — measurement vocabulary and privacy schema
 - Scope revision: `E1-spec-v3`
-- Status: `design-review-pending`
-- First independent closure audit target: commit
-  `784430dda5c385051929439088d93ce1033ff3a1`, tree
-  `f9df721cfd5385eca74f52c24dbd5b822752295f`, on
-  `feature/slice-2-game-night-resilience`. The remediation audit must record the
-  later exact checkpoint containing these fixes; this text never attempts to
-  contain its own Git identity.
+- Status: `designed`
+- Independently reviewed specification target: commit
+  `e2d699f3538c549a749e27543b29a07fc89e6435`, tree
+  `e5e343d513e8673accc114365b3da1f8f340139f`, on
+  `feature/slice-2-game-night-resilience`. This status-only authorization commit
+  changes no reviewed specification rule.
 - Required prior verified checkpoint: S2-D local closure `25cd9a6`, as recorded
   by `docs/operations/s2-d-recovery-contract.md`
 - Explicitly excluded later checkpoints: E2 alignment/correlation authority; E3
@@ -18,8 +17,8 @@
   UI/clipboard composition; E7 persistence; E8-E10 routing/reporters; E11 fault
   localization; E12 real-environment evidence
 - Reviewers and review date: primary Codex adversarial design review on
-  2026-08-13; independent Boyle/Gauss/Cicero review of `784430d` on 2026-08-13
-  returned `revise`; remediation review pending
+  2026-08-13; independent Boyle/Gauss/Cicero closure review of `e2d699f` on
+  2026-08-13 returned `pass`
 
 ## Boundary map
 
@@ -623,16 +622,18 @@ own browser/process/storage measurements.
   surface; defines null replay, canonical export, error precedence, strict
   bounded JSON input, and exact later-checkpoint ownership for every N/A; and
   narrows the signal guarantee to what E1 can prove.
-- Open blockers: independent adversarial design review.
-- Approved implementation scope: none until review passes
+- Open blockers: none at P0/P1 for E1 design.
+- Approved implementation scope: the pure E1 bounded-JSON validator,
+  canonicalizer, replay/series checks, signal classifier, privacy projections,
+  local-export boundary, and their generated/focused tests
 - Explicitly prohibited implementation scope: E2-E12; modification of worklet,
   browser hook, UI, collector, State/Game, source, or relay under E1
-- Decision: `revise`
+- Decision: `designed`
 - Packet linked from the normative checkpoint: `yes`
 - Every `Not applicable` names its owning checkpoint: `yes`
 - Dependency-firewall review passed: `yes` for the specification; the active
   tree contains no E1 implementation and therefore supplies no implementation
   evidence
 - Predictable-failure matrix resolved: `yes` in the specification
-- No open P0/P1 design finding: `pending`
-- Implementation authorized: `no`
+- No open P0/P1 design finding: `yes`
+- Implementation authorized: `yes`, for the approved E1-only scope above
