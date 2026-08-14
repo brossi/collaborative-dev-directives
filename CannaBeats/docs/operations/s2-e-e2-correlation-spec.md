@@ -61,6 +61,7 @@ linearization rules transactionally.
 | E2-TIME-003 | A report maps only when its local interval begins at or after sample receipt and ends no later than 60000 ms after sample receipt. | `sample_expired` | Exact validity-boundary matrix |
 | E2-TIME-004 | Mapping derives four safe server-time bounds and uncertainty `(upper-lower)/2`; checked arithmetic must stay finite in `0..MAX_SAFE_INTEGER`, and uncertainty must be at most 1000 ms. | `alignment_invalid` | Overflow/uncertainty matrix |
 | E2-TIME-005 | Different `timebaseId` values are unrelated. E2 never rewrites or compares them; E3 later returns `insufficient_evidence`. | Finite unrelated result | Different-timebase fixture |
+| E2-TIME-006 | Producer input contains only sample ID, instance ID, and local send/receive observations. Timebase and server timestamps come only from the matching branded issuance record; caller copies are rejected. | `sample_invalid` | Issuance/observation provenance matrix |
 | E2-AUTH-001 | `runId`, run generation, trace, segment, lease, role, source association, and relay generation appear only in branded server context derived from the trusted authority input. | `authority_invalid` | Caller-label/provenance matrix |
 | E2-AUTH-002 | Listener context stores only `host|member`; source and relay variants are exact and cannot accept fields from another authority kind. No principal identity is retained. | `authority_invalid` | Exact union/privacy matrix |
 | E2-TRACE-001 | At most one trace is active system-wide. Start requires current host/run authority; a competing run returns `trace_busy`; exact request replay returns the original result. | Finite trace result | Start/replay/conflict table |
@@ -68,7 +69,8 @@ linearization rules transactionally.
 | E2-SEG-001 | One active trace has one current correlation segment. Exact same lease replays; lease replacement creates a new segment; a relay generation binds once to its then-current segment and never rebinds. | `stale_correlation` | Lease/generation rotation table |
 | E2-CONSENT-001 | Listener sharing is disabled by default. Opt-in increments consent generation and records the first allowed local sequence/start; pre-opt-in observations are never eligible for upload. | `sharing_disabled` | Opt-in boundary matrix |
 | E2-CONSENT-002 | Stop-sharing commits revocation before acknowledgement. An unseen old-generation report is rejected, while exact replay of a report committed before stop remains `replayed` without a new write. | Finite ingest decision | Stop/ingest interleaving table |
-| E2-REPLAY-001 | Stored identity is `(traceId, instanceId, sequence)`. Same E1 bytes replay the originally stored alignment/context; different E1 bytes conflict. A retry never rewrites correlation. | `replayed|report_conflict` | Response-loss/replay matrix |
+| E2-REPLAY-001 | Stored report identity is `(traceId, instanceId, sequence)`. Same E1 bytes replay the originally stored alignment/context; different E1 bytes conflict. A retry never rewrites correlation. | `replayed|report_conflict` | Response-loss/replay matrix |
+| E2-REPLAY-002 | Trace, consent, and relay-binding reducers return one fixed canonical command/result receipt. A branded retained receipt plus identical command replays its result; conflicting request-ID reuse fails. Sample acquisition is a side-effect-free timing attempt and is deliberately not replayed. | `replayed|request_conflict` | Fixed-operation replay table |
 | E2-PRIV-001 | E2 authority/alignment is host/operator diagnostic data only. Local/member copy remains the E1 projection and never gains E2 siblings. | `not_authorized` | Recursive projection matrix |
 | E2-BOUND-001 | E2 imports E1 only and performs bounded synchronous computation over one report/state transition. | Checkpoint failure | Dependency/source inspection |
 
@@ -93,9 +95,20 @@ linearization rules transactionally.
 
 ### Synchronization sample
 
-The authenticated producer records local send/receive values; Game/collector
-provide the sample, timebase, and server receive/send values. The exact accepted
-sample is:
+The authenticated producer submits only this exact observation:
+
+```text
+{
+  sampleId: uuid,
+  instanceId: uuid,
+  localSendMs: localTimeMs,
+  localReceiveMs: localTimeMs
+}
+```
+
+The future Game/collector issuance store supplies a separately branded exact
+record `{sampleId, timebaseId, instanceId, serverReceiveMs, serverSendMs}`.
+E2 requires both IDs to match and composes them into the exact accepted sample:
 
 ```text
 {
@@ -109,6 +122,20 @@ sample is:
   serverSendMs: serverTimeMs
 }
 ```
+
+No public E2 input accepts `timebaseId`, `serverReceiveMs`, or `serverSendMs`.
+If a producer includes a copy, the unknown fields are rejected rather than used
+or corrected. E8 owns authenticated issuance/lookup and E7 owns its bounded
+60-second persistence; the pure E2 fixture supplies only the same private
+provenance brand.
+
+No additional synchronization route is introduced. The listener-instance,
+source-work, and relay-generation responses carry the first issuance. A
+successful listener/source/relay report response may carry the next issuance
+when renewal is due. The producer records local send immediately before that
+request and local receive after the response, so the new sample applies only to
+subsequent measurement intervals. A lost response yields no usable sample and
+does not authorize pairing the issuance with another request's local times.
 
 Let `localRtt = localReceiveMs - localSendMs` and
 `serverWork = serverSendMs - serverReceiveMs`. Validation requires:
@@ -224,6 +251,9 @@ is E7-owned; E2 returns a frozen normalized object plus unchanged E1 bytes.
 
 ### Trace and segment state
 
+Absence of an active trace is represented only by exact `null`. It is not an
+empty or partially populated trace object.
+
 The pure current-state projection is exact:
 
 ```text
@@ -260,6 +290,50 @@ same run returns the existing trace only for the exact accepted request replay.
 Relay generation binding is exact `{relayGenerationId, traceId, segmentId,
 leaseId}`. Once created it is immutable. A delayed report uses that original
 binding or is rejected; current lease lookup never relabels it.
+
+### Fixed operation replay
+
+Only five E2 operations create durable state: `trace_start`, `trace_end`,
+`consent_opt_in`, `consent_stop`, and `relay_bind`. Each command is an exact
+object with `{requestId, operation, parameters}`, where `parameters` is the
+fixed operation-specific object and contains no authority field that E2 derives
+from its branded server facts.
+
+| Operation | Exact `parameters` |
+| --- | --- |
+| `trace_start` | exact empty object; current run/lease/host and issued trace/segment IDs come from branded server facts |
+| `trace_end` | exact empty object; the current active trace comes from branded server facts |
+| `consent_opt_in` | `{listenerInstanceId:uuid, firstAllowedSequence:uint, localConsentStartedMs:localTimeMs}` |
+| `consent_stop` | `{listenerInstanceId:uuid, expectedGeneration:positiveUint}` |
+| `relay_bind` | `{relayGenerationId:uuid}`; current trace/segment/lease come from branded server facts |
+
+A successful pure reducer returns an exact branded receipt:
+
+```text
+{
+  receiptVersion: 1,
+  requestId: uuid,
+  operation: trace_start | trace_end | consent_opt_in | consent_stop | relay_bind,
+  canonicalCommand: exact normalized command object,
+  result: exact operation-specific E2 result
+}
+```
+
+The operation-specific result is respectively a trace state, ended trace state,
+consent state, consent state, or immutable relay binding. E2 canonical encoding
+of `canonicalCommand` supplies the replay bytes. E2 exposes a strict receipt JSON
+validator so E7 can reload a persisted receipt after restart and recover its
+private provenance brand. On retry, identical canonical command bytes return
+the retained result with `replayed`; different bytes under the same
+request ID return `request_conflict`. The retained result is never recomputed
+from current authority.
+
+Synchronization acquisition is not in this list. It is a side-effect-free
+timing attempt: each network attempt uses a new request UUID, and only a response
+actually received by the producer supplies the matching local receive time.
+A lost response creates no usable sample and retry starts a new attempt. The
+sample first becomes durable only when a report and its physically valid mapping
+commit together in E7.
 
 ### Listener consent state and ingest decision
 
@@ -324,7 +398,7 @@ required next state/result without claiming persistence.
 | Trace end committed, response lost | trace ended once | retry `replayed` | reopened/new end reason |
 | Lease changes during report | report uses binding established before commit or fails stale | `accepted|stale_correlation` | relabel to new lease |
 | Relay generation start response lost | one immutable generation binding | exact retry original binding | rebind to current lease |
-| Sample response lost | one sample/request receipt | exact retry original server timestamps | newly timed sample under same request |
+| Sample response lost | no sample or report | retry uses a new timing attempt/request ID | combining old server timestamps with new local send/receive times |
 | Sample expires during ingest | serialization decides before/after boundary | accepted with stored mapping or `sample_expired` | accepted without valid mapping |
 | Opt-in response lost | enabled generation/boundary committed once | exact retry original grant state | backfill or generation skip |
 | Stop races unseen report | one transaction wins | accepted if ingest first; otherwise `sharing_disabled` | post-stop unseen acceptance |
@@ -338,10 +412,12 @@ required next state/result without claiming persistence.
 - Finite outcomes/errors: `accepted`, `replayed`, `trace_busy`, `ended`,
   `sharing_disabled`, `report_conflict`, `report_invalid`, `sample_invalid`,
   `sample_expired`, `alignment_invalid`, `authority_invalid`,
-  `stale_correlation`, `not_authorized`, and `unrelated_timebase`.
+  `stale_correlation`, `request_conflict`, `not_authorized`, and
+  `unrelated_timebase`.
 - `unknown`: authority or sample evidence is absent/indeterminate and cannot be
-  treated as current. `unsupported`: not used by E2. `not_applicable`: only the
-  active trace's ended union.
+  treated as current. `unsupported`: not applicable to E2 because it probes no
+  platform API; E5, E9, and E10 own unsupported producer APIs.
+  `not_applicable`: only the active trace's ended union.
 - Logical limits: one 8-KiB input, one E1 report, one sample, one context, one
   trace state, and one consent state per pure call; sample RTT 2 seconds,
   validity 60 seconds, uncertainty 1 second, trace lifetime 6 hours.
@@ -386,6 +462,8 @@ assertion rejects E3-E12 imports and any database/network/UI dependency.
   relay generation.
 - Trace start response loss, competing start, exact/conflicting request replay,
   end response loss, expiry/run replacement/authority loss, and attempted reopen.
+- Sample response loss followed by a new timing attempt; old server timestamps
+  must never be paired with the retry's local timestamps.
 - Consent opt-in response loss, pre-opt-in backfill, stop versus unseen ingest,
   stop versus accepted replay, stale generation, exact replay with a new sample,
   and conflicting E1 bytes.
@@ -403,7 +481,7 @@ assertion rejects E3-E12 imports and any database/network/UI dependency.
 | Physically valid mapping | E2-TIME-001..005 | impossible order, RTT/work/expiry/overflow bounds | pure sample/map API | finite inequality matrix | designed only |
 | Unchanged E1 boundary | E2-CORE-001 | reordered/tampered/forged core | E1 frozen report into E2 | all-six-kind canonical byte equality | designed only |
 | Server-only authority context | E2-AUTH-001/002 | caller labels, wrong variant, stale authority | branded fixed authority seam | exact context/privacy matrix | designed only; E8 later proves HTTP derivation |
-| Trace/segment lifecycle | E2-TRACE-001/002, E2-SEG-001 | duplicate/race/expiry/handoff/restart | pure reducers | state/result Cartesian table | designed only; E7/E8 later prove transactions |
+| Trace/segment lifecycle | E2-TRACE-001/002, E2-SEG-001, E2-REPLAY-002 | duplicate/race/expiry/handoff/restart | pure reducers/receipt validator | state/result Cartesian table | designed only; E7/E8 later prove transactions |
 | Consent/replay lifecycle | E2-CONSENT-001/002, E2-REPLAY-001 | backfill, stop race, response loss, conflict | pure decision table | finite interleaving matrix | designed only; E7/E8 later prove transactions |
 | Bounded isolation | E2-BOUND-001 | attempted later import/I/O | pure module | dependency assertion | designed only |
 
