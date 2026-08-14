@@ -2,7 +2,9 @@ const TIMER_KINDS = new Set(['window', 'retry']);
 const CLEANUP_CATEGORIES = new Set([
   'abort', 'reader_cancel', 'timer_clear', 'observer_disconnect',
   'listener_remove', 'port_close', 'node_disconnect', 'context_close',
+  'cleanup_timeout',
 ]);
+const DEFAULT_CLEANUP_TIMEOUT_MS = 1000;
 
 function frozen(value) {
   return Object.freeze(value);
@@ -32,12 +34,18 @@ function beginAttempt(category, operation, failures, pending) {
 }
 
 export class E5BrowserResourceScope {
-  constructor({ scheduleTimeout, cancelTimeout }) {
+  constructor({
+    scheduleTimeout, cancelTimeout, cleanupTimeoutMs = DEFAULT_CLEANUP_TIMEOUT_MS,
+  }) {
     if (typeof scheduleTimeout !== 'function' || typeof cancelTimeout !== 'function') {
+      fail('resources_invalid');
+    }
+    if (!Number.isSafeInteger(cleanupTimeoutMs) || cleanupTimeoutMs <= 0) {
       fail('resources_invalid');
     }
     this.scheduleTimeout = scheduleTimeout;
     this.cancelTimeout = cancelTimeout;
+    this.cleanupTimeoutMs = cleanupTimeoutMs;
     this.active = true;
     this.abortController = null;
     this.reader = null;
@@ -82,6 +90,33 @@ export class E5BrowserResourceScope {
   releaseReader(reader) {
     if (reader !== this.reader) fail('reader_invalid');
     this.reader = null;
+  }
+
+  async retireFailedAttempt(reader, controller) {
+    if (reader !== this.reader || controller !== this.abortController) {
+      fail('reader_invalid');
+    }
+    try {
+      controller.abort();
+    } catch {
+      return false;
+    }
+    let cancellation;
+    try {
+      cancellation = reader.cancel();
+    } catch {
+      return false;
+    }
+    let cancellationSucceeded = false;
+    const completion = Promise.resolve(cancellation).then(
+      () => { cancellationSucceeded = true; },
+      () => {},
+    );
+    const settled = await this.#settleWithin(completion);
+    if (!settled || !cancellationSucceeded || !this.active) return false;
+    this.reader = null;
+    this.abortController = null;
+    return true;
   }
 
   schedule(kind, callback, delayMs) {
@@ -195,7 +230,10 @@ export class E5BrowserResourceScope {
       beginAttempt('context_close', () => this.context.close(), failures, pending);
       this.context = null;
     }
-    await Promise.all(pending);
+    if (pending.length > 0) {
+      const settled = await this.#settleWithin(Promise.all(pending));
+      if (!settled) failures.push('cleanup_timeout');
+    }
     return frozen({
       status: 'closed',
       cleanupFailures: frozen([...new Set(
@@ -207,6 +245,44 @@ export class E5BrowserResourceScope {
   #assertActive() {
     if (!this.active) fail('resources_closed');
   }
+
+  #settleWithin(value) {
+    return new Promise((resolve) => {
+      let complete = false;
+      let timerId;
+      try {
+        timerId = this.scheduleTimeout(() => {
+          if (complete) return;
+          complete = true;
+          resolve(false);
+        }, this.cleanupTimeoutMs);
+      } catch {
+        resolve(false);
+        return;
+      }
+      const cancelDeadline = () => {
+        try {
+          this.cancelTimeout(timerId);
+        } catch {
+          // The operation still settled; failure to clear an elapsed timer is harmless.
+        }
+      };
+      Promise.resolve(value).then(
+        () => {
+          if (complete) return;
+          complete = true;
+          cancelDeadline();
+          resolve(true);
+        },
+        () => {
+          if (complete) return;
+          complete = true;
+          cancelDeadline();
+          resolve(true);
+        },
+      );
+    });
+  }
 }
 
 export const E5_RESOURCE_LIMITS = frozen({
@@ -216,4 +292,5 @@ export const E5_RESOURCE_LIMITS = frozen({
   maximumReaders: 1,
   maximumNodes: 1,
   maximumContexts: 1,
+  cleanupTimeoutMs: DEFAULT_CLEANUP_TIMEOUT_MS,
 });

@@ -159,19 +159,20 @@ not reuse a previous attempt's playing state.
 
 ## Visibility, context, and transition retention
 
-Visibility changes update the point sample and local lifecycle record; E1 has
-no visibility transition kind. Running-to-suspended context edges
+Visibility changes update the point sample; E1 has no visibility transition
+kind and E5 does not duplicate visibility into its local gap FIFO.
+Running-to-suspended context edges
 increment `suspensionCount` and emit `context_suspended`; the reverse emits
 `context_resumed`. Hidden time is not subtracted from window duration.
 
 Canonical E1 window/transition storage is a FIFO of 90 windows and 64
-transitions. A separate FIFO of 16 exact local-only lifecycle/gap records holds
-coverage gaps, visibility edges, and finite cleanup state. On transition
-overflow E5 drops the
-oldest diagnostic transition and increments one local dropped-transition
-counter; it never coalesces two events or claims exact multiplicity. E5 creates
-and validates every canonical report before insertion. E6 receives those
-validated reports but never constructs or repairs measurement authority.
+transitions. A separate FIFO of 16 exact local-only records holds coverage gaps.
+Cleanup returns its finite result directly rather than duplicating it into that
+FIFO. On transition overflow E5 drops the oldest diagnostic transition and
+increments one local dropped-transition counter; it never coalesces two events
+or claims exact multiplicity. E5 creates and validates every canonical report
+before insertion. E6 receives those validated reports but never constructs or
+repairs measurement authority.
 
 ## Cleanup ownership
 
@@ -180,7 +181,12 @@ fetch, cancel reader, clear retry/window timers, disconnect observers/listeners,
 detach the MessagePort handler, disconnect the node, and close AudioContext.
 Every initialization failure enters this same path. A callback first compares
 the active generation and becomes effect-free after stop. Cleanup errors are
-collected into a finite local category and do not prevent later cleanup steps.
+collected into a finite returned category and do not prevent later cleanup
+steps. Asynchronous cleanup has a one-second deadline; timeout is reported as
+`cleanup_timeout`, after every owned cleanup operation has already been invoked.
+A body-read failure aborts its fetch and must finish reader cancellation within
+the same deadline before retry; otherwise the session terminates instead of
+overlapping transports.
 
 Diagnostic reset is not E5 stop. It requests E4 `snapshot-and-rotate` and, only
 after acknowledgement, rotates `instanceId`, resets the instance-wide report
@@ -278,3 +284,15 @@ Focused orchestrator verification passes 10/10, including a fetch that never
 settles and a chunk delivered while the snapshot acknowledgement is withheld.
 The combined focused lifecycle/resource/session suite passes 26/26; lint, the
 production build, and the full web suite pass 223/223.
+
+Implementation increment 5 remediates the first independent closure audit. It
+owns late initialization results, bounds failed-read retirement and all
+asynchronous cleanup, keeps worklet/browser point state current outside an open
+attempt while gating attempt milestones, degrades optional Long Task failures
+to `unknown`, rejects oversized stream chunks before combining them, records
+transition eviction, and exposes the minimal acknowledged playback-preserving
+diagnostic reset. Composed schedules cover the original counterexamples plus
+lost snapshot replies, delayed timers, and idempotent teardown. Focused
+verification passes 37/37; lint, the production build, and the full web suite
+pass 234/234. Independent closure remains pending, so production attachment is
+still unauthorized.

@@ -165,6 +165,7 @@ test('local coverage gaps and transition retention are bounded', () => {
     lifecycle.recordGap('timer_delayed', index);
   }
   assert.equal(lifecycle.transitions.length, 64);
+  assert.ok(lifecycle.droppedTransitionCount > 0);
   assert.equal(lifecycle.localRecords.length, 16);
   assert.equal(lifecycle.localRecords[0].durationMs, 4);
 });
@@ -177,6 +178,14 @@ test('partial PCM chunks preserve every complete frame and expose terminal carry
   assert.equal(second.receivedFrames, 2);
   assert.deepEqual([...new Uint8Array(second.buffer)], [1, 2, 3, 4, 5, 6, 7, 8]);
   assert.equal(chunker.finish(), false);
+});
+
+test('PCM chunk admission rejects an oversized delivery before combining it', () => {
+  const chunker = new E5PcmChunker(2);
+  assert.throws(
+    () => chunker.consume(new Uint8Array((1024 * 1024) + 1)),
+    (error) => error instanceof E5LifecycleError && error.code === 'chunk_invalid',
+  );
 });
 
 function windowHarness(clientOverrides = {}) {

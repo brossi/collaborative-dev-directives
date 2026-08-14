@@ -55,6 +55,7 @@ export class E5BrowserSession {
     this.longTaskEntries = [];
     this.longTaskOverflow = false;
     this.observer = null;
+    this.observerHealthy = false;
     this.runPromise = null;
     this.terminationPromise = null;
     this.cleanupResult = null;
@@ -71,9 +72,16 @@ export class E5BrowserSession {
       instanceId: this.dependencies.uuid(), now: this.dependencies.now,
     });
     try {
-      this.context = this.scope.ownContext(await this.dependencies.createAudioContext());
+      const context = await this.dependencies.createAudioContext();
+      if (!this.active) {
+        this.#closeLateContext(context);
+        throw new E5LifecycleError('initialization_aborted');
+      }
+      this.context = this.scope.ownContext(context);
       await this.context.resume();
+      this.#requireActiveInitialization();
       await this.context.audioWorklet.addModule('/s2e-e4-worklet.js');
+      this.#requireActiveInitialization();
       this.node = this.scope.ownNode(this.dependencies.createWorkletNode(this.context));
       this.node.connect(this.context.destination);
       this.port = this.scope.ownPort(new E5WorkletPort({
@@ -95,6 +103,15 @@ export class E5BrowserSession {
     return this.#terminate('stopped', reason);
   }
 
+  async resetDiagnostics() {
+    if (!this.active || !this.projector || !this.port
+      || this.port.lifecycle !== 'configured') throw new E5LifecycleError('reset_invalid');
+    await this.#rotate('snapshot');
+    if (!this.active) throw new E5LifecycleError('reset_invalid');
+    this.lifecycle.rotateInstance(this.dependencies.uuid());
+    return frozen({ status: 'reset', instanceId: this.lifecycle.instanceId });
+  }
+
   async #run() {
     while (this.active) {
       const reconnect = this.lifecycle.everDeliveredPcm;
@@ -103,6 +120,7 @@ export class E5BrowserSession {
       if (this.projector) {
         this.projector.setTerminalCategory('open', attemptAt);
         if (reconnect) this.projector.recordReconnect(attemptAt);
+        this.#observeCurrentBrowserState(attemptAt);
       }
       this.#setStatus('connecting');
       const controller = this.scope.ownAbortController(
@@ -155,6 +173,7 @@ export class E5BrowserSession {
       const chunker = new E5PcmChunker(nextFormat.sourceChannels);
       const reader = this.scope.ownReader(response.body.getReader());
       let terminal = 'stream_ended';
+      let retiredAfterFailure = false;
       try {
         while (this.active) {
           const { done, value } = await reader.read();
@@ -174,16 +193,18 @@ export class E5BrowserSession {
       } catch {
         if (!this.active) return;
         terminal = 'stream_error';
-        try {
-          const cancellation = reader.cancel();
-          cancellation?.catch?.(() => {});
-        } catch {
-          // The finite stream outcome is retained; session cleanup continues.
+        retiredAfterFailure = await this.scope.retireFailedAttempt(reader, controller);
+        if (!this.active) return;
+        if (!retiredAfterFailure) {
+          await this.#terminate('error', 'unknown');
+          return;
         }
       }
       if (!this.active) return;
-      this.scope.releaseReader(reader);
-      this.#releaseAbortController(controller);
+      if (!retiredAfterFailure) {
+        this.scope.releaseReader(reader);
+        this.#releaseAbortController(controller);
+      }
       this.lifecycle.endAttempt(terminal);
       this.projector.setTerminalCategory(terminal, this.#now());
       try {
@@ -309,17 +330,20 @@ export class E5BrowserSession {
           this.dependencies.createLongTaskObserver((entries) => this.#recordLongTasks(entries)),
         );
         this.observer.observe?.({ entryTypes: ['longtask'] });
+        this.observerHealthy = true;
       } catch {
-        this.observer = null;
+        this.observerHealthy = false;
       }
     }
   }
 
   #workletState(state) {
-    if (!this.active || this.lifecycle.attempt?.terminalCategory !== 'open') return;
+    if (!this.active) return;
     if (state.state === 'stopped') return;
     try {
+      const attemptOpen = this.lifecycle.attempt?.terminalCategory === 'open';
       this.lifecycle.playbackState(state.state);
+      if (!attemptOpen) return;
       if (state.state === 'playing') this.#setStatus('playing');
       else if (state.state === 'buffering' || state.state === 'underrun') {
         this.#setStatus('buffering');
@@ -330,8 +354,21 @@ export class E5BrowserSession {
   }
 
   #recordLongTasks(entries) {
-    if (!this.active || !Array.isArray(entries)) return;
-    for (const entry of entries) {
+    if (!this.active || !this.observerHealthy) return;
+    let normalized = entries;
+    try {
+      if (!Array.isArray(normalized) && typeof normalized?.getEntries === 'function') {
+        normalized = normalized.getEntries();
+      }
+    } catch {
+      this.#degradeLongTasks();
+      return;
+    }
+    if (!Array.isArray(normalized)) {
+      this.#degradeLongTasks();
+      return;
+    }
+    for (const entry of normalized) {
       if (this.longTaskEntries.length === MAX_LONG_TASKS) {
         this.longTaskOverflow = true;
         break;
@@ -341,7 +378,13 @@ export class E5BrowserSession {
   }
 
   #drainLongTasks() {
-    if (this.observer) this.#recordLongTasks(this.observer.takeRecords());
+    if (this.observer && this.observerHealthy) {
+      try {
+        this.#recordLongTasks(this.observer.takeRecords());
+      } catch {
+        this.#degradeLongTasks();
+      }
+    }
     const entries = this.longTaskOverflow ? [{}] : this.longTaskEntries;
     this.longTaskEntries = [];
     this.longTaskOverflow = false;
@@ -351,7 +394,11 @@ export class E5BrowserSession {
   #observeCurrentBrowserState(atMs) {
     const contextState = this.#contextState();
     if (contextState === 'running' || contextState === 'suspended') {
+      const prior = this.lifecycle.contextStateValue;
       this.lifecycle.contextState(contextState);
+      if (prior === 'running' && contextState === 'suspended') {
+        this.projector.recordSuspension(atMs);
+      }
     }
     this.projector.setAudioContextState(contextState, atMs);
     this.projector.setVisibilityState(this.#visibility(), atMs);
@@ -370,7 +417,7 @@ export class E5BrowserSession {
   #client() {
     return {
       ...this.clientTemplate,
-      longTaskStatus: this.observer ? 'observed'
+      longTaskStatus: this.observerHealthy ? 'observed'
         : (this.dependencies.createLongTaskObserver ? 'unknown' : 'unsupported'),
     };
   }
@@ -408,6 +455,30 @@ export class E5BrowserSession {
     }
   }
 
+  #degradeLongTasks() {
+    this.observerHealthy = false;
+    this.longTaskEntries = [];
+    this.longTaskOverflow = false;
+    try {
+      this.projector?.setLongTaskStatus('unknown');
+    } catch {
+      // Optional scheduling evidence remains absent without affecting audio.
+    }
+  }
+
+  #requireActiveInitialization() {
+    if (!this.active) throw new E5LifecycleError('initialization_aborted');
+  }
+
+  #closeLateContext(context) {
+    try {
+      const closing = context?.close?.();
+      closing?.catch?.(() => {});
+    } catch {
+      // A late resource is never published; cleanup remains best-effort and finite.
+    }
+  }
+
   #now() {
     const value = this.dependencies.now();
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
@@ -428,7 +499,10 @@ export class E5BrowserSession {
     } catch {
       // Cleanup remains authoritative even when local diagnostic projection fails.
     }
-    this.terminationPromise = this.scope.close().then((result) => {
+    const closing = this.scope?.close?.() ?? Promise.resolve(frozen({
+      status: 'closed', cleanupFailures: frozen([]),
+    }));
+    this.terminationPromise = closing.then((result) => {
       this.cleanupResult = result;
       this.#setStatus(status);
       return result;

@@ -127,6 +127,11 @@ function controlledReader() {
       assert.ok(resolve, 'a read must be pending');
       resolve({ done: false, value });
     },
+    end() {
+      const resolve = requests.shift();
+      assert.ok(resolve, 'a read must be pending');
+      resolve({ done: true, value: undefined });
+    },
     get pendingReads() { return requests.length; },
     get cancelled() { return cancelled; },
   };
@@ -147,7 +152,8 @@ function response({ status = 200, sampleRate = 48000, channels = 2, reader }) {
 }
 
 function sessionHarness({
-  responses, addModuleFails = false, observer = true, holdSnapshots = false,
+  responses, addModuleFails = false, observer = true, observerTakeFails = false,
+  holdSnapshots = false, deferContext = false,
 } = {}) {
   let now = 0;
   let uuidOrdinal = 1;
@@ -167,6 +173,10 @@ function sessionHarness({
     async resume() { context.resumed = true; },
     async close() { context.closed = true; },
   });
+  let resolveContext;
+  const contextPending = deferContext
+    ? new Promise((resolve) => { resolveContext = () => resolve(context); })
+    : null;
   const worklet = workletNode(48000, holdSnapshots);
   const { node, core } = worklet;
   const controllers = [];
@@ -175,7 +185,10 @@ function sessionHarness({
   const longTaskObserver = observer ? {
     records: [], disconnected: false,
     observe() {},
-    takeRecords() { return longTaskObserver.records.splice(0); },
+    takeRecords() {
+      if (observerTakeFails) throw new Error('observer detail');
+      return longTaskObserver.records.splice(0);
+    },
     disconnect() { longTaskObserver.disconnected = true; },
   } : null;
   const dependencies = {
@@ -193,7 +206,7 @@ function sessionHarness({
       controllers.push(controller);
       return controller;
     },
-    createAudioContext: async () => context,
+    createAudioContext: async () => (contextPending ? contextPending : context),
     createWorkletNode: () => node,
     scheduleTimeout: (callback, delay) => timers.schedule(callback, delay),
     cancelTimeout: (id) => timers.cancel(id),
@@ -217,6 +230,7 @@ function sessionHarness({
   return {
     session, timers, visibility, context, node, core, controllers, statuses,
     longTaskObserver, worklet,
+    resolveContext,
     setNow(value) { now = value; },
   };
 }
@@ -419,4 +433,177 @@ test('a hung fetch cannot block explicit session cleanup', async () => {
   assert.equal(harness.node.disconnected, true);
   assert.equal(harness.context.closed, true);
   assert.equal(harness.session.status, 'stopped');
+});
+
+test('stop during asynchronous initialization closes the late context', async () => {
+  const harness = sessionHarness({ deferContext: true });
+  const starting = harness.session.start();
+  await Promise.resolve();
+  assert.deepEqual(await harness.session.stop(), {
+    status: 'closed', cleanupFailures: [],
+  });
+  harness.resolveContext();
+  await assert.rejects(starting, /initialization_failed/);
+  assert.equal(harness.context.closed, true);
+  assert.equal(harness.node.connected, false);
+});
+
+test('failed body retirement completes before the next attempt begins', async () => {
+  let cancelled = false;
+  const failed = {
+    async read() { throw new Error('read detail'); },
+    async cancel() { cancelled = true; },
+  };
+  const second = pendingReader([]);
+  const harness = sessionHarness({
+    responses: [response({ reader: failed }), response({ reader: second })],
+  });
+  await harness.session.start();
+  await waitFor(() => harness.session.status === 'waiting', 'retired failure');
+  assert.equal(cancelled, true);
+  assert.equal(harness.controllers[0].signal.aborted, true);
+  assert.equal(harness.timers.fireDelay(1500), true);
+  await waitFor(() => harness.session.lifecycle.attemptSequence === 1, 'retry');
+  await harness.session.stop();
+});
+
+test('a playing reconnect emits fresh attempt milestones exactly once', async () => {
+  const first = controlledReader();
+  const second = controlledReader();
+  const harness = sessionHarness({
+    responses: [response({ reader: first }), response({ reader: second })],
+  });
+  await harness.session.start();
+  await waitFor(() => first.pendingReads === 1, 'first read');
+  const pcm = new Int16Array(15000 * 2);
+  pcm.fill(1000);
+  first.deliver(new Uint8Array(pcm.buffer));
+  await waitFor(() => harness.core.metrics.receivedFrames === 15000, 'first PCM');
+  harness.core.process([new Float32Array(128), new Float32Array(128)]);
+  await new Promise((resolve) => setImmediate(resolve));
+  first.end();
+  await waitFor(() => harness.session.status === 'waiting', 'first EOF');
+  harness.timers.fireDelay(1500);
+  await waitFor(() => second.pendingReads === 1, 'second read');
+  second.deliver(new Uint8Array(pcm.buffer.slice(0)));
+  await waitFor(() => harness.core.metrics.receivedFrames === 15000, 'second PCM');
+  harness.core.process([new Float32Array(128), new Float32Array(128)]);
+  await new Promise((resolve) => setImmediate(resolve));
+  const milestones = harness.session.lifecycle.transitions.filter(
+    (entry) => ['buffer_primed', 'first_rendered_quantum'].includes(entry.measurements.type),
+  );
+  assert.deepEqual(
+    milestones.map((entry) => [
+      entry.measurements.connectionAttemptSequence, entry.measurements.type,
+    ]),
+    [
+      [0, 'buffer_primed'], [0, 'first_rendered_quantum'],
+      [1, 'buffer_primed'], [1, 'first_rendered_quantum'],
+    ],
+  );
+  await harness.session.stop();
+});
+
+test('context point state remains current during retry backoff', async () => {
+  const first = finiteReader([new Uint8Array(new Int16Array(20).buffer)]);
+  const second = pendingReader([]);
+  const harness = sessionHarness({
+    responses: [response({ reader: first }), response({ reader: second })],
+  });
+  await harness.session.start();
+  await waitFor(() => harness.session.status === 'waiting', 'retry backoff');
+  harness.setNow(100);
+  harness.context.state = 'suspended';
+  harness.context.emit('statechange');
+  assert.equal(harness.session.lifecycle.contextStateValue, 'suspended');
+  assert.equal(harness.session.projector.audioContextState, 'suspended');
+  assert.equal(harness.session.projector.suspensionCount, 1);
+  await harness.session.stop();
+});
+
+test('Long Task observer failure degrades evidence without stopping audio', async () => {
+  const samples = new Int16Array(20);
+  samples.fill(1000);
+  const reader = pendingReader([new Uint8Array(samples.buffer)]);
+  const harness = sessionHarness({
+    responses: [response({ reader })], observerTakeFails: true,
+  });
+  await harness.session.start();
+  await waitFor(() => harness.core.metrics.receivedFrames === 10, 'PCM');
+  harness.setNow(9000);
+  harness.timers.fireDelay(9000);
+  await waitFor(() => harness.session.lifecycle.windows.length === 1, 'window');
+  assert.equal(
+    harness.session.lifecycle.windows[0].measurements.longTasks.status, 'unknown',
+  );
+  assert.equal(harness.session.active, true);
+  await harness.session.stop();
+});
+
+test('diagnostic reset rotates identity only after a playback-preserving acknowledgement', async () => {
+  const samples = new Int16Array(200);
+  samples.fill(1000);
+  const reader = pendingReader([new Uint8Array(samples.buffer)]);
+  const harness = sessionHarness({ responses: [response({ reader })] });
+  await harness.session.start();
+  await waitFor(() => harness.core.metrics.receivedFrames === 100, 'PCM');
+  const priorInstance = harness.session.lifecycle.instanceId;
+  const priorWriteFrame = harness.core.writeFrame;
+  const attempt = harness.session.lifecycle.attemptSequence;
+  const result = await harness.session.resetDiagnostics();
+  assert.equal(result.status, 'reset');
+  assert.notEqual(result.instanceId, priorInstance);
+  assert.equal(harness.core.writeFrame, priorWriteFrame);
+  assert.equal(harness.session.lifecycle.attemptSequence, attempt);
+  assert.equal(harness.session.lifecycle.windows.length, 0);
+  assert.equal(harness.session.lifecycle.transitions.length, 0);
+  await harness.session.stop();
+});
+
+test('lost snapshot replies terminate the uncertain worklet after one exact retry', async () => {
+  const reader = pendingReader([]);
+  const harness = sessionHarness({
+    responses: [response({ reader })], holdSnapshots: true,
+  });
+  await harness.session.start();
+  await waitFor(() => harness.session.projector !== null, 'configured projector');
+  harness.setNow(9000);
+  harness.timers.fireDelay(9000);
+  await waitFor(() => harness.worklet.heldSnapshot !== null, 'held snapshot');
+  assert.equal(harness.timers.fireDelay(250), true);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(harness.timers.fireDelay(250), true);
+  await waitFor(() => harness.session.status === 'error', 'finite timeout');
+  assert.equal(harness.node.disconnected, true);
+  assert.equal(harness.context.closed, true);
+});
+
+test('a delayed foreground timer rotates counters but records only a bounded gap', async () => {
+  const samples = new Int16Array(20);
+  samples.fill(1000);
+  const reader = pendingReader([new Uint8Array(samples.buffer)]);
+  const harness = sessionHarness({ responses: [response({ reader })] });
+  await harness.session.start();
+  await waitFor(() => harness.core.metrics.receivedFrames === 10, 'PCM');
+  harness.setNow(11000);
+  harness.timers.fireDelay(9000);
+  await waitFor(
+    () => harness.session.lifecycle.localRecords.some(
+      (entry) => entry.reason === 'timer_delayed' && entry.durationMs === 11000,
+    ),
+    'timer gap',
+  );
+  assert.equal(harness.session.lifecycle.windows.length, 0);
+  assert.equal(harness.core.metrics.receivedFrames, 0);
+  assert.equal(harness.session.active, true);
+  await harness.session.stop();
+});
+
+test('session teardown is idempotent after resources are released', async () => {
+  const harness = sessionHarness({ responses: [] });
+  await harness.session.start();
+  const first = harness.session.stop();
+  const second = harness.session.stop();
+  assert.equal(first, second);
+  assert.deepEqual(await first, { status: 'closed', cleanupFailures: [] });
 });

@@ -43,8 +43,10 @@ function fail(code) {
 }
 
 function pushBounded(target, value, maximum) {
-  if (target.length === maximum) target.shift();
+  const dropped = target.length === maximum;
+  if (dropped) target.shift();
   target.push(frozen(value));
+  return dropped;
 }
 
 export class E5WorkletPort {
@@ -224,6 +226,7 @@ export class E5ListenerLifecycle {
     this.windows = [];
     this.transitions = [];
     this.localRecords = [];
+    this.droppedTransitionCount = 0;
     this.nextSequence = 0;
     this.everDeliveredPcm = false;
     this.playbackStateValue = 'stopped';
@@ -262,23 +265,24 @@ export class E5ListenerLifecycle {
   }
 
   playbackState(state) {
-    this.#requireOpen();
+    if (!['buffering', 'playing', 'underrun'].includes(state)) fail('state_invalid');
     if (state === this.playbackStateValue) return;
     this.playbackStateValue = state;
+    if (!this.attempt || this.attempt.terminalCategory !== 'open') return;
     if (state === 'playing') {
       this.#milestone('buffer_primed');
       this.#milestone('first_rendered_quantum');
     } else if (state === 'underrun') {
       this.#transition('underrun', { category: 'observed' });
-    } else if (state !== 'buffering') fail('state_invalid');
+    }
   }
 
   contextState(state) {
-    this.#requireOpen();
     if (!['running', 'suspended'].includes(state)) fail('state_invalid');
     const prior = this.contextStateValue;
     if (prior === state) return;
     this.contextStateValue = state;
+    if (!this.attempt || this.attempt.terminalCategory !== 'open') return;
     if (prior === 'running' && state === 'suspended') {
       this.#transition('context_suspended', { category: 'observed' });
     } else if (prior === 'suspended' && state === 'running') {
@@ -318,6 +322,7 @@ export class E5ListenerLifecycle {
     this.windows.length = 0;
     this.transitions.length = 0;
     this.localRecords.length = 0;
+    this.droppedTransitionCount = 0;
   }
 
   recordGap(reason, durationMs) {
@@ -374,7 +379,9 @@ export class E5ListenerLifecycle {
           ...detail,
         },
       }));
-      pushBounded(this.transitions, report, MAX_TRANSITIONS);
+      if (pushBounded(this.transitions, report, MAX_TRANSITIONS)) {
+        this.droppedTransitionCount += 1;
+      }
     } catch {
       this.recordGap('projection_invalid', 0);
     }
@@ -421,6 +428,9 @@ export class E5PcmChunker {
   consume(value) {
     if (!(value instanceof Uint8Array)
       || Object.getPrototypeOf(value) !== Uint8Array.prototype) fail('chunk_invalid');
+    if (value.byteLength > MAX_STAGED_PCM_BYTES
+      || this.carry.length + value.byteLength
+        > MAX_STAGED_PCM_BYTES + this.bytesPerFrame - 1) fail('chunk_invalid');
     const combined = new Uint8Array(this.carry.length + value.length);
     combined.set(this.carry);
     combined.set(value, this.carry.length);
@@ -496,6 +506,11 @@ export class E5WindowProjector {
   setVisibilityState(state, atMs) {
     this.#observation(atMs);
     this.visibilityState = state;
+  }
+
+  setLongTaskStatus(status) {
+    if (!['observed', 'unsupported', 'unknown'].includes(status)) fail('client_invalid');
+    this.client = frozen({ ...this.client, longTaskStatus: status });
   }
 
   finalize({ snapshot, endBoundary, longTaskEntries = [] }) {

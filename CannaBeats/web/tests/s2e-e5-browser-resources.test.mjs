@@ -71,7 +71,7 @@ test('resource scope owns the bounded browser surface and cleans it in order', a
   assert.deepEqual(result, { status: 'closed', cleanupFailures: [] });
   assert.deepEqual(calls, [
     'abort', 'reader', 'timer:1', 'timer:2', 'observer',
-    'port', 'node', 'context',
+    'port', 'node', 'context', 'timer:3',
   ]);
   assert.equal(visibility.listeners.size, 0);
   assert.equal(contextEvents.listeners.size, 0);
@@ -167,4 +167,24 @@ test('a pending reader cancellation cannot prevent later cleanup from starting',
   assert.deepEqual(reached, ['node', 'context']);
   releaseReader();
   assert.deepEqual(await closing, { status: 'closed', cleanupFailures: [] });
+});
+
+test('a hung asynchronous cleanup settles at the finite cleanup deadline', async () => {
+  const timers = timerHarness();
+  const reached = [];
+  const scope = new E5BrowserResourceScope({
+    scheduleTimeout: (callback) => timers.schedule(callback),
+    cancelTimeout: (id) => timers.clear(id),
+  });
+  scope.ownReader({ cancel: () => new Promise(() => {}) });
+  scope.ownNode({ disconnect() { reached.push('node'); } });
+  scope.ownContext({ close() { reached.push('context'); return Promise.resolve(); } });
+  const closing = scope.close();
+  await Promise.resolve();
+  assert.deepEqual(reached, ['node', 'context']);
+  const deadlineId = [...timers.callbacks.keys()].at(-1);
+  timers.fire(deadlineId);
+  assert.deepEqual(await closing, {
+    status: 'closed', cleanupFailures: ['cleanup_timeout'],
+  });
 });
