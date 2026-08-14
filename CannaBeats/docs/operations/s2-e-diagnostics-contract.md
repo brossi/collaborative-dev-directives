@@ -838,14 +838,21 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Add the disposable collector/store and dedicated volume. Implement authenticated
-Game ingestion, exact idempotency, the fixed row/byte/free-space caps, 48-hour
-retention, host projection, whole-trace purge, and degraded/read-only behavior.
+Status: `design-review-pending`. The bounded storage design is maintained in
+[E7 isolated collector and store](s2-e-e7-collector-store-spec.md).
+
+Add the disposable collector/store and dedicated volume in three increments:
+transactional SQLite core, bounded retention/read behavior, then optional
+service/Compose isolation. Implement exact idempotency, fixed
+row/byte/free-space caps, 48-hour retention, host projection, whole-trace purge,
+and degraded/read-only behavior. E7 accepts only a stubbed trusted internal
+caller; E8 owns real Game/maintenance credentials and State-derived authority.
 Game/State/audio readiness, backup, and rollback do not depend on diagnostics.
 
-Exit gate: process/SQLite/Compose tests prove the two-credential separation,
-caps, retention/purge, restore exclusion, disposable-schema recreation, and
-unchanged S2-D behavior under collector loss or corruption.
+Exit gate: process/SQLite/Compose tests prove caps, retention/purge, restore
+exclusion, disposable-schema recreation, and unchanged S2-D behavior under
+collector loss or corruption. The real two-credential caller matrix remains an
+E8 gate.
 
 ### E8 — Game/State mediation and consent routing
 
