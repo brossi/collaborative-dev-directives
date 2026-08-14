@@ -284,8 +284,10 @@ instance boundary.
 The audio worklet produces aggregate counters using constant memory and no
 per-frame object allocation. The main thread owns a bounded ring of summaries.
 Attempt milestones live in `listener_transition.measurements`; a transition is
-a point event with `durationMs: 0`. Each 10-second listener window may contain
-only the window/state fields below:
+a point event with `durationMs: 0`. Each full listener window is 10 seconds. A
+final window flushed by stop, reset, or producer shutdown may be shorter but
+remains positive. Listener windows may contain only the window/state fields
+below:
 
 - attempt-specific connection timing: request start, response headers, first PCM
   bytes, buffer primed, and first PCM-backed rendered output quantum, all as
@@ -486,8 +488,11 @@ persist that association in diagnostics.
 Member-facing local diagnostics expose only that browser's observations and
 safe current stream status. Cross-listener comparison and source/relay details
 require host/operator authorization. Copyable reports have `member` and
-`operator` projections from one shared allowlist. Unknown persisted values map
-to `unknown` or are omitted; they are never passed through.
+`operator` projections from one shared allowlist. Any retained report that fails
+schema, semantic, privacy, or canonical validation projects only
+`{status:'unavailable', reason:'invalid_retained_report'}`; malformed fields are
+never mapped individually or echoed. A valid source or relay report requested
+by a member projects the separate finite `not_authorized` result.
 
 Explicit purge appends one privacy-safe operational event containing only
 timestamp, finite outcome, trace ID, and row count. Routine host reads are not

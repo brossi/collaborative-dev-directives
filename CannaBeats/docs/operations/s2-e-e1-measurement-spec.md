@@ -5,12 +5,12 @@
 - Checkpoint: E1 — measurement vocabulary and privacy schema
 - Scope revision: `E1-spec-v3`
 - Status: `design-review-pending`
-- Reviewed predecessor: commit
-  `ec5d8bb881c7f7f5c7a4f3f2439f6e45933e3a45`, tree
-  `36e70dbce16e6ce39f316a6b8871b7bb33f55492`, on
-  `feature/slice-2-game-night-resilience`. The next independent review records
-  the exact commit and tree containing this revision; this text never attempts
-  to contain its own Git identity.
+- First independent closure audit target: commit
+  `784430dda5c385051929439088d93ce1033ff3a1`, tree
+  `f9df721cfd5385eca74f52c24dbd5b822752295f`, on
+  `feature/slice-2-game-night-resilience`. The remediation audit must record the
+  later exact checkpoint containing these fixes; this text never attempts to
+  contain its own Git identity.
 - Required prior verified checkpoint: S2-D local closure `25cd9a6`, as recorded
   by `docs/operations/s2-d-recovery-contract.md`
 - Explicitly excluded later checkpoints: E2 alignment/correlation authority; E3
@@ -18,7 +18,8 @@
   UI/clipboard composition; E7 persistence; E8-E10 routing/reporters; E11 fault
   localization; E12 real-environment evidence
 - Reviewers and review date: primary Codex adversarial design review on
-  2026-08-13; independent design review pending
+  2026-08-13; independent Boyle/Gauss/Cicero review of `784430d` on 2026-08-13
+  returned `revise`; remediation review pending
 
 ## Boundary map
 
@@ -37,6 +38,23 @@ generic telemetry SDK: there are no custom fields, schema plugins, query model,
 arbitrary dimensions, generic event reconstruction, or multi-tenant concepts.
 When bounded observations do not support a conclusion, E3 reports
 `insufficient_evidence` rather than expanding E1 to capture every possible fact.
+
+## Scale filter
+
+- Concrete maximum: one active game trace, at most eight listeners, one source,
+  one relay, six report shapes, 10-second full windows, and at most 256 reports
+  in one E1 series/export call.
+- Smallest sufficient mechanism: one pure JavaScript validator/normalizer with
+  fixed tables and standard JSON encoding.
+- Simpler option rejected: TypeScript types alone cannot validate browser,
+  source, relay, copied, or restored JSON at runtime.
+- Explicit omissions: custom JSON parser, RFC 8785 implementation, schema/plugin
+  registry, generic event reconstruction, query model, and cross-language
+  producer canonicalization. Game is the sole canonicalization boundary for
+  uploaded source/relay values.
+- Escalation evidence: add machinery only if a future supported non-JavaScript
+  trusted storage/canonicalization boundary or a measured report shape cannot be
+  represented by these six fixed tables.
 
 ### Dependency firewall
 
@@ -60,7 +78,7 @@ the same command rejects imports from E2-E12 modules.
 | E1-SHAPE-002 | Each of the six kinds has one exact envelope and one exact kind-specific measurement shape. Optional fields are explicitly listed and no extension bag exists. | `report_invalid` | Six-kind required/optional/unknown-field matrix |
 | E1-ID-001 | UUID identity fields are lowercase canonical RFC-variant UUIDs with a version nibble `1..8`; the nil UUID, alternate case, and alternate spelling are rejected rather than normalized silently. | `report_invalid` | UUID spelling/variant/nil matrix |
 | E1-ID-002 | `sequence` is a zero-based instance-wide ordinal. The E1 identity is `(instanceId, sequence)`; changing `kind` under the same identity is a conflict. | `report_conflict` | All-kind replay/conflict matrix |
-| E1-CANON-001 | Accepted reports encode using RFC 8785 JSON Canonicalization Scheme in UTF-8. Object insertion order cannot affect bytes; no accepted value has two canonical encodings. | `report_invalid` or identical bytes | Reordered/numeric-boundary vectors |
+| E1-CANON-001 | Accepted reports encode as UTF-8 `JSON.stringify` of the normalized null-prototype object whose keys are inserted in reviewed registry order. Input order cannot affect bytes; no accepted value has two encodings. | `report_invalid` or identical bytes | Reordered/numeric-boundary vectors |
 | E1-CANON-002 | A canonical E1 envelope is at most 2 KiB. Size is measured after validation and canonicalization. | `report_too_large` | Exact boundary vectors |
 | E1-REPLAY-001 | First identity is `accepted`; identical canonical bytes are `replayed`; different bytes under the same identity are `report_conflict`; a different identity is `distinct`, not a replay decision. | Finite replay result | Cartesian all-kind matrix |
 | E1-SEM-001 | Every field has exactly one semantic operator, unit, range, privacy rule, and malformed-read rule. | Specification/build failure | Generated registry-to-schema parity |
@@ -109,22 +127,23 @@ types may also be exported):
   the platform JSON parser,
   validates semantics and canonical size, and returns a frozen normalized
   report;
-- `canonicalMeasurementBytes(report)` returns RFC 8785 UTF-8 bytes after
+- `canonicalMeasurementBytes(report)` returns the registry-order standard JSON UTF-8 bytes after
   revalidating the normalized report;
 - `measurementIdentity(report)` returns the string
   `instanceId + ":" + sequence.toString(10)`;
 - `classifyMeasurementReplay(existing, incoming)` accepts `existing === null`
   as the sole absence sentinel and otherwise requires two valid normalized
   reports; it returns `accepted|replayed|distinct|report_conflict`;
-- `validateMeasurementSeries(reports)` validates the bounded ordered series for
-  one instance and returns `report_invalid` for contradictions it can prove;
+- `validateMeasurementSeries(reports)` accepts a dense array of `1..256`
+  normalized reports, returns `undefined` on success, and throws
+  `E1ContractError('report_invalid')` for a bound or relation failure;
 - `classifySignalWindow(counts)` returns the paired categorical signal result;
 - `projectMemberMeasurementJson(bytes)` and
   `projectOperatorMeasurementJson(bytes)` cross the same bounded JSON boundary
   and return recursively allowlisted frozen projections;
 - `validateLocalDiagnosticExportJson(bytes)` returns the frozen member export;
-- `canonicalLocalDiagnosticExportBytes(exportValue)` returns its unique RFC
-  8785 UTF-8 encoding; and
+- `canonicalLocalDiagnosticExportBytes(exportValue)` returns its unique
+  registry-order standard JSON UTF-8 encoding; and
 - `projectRetainedMeasurementJson(bytes, audience)` parses retained bytes and
   returns a safe projection or the constant invalid-retained sentinel.
 
@@ -158,13 +177,16 @@ Every kind has these exact top-level fields:
 | `instanceId` | lowercase canonical UUID | identity | yes for listener kinds | yes |
 | `sequence` | integer `0..9007199254740991` | instance-wide ordinal | yes | yes |
 | `monotonicStartMs` | finite `0..9007199254740991`, not `-0` | interval start on one producer clock | yes | yes |
-| `durationMs` | windows: `(0,60000]`; transitions: exact `0` | interval duration | yes | yes |
+| `durationMs` | windows: `(0,10000]`; transitions: exact `0` | interval duration | yes | yes |
 | `measurements` | exact kind-specific object | structured measurement | recursively projected | recursively projected |
 
 E1 deliberately contains no trace or synchronization field. `monotonicStartMs`
 cannot be compared across instances. E2 later binds unchanged canonical E1 bytes
 to trace authority and a verified alignment interval. The checked sum
 `monotonicStartMs + durationMs` must remain in `0..9007199254740991`.
+Full windows have `durationMs = 10000`. A shorter positive window is a partial
+flush caused by stop, reset, or producer shutdown; E1 validates only the finite
+range, while E4/E5/E9/E10 prove that producer provenance.
 
 ### Field semantic operators
 
@@ -210,7 +232,7 @@ Required fields and semantics:
 | `connectionAttemptSequence` | `uint` | ordinal | Current attempt at the end of the window. |
 | `receivedBytes` | `uint` | window_sum | Equals `receivedFrames * sourceChannels * 2`. |
 | `receivedFrames` | `uint` | window_sum | Complete decoded s16le frames only. |
-| `chunkCount` | `uint` | window_sum | Counts delivered chunks containing at least one complete frame; zero iff frames/bytes are zero. |
+| `chunkCount` | `uint` | window_sum | Counts delivered chunks containing at least one complete frame; zero iff frames/bytes are zero, and `chunkCount <= receivedFrames`. |
 | `chunkGap` | exact `{status:'observed',count:positiveUint,meanMs:windowMs,maxMs:windowMs}` or `{status:'not_applicable'}` | window_aggregate | Observed iff `chunkCount >= 2`, with `count = chunkCount - 1` and `meanMs <= maxMs`. Not applicable iff `chunkCount <= 1`. Cross-window gaps are excluded. |
 | `reconnectCount` | `uint` | window_sum | Counts new attempts after an earlier attempt delivered PCM. Stream end alone is not a reconnect. |
 | `terminalCategory` | `open|no_response|rejected|unsupported_format|stream_error|stream_ended|aborted|unknown` | point_sample | `open` means the current attempt has not ended. |
@@ -287,7 +309,7 @@ overflowed Number multiplication can never satisfy a relation.
 
 ### Cross-report series relation
 
-`validateMeasurementSeries(reports)` accepts a dense array containing one
+`validateMeasurementSeries(reports)` accepts a dense array of `1..256` reports containing one
 instance's reports in ascending `sequence`. The first retained sequence may be
 nonzero after bounded local eviction, but every later sequence is strictly
 greater. Every report must belong to exactly one producer family: listener,
@@ -304,11 +326,16 @@ Across retained listener windows and transitions,
 `connectionAttemptSequence` never decreases. If two successive retained
 listener windows have the same attempt ordinal, the later window's
 `reconnectCount` is zero; if it advances by `d`, that window's reconnect count
-is at most `d`. The validator rejects duplicate once-per-attempt milestones when
-both copies are retained and rejects decreasing elapsed milestone time within a
-retained attempt. It does not require missing request, milestone, terminal, or
-reconnect transitions to exist and does not infer a terminal category from an
-incomplete suffix.
+is at most `d`. The once-per-attempt set is exactly `request_started`,
+`response_headers`, `first_pcm_bytes`, `buffer_primed`, and
+`first_rendered_quantum`; each may appear at most once for an attempt. When two
+or more are retained, their fixed precedence is the order just listed and their
+`elapsedMs` values are nondecreasing in that precedence. At most one of
+`stream_failed`, `stream_ended`, and `listener_stopped` is retained as that
+attempt's terminal transition. `reconnect` occurs at most once per attempt.
+Other transition types may repeat. The validator does not require missing
+request, milestone, terminal, or reconnect transitions to exist and does not
+infer a terminal category from an incomplete suffix.
 
 This is deliberately not a forensic event-reconstruction engine. E3 may use a
 series only when the observations needed by a diagnosis are present and
@@ -390,8 +417,8 @@ zero received frames requires `unknown/unknown`; positive received frames reject
 
 ## Canonical identity, encoding, and replay
 
-Validation returns a frozen normalized report. RFC 8785 canonical UTF-8 bytes
-are computed only from that normalized value. E1 local identity is
+Validation returns a frozen normalized report. Registry-order standard JSON
+UTF-8 bytes are computed only from that normalized value. E1 local identity is
 `(instanceId, sequence)` because the ordinal is instance-wide across windows and
 transitions. For the same identity:
 
@@ -462,7 +489,7 @@ The exact wrapper is:
 }
 ```
 
-`summaries` is the only E1 array exception, is dense, and contains at most 256
+`summaries` is the only E1 array exception, is dense, and contains `1..256`
 entries and at most 256 KiB in canonical wrapper encoding. E1 validates each
 summary, requires every summary instance ID to equal the wrapper instance ID,
 runs `validateMeasurementSeries(summaries)`, and requires
@@ -567,12 +594,12 @@ are E9 and E10-owned. They are not E1 evidence.
 | Claim | Invariant IDs | Negative schedules | Real interface | Planned evidence | Permitted wording before pass |
 | --- | --- | --- | --- | --- | --- |
 | Exact six-kind schema/history | E1-SHAPE-001/002, E1-SEM-001/002/003 | malformed JSON, unknown, missing, impossible fields and impossible history | bounded JSON-byte API | Generated shape/truth/history matrices | designed only |
-| Stable canonical identity | E1-ID-001/002, E1-CANON-001/002 | reorder, alternate spelling, size edge | E1 module import | RFC vectors plus all-kind identity matrix | designed only |
+| Stable canonical identity | E1-ID-001/002, E1-CANON-001/002 | reorder, alternate spelling, size edge | E1 module import | ECMAScript JSON numeric/string vectors plus all-kind identity matrix | designed only |
 | Exact replay/conflict | E1-REPLAY-001 | exact, conflict, distinct, concurrent equivalent | E1 module import | Six-kind Cartesian replay suite | designed only |
 | Legal signal categories and producer helper | E1-SIGNAL-001 | zero, silent, isolated/sustained thresholds, invalid counts and category pairs | E1 classifier export | Exhaustive boundary table; E4 separately proves producer use | designed only |
 | Recursive privacy/export | E1-PRIV-001/002, E1-READ-001 | nested sentinel, malformed wrapper/retained value | E1 projection/export exports | Generated recursive privacy suite | designed only |
 | Finite lifecycle outcomes | E1-REPLAY-001, E1-BOUND-001 | response loss, after-effect-before-ack, stale epoch, cancellation, restart, unsupported API, queue/disk/cleanup failure | bounded JSON-byte API | Pure retry/error tests plus explicit E2/E4-E10 ownership assertions | designed only |
-| Bounded E1 work | E1-CANON-002, E1-BOUND-001 | raw limit ±1, canonical limit ±1, export count/byte limit ±1 | bounded JSON-byte API | Raw-byte/parser boundary vectors and elapsed/heap observation labeled local-only | designed only |
+| Bounded E1 work | E1-CANON-002, E1-BOUND-001 | raw limit ±1, canonical limit ±1, series/export count 256 and 257, export byte limit ±1 | bounded JSON-byte API | Raw-byte/parser boundary vectors and elapsed/heap observation labeled local-only | designed only |
 | E1 scope isolation | E1-BOUND-001 | attempted E2/E3 import | Module dependency graph | `node --test web/tests/s2e-e1-contract.test.mjs` import assertion | designed only |
 
 Resource result, exact implementation tree identity, test names, and reviewed
