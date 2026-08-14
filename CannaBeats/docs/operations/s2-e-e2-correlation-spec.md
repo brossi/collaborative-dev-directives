@@ -4,7 +4,7 @@
 
 - Checkpoint: E2 — synchronization and correlation authority
 - Scope revision: `E2-spec-v1`
-- Status: `closure-review`
+- Status: `locally-verified`
 - Risk class: `B — boundary-bearing model`; isolated pure implementation is
   permitted, but authority/persistence/routing integration remains gated
 - Draft baseline: commit `b3540a1` on
@@ -17,14 +17,14 @@
   State/Game mediation; E9 source reporter; E10 relay reporter; E11 composed
   fault localization; E12 real-host measurements
 - Reviewers and review date: primary Codex design review on 2026-08-13;
-  independent design/implementation closure required before E3, E7, or E8
-  consumes the result
+  independent three-perspective implementation closure completed 2026-08-14
 
-Implementation checkpoint: timing provenance, interval mapping, immutable
+Verified implementation target: commit `df41d2c`. Timing provenance, interval mapping, immutable
 envelope composition, trace/segment lifecycle, relay binding, listener consent,
 operation-receipt replay, and report-ingest decisions are implemented in the
-isolated E2 module. Focused verification and independent closure review are in
-progress; this status authorizes no consumer or integration.
+isolated E2 module. Focused E1+E2 verification passes 30/30 and independent
+closure found no open P0/P1. Later checkpoints may consume this pure boundary;
+this status does not verify persistence, routing, or authenticated integration.
 
 ## Boundary map
 
@@ -521,26 +521,26 @@ E2 locally proves the formula and fixed bounds.
 
 ## Design-review decision
 
-- Findings: the primary pass closed the clock formula, provenance, replay,
-  consent, and fixed friends-and-family scale sufficiently to test the isolated
-  model. Independent closure remains intentionally deferred until executable
-  schedules can test these assumptions.
+- Findings: the primary pass fixed the clock formula, provenance, replay,
+  consent, and friends-and-family scale. Two implementation increments and two
+  adversarial closure rounds then closed alignment provenance, identity reuse,
+  forward-consent, producer ingest, receipt restoration, and retained-state
+  fail-closed schedules. No P0/P1 remains in the pure E2 boundary.
 - Specification changes made: split the pure E2 authority/timing model from E7
   persistence and E8 HTTP composition; fixed the physically correct offset
   formula without sorting; selected one-minute sample validity and finite
   friends-and-family limits; excluded PKI/offline alignment.
-- Open blockers: none for the isolated pure model; independent closure blocks
-  all consumers and integration.
+- Open blockers: none for the pure E2 boundary. E7/E8 still own and must verify
+  persistence and authenticated integration before deployment.
 - Approved implementation scope: one dependency-free E2 pure module and its
   focused tests using verified E1 outputs and opaque authority fixtures.
 - Explicitly prohibited implementation scope: E3-E12, database/service/route/UI,
   source/relay reporter, or production authority-brand creation.
-- Decision: `proceed-isolated`
+- Decision: `designed`
 - Packet linked from the normative checkpoint: `yes`
 - Every `Not applicable` names its owning checkpoint: `yes`
-- Dependency-firewall review passed: `yes` for the specified isolated scope;
-  executable confirmation remains part of closure
+- Dependency-firewall review passed: `yes`; E2 imports only verified E1
 - Predictable-failure matrix resolved: `yes` for the pure model
-- No open P0/P1 design finding: `yes` for isolated implementation; integration
-  is not under review yet
-- Implementation authorized: `yes`, only for the approved isolated scope
+- No open P0/P1 design finding: `yes` for the reviewed pure boundary
+- Implementation authorized: `yes`; later integration remains owned by its
+  checkpoint

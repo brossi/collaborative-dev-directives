@@ -1040,10 +1040,9 @@ The normative design and implementation sequence are maintained in the
 [S2-E diagnostics contract](operations/s2-e-diagnostics-contract.md).
 
 Current checkpoint status: E1 measurement/privacy is locally verified at its
-recorded exact target; E2 synchronization/correlation has a
-`closure-review` specification. Its isolated timing/envelope and lifecycle
-reducers are implemented; no persistence, routing, authority integration, or
-downstream consumer is authorized until independent closure.
+recorded exact target; E2 synchronization/correlation is locally verified at
+`df41d2c`. E7 persistence and E8 routing/authenticated authority integration
+remain separate unimplemented boundaries.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
