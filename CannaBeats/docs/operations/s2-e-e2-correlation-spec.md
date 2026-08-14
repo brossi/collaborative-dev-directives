@@ -4,7 +4,9 @@
 
 - Checkpoint: E2 — synchronization and correlation authority
 - Scope revision: `E2-spec-v1`
-- Status: `design-review-pending`
+- Status: `implementation-candidate`
+- Risk class: `B — boundary-bearing model`; isolated pure implementation is
+  permitted, but authority/persistence/routing integration remains gated
 - Draft baseline: commit `b3540a1` on
   `feature/slice-2-game-night-resilience`; the independent review records the
   exact commit and tree containing this packet.
@@ -15,7 +17,8 @@
   State/Game mediation; E9 source reporter; E10 relay reporter; E11 composed
   fault localization; E12 real-host measurements
 - Reviewers and review date: primary Codex design review on 2026-08-13;
-  independent review pending
+  independent design/implementation closure required before E3, E7, or E8
+  consumes the result
 
 ## Boundary map
 
@@ -492,19 +495,26 @@ E2 locally proves the formula and fixed bounds.
 
 ## Design-review decision
 
-- Findings: initial packet; independent adversarial design review pending.
+- Findings: the primary pass closed the clock formula, provenance, replay,
+  consent, and fixed friends-and-family scale sufficiently to test the isolated
+  model. Independent closure remains intentionally deferred until executable
+  schedules can test these assumptions.
 - Specification changes made: split the pure E2 authority/timing model from E7
   persistence and E8 HTTP composition; fixed the physically correct offset
   formula without sorting; selected one-minute sample validity and finite
   friends-and-family limits; excluded PKI/offline alignment.
-- Open blockers: independent adversarial E2 design review.
-- Approved implementation scope: none until review passes.
+- Open blockers: none for the isolated pure model; independent closure blocks
+  all consumers and integration.
+- Approved implementation scope: one dependency-free E2 pure module and its
+  focused tests using verified E1 outputs and opaque authority fixtures.
 - Explicitly prohibited implementation scope: E3-E12, database/service/route/UI,
   source/relay reporter, or production authority-brand creation.
-- Decision: `revise`
-- Packet linked from the normative checkpoint: `no`
+- Decision: `proceed-isolated`
+- Packet linked from the normative checkpoint: `yes`
 - Every `Not applicable` names its owning checkpoint: `yes`
-- Dependency-firewall review passed: `pending`
-- Predictable-failure matrix resolved: `yes` in the packet, pending review
-- No open P0/P1 design finding: `pending`
-- Implementation authorized: `no`
+- Dependency-firewall review passed: `yes` for the specified isolated scope;
+  executable confirmation remains part of closure
+- Predictable-failure matrix resolved: `yes` for the pure model
+- No open P0/P1 design finding: `yes` for isolated implementation; integration
+  is not under review yet
+- Implementation authorized: `yes`, only for the approved isolated scope

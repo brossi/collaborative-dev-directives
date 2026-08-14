@@ -2,8 +2,10 @@
 
 Status: the S2-E architecture and checkpoint framework use the small-deployment
 scale filter and each detailed checkpoint must pass its own closure gate. E1 is
-locally verified at its recorded exact implementation target. E2 now has a
-design-review-pending specification packet; no E2 implementation is authorized.
+locally verified at its recorded exact implementation target. E2 now has an
+implementation-candidate specification packet; its isolated pure model is
+authorized, while persistence, routing, authority integration, and consumers
+remain unauthorized.
 The earlier broad executable-contract and listener prototypes remain archived
 outside the active branch and supply no evidence.
 
@@ -563,38 +565,60 @@ and confidence enum. It never embeds raw input or arbitrary prose.
   those measurements before production enablement rather than building a local
   benchmarking framework that poorly predicts the phones used at game night.
 
-## Implementation discipline
+## Risk-weighted implementation discipline
 
 S2-E checkpoints are scoped to one consistency boundary, not one user-facing
-feature. A checkpoint may consume a previously verified boundary, but it may not
-claim the consumer and producer are composed until a test crosses their real
-interface. Every checkpoint has the following entry and exit rules:
+feature. Design is a guardrail and record of consequential decisions;
+implementation is also a legitimate way to test an isolated design. Review
+effort therefore follows consequence:
 
-1. Publish the owned state, legal transitions, identity/epoch, atomicity point,
-   privacy projection, failure result, and resource bound before implementation.
-2. Build failing tests for the invariant, stale response, interruption, retry,
-   reset, and teardown schedules before changing the implementation.
+- **A — isolated:** pure functions, bounded local state, and disposable
+  diagnostic helpers may proceed after a primary design pass identifies their
+  inputs, outputs, invariants, bounds, and exclusions.
+- **B — boundary-bearing:** identity, consent, privacy, durable replay, storage,
+  routes, and secrets may have an unwired pure model built early, but require
+  independent design and implementation closure before integration.
+- **C — irreversible/external:** migration, destructive retention, backup,
+  rollback, provider effects, and host operations require independent design
+  closure before implementation and fault/recovery rehearsal before use.
+
+A checkpoint may consume a previously verified boundary, but it may not claim
+the consumer and producer are composed until a test crosses their real
+interface. Every checkpoint has these shared entry and exit rules:
+
+1. Before isolated implementation, publish its owner, inputs/outputs, major
+   invariants, finite failures, bounds, and exclusions. Complete state,
+   identity/epoch, atomicity, privacy, and recovery rules before the boundary
+   that needs them is integrated.
+2. Build tests for each applicable semantic branch and consequential boundary.
+   Stale-response, interruption, retry, reset, and teardown matrices are
+   mandatory only where the interface can produce those schedules.
 3. Test the real interface at least once. A pure model cannot verify a
    MessagePort, HTTP, SQLite, React, process, or host boundary on its own.
 4. Compare every status/documentation claim to a named executable test. A
    property without direct evidence is `implemented; verification pending`, not
    `verified`.
-5. Run a targeted independent audit and checkpoint the result before attaching
-   the next consumer or data producer.
+5. Run a targeted independent closure audit before attaching the next consumer
+   or data producer. An independent pre-code audit is additionally mandatory
+   for C work and for B integration, but not for an isolated model.
 
-The evidence record for each checkpoint contains: invariant IDs; test names;
-the exact source/tree identity; negative schedules exercised; resource results;
-privacy fields reviewed; deferred measurements with their S2-F owner; and an
-honest status from the checkpoint template. Status can advance only through the
-template's explicit design decision and implementation-authorization fields.
+The closure evidence record for each checkpoint contains: invariant IDs; test
+names; the exact source/tree identity; negative schedules exercised; applicable
+resource results; privacy fields reviewed; deferred measurements with their
+S2-F owner; and an honest status from the checkpoint template. Exact commit/tree
+identity is required for closure evidence, not for a mutable draft reviewing
+itself. Status advances through the template's risk-class, scope, decision, and
+implementation-authorization fields.
 
-## Pre-implementation specification closure gate
+## Proportional design closure gate
 
-`Designed` means more than a narrative and must be achieved before production
-code for a checkpoint begins. Each E1-E12 checkpoint publishes one reviewed
-specification packet using the
+Each E1-E12 checkpoint publishes one specification packet using the
 [S2-E checkpoint specification template](s2-e-checkpoint-spec-template.md),
-with all of the following artifacts:
+scaled to its risk class. Before an A implementation candidate or an unwired B
+model begins, the packet fixes the boundary, owner, inputs/outputs, major
+invariants, finite failure results, scale limit, dependency firewall, and
+planned tests. Before B integration or any C implementation it includes all of
+the following applicable artifacts:
 
 1. **Boundary map:** the sole owner, trusted and untrusted inputs, output and
    side-effect surfaces, downstream consumers, explicitly excluded concerns,
@@ -617,8 +641,9 @@ with all of the following artifacts:
 5. **Privacy walk:** recursively inspect every field of ingestion, persistence,
    member copy, host/operator read, audit event, error, and log projections.
    Classifying only a containing object never authorizes all nested fields.
-6. **Evidence design:** invariant IDs; generated exhaustive matrices where the
-   domain is finite; hand-written adversarial schedules where it is not; the
+6. **Evidence design:** invariant IDs; complete small tables for consequential
+   finite authority/privacy/lifecycle domains; hand-written adversarial
+   schedules where the domain is not finite; the
    retained reference/baseline; the real-interface composition test; resource
    measurement; and the exact documentation claim each test can support.
 7. **Dependency firewall:** a checkpoint may consume only previously verified
@@ -626,28 +651,30 @@ with all of the following artifacts:
    must not execute a later checkpoint's validator, reducer, store, or adapter
    and then borrow that green result as current evidence.
 
-The specification packet receives an adversarial design review before tests or
-implementation. Reviewers must attempt at least: inherited and non-plain input;
+For B integration and C implementation, the specification packet receives an
+independent adversarial design review. Reviewers attempt the applicable subset
+of: inherited and non-plain input;
 alternate identity spelling; reordered canonical input; impossible cross-field
 values; nested privacy bypass; stale epoch; lost response; exact and conflicting
 retry; concurrent/reset/restart schedules; unsupported API; quota/cleanup
 failure; and a green test whose name claims more than its assertions. A finding
-changes the specification first. Implementation is not used to discover the
-missing rule.
+changes the specification and tests. Isolated implementation may discover
+ordinary details; it pauses for renewed design review only when the discovery
+changes an authority owner, persistent schema, privacy/retention exposure,
+external-effect order, rollback/recovery model, or resource-isolation class.
 
-After the specification passes and explicitly authorizes implementation,
-failing tests are generated or written from its
-invariant IDs. The implementation gate cannot weaken the reviewed spec to make
-tests pass. Any newly discovered rule returns the checkpoint to `designed;
-review pending`, updates the packet, and reruns the design audit before code
-continues.
+Tests are written from invariant IDs as implementation proceeds. The
+implementation cannot silently weaken the packet to make them pass. Ordinary
+clarifications are updated with code and tests and reviewed at closure;
+boundary-changing discoveries follow the pause rule above.
 
 ## Predictable-failure matrix by checkpoint
 
-The following questions are mandatory additions to the common closure gate.
-They are specification work, not post-implementation audit suggestions.
+The following questions are mandatory before a checkpoint is consumed,
+integrated, or called locally verified. For A and unwired B models, they may be
+resolved jointly through specification, implementation, and closure review.
 
-| Checkpoint | Specification must close before implementation |
+| Checkpoint | Must close before consumption or integration |
 | --- | --- |
 | E1 | Plain/own JSON shape; lowercase canonical identities; exact per-kind envelopes and transitions; semantic operators such as ordinal, window sum, window aggregate, point, and instance cumulative; byte/frame/channel and signal truth tables; nested member/operator privacy; one validated copy/export wrapper; all-kind replay/conflict; malformed retained-read policy; and an E1 validator that does not execute E2 alignment or E3 diagnosis. |
 | E2 | Exact E1-core/E2-wrapper boundary; physically possible clock inequalities and interval formula; Game/State-derived authority; one-active-trace lifecycle; consent start/stop versus accepted replay; trace/run/lease/generation rotation; unrelated timebases; and fail-closed stored interval mapping. No diagnostic PKI. |
@@ -714,10 +741,10 @@ that the browser copy action consumes this boundary without bypassing it.
 
 ### E2 — Synchronization and correlation authority
 
-Status: detailed specification is `design-review-pending`; implementation is
-unauthorized. The packet deliberately limits E2 to a pure timing/authority
-model. E7 later owns persistence and E8 later owns authenticated HTTP/State
-composition.
+Status: detailed specification is `implementation-candidate`. The isolated pure
+timing/authority model is authorized; E7 persistence, E8 authenticated
+HTTP/State integration, and downstream consumers remain gated on independent
+closure. The packet deliberately keeps those later boundaries out of E2.
 
 Detailed specification packet:
 [E2 synchronization and correlation authority](s2-e-e2-correlation-spec.md).

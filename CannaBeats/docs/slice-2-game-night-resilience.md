@@ -1041,7 +1041,9 @@ The normative design and implementation sequence are maintained in the
 
 Current checkpoint status: E1 measurement/privacy is locally verified at its
 recorded exact target; E2 synchronization/correlation has a
-design-review-pending specification and no authorized implementation.
+implementation-candidate specification. Its isolated pure model is authorized;
+no persistence, routing, authority integration, or downstream consumer is
+authorized until independent closure.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
@@ -1077,13 +1079,13 @@ design-review-pending specification and no authorized implementation.
 - A checkpoint is `verified` only when every documented property maps to a
   named executable test at the same boundary. Model-only evidence cannot verify
   an HTTP, SQLite, MessagePort, React, process, or host composition claim.
-- Before implementation, every E checkpoint must pass a specification-closure
-  audit covering its boundary map, exact data and relational truth contract,
-  lifecycle/interruption matrix, nested privacy walk, resource/failure model,
-  dependency firewall, and claim-to-test ledger. Predictable counterexamples
-  are enumerated per checkpoint in the normative S2-E contract; discovering one
-  later returns the checkpoint to design review rather than patching an implicit
-  rule directly into implementation.
+- Before implementation, every E checkpoint receives a risk classification.
+  Isolated pure code may proceed after a focused primary design pass; boundary-
+  bearing integration requires independent closure; irreversible or external
+  work retains the full pre-implementation specification and recovery gate.
+  Predictable counterexamples are still enumerated, but ordinary discoveries
+  update the packet, tests, and code together unless they change authority,
+  persistence, privacy/retention, external effects, rollback, or isolation.
 
 Gate: two common-timebase listeners can be compared with uncertainty-aware rules
 to localize an injected stutter; missing alignment yields
