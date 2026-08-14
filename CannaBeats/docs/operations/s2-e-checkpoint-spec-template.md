@@ -27,6 +27,22 @@ a reason and names the checkpoint that owns the concern.
 | Real interface under test | |
 | Explicit non-goals | |
 
+## Scale filter
+
+- Concrete deployment maximum (users, producers, traces, duration):
+- Smallest mechanism that protects the game-night outcome:
+- Simpler option considered and why it is insufficient:
+- Platform-scale mechanisms explicitly omitted:
+- Evidence that would justify adding one of those mechanisms later:
+
+A checkpoint must not introduce a generic framework, extension system,
+distributed protocol, additional service/process, or broad compatibility layer
+when a fixed finite table or one bounded task is enough for the documented
+friends-and-family deployment. Prefer `insufficient_evidence` over collecting
+new fields merely to explain every theoretical failure. Complexity may be added
+later only in response to a measured supported-host/client need or a concrete
+authority, privacy, or audio-isolation invariant.
+
 ## Invariants
 
 Every invariant receives a stable checkpoint-scoped ID such as `E4-PORT-003`.

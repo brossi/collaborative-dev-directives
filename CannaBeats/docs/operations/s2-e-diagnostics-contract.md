@@ -1,18 +1,34 @@
 # S2-E listener, source, and relay diagnostics contract
 
-Status: the overall S2-E architecture and checkpoint framework are approved;
-detailed checkpoint specifications must still pass their individual closure
-gates. E1 has a revised audit-candidate packet pending independent review. Local
-executable-contract and listener prototypes are intentionally excluded from this
-specification checkpoint: they have no checkpoint identity, supply no evidence,
-and may be retained, revised, or removed only after their owning checkpoint
-authorizes implementation. No S2-E implementation or acceptance outcome is
+Status: the S2-E architecture and checkpoint framework have been revised through
+the small-deployment scale filter and require a fresh design audit; detailed
+checkpoint specifications must still pass their individual closure gates. E1
+has a revised audit-candidate packet pending independent review. The
+earlier executable-contract and listener prototypes are archived outside the
+active branch and supply no evidence. No S2-E implementation or acceptance outcome is
 complete until its specification gate, boundary gate, and composed executable
 evidence pass.
 
 This contract defines a bounded diagnostic plane for locating managed-audio
 quality failures. It consumes the S2-D stream, lease, handoff, and recovery
 boundaries without becoming another source of game or playback authority.
+
+This is a small-game diagnostic tool for one host and a handful of friends or
+family, not a general telemetry platform. Version 1 optimizes for eight or fewer
+listeners, one source, one relay, short-lived troubleshooting, and simple finite
+schemas. It deliberately has no tenant framework, query language, extension
+registry, generic event bus, distributed-consensus protocol, or promise to
+reconstruct every missing observation. Missing or contradictory evidence yields
+`insufficient_evidence`.
+
+Three pieces of complexity remain because simpler choices would defeat the
+feature: the collector stays separate so high-frequency disposable writes can
+never contend with State; server-time mapping stays because unrelated browser
+clocks cannot otherwise support cross-listener ordering; and finite source plus
+relay snapshots stay because listener-only data cannot distinguish where the
+shared stream failed. Everything else begins as a fixed table, bounded task, or
+disposable file and grows only after a real game-night measurement shows that it
+must.
 
 ## Questions the system must answer
 
@@ -56,71 +72,43 @@ reintroduce contention or migration risk into the single-writer State database.
 
 The diagnostics collector is a standalone internal service with its own
 unprivileged runtime identity, schema contract, database file, retention job,
-and readiness endpoint. It receives no State activation, operator, source, Game,
-Access, relay, or browser bearer credential.
+and readiness endpoint. It receives no State activation, Access, source, relay,
+or browser bearer credential.
 
-- Browsers never call the collector. Game exposes bounded listener endpoints
-  for trace status, listener-instance opt-in, upload stop, listener report ingest, and
-  authorized trace read. Game authenticates the current principal on every
-  call, resolves the run and role through State, discards caller authority
-  labels, and uses separate collector capabilities for trace management,
-  listener ingestion, and host reads.
+- Browsers, sources, and the relay never call the collector. Game is its sole
+  online gateway. Game authenticates the caller at the existing browser,
+  source, or relay boundary; resolves current run/role/lease authority through
+  State; rejects caller authority labels; and forwards one exact internal
+  request using a single diagnostics-service credential. The collector trusts
+  only that private Game credential and never interprets an external session or
+  source token.
 - A host may create or end one active trace for an authoritative run through
-  Game. Game supplies the run authority and an idempotency key. The collector
-  returns an opaque trace ID and synchronization anchor; it does not infer a run
-  from report data. Because the deployment has one managed publisher and relay,
-  only the run holding that authority may have an active source/relay trace. A
-  competing request returns `trace_busy`; local-only listener reporting remains
+  Game. Game supplies the run authority and request ID. Because there is one
+  managed publisher and relay, at most one uploaded trace is active system-wide;
+  a competing request returns `trace_busy`, while local-only reporting remains
   available.
-- Source reports use the existing public Game source path, not a direct
-  collector route. The controller creates an ephemeral source instance at
-  process start. For each report, Game first exact-validates and canonicalizes
-  the complete source envelope without changing it, then sends its digest and
-  source bearer to State's separate diagnostic-assertion operation. State
-  verifies the source owns the live lease/work context and returns a short-lived
-  assertion binding issuer, audience, `source_summary` scope, run ID, run
-  generation, source-instance ID, active lease ID, exact report sequence and
-  digest, optional current command reference, expiry, and nonce. It contains no
-  stable source identity or command payload. Game forwards the unchanged
-  canonical envelope and assertion using `source_ingest`. The collector is the
-  authoritative signature, digest, nonce, expiry, and replay verifier.
-- The relay adapter reports through a dedicated authenticated Game relay
-  endpoint using a relay-to-Game credential distinct from `relay_ingest`. At a
-  publisher-generation start, the adapter supplies only the opaque generation
-  observed from the pinned relay interface. Game calls State's Game-scoped
-  `/v1/diagnostics/managed-stream-authority`, which requires no principal and
-  returns only the current managed run ID/generation and lease correlation.
-  Game resolves the active trace and creates one immutable generation binding.
-  The generation is transport observation, not State authority; it cannot be
-  rebound after a handoff. Later reports reference only that binding. Delayed
-  reports for an old generation remain attributed to the old binding or are
-  rejected after it ends. No run, trace, lobby, source, or lease label from the
-  relay is accepted. Collector or State failure leaves the generation unbound
-  and produces missing diagnostics without rejecting or delaying relay audio.
+- Source reports use the existing authenticated Game source path. Game validates
+  the E1 bytes, asks State whether that source currently owns the live managed
+  work, and attaches the returned run/lease correlation to the internal
+  collector request. No separate source-signing key, nonce ledger, or report-
+  digest assertion is introduced.
+- The relay adapter uses one relay-to-Game credential. At publisher-generation
+  start, Game asks State for current managed-stream authority and binds the
+  observed opaque relay generation once to that run/lease. It never rebinds the
+  generation after handoff. Delayed reports remain on the old binding or are
+  rejected. Collector or State failure leaves evidence missing and never delays
+  relay audio.
 - Host reads pass through Game. State must attest that the principal is the
   durable host of the requested run, including after that run ends. Current
   lobby membership alone is insufficient. If State cannot make that historical
-  assertion, the read fails closed. Access may continue after run termination
+  authority response, the read fails closed. Access may continue after run termination
   or history retention only while State retains enough authority evidence to
-  make that exact run-host assertion.
-- Operator reads use a separately deployed read-only operations client and
-  credential. Retention uses a purge-only credential. Their caller bearer
-  values are not mounted in Game, State, the source controller, or relay; the
-  collector stores only salted verification hashes and key IDs.
-- No diagnostic credential is accepted by State, Access, Game mutation routes,
-  the relay audio path, or source command routes.
-
-The collector capability matrix is exact:
-
-| Capability | Permitted operations |
-| --- | --- |
-| `trace_manage` | create/end/status for a Game-attested run |
-| `listener_ingest` | write listener reports to one active trace |
-| `source_ingest` | write source reports with a valid work-bound assertion |
-| `relay_ingest` | write relay reports with a valid generation/run assertion |
-| `host_read` | read one State-authorized trace projection |
-| `operator_read` | read bounded operator projections only |
-| `diagnostic_purge` | delete expired or explicitly selected trace sets |
+  make that exact run-host decision.
+- A maintenance credential permits only status and whole-trace purge and is
+  mounted only in the operations job. The Game credential cannot purge; the
+  maintenance credential cannot ingest or read report bodies. Pairwise secret
+  inequality is checked at startup. No diagnostic credential is accepted by
+  State, Access, gameplay mutation routes, relay audio, or source commands.
 
 The corresponding version-1 seams are fixed before implementation:
 
@@ -129,34 +117,17 @@ The corresponding version-1 seams are fixed before implementation:
 | Browser → Game | `/api/diagnostics/trace`, `/api/diagnostics/listener-instance`, `/api/diagnostics/listener-report`, `/api/diagnostics/report`, `/api/diagnostics/stop-sharing` |
 | Source → Game | `/api/diagnostics/source-report` |
 | Relay adapter → Game | `/api/diagnostics/relay-generation`, `/api/diagnostics/relay-report` |
-| Game → State | `/v1/diagnostics/run-host-authority`, `/v1/diagnostics/managed-stream-authority`, `/v1/source/diagnostic-assertion` |
-| Game/operations → collector | versioned internal trace, ingest, read, and purge endpoints partitioned by the capability table above |
+| Game → State | `/v1/diagnostics/run-host-authority`, `/v1/diagnostics/managed-stream-authority` |
+| Game → collector | versioned internal trace, ingest, and read operations under one Game credential |
+| operations → collector | status and whole-trace purge under the maintenance credential |
 
 All mutations require canonical request UUIDs. Exact replay returns the same
-finite result; conflicting identity reuse fails. These routes may evolve only
-through a reviewed whole protocol version, not by silently widening version 1.
-
-Game-to-collector and operations-to-collector capabilities are random opaque
-bearers held only by callers; the collector stores salted verification hashes,
-current/previous key IDs, scopes, and audiences. State source assertions use a
-dedicated asymmetric key: State alone holds the private signing key, while Game
-and collector receive its public verification key. Synchronization anchors use
-a separate collector private signing key; browser comparison code receives the
-versioned public verification keys. The relay-to-Game credential is distinct
-from Game's collector credential. Deployment preflight compares nonreversible
-fingerprints and fails on any collision without distributing unrelated
-plaintext secrets. Opaque capabilities use a two-key verification window;
-asymmetric verification keys remain published through the longest retained
-report lifetime plus clock-skew allowance. Expired keys cannot authorize new
-traces or reports, but retained signatures remain verifiable.
-
-Assertions are versioned, issuer-bound, audience-bound, scope-bound, and valid
-for at most 30 seconds. Source assertions bind one report instance, sequence,
-and canonical envelope digest. First use atomically records the nonce and
-digest; exact retry returns `replayed`, while any differing reuse returns
-`report_conflict`. Relay bindings are similarly generation- and trace-scoped.
-Renewal requires fresh State authority. Assertions are not general bearer
-capabilities, and the collector is never publicly routed.
+finite result; conflicting identity reuse fails. The internal collector request
+contains the already-validated E1 bytes plus server-derived correlation. The
+collector revalidates E1 and owns `(traceId, instanceId, sequence)` replay. This
+two-boundary validation is enough for one private gateway; version 1 introduces
+no signature PKI, key-history service, general capability framework, or public
+collector route.
 
 Collector liveness is process-only. Collector readiness covers its own schema,
 quota, and store, but is not a dependency of Game or State readiness. Operator
@@ -183,35 +154,35 @@ runId (server authority)
 - The server derives `runId`, diagnostic trace, coarse role, source association,
   and the run/lease binding for an authenticated relay-observed generation.
   Caller-supplied authority values are rejected rather than corrected silently.
-- Each producer obtains independent signed synchronization samples on one trace
-  timebase. A sample contains `timebaseId`, `anchorSampleId`, trace ID,
-  `serverReceiveMs`, `serverSendMs`, issued-at, valid-from, valid-until, maximum
-  server processing bound, signature algorithm, and key ID. The producer records
-  `localSendMs` immediately before the request and `localReceiveMs` immediately
-  after the response on its monotonic clock; client wall time is never used.
+- Each producer may obtain a synchronization sample through authenticated Game.
+  The sample contains a collector `timebaseId`, `serverReceiveMs`, and
+  `serverSendMs`. The producer records `localSendMs` immediately before the
+  request and `localReceiveMs` immediately after the response on its monotonic
+  clock; client wall time is never used. Game/collector store the accepted
+  sample and mapped interval with uploaded reports. Version 1 does not sign
+  samples for offline verification.
 - For local time `L`, the server-time offset lies in
   `[serverReceiveMs - localSendMs, serverSendMs - localReceiveMs]` after ordering
   the two bounds. The mapped event interval adds that full offset interval to
-  the local monotonic start/end. `anchorUncertaintyMs` is half the resulting
+  the local monotonic start/end. `mappingUncertaintyMs` is half the resulting
   interval width and must not be smaller than half the local round trip after
-  subtracting the signed server-processing interval. The exact schema stores
+  subtracting the server-processing interval. The exact schema stores
   the four timestamps and derived bounds rather than an ambiguous point offset.
-- Different producers and renewals normally have different `anchorSampleId`
-  values. Cross-producer comparison requires the same `timebaseId`, individually
-  valid signatures and event-time validity, and uncertainty below the schema
-  maximum; it never requires the same sample ID. The collector records
-  `receivedAt`, which is transport evidence and not event-time truth.
+- Different producers and renewals normally have different samples. Cross-
+  producer comparison requires the same collector timebase, a physically
+  possible sample accepted with the report, and uncertainty below the fixed
+  E2 maximum. The collector records `receivedAt`, which is transport evidence
+  and not event-time truth.
 - The comparator may say that A preceded B only when A's latest possible end is
-  earlier than B's earliest possible start. Overlap, expired anchors, excessive
+  earlier than B's earliest possible start. Overlap, expired samples, excessive
   uncertainty, or reports without a common valid timebase produce
   `insufficient_evidence` for ordering-dependent classifications.
-- Anchor validity is evaluated at the report event/upload time. Once an accepted
-  report was mapped using a then-valid sample, later sample expiry does not
-  invalidate retained comparison. Copied reports include the signed public
-  sample, derived interval, algorithm/key ID, and uncertainty, while public
-  verification keys remain available for the copied-report retention period.
-  Reports without a common timebase remain individually useful and may be
-  imported together, but cannot establish cross-device precedence.
+- Sample validity is evaluated at upload. Once the collector stores a mapped
+  interval, later expiry does not invalidate that retained interval. Local
+  copied E1 reports are deliberately unaligned; without the collector they may
+  be inspected individually but cannot establish cross-device precedence. This
+  removes public verification keys and long-lived signed-sample handling from
+  the small-deployment design.
 
 ## Trace lifecycle and consent
 
@@ -247,7 +218,7 @@ runId (server authority)
   not rotate the listener instance unless the user explicitly resets it.
 - Diagnostics do not subscribe to or block State transitions. Every trace
   management, ingest, and read operation rechecks the applicable fresh State
-  assertion; authority loss atomically ends or rejects the trace then. A quiet
+  authority response; authority loss atomically ends or rejects the trace then. A quiet
   stale row may remain until its fixed expiry but conveys no authority and cannot
   accept or disclose reports.
 - Source and relay summaries are collected only while an uploaded trace exists
@@ -269,9 +240,11 @@ scoped identifiers; it does not share audio, song/answer content, display name,
 account/player identity, or credentials; and reports are pseudonymous rather
 than anonymous and may be attributable from the context of the game.
 
-## Versioned report envelope
+## Versioned measurement core and uploaded envelope
 
-Every uploaded input uses one exact top-level shape:
+E1 owns one exact, authority-free `measurementCore`. These bytes are useful for
+local validation and copy without a collector and never contain `traceId`,
+`runId`, `leaseId`, `role`, an alignment sample, a signature, or an assertion:
 
 ```text
 schemaVersion: 1
@@ -279,24 +252,27 @@ kind: listener_window | listener_transition | source_window |
       source_transition | relay_window | relay_transition
 instanceId: UUID
 sequence: safe nonnegative integer
-alignment: anchored synchronization-sample reference and derived interval
 monotonicStartMs: bounded nonnegative number
 durationMs: bounded positive number for windows; exactly 0 for point transitions
 measurements: exact kind-specific object
 ```
 
-Local/copy reports use the same measurement schemas but an exact alignment
-union: `anchored` contains the verified sample and interval above; `unanchored`
-contains only a finite reason (`collector_absent`, `sharing_disabled`,
-`anchor_unavailable`, or `anchor_invalid`). Collector ingestion accepts only
-`anchored`. Unanchored reports remain locally useful but cross-device ordering
-is always `insufficient_evidence`.
+E2 owns a distinct exact `uploadedReport` whose fields are
+`{measurementCore, alignment, serverContext}`. It validates E1 first and keeps
+the unchanged canonical E1 bytes. `alignment` and `serverContext` are siblings
+of `measurementCore`; they are never inserted into or used to rewrite it.
+Game/State derive role, run, trace, lease, source, and relay-generation authority
+only into `serverContext`. A caller-
+authored authority label is rejected rather than corrected in E1 bytes.
 
-The correlation assertion is carried separately from the measurements. The
-collector stores its validated claims alongside the report and records its own
-receipt time. Producers cannot add tags, labels, dimensions, arbitrary metadata,
-or nested extension bags. Schema evolution adds a newly accepted whole version;
-it never weakens validation of an existing version.
+Local/copy exports contain E1 measurement cores only. They have no alignment
+claim and cannot establish cross-device precedence. Collector ingestion accepts
+only the E2 aligned uploaded envelope.
+
+The collector stores validated E2 server context alongside the unchanged E1 bytes and
+records its own receipt time. Producers cannot add tags, labels, dimensions,
+arbitrary metadata, or extension bags. Schema evolution adds a newly accepted
+whole version; it never weakens validation of an existing version.
 
 All counters are per-instance cumulative counters or explicit window deltas as
 declared by the schema; a field cannot switch meanings between producers. The
@@ -334,9 +310,10 @@ only the window/state fields below:
   uploaded, persisted in copied summaries, or used for shared comparison. PCM,
   spectral data, fingerprints, song identity, and sample windows are forbidden;
   and
-- coarse context: `host` or `member`; browser family and
-  major version; OS family; browser/PWA mode; and listener implementation
-  version. No full user agent is retained.
+- coarse client context: browser family and major version, OS family,
+  browser/PWA installation mode, and listener implementation version. Role is
+  server-derived E2 authority metadata, not an E1 measurement field. No full
+  user agent is retained.
 
 Every field declares whether it is a window delta, instance cumulative value,
 attempt milestone, or point sample. Received frames means decoded PCM frames
@@ -350,9 +327,11 @@ must not be used to imply that an unavailable measurement was observed healthy.
 Pre-prime startup silence is buffering, not an underrun. An underrun begins only
 after PCM-backed rendering has occurred in the current continuous playback epoch
 and ends at re-prime, reset, or stop according to the versioned state machine.
-The client also emits coalesced transition summaries for first playback,
+The client also emits distinct transition summaries for first playback,
 underrun, reset, reconnect, context suspension/resume, terminal stream failure,
-and listener stop. Repeated identical transitions within one second coalesce.
+and listener stop. E1 never coalesces distinct events. E5 may drop a redundant
+best-effort diagnostic transition to meet its bounded queue, but it must not
+rewrite two events as one or claim exact multiplicity after a drop.
 
 ## Source and relay observation contract
 
@@ -398,10 +377,12 @@ from normal publisher/relay stdout and journal output; tests scan operational
 output and the new interfaces, not merely collector projections.
 
 The source capture/publisher path and relay fan-out path perform only constant-
-time counter increments. A separate bounded reporter task or process snapshots
+time counter increments. One low-priority reporter task per process snapshots
 and uploads with a strict deadline, one replaceable aggregate, and no retry
-journal. Collector DNS, connection, timeout, or rejection cannot run on or await
-the authority polling, capture, publisher, or fan-out loops.
+journal. A separate reporter process is unnecessary unless local measurement
+later proves the task can disturb audio. Collector connection, timeout, or
+rejection cannot run on or await authority polling, capture, publication, or
+fan-out loops.
 
 Relay summaries never include IP addresses, bearer tokens, request URLs, user
 agents, or unbounded transport errors. The relay adapter must consume a stable
@@ -412,7 +393,7 @@ machine interface from the pinned relay; it may not scrape arbitrary log text.
 - Normal upload cadence is one summary every 10 seconds. An exceptional
   transition may upload immediately, with a maximum of one accepted report per
   listener instance per second.
-- Each request, including its assertion, is at most 8 KiB; its validated
+- Each report body is at most 8 KiB; its validated
   canonical persisted envelope is at most 2 KiB and contains one schema
   version. Unknown fields,
   non-finite numbers, out-of-range values, invalid enum members, and excess
@@ -423,30 +404,25 @@ machine interface from the pinned relay; it may not scrape arbitrary log text.
 - The browser retains at most 15 minutes or 256 KiB of local summaries,
   whichever is reached first. It retains at most one unsent aggregate during
   upload backoff; it does not queue an unbounded retry journal.
-- One six-hour trace supports at most eight listener instances concurrently.
-  The periodic pool is 24,000 rows per run: 17,280 listener windows and 4,320
-  source/relay windows fit within it, leaving 2,400 rows of reserve. A separate
-  transition pool is 8,768 rows, for 32,768 total reports per run. Each producer
-  also has a 1,024-transition cap per listener instance and 1,024 per source or
-  relay generation. A trace accepts at most 32 total listener instances, 32
-  source instances, and 64 relay generations. Unused quota from one kind does
-  not permit another kind to exceed its bound.
-- With a 2 KiB canonical envelope, the logical ceiling is 64 MiB per run and
-  384 MiB globally. A generated worst-case storage worksheet must cover accepted
-  envelopes, indexes, tombstones, and SQLite overhead and prove the advertised
-  six-hour/eight-listener case before these constants can change.
+- One six-hour trace supports at most eight listeners concurrently. It has one
+  simple allowance of 24,000 periodic rows and 6,000 transition rows. The normal
+  six-hour/eight-listener cadence uses 21,600 periodic rows, leaving 2,400 in
+  reserve. Exhausting the transition allowance loses optional diagnostic detail;
+  it does not borrow from periodic capacity or affect audio.
+- The logical ceiling is 64 MiB per trace and 192 MiB globally. A short checked-
+  in arithmetic test proves the normal six-hour/eight-listener cadence fits;
+  version 1 does not need a general capacity-planning subsystem.
 - Physical usage includes the database, indexes, WAL, SHM, temp files, and
-  diagnostic logs. The collector uses a dedicated volume with a 768 MiB physical
-  ceiling enforced by the deployment's filesystem/project quota rather than a
-  logical counter alone, preserves at least 256 MiB inside that allocation plus
-  a configured 1 GiB host free-space reserve, bounds WAL/temp/log growth, and rejects new
-  diagnostics before either reserve is crossed. It never shares the State
-  authority volume or coordinated-backup scratch path.
+  diagnostic logs. The collector uses a dedicated volume, stops accepting new
+  reports when database plus WAL reaches 256 MiB or host free space falls below
+  1 GiB, and bounds temp files and log rotation. A filesystem project-quota
+  integration is not required for this small optional store. It never shares
+  the State authority volume or coordinated-backup scratch path.
 - Exceeding any budget drops
   diagnostics with a visible bounded reason; it never evicts or blocks State
   authority.
-- Server diagnostic retention defaults to 7 days and is configurable from 1 to
-  30 days. Purge deletes a complete run-scoped diagnostic set. Diagnostic data
+- Server diagnostic retention is a fixed 48 hours in version 1. Purge deletes a
+  complete trace. Diagnostic data
   is not promoted into significant game history before a separate reviewed
   contract exists.
 - A full, unavailable, or purging diagnostic store returns a stable degraded
@@ -460,7 +436,7 @@ The finite ingestion outcomes are `accepted`, `replayed`, `sharing_disabled`,
 ## Deployment and lifecycle boundary
 
 - Compose defines an unprivileged diagnostics service and dedicated volume with
-  explicit CPU, memory, PID, temporary-storage, and physical-store limits.
+  ordinary memory, PID, temporary-storage, and application-level store limits.
   Access, State, Game readiness, audio services, backup, retention, release, and
   rollback do not depend on collector readiness.
 - Game diagnostic proxy calls have bounded connect and response deadlines and
@@ -497,7 +473,7 @@ logs:
 - free-form notes in the machine diagnostic payload.
 
 Reverse-proxy and collector access logging use an exact allowlist that excludes
-client address, URL/query, headers, assertions, and bodies. Operational events
+client address, URL/query, headers, grants/server context, and bodies. Operational events
 contain only finite endpoint, outcome, and aggregate-count codes.
 
 The system promises absence of direct identity fields, not anonymity. Ephemeral
@@ -513,10 +489,10 @@ require host/operator authorization. Copyable reports have `member` and
 `operator` projections from one shared allowlist. Unknown persisted values map
 to `unknown` or are omitted; they are never passed through.
 
-Operator reads and explicit purges append privacy-safe audit events containing
-only timestamp, capability key ID, finite operation/outcome, trace ID, and row
-count. They contain no report body, assertion, credential, IP address, URL, or
-free-form text.
+Explicit purge appends one privacy-safe operational event containing only
+timestamp, finite outcome, trace ID, and row count. Routine host reads are not
+individually audited in this small private deployment. Neither path records a
+report body, credential, IP address, URL, or free-form text.
 
 The advanced UI must label what will be copied before copying. Copy is a local
 user action, not an implicit support upload.
@@ -529,8 +505,7 @@ An advanced, non-primary audio panel provides:
 - a bounded timeline of transitions and the last 15 minutes of windows;
 - upload state (`current`, `degraded`, `offline`, or `disabled`);
 - a copyable privacy-projected report; and
-- strict local import/compare of two or more copied reports when collector
-  upload is unavailable; and
+- copy of one local report for manual support when upload is unavailable; and
 - a reset action that rotates the listener instance without changing playback
   or server authority.
 
@@ -555,35 +530,33 @@ returns evidence, not control actions. At minimum it distinguishes:
 Ordering-dependent results use the synchronization intervals defined above.
 Receipt order, sequence values from different instances, or overlapping
 uncertainty intervals cannot establish precedence. Every result includes the
-contributing window references, anchor/uncertainty evidence, missing evidence,
+contributing window references, mapping/uncertainty evidence, missing evidence,
 and confidence enum. It never embeds raw input or arbitrary prose.
 
 ## Performance contract
 
-- Worklet counters are constant-memory and aggregated off the render path.
+- Worklet diagnostics add only fixed scalar counter updates on the render path;
+  serialization and report construction remain off it.
 - Main-thread sampling performs no per-audio-frame work and wakes no more than
   once per second outside explicit state transitions.
 - Diagnostic rendering is closed by default and must not create a high-rate
   React state update loop.
 - Local synthetic tests enforce buffer and request-size bounds, absence of
   unbounded queues, and no extra underruns under the deterministic test stream.
-- Before the browser UI or upload path is wired, the worklet accumulator and
-  ring bookkeeping are extracted into an importable pure core. A deterministic
-  AudioWorklet harness exercises render quanta, silence/clipping classification,
-  buffer transitions, reset, and allocation bounds. A browser lifecycle harness
-  exercises attempt rotation, reconnect, visibility, suspended contexts,
-  unsupported APIs, upload failure, reset-without-audio-stop, and teardown.
+- Before UI/upload wiring, a deterministic worklet harness exercises render,
+  classification, buffer transitions, reset, and teardown. A focused browser
+  harness covers one normal attempt, one reconnect, background suspension,
+  unsupported APIs, reset, upload failure, and teardown. This is a fixed
+  scenario set, not a browser-simulation framework.
 - Producer isolation tests hold collector lookup/ingest indefinitely and prove
   unchanged source authority-poll cadence, lease fail-close timing, publisher
   state, relay fan-out, and listener delivery.
-- The initial profiling budgets are at most 2 MiB additional steady-state
-  browser memory per listener, 2 KiB/s average diagnostic upload, two percentage
-  points additional CPU, 2 ms additional p95 main-thread scheduling delay, and
-  zero instrumentation-induced underruns in the deterministic local stream.
-- S2-F measures those same CPU, memory, scheduling, startup, and underrun deltas
-  on supported real clients. Until those measurements pass, the design may be
-  locally implemented but not described as negligible-overhead in the real
-  environment.
+- Local gates require the configured ring/request bounds and zero
+  instrumentation-induced underruns in the deterministic stream. S2-F records
+  browser memory, CPU, scheduling, startup, upload rate, and underrun deltas on
+  the few supported real clients. Numeric performance limits are fixed from
+  those measurements before production enablement rather than building a local
+  benchmarking framework that poorly predicts the phones used at game night.
 
 ## Implementation discipline
 
@@ -672,23 +645,38 @@ They are specification work, not post-implementation audit suggestions.
 | Checkpoint | Specification must close before implementation |
 | --- | --- |
 | E1 | Plain/own JSON shape; lowercase canonical identities; exact per-kind envelopes and transitions; semantic operators such as ordinal, window sum, window aggregate, point, and instance cumulative; byte/frame/channel and signal truth tables; nested member/operator privacy; one validated copy/export wrapper; all-kind replay/conflict; malformed retained-read policy; and an E1 validator that does not execute E2 alignment or E3 diagnosis. |
-| E2 | Exact signed bytes and canonicalization order; physically possible clock inequalities and interval formula; issuer/audience/scope/key ownership; key distribution and retention; nonce/replay/expiry/renewal; consent start/stop versus accepted replay linearization; trace/run/lease/generation rotation; unrelated timebases; and fail-closed historical verification. |
+| E2 | Exact E1-core/E2-wrapper boundary; physically possible clock inequalities and interval formula; Game/State-derived authority; one-active-trace lifecycle; consent start/stop versus accepted replay; trace/run/lease/generation rotation; unrelated timebases; and fail-closed stored interval mapping. No diagnostic PKI. |
 | E3 | Versioned health derivation from validated report fields; no caller-authored component, health, interval, or timebase labels; uncertainty-aware overlap and precedence; contradictory/missing evidence; exact contributing references; confidence semantics; and exhaustive classification plus `insufficient_evidence` matrices. |
 | E4 | Epoch-tagged MessagePort request/reply shapes; one atomic snapshot-and-rotate operation; acknowledgement and stale-message handling; reset during buffering, render, underrun, and re-prime; fixed sampling/aggregation definitions; overflow and teardown; pre-instrumentation playback baseline; allocation and render-path bounds; and no lost or cross-epoch observations. |
 | E5 | Once-only ordered attempt milestones; reconnect only after a new attempt; background sleep and timer-throttling coverage; visibility transitions; unsupported versus observed zero; structured finite errors; abort/retry/reset races; old worklet replies; and cleanup of every timer, observer, reader, node, listener, and AudioContext on every exit. |
 | E6 | Closed-panel subscription/render behavior; recursively projected copy shape; pseudonymous-field disclosure before copy; clipboard failure; accessibility announcement cadence; reset acknowledgement without playback mutation; malformed local data; bounded export; and proof that UI state is never measurement authority. |
-| E7 | Canonical schema/ledger identity; database transition and immutability rules; transactional ingest/idempotency; exact replay after retention; WAL/checkpoint/busy/crash schedules; physical database/index/WAL/temp/log accounting; reserve enforcement; secure deletion policy; startup recovery; backup exclusion; disposable rollback; and collector absence from every authority readiness dependency. |
-| E8 | Exhaustive capability and credential matrix; principal/source/relay assertion binding to method, path, request, run, lease, generation, and expiry; trusted server clock; request identity and response-loss replay; consent-generation races; delayed old assertions after handoff; bounded error mapping; and proof diagnostic failure cannot share a gameplay transaction. |
+| E7 | Canonical disposable schema identity; transactional ingest/idempotency; WAL/busy/crash schedules; fixed row/byte/free-space caps; 48-hour retention and whole-trace purge; startup recovery; backup exclusion; disposable rollback; and collector absence from authority readiness. |
+| E8 | Fixed browser/source/relay/host/Game/maintenance caller matrix; server-derived run/lease/generation binding; trusted server clock; request identity and response-loss replay; consent-generation races; delayed old-generation reports after handoff; bounded errors; and proof diagnostic failure cannot share a gameplay transaction. |
 | E9 | Exact finite source snapshot and local privilege boundary; monotonic counter/reset identity; reporter queue/backoff/drop semantics; credential rotation; malformed/hung collector; source/controller restart; no log or raw-error scraping; and unchanged authority poll cadence, lease fail-close, provider sequencing, and publisher state. |
 | E10 | Exact finite relay snapshot; generation creation and immutable binding; delayed old-generation reports; handoff/fence ordering; listener fan-out/backpressure counters; reporter queue and credentials; relay/collector restart; no peer/IP/path leakage; and unchanged audio delivery under collector failure. |
-| E11 | Fault oracle derived only from E1-E3 evidence; source/relay/delivery/buffer/output fault isolation; missing and contradictory evidence; role-scoped reads; privacy and retention after comparison; resource exhaustion and cleanup; provenance tying results to exact code/images; and real-interface composition rather than simulator constants. |
+| E11 | The five fixed source/relay/delivery/buffer/output classifications derived only from E1-E3; missing/contradictory evidence; host/member reads; purge and cleanup; and real-interface composition rather than simulator constants. |
 | E12 | Exact local evidence inventory; measurement-only S2-F responsibilities; image/release/host identity; interruption/reboot/restore/rollback schedules; credential and resource cleanup; acceptance thresholds fixed before rehearsal; and an explicit route back to the owning E checkpoint when reality disproves the model. |
 
 ## Revised implementation sequence
 
-Execution resumes at E1. Existing prototype code that spans E1-E6 may be
-retained, revised, or removed, but its presence does not advance checkpoint
-status. E2 and E4 both require verified E1. E4 may then proceed without verified
+The scale filter is part of the design, not an invitation to re-add machinery
+during implementation:
+
+| Checkpoint | Retained because it protects a game night | Explicitly omitted in version 1 |
+| --- | --- | --- |
+| E2 | one active trace, consent, server-derived correlation, simple server-time interval | PKI, public verification keys, offline aligned comparison, general capabilities |
+| E3 | five fixed suspicion patterns plus `insufficient_evidence` | rule engine, query language, extensible diagnosis plugins |
+| E4 | atomic worklet snapshot/reset and a deterministic PCM check | generic cross-thread framework or comprehensive audio simulator |
+| E5 | normal, reconnect, background, unsupported, reset, failure, teardown scenarios | general browser/clock simulation framework |
+| E6 | one advanced panel and clearly labeled local copy | dashboard builder, automatic support upload, multi-report offline diagnosis |
+| E7 | optional sidecar, separate SQLite volume, simple caps, 48-hour retention | project-quota integration, configurable retention service, per-read audit ledger |
+| E8 | fixed browser/source/relay/host/Game/maintenance routes | arbitrary scopes, delegation, policy language, assertion infrastructure |
+| E9/E10 | one finite snapshot and low-priority reporter task per producer | separate reporter processes unless real measurements require them |
+| E11 | one host view and five deterministic injected faults | general observability UI or open-ended fault lab |
+| E12 | measurements on the actual few supported devices/hosts | broad device certification or fleet-scale capacity program |
+
+Execution resumes at E1. The archived pre-spec prototype remains outside the
+active branch and supplies no checkpoint evidence. E2 and E4 both require verified E1. E4 may then proceed without verified
 E2-E3 because it consumes neither authority nor comparison semantics. E5
 requires verified E4; E6 requires verified E1 and E5; E7-E12 proceed in the
 numbered order. No collector work begins merely because a local report can
@@ -700,15 +688,16 @@ Status: revised detailed specification is `design-review-pending`; implementatio
 remains unauthorized. The primary adversarial review corrected the previously
 implicit rules for object shape, semantic operators, transitions, signal and
 cross-field truth, recursive copy privacy, all-kind identity, E2 isolation, and
-evidence scope. The specification checkpoint supplies the exact audit identity;
-an independent design audit remains required before the packet may become
-`designed`. This status does not advance E2 or authorize E1 implementation
-remediation.
+evidence scope. The first independent audit then rejected that revision and v3
+now resolves its composition, exact-schema, history, recursive-privacy, input,
+resource, and interruption findings. A fresh independent design audit remains
+required before the packet may become `designed`. This status does not advance
+E2 or authorize E1 implementation remediation.
 
 Detailed specification packet:
 [E1 measurement vocabulary and privacy](s2-e-e1-measurement-spec.md).
 
-Publish only the six exact report envelopes; precise field semantics including
+Publish only the six exact E1 measurement cores; precise field semantics including
 identity, ordinal, constant, window sum, window aggregate, point sample,
 instance cumulative, interval, and transition; finite enums; numeric ranges;
 versioned signal thresholds and relational truth tables; member/operator and
@@ -725,37 +714,37 @@ that the browser copy action consumes this boundary without bypassing it.
 
 ### E2 — Synchronization and correlation authority
 
-Implement the capability matrix, trace lifecycle, consent generation, producer
-assertion profiles, synchronization sample verification, interval mapping, key
-retention, and replay/expiry rules. Tests cover impossible timing, signature and
-key failure, stale generations, consent stop/replay linearization, unrelated
-timebases, renewal, reordering, and historical comparison. This checkpoint
-produces validated aligned intervals; it does not classify audio health.
+Implement the one-active-trace lifecycle, forward-only listener consent, Game-
+derived run/role/lease correlation, relay-generation binding, and the simple
+collector-timebase round-trip mapping. Tests cover impossible timing, stale
+trace/lease/generation, consent stop versus accepted replay, unrelated
+timebases, and report reordering. There is no diagnostic PKI, public-key
+distribution, or offline signed-sample verification. This checkpoint produces
+stored aligned intervals for uploaded reports; it does not classify health.
 
 Exit gate: no caller can author run/lease/trace/role authority, and every mapped
-interval is derived from a cryptographically verified, physically possible
+interval is derived by Game/collector from a physically possible authenticated
 sample or fails closed.
 
 ### E3 — Evidence derivation and comparison reducer
 
-Build versioned reducers that derive finite component health observations from
-validated E1 reports and E2 intervals. The comparison function accepts only
-those derived observations; it never accepts caller-authored health, component,
-interval, or timebase labels. Tests exhaust the classification matrix and prove
-that missing, contradictory, overlapping, or unverifiable evidence returns
-`insufficient_evidence`.
+Build one version-1 pure comparison function for the five evidence patterns in
+this contract. It accepts only validated E1 reports and stored E2 intervals; it
+never accepts caller-authored health/component labels. A finite table test proves
+the positive cases and that missing, contradictory, overlapping, or unaligned
+evidence returns `insufficient_evidence`. No rule engine or query language is
+introduced.
 
 Exit gate: every diagnosis is reproducible from contributing validated report
 references and carries its interval/uncertainty evidence.
 
 ### E4 — Worklet core and atomic cross-thread protocol
 
-Instrument the PCM core without React, fetch, or upload. Define one epoch-tagged
-MessagePort protocol for configure, PCM, state transitions, atomic
-snapshot-and-rotate, and diagnostic reset. Use the actual worklet wrapper and a
-deterministic MessagePort/AudioWorklet harness. Compare the instrumented core to
-the retained pre-instrumentation playback baseline across render, underrun,
-re-prime, overflow, reset, stale-message, and teardown schedules.
+Instrument the PCM core without React, fetch, or upload. Add one small epoch-
+tagged MessagePort protocol for configure, PCM, atomic snapshot-and-rotate, and
+stop/reset. Use the actual worklet wrapper and a deterministic harness covering
+normal render, one underrun/re-prime, overflow, stale reply, reset, and teardown.
+Compare PCM output to the retained pre-instrumentation baseline.
 
 Exit gate: observations cannot be lost or cross epochs; attempt-independent
 worklet events are coherent; allocation/storage bounds pass; and the deterministic
@@ -763,12 +752,11 @@ baseline shows zero instrumentation-induced underruns or PCM divergence.
 
 ### E5 — Browser attempt and window lifecycle
 
-Implement the listener attempt state machine, fixed-cadence window accumulator,
-background/visibility coverage, unsupported-API states, bounded local ring, and
-diagnostic-instance rotation without UI. A browser harness uses fake fetch
-streams, timers, AudioContext, MessagePort, PerformanceObserver, visibility,
-aborts, sleep/throttling, failures, retries, reset acknowledgements, and page
-teardown. It composes through the real hook-facing adapter and E4 protocol.
+Implement the listener attempt state, 10-second accumulator, visibility/
+suspension observation, unsupported-API states, 15-minute ring, and instance
+rotation without UI. A focused harness uses fake fetch/AudioContext/MessagePort
+for normal playback, one failed/retried stream, background suspension, reset,
+unsupported API, and teardown. It composes through the real adapter and E4.
 
 Exit gate: milestones occur once in legal order, reconnect begins only with a
 new attempt, suspended coverage is not silently discarded, unsupported does not
@@ -790,22 +778,21 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Add the disposable collector/store and dedicated physical volume. Implement
-authenticated ingestion, exact idempotency, logical and physical quotas,
-retention, audit events, read-only projections, WAL/temp/log bounds, and
-degraded/read-only behavior. Game/State/audio readiness, backup, and rollback
-must not depend on diagnostics.
+Add the disposable collector/store and dedicated volume. Implement authenticated
+Game ingestion, exact idempotency, the fixed row/byte/free-space caps, 48-hour
+retention, host projection, whole-trace purge, and degraded/read-only behavior.
+Game/State/audio readiness, backup, and rollback do not depend on diagnostics.
 
-Exit gate: process/SQLite/Compose tests prove capability separation, quota and
-reserve enforcement, retention, deletion, restore exclusion, schema disposal,
-and unchanged S2-D authority behavior under collector loss or corruption.
+Exit gate: process/SQLite/Compose tests prove the two-credential separation,
+caps, retention/purge, restore exclusion, disposable-schema recreation, and
+unchanged S2-D behavior under collector loss or corruption.
 
 ### E8 — Game/State mediation and consent routing
 
-Wire trace management, listener grants, source authority assertions, relay
-generation binding, host reads, and forward-only consent through the reviewed
-capability graph. Test each real HTTP boundary and an exhaustive cross-scope
-allow/deny matrix. No source or relay reporter is attached yet.
+Wire trace management, listener opt-in, source authority lookup, relay-generation
+binding, host reads, and forward-only consent through Game. Test the real HTTP
+boundaries and the small fixed caller matrix: browser, source, relay, host,
+Game-to-collector, and maintenance. No source or relay reporter is attached yet.
 
 Exit gate: correlation is server-derived, exact replays retain their original
 finite result, revoked unseen work is rejected, and ingestion failure cannot
@@ -813,9 +800,9 @@ change gameplay or playback transactions.
 
 ### E9 — Source diagnostic interface and isolated reporter
 
-Implement and pin the finite publisher snapshot interface, then attach a
-separate bounded reporter using E8 authority. Audio and authority-poll paths do
-constant-time counter updates only and never wait for diagnostics.
+Implement and pin the finite publisher snapshot interface, then attach one
+low-priority bounded reporter task using E8 authority. Audio and authority-poll
+paths do constant-time counter updates only and never wait for diagnostics.
 
 Exit gate: stable-interface, credential, malformed-response, hung-collector,
 restart, queue-bound, and no-free-form-output tests pass without changing source
@@ -823,29 +810,28 @@ poll cadence, lease fail-close behavior, or publisher state.
 
 ### E10 — Relay diagnostic interface and isolated reporter
 
-Implement and pin the finite relay-generation snapshot interface and attach its
-bounded reporter. Bind a generation once at start and never rebind delayed work
-after handoff.
+Implement and pin the finite relay-generation snapshot interface and attach one
+low-priority bounded reporter task. Bind a generation once at start and never
+rebind delayed work after handoff.
 
 Exit gate: generation, fencing, fan-out, backpressure, credential, restart, and
 hung-collector tests pass without changing relay delivery or S2-D isolation.
 
 ### E11 — Comparison experience and composed local fault injection
 
-Add host/operator comparison views over the E3 reducer and E7 projections.
-Inject deterministic faults separately at source, relay, delivery, buffer, and
-browser-output boundaries, then exercise contradictory/missing evidence,
-privacy, retention, deletion, resource exhaustion, and cleanup.
+Add one host comparison view over E3/E7. Inject one deterministic fault at each
+of the five modeled boundaries, plus one missing/contradictory evidence case.
+Verify member privacy, host read, trace purge, collector absence, and cleanup.
 
 Exit gate: the complete local acceptance gate below passes through real
 interfaces and no finding is justified solely by a pure-model test.
 
 ### E12 — S2-F handoff
 
-Hand the verified local package to S2-F for real controller/browser/relay timing,
-supported-client performance, restart, capacity, installation, and cleanup
-evidence. Failed real measurements return to the owning E1-E11 boundary rather
-than being waived or fixed only in the rehearsal plan.
+Hand the verified local package to S2-F for the real controller, the few
+supported phones/browsers, relay timing, restart, installation, and cleanup.
+Failed real measurements return to the owning E1-E11 boundary rather than being
+waived in rehearsal notes.
 
 ## Local acceptance gate
 
@@ -858,20 +844,20 @@ S2-E is locally complete only when all of the following are executable:
   rejects a report;
 - duplicate, reordered, malformed, oversized, and over-quota reports fail or
   replay according to the contract without affecting audio or State;
-- generated privacy tests cover every input and output field and find no
-  prohibited string, identifier, metadata, or high-cardinality label;
+- E1 privacy projection tests cover every retained/copied field and a sentinel
+  scan finds no prohibited content or direct identity;
 - collector loss and diagnostic-store deletion leave gameplay, recovery,
   history, backup/restore, and rollback gates unchanged;
 - a hung collector leaves source authority polling, lease behavior, publisher
   state, relay fan-out, and listener delivery unchanged;
-- trace/host reads, producer uploads, key rotation, assertion replay/expiry, and
-  every cross-capability request pass an exhaustive allow/deny matrix;
+- trace/host reads and listener/source/relay uploads pass the fixed caller matrix,
+  while maintenance can only status/purge;
 - common-timebase reports compare using interval uncertainty, while unrelated or
-  overlapping anchors return `insufficient_evidence`;
-- the advertised six-hour/eight-listener envelope fits the physical quota with
-  reserve, and forced DB/WAL/temp/log growth degrades diagnostics before host
-  reserve is crossed;
-- buffer, memory, upload, wakeup, and retention bounds are measured locally;
+  overlapping mappings return `insufficient_evidence`;
+- the advertised six-hour/eight-listener cadence fits the row/byte caps, and a
+  near-cap store degrades before the host free-space reserve is crossed;
+- configured buffer, upload, and retention bounds pass locally; real CPU/memory
+  and scheduling measurements remain S2-F;
   and
 - the S2-D source-handoff and listener-generation suites remain green.
 
@@ -879,13 +865,12 @@ S2-E is locally complete only when all of the following are executable:
 
 The S2-E/S2-F boundary is decided field by field rather than by producer:
 
-- S2-E defines and locally proves all schemas, capabilities, correlation,
-  interval comparison, stable producer interfaces, nonblocking isolation,
-  deterministic browser/worklet behavior, logical and physical bounds, cleanup,
-  and failure-safe degradation.
+- S2-E defines and locally proves schemas, the fixed caller matrix, correlation,
+  interval comparison, producer interfaces, nonblocking isolation, deterministic
+  browser/worklet behavior, configured bounds, cleanup, and safe degradation.
 - S2-F measures those already-defined properties on supported real browsers,
   audio hardware, the real controller/Spotify path, and the packaged relay host.
-  It measures CPU, memory, scheduling, startup, underrun deltas, clock-anchor
+  It measures CPU, memory, scheduling, startup, underrun deltas, clock-sample
   uncertainty, revocation timing, real filesystem reserve behavior, shaped-
   network classification, capacity, restart, and installation/cleanup.
 - S2-F may tune numeric budgets within a reviewed compatible contract. It may
@@ -895,7 +880,7 @@ The S2-E/S2-F boundary is decided field by field rather than by producer:
 
 Real Spotify effects, hardware audibility, supported-browser performance,
 empirical synchronization uncertainty, real network shaping, packaged-host
-resource behavior, and production-scale capacity therefore remain legitimate
+resource behavior, and maximum game-night capacity therefore remain legitimate
 S2-F evidence gates. Stable interfaces, deterministic timing representation,
 routing, local isolation, and capacity arithmetic do not.
 
