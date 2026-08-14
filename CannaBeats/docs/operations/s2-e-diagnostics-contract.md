@@ -2,10 +2,9 @@
 
 Status: the S2-E architecture and checkpoint framework use the small-deployment
 scale filter and each detailed checkpoint must pass its own closure gate. E1 is
-locally verified at its recorded exact implementation target. E2 now has an
-implementation-candidate specification packet; its isolated pure model is
-authorized, while persistence, routing, authority integration, and consumers
-remain unauthorized.
+locally verified at its recorded exact implementation target. E2's isolated
+pure model is in closure review, while persistence, routing, authority
+integration, and consumers remain unauthorized.
 The earlier broad executable-contract and listener prototypes remain archived
 outside the active branch and supply no evidence.
 
@@ -741,10 +740,11 @@ that the browser copy action consumes this boundary without bypassing it.
 
 ### E2 — Synchronization and correlation authority
 
-Status: detailed specification is `implementation-candidate`. The isolated pure
-timing/authority model is authorized; E7 persistence, E8 authenticated
-HTTP/State integration, and downstream consumers remain gated on independent
-closure. The packet deliberately keeps those later boundaries out of E2.
+Status: detailed specification is `closure-review`. The isolated pure
+timing/authority model and its lifecycle reducers are implemented; E7
+persistence, E8 authenticated HTTP/State integration, and downstream consumers
+remain gated on independent closure. The packet deliberately keeps those later
+boundaries out of E2.
 
 Detailed specification packet:
 [E2 synchronization and correlation authority](s2-e-e2-correlation-spec.md).

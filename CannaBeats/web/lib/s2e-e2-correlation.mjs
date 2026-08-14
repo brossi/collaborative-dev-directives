@@ -12,12 +12,19 @@ const MAX_UNCERTAINTY_MS = 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 const decoder = new TextDecoder('utf-8', { fatal: true });
+const encoder = new TextEncoder();
 
 const issuanceFixtures = new WeakSet();
 const acceptedSamples = new WeakSet();
 const alignments = new WeakSet();
 const contextFixtures = new WeakSet();
 const uploadedEnvelopes = new WeakSet();
+const operationAuthorities = new WeakSet();
+const operationCommands = new WeakSet();
+const traceStates = new WeakSet();
+const consentStates = new WeakSet();
+const relayBindings = new WeakSet();
+const operationReceipts = new WeakSet();
 
 export class E2ContractError extends Error {
   constructor(code) {
@@ -66,6 +73,11 @@ function finiteTime(value, code) {
 
 function positiveUint(value, code) {
   if (!Number.isSafeInteger(value) || value < 1) fail(code);
+  return value;
+}
+
+function uint(value, code) {
+  if (!Number.isSafeInteger(value) || value < 0) fail(code);
   return value;
 }
 
@@ -326,4 +338,430 @@ export function classifyTimebaseRelation(left, right) {
   return left.sample.timebaseId === right.sample.timebaseId
     ? 'same_timebase'
     : 'unrelated_timebase';
+}
+
+const OPERATIONS = [
+  'trace_start', 'trace_end', 'consent_opt_in', 'consent_stop', 'relay_bind',
+];
+
+function normalizeOperationCommand(parsed) {
+  const code = 'request_conflict';
+  if (!isRecord(parsed) || !OPERATIONS.includes(parsed.operation)) fail(code);
+  const common = {
+    requestId: (value) => uuid(value, code),
+    operation: literal(parsed.operation, code),
+  };
+  const parameters = {
+    trace_start: (value) => exactRecord(value, {}, code),
+    trace_end: (value) => exactRecord(value, {}, code),
+    consent_opt_in: (value) => exactRecord(value, {
+      listenerInstanceId: (entry) => uuid(entry, code),
+      firstAllowedSequence: (entry) => uint(entry, code),
+      localConsentStartedMs: (entry) => finiteTime(entry, code),
+    }, code),
+    consent_stop: (value) => exactRecord(value, {
+      listenerInstanceId: (entry) => uuid(entry, code),
+      expectedGeneration: (entry) => positiveUint(entry, code),
+    }, code),
+    relay_bind: (value) => exactRecord(value, {
+      relayGenerationId: (entry) => uuid(entry, code),
+    }, code),
+  }[parsed.operation];
+  return exactRecord(parsed, { ...common, parameters }, code);
+}
+
+export function validateE2OperationCommandJson(input) {
+  const command = deepFreeze(normalizeOperationCommand(parseBytes(input, 'request_conflict')));
+  operationCommands.add(command);
+  return command;
+}
+
+export function canonicalE2OperationCommandBytes(command) {
+  if (!operationCommands.has(command)) fail('request_conflict');
+  return encoder.encode(JSON.stringify(command));
+}
+
+function sameBytes(left, right) {
+  if (left.byteLength !== right.byteLength) return false;
+  for (let index = 0; index < left.byteLength; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
+function normalizeOperationAuthority(parsed) {
+  const code = 'authority_invalid';
+  if (!isRecord(parsed) || typeof parsed.operation !== 'string') fail(code);
+  const now = (value) => finiteTime(value, code);
+  const run = {
+    runId: (value) => uuid(value, code),
+    runGeneration: (value) => positiveUint(value, code),
+    leaseId: (value) => uuid(value, code),
+  };
+  if (parsed.operation === 'trace_start') {
+    return exactRecord(parsed, {
+      authorityVersion: literal(1, code), operation: literal('trace_start', code),
+      nowMs: now, isHost: literal(true, code), ...run,
+      issuedTraceId: (value) => uuid(value, code),
+      issuedSegmentId: (value) => uuid(value, code),
+    }, code);
+  }
+  if (parsed.operation === 'trace_end') {
+    return exactRecord(parsed, {
+      authorityVersion: literal(1, code), operation: literal('trace_end', code),
+      nowMs: now, traceId: (value) => uuid(value, code),
+      reason: enumeration([
+        'host_stopped', 'expired', 'run_replaced', 'authority_lost',
+      ], code),
+    }, code);
+  }
+  if (parsed.operation === 'segment_rotate') {
+    return exactRecord(parsed, {
+      authorityVersion: literal(1, code), operation: literal('segment_rotate', code),
+      nowMs: now, traceId: (value) => uuid(value, code),
+      priorLeaseId: (value) => uuid(value, code),
+      leaseId: (value) => uuid(value, code),
+      issuedSegmentId: (value) => uuid(value, code),
+    }, code);
+  }
+  if (parsed.operation === 'consent_opt_in' || parsed.operation === 'consent_stop') {
+    return exactRecord(parsed, {
+      authorityVersion: literal(1, code), operation: literal(parsed.operation, code),
+      nowMs: now, traceId: (value) => uuid(value, code),
+      listenerInstanceId: (value) => uuid(value, code),
+    }, code);
+  }
+  if (parsed.operation === 'relay_bind') {
+    return exactRecord(parsed, {
+      authorityVersion: literal(1, code), operation: literal('relay_bind', code),
+      traceId: (value) => uuid(value, code),
+      segmentId: (value) => uuid(value, code),
+      leaseId: (value) => uuid(value, code),
+      relayGenerationId: (value) => uuid(value, code),
+    }, code);
+  }
+  fail(code);
+}
+
+/** Test-only operation seam. E8 replaces this with authenticated State facts. */
+export function createOperationAuthorityFixtureForTest(input) {
+  const authority = deepFreeze(normalizeOperationAuthority(
+    parseBytes(input, 'authority_invalid'),
+  ));
+  operationAuthorities.add(authority);
+  return authority;
+}
+
+function assertCommand(command, operation) {
+  if (!operationCommands.has(command) || command.operation !== operation) {
+    fail('request_conflict');
+  }
+  return command;
+}
+
+function assertAuthority(authority, operation) {
+  if (!operationAuthorities.has(authority) || authority.operation !== operation) {
+    fail('authority_invalid');
+  }
+  return authority;
+}
+
+function makeReceipt(command, result) {
+  const receipt = deepFreeze(Object.assign(Object.create(null), {
+    receiptVersion: 1,
+    requestId: command.requestId,
+    operation: command.operation,
+    canonicalCommand: command,
+    result,
+  }));
+  operationReceipts.add(receipt);
+  return receipt;
+}
+
+function normalizeTraceState(value) {
+  const code = 'request_conflict';
+  if (!isRecord(value) || !['active', 'ended'].includes(value.status)) fail(code);
+  const ended = value.status === 'active'
+    ? (entry) => exactRecord(entry, { status: literal('not_applicable', code) }, code)
+    : (entry) => exactRecord(entry, {
+      status: literal('ended', code),
+      endedAtMs: (field) => finiteTime(field, code),
+      reason: enumeration([
+        'host_stopped', 'expired', 'run_replaced', 'authority_lost',
+      ], code),
+    }, code);
+  const state = exactRecord(value, {
+    traceVersion: literal(1, code),
+    traceId: (field) => uuid(field, code),
+    runId: (field) => uuid(field, code),
+    runGeneration: (field) => positiveUint(field, code),
+    status: literal(value.status, code),
+    startedAtMs: (field) => finiteTime(field, code),
+    expiresAtMs: (field) => finiteTime(field, code),
+    ended,
+    segment: (entry) => exactRecord(entry, {
+      segmentId: (field) => uuid(field, code),
+      leaseId: (field) => uuid(field, code),
+      startedAtMs: (field) => finiteTime(field, code),
+    }, code),
+  }, code);
+  if (state.expiresAtMs !== state.startedAtMs + 21600000
+    || state.segment.startedAtMs < state.startedAtMs
+    || (state.status === 'ended' && state.ended.endedAtMs < state.startedAtMs)) fail(code);
+  return state;
+}
+
+function normalizeConsentState(value) {
+  const code = 'request_conflict';
+  if (!isRecord(value) || !['enabled', 'revoked'].includes(value.status)) fail(code);
+  return exactRecord(value, {
+    consentVersion: literal(1, code),
+    traceId: (field) => uuid(field, code),
+    listenerInstanceId: (field) => uuid(field, code),
+    generation: (field) => positiveUint(field, code),
+    status: literal(value.status, code),
+    firstAllowedSequence: (field) => uint(field, code),
+    localConsentStartedMs: (field) => finiteTime(field, code),
+    changedAtMs: (field) => finiteTime(field, code),
+  }, code);
+}
+
+function normalizeRelayBinding(value) {
+  const code = 'request_conflict';
+  return exactRecord(value, {
+    relayGenerationId: (field) => uuid(field, code),
+    traceId: (field) => uuid(field, code),
+    segmentId: (field) => uuid(field, code),
+    leaseId: (field) => uuid(field, code),
+  }, code);
+}
+
+export function validateE2OperationReceiptJson(input) {
+  const code = 'request_conflict';
+  const parsed = parseBytes(input, code);
+  if (!isRecord(parsed) || !OPERATIONS.includes(parsed.operation)) fail(code);
+  const receipt = exactRecord(parsed, {
+    receiptVersion: literal(1, code),
+    requestId: (field) => uuid(field, code),
+    operation: literal(parsed.operation, code),
+    canonicalCommand: normalizeOperationCommand,
+    result: parsed.operation === 'trace_start' || parsed.operation === 'trace_end'
+      ? normalizeTraceState
+      : parsed.operation === 'relay_bind'
+        ? normalizeRelayBinding
+        : normalizeConsentState,
+  }, code);
+  if (receipt.requestId !== receipt.canonicalCommand.requestId
+    || receipt.operation !== receipt.canonicalCommand.operation) fail(code);
+  const frozen = deepFreeze(receipt);
+  operationCommands.add(frozen.canonicalCommand);
+  if (frozen.operation === 'trace_start' || frozen.operation === 'trace_end') {
+    traceStates.add(frozen.result);
+  } else if (frozen.operation === 'relay_bind') {
+    relayBindings.add(frozen.result);
+  } else {
+    consentStates.add(frozen.result);
+  }
+  operationReceipts.add(frozen);
+  return frozen;
+}
+
+export function canonicalE2OperationReceiptBytes(receipt) {
+  if (!operationReceipts.has(receipt)) fail('request_conflict');
+  return encoder.encode(JSON.stringify(receipt));
+}
+
+function replayReceipt(existingReceipt, command) {
+  if (existingReceipt === null) return null;
+  if (!operationReceipts.has(existingReceipt)
+    || existingReceipt.requestId !== command.requestId) fail('request_conflict');
+  if (!sameBytes(
+    canonicalE2OperationCommandBytes(existingReceipt.canonicalCommand),
+    canonicalE2OperationCommandBytes(command),
+  )) fail('request_conflict');
+  return deepFreeze(Object.assign(Object.create(null), {
+    status: 'replayed',
+    state: existingReceipt.result,
+    receipt: existingReceipt,
+  }));
+}
+
+function accepted(command, result) {
+  const receipt = makeReceipt(command, result);
+  return deepFreeze(Object.assign(Object.create(null), {
+    status: 'accepted', state: result, receipt,
+  }));
+}
+
+export function startDiagnosticTrace(currentTrace, command, authority, existingReceipt = null) {
+  assertCommand(command, 'trace_start');
+  const replay = replayReceipt(existingReceipt, command);
+  if (replay) return replay;
+  assertAuthority(authority, 'trace_start');
+  if (currentTrace !== null) {
+    if (!traceStates.has(currentTrace)) fail('stale_correlation');
+    if (currentTrace.status === 'active') {
+      return deepFreeze(Object.assign(Object.create(null), {
+        status: 'trace_busy', state: currentTrace, receipt: null,
+      }));
+    }
+  }
+  const expiresAtMs = checkedAdd(authority.nowMs, 21600000, 'authority_invalid');
+  const state = deepFreeze(Object.assign(Object.create(null), {
+    traceVersion: 1,
+    traceId: authority.issuedTraceId,
+    runId: authority.runId,
+    runGeneration: authority.runGeneration,
+    status: 'active',
+    startedAtMs: authority.nowMs,
+    expiresAtMs,
+    ended: deepFreeze(Object.assign(Object.create(null), { status: 'not_applicable' })),
+    segment: deepFreeze(Object.assign(Object.create(null), {
+      segmentId: authority.issuedSegmentId,
+      leaseId: authority.leaseId,
+      startedAtMs: authority.nowMs,
+    })),
+  }));
+  traceStates.add(state);
+  return accepted(command, state);
+}
+
+export function endDiagnosticTrace(currentTrace, command, authority, existingReceipt = null) {
+  assertCommand(command, 'trace_end');
+  const replay = replayReceipt(existingReceipt, command);
+  if (replay) return replay;
+  assertAuthority(authority, 'trace_end');
+  if (!traceStates.has(currentTrace) || currentTrace.status !== 'active'
+    || currentTrace.traceId !== authority.traceId
+    || authority.nowMs < currentTrace.startedAtMs) fail('stale_correlation');
+  const state = deepFreeze(Object.assign(Object.create(null), {
+    ...currentTrace,
+    status: 'ended',
+    ended: deepFreeze(Object.assign(Object.create(null), {
+      status: 'ended', endedAtMs: authority.nowMs, reason: authority.reason,
+    })),
+  }));
+  traceStates.add(state);
+  return accepted(command, state);
+}
+
+export function rotateCorrelationSegment(currentTrace, authority) {
+  assertAuthority(authority, 'segment_rotate');
+  if (!traceStates.has(currentTrace) || currentTrace.status !== 'active'
+    || currentTrace.traceId !== authority.traceId
+    || currentTrace.segment.leaseId !== authority.priorLeaseId
+    || authority.nowMs < currentTrace.segment.startedAtMs) fail('stale_correlation');
+  if (authority.leaseId === authority.priorLeaseId) return currentTrace;
+  const state = deepFreeze(Object.assign(Object.create(null), {
+    ...currentTrace,
+    segment: deepFreeze(Object.assign(Object.create(null), {
+      segmentId: authority.issuedSegmentId,
+      leaseId: authority.leaseId,
+      startedAtMs: authority.nowMs,
+    })),
+  }));
+  traceStates.add(state);
+  return state;
+}
+
+export function bindRelayGeneration(currentTrace, command, authority, existingReceipt = null) {
+  assertCommand(command, 'relay_bind');
+  const replay = replayReceipt(existingReceipt, command);
+  if (replay) return replay;
+  assertAuthority(authority, 'relay_bind');
+  if (!traceStates.has(currentTrace) || currentTrace.status !== 'active'
+    || currentTrace.traceId !== authority.traceId
+    || currentTrace.segment.segmentId !== authority.segmentId
+    || currentTrace.segment.leaseId !== authority.leaseId
+    || command.parameters.relayGenerationId !== authority.relayGenerationId) {
+    fail('stale_correlation');
+  }
+  const binding = deepFreeze(Object.assign(Object.create(null), {
+    relayGenerationId: authority.relayGenerationId,
+    traceId: authority.traceId,
+    segmentId: authority.segmentId,
+    leaseId: authority.leaseId,
+  }));
+  relayBindings.add(binding);
+  return accepted(command, binding);
+}
+
+export function optInDiagnosticSharing(currentConsent, command, authority, existingReceipt = null) {
+  assertCommand(command, 'consent_opt_in');
+  const replay = replayReceipt(existingReceipt, command);
+  if (replay) return replay;
+  assertAuthority(authority, 'consent_opt_in');
+  if ((currentConsent !== null && !consentStates.has(currentConsent))
+    || command.parameters.listenerInstanceId !== authority.listenerInstanceId
+    || (currentConsent !== null && (currentConsent.traceId !== authority.traceId
+      || currentConsent.listenerInstanceId !== authority.listenerInstanceId))) {
+    fail('authority_invalid');
+  }
+  const generation = currentConsent === null ? 1 : currentConsent.generation + 1;
+  if (!Number.isSafeInteger(generation)) fail('authority_invalid');
+  const state = deepFreeze(Object.assign(Object.create(null), {
+    consentVersion: 1,
+    traceId: authority.traceId,
+    listenerInstanceId: authority.listenerInstanceId,
+    generation,
+    status: 'enabled',
+    firstAllowedSequence: command.parameters.firstAllowedSequence,
+    localConsentStartedMs: command.parameters.localConsentStartedMs,
+    changedAtMs: authority.nowMs,
+  }));
+  consentStates.add(state);
+  return accepted(command, state);
+}
+
+export function stopDiagnosticSharing(currentConsent, command, authority, existingReceipt = null) {
+  assertCommand(command, 'consent_stop');
+  const replay = replayReceipt(existingReceipt, command);
+  if (replay) return replay;
+  assertAuthority(authority, 'consent_stop');
+  if (!consentStates.has(currentConsent) || currentConsent.status !== 'enabled'
+    || currentConsent.traceId !== authority.traceId
+    || currentConsent.listenerInstanceId !== authority.listenerInstanceId
+    || command.parameters.listenerInstanceId !== authority.listenerInstanceId
+    || command.parameters.expectedGeneration !== currentConsent.generation
+    || authority.nowMs < currentConsent.changedAtMs) fail('sharing_disabled');
+  const generation = currentConsent.generation + 1;
+  if (!Number.isSafeInteger(generation)) fail('authority_invalid');
+  const state = deepFreeze(Object.assign(Object.create(null), {
+    ...currentConsent,
+    generation,
+    status: 'revoked',
+    changedAtMs: authority.nowMs,
+  }));
+  consentStates.add(state);
+  return accepted(command, state);
+}
+
+export function classifyDiagnosticReportIngest({
+  existingEnvelope,
+  incomingEnvelope,
+  consent,
+  grantGeneration,
+}) {
+  if (!uploadedEnvelopes.has(incomingEnvelope)) fail('report_invalid');
+  if (existingEnvelope !== null) {
+    if (!uploadedEnvelopes.has(existingEnvelope)
+      || uploadedEnvelopeIdentity(existingEnvelope) !== uploadedEnvelopeIdentity(incomingEnvelope)) {
+      fail('report_invalid');
+    }
+    return sameBytes(
+      canonicalMeasurementBytes(existingEnvelope.measurementCore),
+      canonicalMeasurementBytes(incomingEnvelope.measurementCore),
+    ) ? 'replayed' : 'report_conflict';
+  }
+  if (!consentStates.has(consent) || !Number.isSafeInteger(grantGeneration)
+    || grantGeneration < 1 || consent.status !== 'enabled'
+    || incomingEnvelope.serverContext.authorityKind !== 'listener'
+    || consent.generation !== grantGeneration
+    || consent.traceId !== incomingEnvelope.serverContext.traceId
+    || consent.listenerInstanceId !== incomingEnvelope.measurementCore.instanceId
+    || incomingEnvelope.measurementCore.sequence < consent.firstAllowedSequence
+    || incomingEnvelope.measurementCore.monotonicStartMs < consent.localConsentStartedMs) {
+    return 'sharing_disabled';
+  }
+  return 'accepted';
 }

@@ -4,7 +4,7 @@
 
 - Checkpoint: E2 — synchronization and correlation authority
 - Scope revision: `E2-spec-v1`
-- Status: `implementation-candidate`
+- Status: `closure-review`
 - Risk class: `B — boundary-bearing model`; isolated pure implementation is
   permitted, but authority/persistence/routing integration remains gated
 - Draft baseline: commit `b3540a1` on
@@ -19,6 +19,12 @@
 - Reviewers and review date: primary Codex design review on 2026-08-13;
   independent design/implementation closure required before E3, E7, or E8
   consumes the result
+
+Implementation checkpoint: timing provenance, interval mapping, immutable
+envelope composition, trace/segment lifecycle, relay binding, listener consent,
+operation-receipt replay, and report-ingest decisions are implemented in the
+isolated E2 module. Focused verification and independent closure review are in
+progress; this status authorizes no consumer or integration.
 
 ## Boundary map
 
@@ -481,12 +487,12 @@ assertion rejects E3-E12 imports and any database/network/UI dependency.
 
 | Claim | Invariant IDs | Negative schedules | Real interface | Test/evidence | Permitted status wording |
 | --- | --- | --- | --- | --- | --- |
-| Physically valid mapping | E2-TIME-001..005 | impossible order, RTT/work/expiry/overflow bounds | pure sample/map API | finite inequality matrix | designed only |
-| Unchanged E1 boundary | E2-CORE-001 | reordered/tampered/forged core | E1 frozen report into E2 | all-six-kind canonical byte equality | designed only |
-| Server-only authority context | E2-AUTH-001/002 | caller labels, wrong variant, stale authority | branded fixed authority seam | exact context/privacy matrix | designed only; E8 later proves HTTP derivation |
-| Trace/segment lifecycle | E2-TRACE-001/002, E2-SEG-001, E2-REPLAY-002 | duplicate/race/expiry/handoff/restart | pure reducers/receipt validator | state/result Cartesian table | designed only; E7/E8 later prove transactions |
-| Consent/replay lifecycle | E2-CONSENT-001/002, E2-REPLAY-001 | backfill, stop race, response loss, conflict | pure decision table | finite interleaving matrix | designed only; E7/E8 later prove transactions |
-| Bounded isolation | E2-BOUND-001 | attempted later import/I/O | pure module | dependency assertion | designed only |
+| Physically valid mapping | E2-TIME-001..005 | impossible order, RTT/work/expiry/overflow bounds | pure sample/map API | finite inequality matrix | implemented; closure pending |
+| Unchanged E1 boundary | E2-CORE-001 | reordered/tampered/forged core | E1 frozen report into E2 | all-six-kind canonical byte equality | implemented; closure pending |
+| Server-only authority context | E2-AUTH-001/002 | caller labels, wrong variant, stale authority | branded fixed authority seam | exact context/privacy matrix | implemented pure seam; E8 later proves HTTP derivation |
+| Trace/segment lifecycle | E2-TRACE-001/002, E2-SEG-001, E2-REPLAY-002 | duplicate/race/expiry/handoff/restart | pure reducers/receipt validator | state/result table | implemented pure reducer; E7/E8 later prove transactions |
+| Consent/replay lifecycle | E2-CONSENT-001/002, E2-REPLAY-001 | backfill, stop race, response loss, conflict | pure decision table | finite interleaving table | implemented pure reducer; E7/E8 later prove transactions |
+| Bounded isolation | E2-BOUND-001 | attempted later import/I/O | pure module | dependency assertion | implemented; closure pending |
 
 Exact implementation identity, focused results, and reviewed output fields are
 recorded only after implementation. No E2 real-clock accuracy is claimed:

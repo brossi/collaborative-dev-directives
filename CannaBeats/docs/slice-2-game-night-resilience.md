@@ -1041,9 +1041,9 @@ The normative design and implementation sequence are maintained in the
 
 Current checkpoint status: E1 measurement/privacy is locally verified at its
 recorded exact target; E2 synchronization/correlation has a
-implementation-candidate specification. Its isolated pure model is authorized;
-no persistence, routing, authority integration, or downstream consumer is
-authorized until independent closure.
+`closure-review` specification. Its isolated timing/envelope and lifecycle
+reducers are implemented; no persistence, routing, authority integration, or
+downstream consumer is authorized until independent closure.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.

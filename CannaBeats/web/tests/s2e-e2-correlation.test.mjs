@@ -5,12 +5,23 @@ import test from 'node:test';
 import {
   E2ContractError,
   acceptSynchronizationSample,
+  bindRelayGeneration,
+  canonicalE2OperationReceiptBytes,
+  classifyDiagnosticReportIngest,
   classifyTimebaseRelation,
   composeUploadedEnvelope,
+  createOperationAuthorityFixtureForTest,
   createServerContextFixtureForTest,
   createSynchronizationIssuanceFixtureForTest,
+  endDiagnosticTrace,
   mapMeasurementAlignment,
+  optInDiagnosticSharing,
+  rotateCorrelationSegment,
+  startDiagnosticTrace,
+  stopDiagnosticSharing,
   uploadedEnvelopeIdentity,
+  validateE2OperationCommandJson,
+  validateE2OperationReceiptJson,
 } from '../lib/s2e-e2-correlation.mjs';
 import {
   canonicalMeasurementBytes,
@@ -25,6 +36,11 @@ const RUN = '523e4567-e89b-42d3-a456-426614174000';
 const SEGMENT = '623e4567-e89b-42d3-a456-426614174000';
 const LEASE = '723e4567-e89b-42d3-a456-426614174000';
 const SOURCE = '823e4567-e89b-42d3-a456-426614174000';
+const TRACE_2 = '923e4567-e89b-42d3-a456-426614174000';
+const SEGMENT_2 = 'a23e4567-e89b-42d3-a456-426614174000';
+const LEASE_2 = 'b23e4567-e89b-42d3-a456-426614174000';
+const REQUEST_1 = 'c23e4567-e89b-42d3-a456-426614174000';
+const REQUEST_2 = 'd23e4567-e89b-42d3-a456-426614174000';
 const bytes = (value) => Buffer.from(JSON.stringify(value));
 
 function base(kind, measurements, overrides = {}) {
@@ -166,6 +182,31 @@ function expectCode(code, action) {
   assert.throws(action, (error) => error instanceof E2ContractError && error.code === code);
 }
 
+function command(operation, parameters = {}, requestId = REQUEST_1) {
+  return validateE2OperationCommandJson(bytes({ requestId, operation, parameters }));
+}
+
+function operationAuthority(value) {
+  return createOperationAuthorityFixtureForTest(bytes({ authorityVersion: 1, ...value }));
+}
+
+function startAuthority(overrides = {}) {
+  return operationAuthority({
+    operation: 'trace_start', nowMs: 1000, isHost: true, runId: RUN,
+    runGeneration: 1, leaseId: LEASE, issuedTraceId: TRACE,
+    issuedSegmentId: SEGMENT, ...overrides,
+  });
+}
+
+function envelope(value = listenerWindow(), contextOverrides = {}) {
+  const normalized = report(value);
+  return composeUploadedEnvelope(
+    normalized,
+    mapMeasurementAlignment(normalized, sample()),
+    context('listener', contextOverrides),
+  );
+}
+
 test('physical sample uses ordered offset bounds without repairing impossible timing', () => {
   const accepted = sample();
   assert.deepEqual({
@@ -240,6 +281,160 @@ test('different server timebases remain explicitly unrelated', () => {
   })));
   assert.equal(classifyTimebaseRelation(first, first), 'same_timebase');
   assert.equal(classifyTimebaseRelation(first, second), 'unrelated_timebase');
+});
+
+test('trace lifecycle is fixed, monotonic, replay-safe, and single-active', () => {
+  const start = command('trace_start');
+  const created = startDiagnosticTrace(null, start, startAuthority());
+  assert.equal(created.status, 'accepted');
+  assert.equal(created.state.status, 'active');
+  assert.equal(created.state.expiresAtMs, 21601000);
+
+  const replayed = startDiagnosticTrace(
+    null, command('trace_start'), startAuthority({ issuedTraceId: TRACE_2 }), created.receipt,
+  );
+  assert.equal(replayed.status, 'replayed');
+  assert.strictEqual(replayed.state, created.state);
+  const restoredReceipt = validateE2OperationReceiptJson(
+    canonicalE2OperationReceiptBytes(created.receipt),
+  );
+  const restartedReplay = startDiagnosticTrace(
+    null, command('trace_start'), startAuthority({ issuedTraceId: TRACE_2 }), restoredReceipt,
+  );
+  assert.equal(restartedReplay.status, 'replayed');
+  assert.deepEqual(restartedReplay.state, created.state);
+  expectCode('request_conflict', () => startDiagnosticTrace(
+    null, command('trace_start', {}, REQUEST_2), startAuthority(), created.receipt,
+  ));
+
+  const busy = startDiagnosticTrace(
+    created.state, command('trace_start', {}, REQUEST_2),
+    startAuthority({ issuedTraceId: TRACE_2 }),
+  );
+  assert.equal(busy.status, 'trace_busy');
+  assert.strictEqual(busy.state, created.state);
+
+  const ended = endDiagnosticTrace(
+    created.state,
+    command('trace_end', {}, REQUEST_2),
+    operationAuthority({
+      operation: 'trace_end', nowMs: 2000, traceId: TRACE, reason: 'host_stopped',
+    }),
+  );
+  assert.equal(ended.state.status, 'ended');
+  assert.deepEqual({ ...ended.state.ended }, {
+    status: 'ended', endedAtMs: 2000, reason: 'host_stopped',
+  });
+  assert.equal(endDiagnosticTrace(
+    created.state,
+    command('trace_end', {}, REQUEST_2),
+    operationAuthority({
+      operation: 'trace_end', nowMs: 9999, traceId: TRACE, reason: 'authority_lost',
+    }),
+    ended.receipt,
+  ).status, 'replayed');
+});
+
+test('lease replacement rotates one segment and relay generation binds immutably', () => {
+  const trace = startDiagnosticTrace(
+    null, command('trace_start'), startAuthority(),
+  ).state;
+  const rotated = rotateCorrelationSegment(trace, operationAuthority({
+    operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
+    priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,
+  }));
+  assert.equal(rotated.segment.segmentId, SEGMENT_2);
+  assert.equal(rotated.segment.leaseId, LEASE_2);
+  expectCode('stale_correlation', () => rotateCorrelationSegment(trace, operationAuthority({
+    operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
+    priorLeaseId: LEASE_2, leaseId: LEASE, issuedSegmentId: SEGMENT_2,
+  })));
+
+  const relayCommand = command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_2);
+  const binding = bindRelayGeneration(rotated, relayCommand, operationAuthority({
+    operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT_2,
+    leaseId: LEASE_2, relayGenerationId: INSTANCE,
+  }));
+  assert.deepEqual({ ...binding.state }, {
+    relayGenerationId: INSTANCE, traceId: TRACE, segmentId: SEGMENT_2, leaseId: LEASE_2,
+  });
+  assert.equal(bindRelayGeneration(
+    trace,
+    command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_2),
+    operationAuthority({
+      operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT,
+      leaseId: LEASE, relayGenerationId: INSTANCE,
+    }),
+    binding.receipt,
+  ).status, 'replayed');
+});
+
+test('consent is forward-only and stop preserves accepted replay semantics', () => {
+  const optIn = optInDiagnosticSharing(
+    null,
+    command('consent_opt_in', {
+      listenerInstanceId: INSTANCE,
+      firstAllowedSequence: 1,
+      localConsentStartedMs: 120,
+    }),
+    operationAuthority({
+      operation: 'consent_opt_in', nowMs: 1000, traceId: TRACE,
+      listenerInstanceId: INSTANCE,
+    }),
+  );
+  assert.equal(optIn.state.status, 'enabled');
+  assert.equal(optIn.state.generation, 1);
+
+  const beforeBoundary = envelope(listenerWindow({ sequence: 0 }));
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: null, incomingEnvelope: beforeBoundary,
+    consent: optIn.state, grantGeneration: 1,
+  }), 'sharing_disabled');
+
+  const eligible = envelope(listenerWindow({ sequence: 1 }));
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: null, incomingEnvelope: eligible,
+    consent: optIn.state, grantGeneration: 1,
+  }), 'accepted');
+
+  const sourceCore = report(sourceWindow());
+  const sourceEnvelope = composeUploadedEnvelope(
+    sourceCore, mapMeasurementAlignment(sourceCore, sample()), context('source'),
+  );
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: null, incomingEnvelope: sourceEnvelope,
+    consent: optIn.state, grantGeneration: 1,
+  }), 'sharing_disabled');
+
+  const stopped = stopDiagnosticSharing(
+    optIn.state,
+    command('consent_stop', {
+      listenerInstanceId: INSTANCE, expectedGeneration: 1,
+    }, REQUEST_2),
+    operationAuthority({
+      operation: 'consent_stop', nowMs: 2000, traceId: TRACE,
+      listenerInstanceId: INSTANCE,
+    }),
+  );
+  assert.equal(stopped.state.status, 'revoked');
+  assert.equal(stopped.state.generation, 2);
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: null, incomingEnvelope: eligible,
+    consent: stopped.state, grantGeneration: 1,
+  }), 'sharing_disabled');
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: eligible, incomingEnvelope: eligible,
+    consent: stopped.state, grantGeneration: 1,
+  }), 'replayed');
+
+  const conflict = envelope(listenerWindow({
+    sequence: 1,
+    measurements: { ...listenerWindow().measurements, visibilityState: 'hidden' },
+  }));
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: eligible, incomingEnvelope: conflict,
+    consent: stopped.state, grantGeneration: 1,
+  }), 'report_conflict');
 });
 
 test('E2 dependency firewall imports E1 only and contains no later boundary', async () => {
