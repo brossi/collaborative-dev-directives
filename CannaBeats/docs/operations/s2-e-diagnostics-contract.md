@@ -801,10 +801,11 @@ baseline shows zero instrumentation-induced underruns or PCM divergence.
 
 ### E5 — Browser attempt and window lifecycle
 
-Status: `implementation-in-progress`. The independently reviewed bounded design is maintained in
-[E5 browser attempt and window lifecycle](s2-e-e5-browser-lifecycle-spec.md).
-It deliberately excludes React/UI, copying, upload, persistence, and production
-attachment.
+Status: `locally-verified` at `087b8ea`. The bounded design, exact closure
+identity, and evidence are maintained in [E5 browser attempt and window
+lifecycle](s2-e-e5-browser-lifecycle-spec.md). Three independent final reviews
+found no open P0/P1. E5 deliberately excludes React/UI, copying, upload,
+persistence, and production attachment; E6 may now consume the verified session.
 
 Implement the listener attempt state, 10-second accumulator, visibility/
 suspension observation, unsupported-API states, 15-minute ring, and instance

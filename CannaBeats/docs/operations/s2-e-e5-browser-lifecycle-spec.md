@@ -4,14 +4,18 @@
 
 - Checkpoint: E5 — browser attempt, measurement window, and cleanup lifecycle
 - Scope revision: `E5-spec-v1`
-- Status: `implementation-in-progress`
+- Status: `locally-verified`
 - Risk class: `B — boundary-bearing` because this code owns browser resources,
   fetch-attempt ordering, and the acknowledged E4 epoch boundary
 - Required verified checkpoints: E1 at `736a401`; E4 at `bf4d760`
 - Excluded: React/UI/copy (E6), alignment and upload (E2/E7/E8), producer
   diagnostics (E9/E10), diagnosis display (E11), and device measurements (E12)
+- Exact implementation closure target:
+  `087b8ea0ecdd0b2c0d69b48157c5919af4f8d73b`, tree
+  `f62f41f05cfdf550b749d650e14a8c0f2049720f`
 - Review date: primary design and independent E4/attempt, lifecycle/resource,
-  and E1 measurement design closure 2026-08-14; no open design P0/P1
+  and E1 measurement design closure 2026-08-14; final independent
+  transaction, fetch, and evidence re-closure 2026-08-14; no open P0/P1
 
 ## Scale and boundary
 
@@ -29,8 +33,9 @@ E5 is split into two small pieces:
    command, and resolves only an exact E4 reply.
 
 The browser session adapter composes those pieces with injected browser
-dependencies in the harness. Production React attachment remains off until E5
-closure; the existing listener continues using the retained baseline.
+dependencies in the harness. E5 is now closed for local consumption. Production
+React attachment remains E6-owned; the existing listener continues using the
+retained baseline until E6 attaches the verified session.
 
 ## Lifecycle vocabulary
 
@@ -247,9 +252,10 @@ remain E12; their local state definitions and cleanup behavior are E5-owned.
 - Scope fit: one small listener and one stream; no platform machinery.
 - Approved implementation scope: lifecycle state machine, E4 port adapter,
   deterministic browser harness, and an unattached browser session adapter.
-- Production attachment: unauthorized until independent E5 implementation
-  closure.
-- E6/E7 work: unauthorized by this packet.
+- Production attachment: authorized only through an independently reviewed E6
+  UI attachment; E5 itself remains unattached.
+- E6 work may consume the exact verified E5 target above. E7 remains
+  unauthorized by this packet.
 
 Implementation increment 1 adds the unattached E4 port adapter and bounded
 attempt/milestone lifecycle with actual E4-core composition tests. Window/E1
@@ -321,3 +327,12 @@ configure-pending port owned by the other. Focused verification passes 41/41;
 lint, the production build, and the full web suite pass 238/238. Final
 independent re-closure remains pending, so production attachment remains
 unauthorized.
+
+Final closure records the exact implementation target and tree above. Three
+independent narrow reviews found no P0/P1 or meaningful in-scope P2 across the
+complete control-transaction boundary, PCM attribution, fetch failure, and
+bounded teardown. Focused lifecycle/resource/session verification passes
+41/41; lint, `git diff --check`, the production build, and the full web suite
+pass 238/238. E5 is locally verified. Real browser scheduling and hardware
+measurements remain E12; UI rendering, disclosure, copy, and production
+attachment remain E6.
