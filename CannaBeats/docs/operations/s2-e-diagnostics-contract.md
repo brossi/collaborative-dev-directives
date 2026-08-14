@@ -820,6 +820,11 @@ and AudioContext.
 
 ### E6 — Local UI, copy, and rendering isolation
 
+Status: `implementation-candidate`. The bounded local-only design is maintained
+in [E6 local diagnostics UI and copy](s2-e-e6-local-ui-spec.md). It consumes
+only verified E1/E5 surfaces and adds no upload, persistence, comparison, or
+diagnostic service.
+
 Attach the verified E5 model to the advanced local panel while upload remains
 disabled. Rendering subscriptions activate only while the panel needs live
 display; collection remains bounded independently of React. Copy uses the E1
