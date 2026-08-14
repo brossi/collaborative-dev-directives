@@ -783,6 +783,11 @@ references and carries its interval/uncertainty evidence.
 
 ### E4 — Worklet core and atomic cross-thread protocol
 
+Status: `implementation-candidate`. The bounded protocol in
+[E4 worklet core and atomic MessagePort](s2-e-e4-worklet-spec.md) passed
+independent boundary-bearing design closure; implementation is authorized only
+inside that packet.
+
 Instrument the PCM core without React, fetch, or upload. Add one small epoch-
 tagged MessagePort protocol for configure, PCM, atomic snapshot-and-rotate, and
 stop/reset. Use the actual worklet wrapper and a deterministic harness covering
