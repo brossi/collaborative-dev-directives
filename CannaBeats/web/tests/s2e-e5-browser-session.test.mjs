@@ -607,3 +607,57 @@ test('session teardown is idempotent after resources are released', async () => 
   assert.equal(first, second);
   assert.deepEqual(await first, { status: 'closed', cleanupFailures: [] });
 });
+
+test('periodic and concurrent diagnostic rotations remain strictly serialized', async () => {
+  const reader = pendingReader([]);
+  const harness = sessionHarness({
+    responses: [response({ reader })], holdSnapshots: true,
+  });
+  await harness.session.start();
+  await waitFor(() => harness.session.projector !== null, 'configured projector');
+  harness.setNow(100);
+  harness.timers.fireDelay(9000);
+  await waitFor(() => harness.worklet.heldSnapshot !== null, 'periodic snapshot');
+  const firstReset = harness.session.resetDiagnostics();
+  const secondReset = harness.session.resetDiagnostics();
+  harness.setNow(101);
+  harness.worklet.releaseSnapshot();
+  const [first, second] = await Promise.all([firstReset, secondReset]);
+  assert.notEqual(first.instanceId, second.instanceId);
+  assert.equal(harness.session.lifecycle.instanceId, second.instanceId);
+  assert.equal(harness.core.epoch, 4);
+  assert.equal(harness.session.active, true);
+  await harness.session.stop();
+});
+
+test('lost diagnostic-reset acknowledgement retires the uncertain session', async () => {
+  const reader = pendingReader([]);
+  const harness = sessionHarness({
+    responses: [response({ reader })], holdSnapshots: true,
+  });
+  await harness.session.start();
+  await waitFor(() => harness.session.projector !== null, 'configured projector');
+  const resetting = harness.session.resetDiagnostics();
+  await waitFor(() => harness.worklet.heldSnapshot !== null, 'reset snapshot');
+  assert.equal(harness.timers.fireDelay(250), true);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(harness.timers.fireDelay(250), true);
+  await assert.rejects(resetting, /command_timeout/);
+  assert.equal(harness.session.status, 'error');
+  assert.equal(harness.session.active, false);
+  assert.equal(harness.node.disconnected, true);
+  assert.equal(harness.context.closed, true);
+});
+
+test('body-reader acquisition failure retains the finite stream outcome', async () => {
+  const broken = response({ reader: pendingReader([]) });
+  broken.body = { getReader() { throw new Error('reader detail'); } };
+  const harness = sessionHarness({ responses: [broken] });
+  await harness.session.start();
+  await waitFor(() => harness.session.status === 'error', 'reader failure');
+  const failure = harness.session.lifecycle.transitions.find(
+    (entry) => entry.measurements.type === 'stream_failed',
+  );
+  assert.equal(failure.measurements.reason, 'stream_error');
+  assert.equal(JSON.stringify(harness.session.cleanupResult).includes('reader detail'), false);
+});

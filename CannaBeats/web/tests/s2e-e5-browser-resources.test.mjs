@@ -55,7 +55,9 @@ test('resource scope owns the bounded browser surface and cleans it in order', a
   scope.ownReader({ async cancel() { calls.push('reader'); } });
   scope.schedule('window', () => { guardedCalls += 1; }, 9000);
   scope.schedule('retry', () => { guardedCalls += 1; }, 1500);
-  scope.ownObserver({ takeRecords: () => [], disconnect() { calls.push('observer'); } });
+  scope.ownObserver({
+    observe() {}, takeRecords: () => [], disconnect() { calls.push('observer'); },
+  });
   scope.ownListener(visibility, 'visibilitychange', () => { guardedCalls += 1; });
   scope.ownListener(contextEvents, 'statechange', () => { guardedCalls += 1; });
   scope.ownPort({ close() { calls.push('port'); } });
@@ -92,7 +94,9 @@ test('cleanup failures are finite and never block later cleanup stages', async (
   scope.ownAbortController({ abort() { throw new Error('private abort detail'); } });
   scope.ownReader({ cancel() { throw new Error('private reader detail'); } });
   scope.schedule('window', () => {}, 1);
-  scope.ownObserver({ takeRecords: () => [], disconnect() { throw new Error('private observer'); } });
+  scope.ownObserver({
+    observe() {}, takeRecords: () => [], disconnect() { throw new Error('private observer'); },
+  });
   scope.ownListener(target, 'change', () => {});
   scope.ownPort({ close() { throw new Error('private port'); } });
   scope.ownNode({ disconnect() { reached.push('node'); } });

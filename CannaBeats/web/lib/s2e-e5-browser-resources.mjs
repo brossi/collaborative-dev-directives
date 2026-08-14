@@ -147,7 +147,8 @@ export class E5BrowserResourceScope {
   ownObserver(observer) {
     this.#assertActive();
     if (this.observer || !observer || typeof observer.disconnect !== 'function'
-      || typeof observer.takeRecords !== 'function') fail('observer_invalid');
+      || typeof observer.takeRecords !== 'function'
+      || typeof observer.observe !== 'function') fail('observer_invalid');
     this.observer = observer;
     return observer;
   }

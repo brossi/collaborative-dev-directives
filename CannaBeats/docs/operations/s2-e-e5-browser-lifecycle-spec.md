@@ -161,9 +161,11 @@ not reuse a previous attempt's playing state.
 
 Visibility changes update the point sample; E1 has no visibility transition
 kind and E5 does not duplicate visibility into its local gap FIFO.
-Running-to-suspended context edges
-increment `suspensionCount` and emit `context_suspended`; the reverse emits
-`context_resumed`. Hidden time is not subtracted from window duration.
+Running-to-suspended context edges increment `suspensionCount`. While an attempt
+is open they also emit `context_suspended`, and the reverse emits
+`context_resumed`; during retry backoff E5 updates the point state and count but
+does not attribute a canonical transition to a closed attempt. Hidden time is
+not subtracted from window duration.
 
 Canonical E1 window/transition storage is a FIFO of 90 windows and 64
 transitions. A separate FIFO of 16 exact local-only records holds coverage gaps.
@@ -296,3 +298,15 @@ lost snapshot replies, delayed timers, and idempotent teardown. Focused
 verification passes 37/37; lint, the production build, and the full web suite
 pass 234/234. Independent closure remains pending, so production attachment is
 still unauthorized.
+
+Implementation increment 6 closes the follow-up rotation seam. Every periodic,
+attempt-reset, format, and diagnostic rotation now enters one rechecking serial
+queue; readers awaiting the prior rotation record staged delivery before the
+next command establishes another boundary. Any uncertain rotation result
+terminates the session before its caller receives the finite failure. The
+three-caller periodic-plus-two-reset schedule and a lost diagnostic-reset reply
+are executable regressions. Observer admission now requires a real `observe`
+method, and body-reader acquisition has the finite `stream_error` path. Focused
+verification passes 40/40; lint, the production build, and the full web suite
+pass 237/237. Final independent re-closure remains pending, so production
+attachment remains unauthorized.
