@@ -4,7 +4,7 @@
 
 - Checkpoint: E4 — worklet core and atomic cross-thread protocol
 - Scope revision: `E4-spec-v1`
-- Status: `implementation-candidate`
+- Status: `closure-review`
 - Risk class: `B — boundary-bearing` because the real AudioWorklet MessagePort
   owns ordering, acknowledgement, and reset linearization
 - Required prior verified checkpoint: E1 at `736a401`
@@ -14,6 +14,12 @@
 - Review date: primary design 2026-08-14; independent protocol, PCM/metric, and
   contract/evidence design closure 2026-08-14; implementation closure remains
   required before E5 consumes the port
+
+Implementation checkpoint: the bounded core, unattached public E4 wrapper,
+retained baseline, and actual-MessagePort harness are implemented. Focused E4
+verification passes 10/10; the full web build and suite pass 194/194. The
+existing production worklet remains unchanged until E5 composes the verified
+port. Independent implementation closure is pending.
 
 ## Boundary and scale
 
@@ -231,7 +237,7 @@ Focused command:
 node --test web/tests/s2e-e4-worklet.test.mjs
 ```
 
-The deterministic table covers exact protocol rejection; configure/reset/stop
+The passing deterministic table covers exact protocol rejection; configure/reset/stop
 response loss and replay; request rollback/conflict; stopped configure; PCM on
 both sides of rotation; active-underrun rotation and re-prime; zero/one/multiple
 buffer samples; fractional resampling depth; fractional-cursor and maximum-chunk
