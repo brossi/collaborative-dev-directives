@@ -27,7 +27,7 @@
 | Sole owner | A pure shared E1 contract module owning version-1 measurement validation, normalization, canonical encoding, local identity/replay classification, signal-category derivation, and safe projections. |
 | Trusted inputs | None. Even values produced by CannaBeats code are untrusted until E1 validation succeeds. |
 | Untrusted inputs | Length-bounded UTF-8 JSON bytes. After parsing, the validator accepts only inert JSON values. Worklet summaries, source/relay snapshots, restored rows, and test fixtures must cross that same byte boundary. JavaScript `Proxy` objects are outside the contract and may never be passed across a production E1 boundary. |
-| State and side effects | None. E1 is deterministic and performs no I/O, cryptography, clock reads, persistence, logging, upload, UI mutation, or authority lookup. |
+| State and side effects | No domain state or side effects. Private weak provenance brands distinguish validator-produced frozen values from forged live JavaScript objects; they carry no report data, survive only for the module process lifetime, and do not affect canonical output. E1 is deterministic and performs no I/O, cryptography, clock reads, persistence, logging, upload, UI mutation, or authority lookup. |
 | Outputs and consumers | Frozen normalized measurement reports; UTF-8 canonical bytes; local report identity; finite replay result; member/operator projections; malformed-retained sentinel; categorical signal result. E2, E5, E6, E7, E9, and E10 may consume these only after E1 verification. |
 | Real interface under test | The exported shared-module functions invoked with length-bounded UTF-8 JSON bytes, plus pure relation/classifier calls over values returned by that parser. A pure imported-module test is the real E1 interface. Later MessagePort, HTTP, SQLite, and React interfaces cannot count as E1 evidence. |
 | Explicit non-goals | Trace/run/lease authority, synchronization, signatures, consent, health classification, storage, capacity planning beyond one envelope, browser lifecycle, collection cadence, reporter scheduling, and UI behavior. |
@@ -573,8 +573,9 @@ The pre-implementation suite must include:
   negative zero; inherited fields, getters, symbols,
   class instances, sparse arrays, cycles, and Proxies are unrepresentable in the
   accepted JSON domain and the object-only test helper is not a public boundary;
-- uppercase UUID, noncanonical UUID, reordered keys, Unicode and numeric
-  canonicalization vectors;
+- uppercase/noncanonical UUIDs, reordered keys, invalid Unicode scalars, and
+  accepted numeric registry-order golden vectors; version 1 has no accepted
+  free-form Unicode text field;
 - registry/schema bidirectional parity for every field and transition kind;
 - all cross-field truth-table invalid rows and every valid boundary row;
 - nested privacy walk and prohibited sentinel in every input position;

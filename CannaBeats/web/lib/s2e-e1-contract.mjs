@@ -15,6 +15,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
+const normalizedReports = new WeakSet();
+const normalizedExports = new WeakSet();
 
 export class E1ContractError extends Error {
   constructor(code) {
@@ -382,28 +384,14 @@ function normalizeAndSize(value) {
 }
 
 function assertNormalized(report) {
-  assertNormalizedTree(report);
-  return normalizeAndSize(report);
-}
-
-function assertNormalizedTree(value, arraysAllowed = false) {
-  if (Array.isArray(value)) {
-    if (!arraysAllowed || !Object.isFrozen(value)) fail();
-    for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
-      if (Object.hasOwn(descriptor, 'get') || Object.hasOwn(descriptor, 'set')) fail();
-    }
-    for (const item of value) assertNormalizedTree(item, arraysAllowed);
-    return;
-  }
-  if (!isRecord(value) || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value)) fail();
-  for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
-    if (Object.hasOwn(descriptor, 'get') || Object.hasOwn(descriptor, 'set') || !descriptor.enumerable) fail();
-    if (descriptor.value && typeof descriptor.value === 'object') assertNormalizedTree(descriptor.value, arraysAllowed);
-  }
+  if (!normalizedReports.has(report)) fail();
+  return report;
 }
 
 export function validateMeasurementJson(input) {
-  return normalizeAndSize(parseBytes(input, MAX_REPORT_INPUT_BYTES));
+  const report = normalizeAndSize(parseBytes(input, MAX_REPORT_INPUT_BYTES));
+  normalizedReports.add(report);
+  return report;
 }
 
 export function canonicalMeasurementBytes(report) {
@@ -572,6 +560,7 @@ function normalizeExport(value) {
       return summaries.map((summary) => {
         const report = normalizeAndSize(summary);
         if (!LISTENER_KINDS.has(report.kind)) fail();
+        normalizedReports.add(report);
         return report;
       });
     },
@@ -590,10 +579,12 @@ function normalizeExportAndSize(value) {
 }
 
 export function validateLocalDiagnosticExportJson(input) {
-  return normalizeExportAndSize(parseBytes(input, MAX_EXPORT_INPUT_BYTES));
+  const value = normalizeExportAndSize(parseBytes(input, MAX_EXPORT_INPUT_BYTES));
+  normalizedExports.add(value);
+  return value;
 }
 
 export function canonicalLocalDiagnosticExportBytes(value) {
-  assertNormalizedTree(value, true);
-  return encodeNormalized(normalizeExportAndSize(value));
+  if (!normalizedExports.has(value)) fail();
+  return encodeNormalized(value);
 }

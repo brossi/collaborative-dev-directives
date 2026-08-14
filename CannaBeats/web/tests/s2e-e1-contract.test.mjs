@@ -196,7 +196,10 @@ test('every transition type has one exact accepted tuple', () => {
     ['listener_stopped', { reason: 'page_teardown' }],
   ];
   for (const [type, extra] of listenerCases) {
-    assert.equal(validateMeasurementJson(bytes(listenerTransition(0, type, extra))).measurements.type, type);
+    const value = listenerTransition(0, type, extra);
+    assert.equal(validateMeasurementJson(bytes(value)).measurements.type, type);
+    value.measurements.prohibited = true;
+    expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
   }
 
   const sourceCases = [
@@ -209,6 +212,8 @@ test('every transition type has one exact accepted tuple', () => {
   for (const [type, category, extra] of sourceCases) {
     const value = base('source_transition', 0, { measurements: { type, category, ...extra } });
     assert.equal(validateMeasurementJson(bytes(value)).measurements.type, type);
+    value.measurements.prohibited = true;
+    expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
   }
 
   const relayCases = [
@@ -220,6 +225,8 @@ test('every transition type has one exact accepted tuple', () => {
   for (const [type, category, extra] of relayCases) {
     const value = base('relay_transition', 0, { measurements: { type, category, ...extra } });
     assert.equal(validateMeasurementJson(bytes(value)).measurements.type, type);
+    value.measurements.prohibited = true;
+    expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
   }
 });
 
@@ -231,7 +238,9 @@ test('transition reason/category matrices reject every alternate category', () =
     ['capture_stopped', 'process_restart', 'observed'],
     ['capture_stopped', 'unknown', 'unknown'],
     ['publisher_stopped', 'publisher_unavailable', 'error'],
+    ['publisher_stopped', 'requested', 'observed'],
     ['publisher_stopped', 'authority_lost', 'observed'],
+    ['publisher_stopped', 'process_restart', 'observed'],
     ['publisher_stopped', 'unknown', 'unknown'],
     ['publisher_restarted', 'publisher_unavailable', 'error'],
     ['publisher_restarted', 'process_restart', 'observed'],
@@ -243,10 +252,14 @@ test('transition reason/category matrices reject every alternate category', () =
     ['process_stopped', 'authority_lost', 'observed'],
     ['process_stopped', 'unknown', 'unknown'],
     ['generation_stopped', 'publisher_closed', 'observed'],
+    ['generation_stopped', 'requested', 'observed'],
     ['generation_stopped', 'generation_replaced', 'observed'],
+    ['generation_stopped', 'authority_lost', 'observed'],
+    ['generation_stopped', 'process_restart', 'observed'],
     ['generation_stopped', 'unknown', 'unknown'],
     ['generation_fenced', 'generation_replaced', 'observed'],
     ['generation_fenced', 'backpressure', 'error'],
+    ['generation_fenced', 'authority_lost', 'observed'],
     ['generation_fenced', 'unknown', 'unknown'],
   ];
   for (const [kind, rows] of [['source_transition', sourceReasons], ['relay_transition', relayReasons]]) {
@@ -257,6 +270,38 @@ test('transition reason/category matrices reject every alternate category', () =
         const invalid = base(kind, 0, { measurements: { type, category: alternate, reason } });
         expectCode('report_invalid', () => validateMeasurementJson(bytes(invalid)));
       }
+    }
+  }
+
+  for (const [reason, expected] of [
+    ['no_response', 'error'], ['rejected', 'error'], ['unsupported_format', 'error'],
+    ['stream_error', 'error'], ['unknown', 'unknown'],
+  ]) {
+    for (const category of ['observed', 'error', 'unknown']) {
+      const value = listenerTransition(0, 'stream_failed', { category, reason });
+      if (category === expected) assert.equal(validateMeasurementJson(bytes(value)).measurements.category, expected);
+      else expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
+    }
+  }
+  for (const [reason, expected] of [
+    ['requested', 'observed'], ['page_teardown', 'observed'],
+    ['run_changed', 'observed'], ['unknown', 'unknown'],
+  ]) {
+    for (const category of ['observed', 'error', 'unknown']) {
+      const value = listenerTransition(0, 'listener_stopped', { category, reason });
+      if (category === expected) assert.equal(validateMeasurementJson(bytes(value)).measurements.category, expected);
+      else expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
+    }
+  }
+  for (const [observation, expected] of [
+    ['playing', 'observed'], ['paused', 'observed'], ['error', 'error'], ['unknown', 'unknown'],
+  ]) {
+    for (const category of ['observed', 'error', 'unknown']) {
+      const value = base('source_transition', 0, {
+        measurements: { type: 'playback_changed', category, playbackObservation: observation },
+      });
+      if (category === expected) assert.equal(validateMeasurementJson(bytes(value)).measurements.category, expected);
+      else expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
     }
   }
 });
@@ -307,6 +352,13 @@ test('hostile byte views and forged normalized objects fail with finite contract
   Object.freeze(forged);
   expectCode('report_invalid', () => canonicalMeasurementBytes(forged));
   assert.equal(accessed, false);
+
+  let proxyTrapAccessed = false;
+  const forgedProxy = new Proxy(Object.freeze(Object.create(null)), {
+    getPrototypeOf() { proxyTrapAccessed = true; throw new Error('normalized_secret'); },
+  });
+  expectCode('report_invalid', () => canonicalMeasurementBytes(forgedProxy));
+  assert.equal(proxyTrapAccessed, false);
 });
 
 test('fractional monotonic timestamps are accepted and checked without rounded overflow', () => {
@@ -324,6 +376,16 @@ test('canonical bytes are independent of caller property order', () => {
   const b = validateMeasurementJson(bytes(reversed));
   assert.deepEqual(canonicalMeasurementBytes(a), canonicalMeasurementBytes(b));
   assert.equal(measurementIdentity(a), `${INSTANCE}:0`);
+
+  const fractional = validateMeasurementJson(bytes(listenerWindow(0, {
+    monotonicStartMs: 0.5, durationMs: 9999.5,
+  })));
+  const canonical = new TextDecoder().decode(canonicalMeasurementBytes(fractional));
+  assert.match(canonical, /^\{"schemaVersion":1,"kind":"listener_window","instanceId":/);
+  assert.match(canonical, /"monotonicStartMs":0\.5,"durationMs":9999\.5,/);
+  for (const fixture of FIXTURES) {
+    assert.ok(canonicalMeasurementBytes(validateMeasurementJson(bytes(fixture))).byteLength <= 2048);
+  }
 });
 
 test('all six kinds implement accepted, replayed, conflict, and distinct identity', () => {
@@ -350,14 +412,22 @@ test('cross-field truth tables reject impossible listener, source, and relay val
     listenerWindow(0, { measurements: { receivedFrames: 1, receivedBytes: 4, chunkCount: 2 } }),
     listenerWindow(0, { measurements: { receivedFrames: 0, receivedBytes: 0, chunkCount: 0, signalPresence: 'present' } }),
     listenerWindow(0, { measurements: { chunkGap: { status: 'observed', count: 98, meanMs: 10, maxMs: 20 } } }),
+    listenerWindow(0, { measurements: { chunkGap: { status: 'not_applicable' } } }),
+    listenerWindow(0, { measurements: { chunkGap: { status: 'observed', count: 99, meanMs: 21, maxMs: 20 } } }),
     listenerWindow(0, { measurements: { bufferDepth: { status: 'observed', sampleCount: 1, currentMs: 10, minMs: 20, maxMs: 30, meanMs: 25, trendMsPerSecond: 0 } } }),
     listenerWindow(0, { measurements: { underrunCount: 1, underrunDurationMs: 0 } }),
+    listenerWindow(0, { measurements: { underrunCount: 0, underrunDurationMs: 1 } }),
+    listenerWindow(0, { measurements: { windowStartedInUnderrun: true, underrunDurationMs: 1, reprimeCount: 2 } }),
     listenerWindow(0, { measurements: { overflowCount: 1, discardedFrames: 0 } }),
+    listenerWindow(0, { measurements: { overflowCount: 0, discardedFrames: 1 } }),
     listenerWindow(0, { measurements: { nominalRateRatio: 2 } }),
     listenerWindow(0, { measurements: { longTasks: { status: 'observed', count: 0, maxDurationMs: 1 } } }),
+    listenerWindow(0, { measurements: { longTasks: { status: 'observed', count: 1, maxDurationMs: 0 } } }),
     sourceWindow(0, { measurements: { publishedFrames: 48_001 } }),
+    sourceWindow(0, { measurements: { capturedFrames: 47_999 } }),
     sourceWindow(0, { measurements: { publishedBytes: 1 } }),
     relayWindow(0, { measurements: { activeListenerCount: 2 } }),
+    relayWindow(0, { measurements: { closedListenerCount: 3 } }),
     relayWindow(0, { measurements: { deliveredBytes: 3 } }),
     relayWindow(0, { measurements: { backpressureClosureCount: 1, generationFenceDisconnectCount: 1 } }),
   ];
@@ -434,11 +504,16 @@ test('listener milestone series enforces once, precedence, and terminal/stop ord
 });
 
 test('privacy projection is exact for listeners and denies source/relay members', () => {
-  const listenerBytes = bytes(listenerWindow());
-  assert.deepEqual(projectMemberMeasurementJson(listenerBytes), validateMeasurementJson(listenerBytes));
-  assert.deepEqual(projectOperatorMeasurementJson(listenerBytes), validateMeasurementJson(listenerBytes));
-  expectCode('not_authorized', () => projectMemberMeasurementJson(bytes(sourceWindow())));
-  assert.equal(projectOperatorMeasurementJson(bytes(sourceWindow())).kind, 'source_window');
+  for (const fixture of FIXTURES) {
+    const input = bytes(fixture);
+    const operator = projectOperatorMeasurementJson(input);
+    assert.equal(operator.kind, fixture.kind);
+    if (fixture.kind.startsWith('listener_')) {
+      assert.deepEqual(projectMemberMeasurementJson(input), validateMeasurementJson(input));
+    } else {
+      expectCode('not_authorized', () => projectMemberMeasurementJson(input));
+    }
+  }
 
   const sentinel = projectRetainedMeasurementJson(Buffer.from('{'), 'member');
   assert.deepEqual(sentinel, { status: 'unavailable', reason: 'invalid_retained_report' });
@@ -461,6 +536,15 @@ test('local export is exact, member-only, canonical, and series-validated', () =
   assert.equal(normalized.generatedAtMonotonicMs, 20_000.5);
   assert.deepEqual(validateLocalDiagnosticExportJson(canonicalLocalDiagnosticExportBytes(normalized)), normalized);
 
+  let iteratorAccessed = false;
+  const hostileSummaries = [];
+  Object.setPrototypeOf(hostileSummaries, {
+    [Symbol.iterator]() { iteratorAccessed = true; throw new Error('iterator_secret'); },
+  });
+  const forgedExport = Object.freeze({ ...wrapper, summaries: Object.freeze(hostileSummaries) });
+  expectCode('report_invalid', () => canonicalLocalDiagnosticExportBytes(forgedExport));
+  assert.equal(iteratorAccessed, false);
+
   expectCode('report_invalid', () => validateLocalDiagnosticExportJson(bytes({ ...wrapper, summaries: [] })));
   expectCode('report_invalid', () => validateLocalDiagnosticExportJson(bytes({ ...wrapper, summaries: [sourceWindow()] })));
   expectCode('report_invalid', () => validateLocalDiagnosticExportJson(bytes({ ...wrapper, generatedAtMonotonicMs: 1 })));
@@ -474,6 +558,7 @@ test('local export is exact, member-only, canonical, and series-validated', () =
 
 test('E1 module has no later-checkpoint imports', async () => {
   const source = await readFile(new URL('../lib/s2e-e1-contract.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(source, /^\s*import\s/m);
+  assert.doesNotMatch(source, /\bimport\s*\(|\bimport\s+(?:['"]|[^;\n]*\bfrom\s*['"])/m);
+  assert.doesNotMatch(source, /\bexport\s+(?:\*|\{[^}]*\})\s+from\s*['"]/m);
   assert.doesNotMatch(source, /s2e-e[2-9]|alignment|collector|sqlite|react|audio-worklet/i);
 });
