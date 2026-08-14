@@ -820,7 +820,7 @@ and AudioContext.
 
 ### E6 — Local UI, copy, and rendering isolation
 
-Status: `implementation-candidate`. The bounded local-only design is maintained
+Status: `locally-verified` at `b0596f2`. The bounded local-only design is maintained
 in [E6 local diagnostics UI and copy](s2-e-e6-local-ui-spec.md). It consumes
 only verified E1/E5 surfaces and adds no upload, persistence, comparison, or
 diagnostic service.

@@ -152,12 +152,12 @@ export class E6PanelController {
       this.#publish({ ...this.state, notice: 'copy_unavailable' });
       return false;
     }
-    return this.#action('copied', this.copyAction, false);
+    return this.#action('copied', 'copy_failed', this.copyAction, false);
   }
 
   async reset() {
     if (this.disposed || this.state.busy || !this.state.diagnostics) return false;
-    return this.#action('reset', this.resetAction, true);
+    return this.#action('reset', 'reset_failed', this.resetAction, true);
   }
 
   dispose() {
@@ -167,7 +167,7 @@ export class E6PanelController {
     this.#cancelTimer();
   }
 
-  async #action(success, action, refresh) {
+  async #action(success, failure, action, refresh) {
     const token = ++this.actionToken;
     const generation = this.generation;
     this.#publish({ ...this.state, busy: true, notice: '' });
@@ -179,7 +179,7 @@ export class E6PanelController {
       return true;
     } catch {
       if (!this.#current(token, generation)) return false;
-      this.#publish({ ...this.state, busy: false, notice: `${success}_failed` });
+      this.#publish({ ...this.state, busy: false, notice: failure });
       return false;
     }
   }

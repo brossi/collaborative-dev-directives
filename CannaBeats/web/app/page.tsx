@@ -184,7 +184,7 @@ function SharedAudioPanel({
   const diagnosticNotice = panelState.notice === "copied" ? "Local diagnostic report copied."
     : panelState.notice === "reset" ? "Local diagnostics reset. Audio kept playing."
       : panelState.notice === "copy_unavailable" ? "A report will be available after the first diagnostic window."
-        : panelState.notice === "copied_failed" ? "The report could not be copied. Audio is unchanged."
+        : panelState.notice === "copy_failed" ? "The report could not be copied. Audio is unchanged."
           : panelState.notice === "reset_failed" ? "Diagnostics could not be reset. Check the audio status above."
             : "";
 

@@ -4,7 +4,7 @@
 
 - Checkpoint: E6 — local UI, copy, and rendering isolation
 - Scope revision: `E6-spec-v1`
-- Status: `closure-review`
+- Status: `locally-verified`
 - Risk class: `B — boundary-bearing` because the local copy action discloses a
   privacy-projected diagnostic report
 - Required verified checkpoints: E1 at `736a401`; E5 at `087b8ea`
@@ -14,6 +14,9 @@
 - Review date: primary bounded design 2026-08-14
 - First implementation target: `af61f421e2b4112efd34dcb528eb964db1034d8a`,
   tree `1468935e98e5825323b8077611a4b544bfab634b`
+- Independently reviewed closure target:
+  `b0596f2126757051a5a4bab22fffda9545168bd3`, tree
+  `ba83e9e8bc35610a293e2ba2e3c14520fb013ad3`
 
 ## Boundary and scale
 
@@ -103,7 +106,7 @@ unless they change privacy, authority, persistence, or playback ownership.
 - Scale fit: yes; one panel and one clipboard action
 - Open design P0/P1: none in the primary pass
 - Implementation authorized: pure projection/copy and bounded React attachment
-- Production attachment remains pending E6 implementation closure
+- Production attachment is locally verified; real-device timing remains E12
 
 ## Implementation record
 
@@ -141,5 +144,16 @@ input is validated before sorting and fails with `panel_invalid`. Executable
 controller schedules cover open→stop, open→stop→restart, clipboard failure,
 concurrent reset suppression, and a reset acknowledgement after session
 replacement. Focused E1/E5/E6 verification passes 49/49; the production build
-and full web suite pass 246/246; lint and `git diff --check` pass. Independent
-re-closure remains required before changing the checkpoint status.
+and full web suite pass 246/246; lint and `git diff --check` pass. At that
+increment boundary, independent re-closure was still required before changing
+the checkpoint status.
+
+Three independent narrow re-reviews of the exact increment-3 target found no
+open P0/P1. They confirmed timer cancellation across stop/restart/unmount,
+stale-action fencing, complete bounded rendering, finite malformed-ring
+handling, and copy/reset isolation. Focused E1/E5/E6 verification passes 49/49;
+the production build and full web suite pass 246/246; lint and
+`git diff --check` pass. The only review note was a non-behavioral spelling
+drift between `copied_failed` and the specified `copy_failed`; the closure
+checkpoint normalizes that finite code. E6 is locally verified under the
+small-deployment scale filter.

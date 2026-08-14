@@ -1048,9 +1048,9 @@ fixed-rule classifier passed targeted independent closure. E7/E8/E11/E12
 integration remains separate and unverified.
 E4 worklet instrumentation and its atomic MessagePort protocol are locally
 verified at `bf4d760`. E5 browser attempt, window, and cleanup lifecycle is
-locally verified at `087b8ea` after three independent final reviews; the
-production listener remains on the retained baseline until E6 attaches that
-verified session with its UI, disclosure, and rendering-isolation contract.
+locally verified at `087b8ea` after three independent final reviews. E6's
+local-only panel, canonical copy, reset control, and production E5 attachment
+are locally verified at `b0596f2`; real-device timing remains an E12 gate.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.

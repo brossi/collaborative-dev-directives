@@ -183,7 +183,7 @@ test('panel controller serializes actions and ignores a stale reset acknowledgem
   controller.sync({ enabled: true, generation: 1 });
   controller.setOpen(true);
   assert.equal(await controller.copy(), false);
-  assert.equal(states.at(-1).notice, 'copied_failed');
+  assert.equal(states.at(-1).notice, 'copy_failed');
 
   const first = controller.reset();
   assert.equal(await controller.reset(), false);
