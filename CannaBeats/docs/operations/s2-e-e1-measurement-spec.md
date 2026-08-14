@@ -330,9 +330,10 @@ is at most `d`. The once-per-attempt set is exactly `request_started`,
 `response_headers`, `first_pcm_bytes`, `buffer_primed`, and
 `first_rendered_quantum`; each may appear at most once for an attempt. When two
 or more are retained, their fixed precedence is the order just listed and their
-`elapsedMs` values are nondecreasing in that precedence. At most one of
-`stream_failed`, `stream_ended`, and `listener_stopped` is retained as that
-attempt's terminal transition. `reconnect` occurs at most once per attempt.
+`elapsedMs` values are nondecreasing in that precedence. `stream_failed` and
+`stream_ended` are mutually exclusive within an attempt. `listener_stopped` is
+independently retained at most once and, when either stream terminal transition
+is also retained, occurs later in sequence. `reconnect` occurs at most once per attempt.
 Other transition types may repeat. The validator does not require missing
 request, milestone, terminal, or reconnect transitions to exist and does not
 infer a terminal category from an incomplete suffix.
