@@ -249,3 +249,11 @@ projection, observer attribution, fetch/AudioContext resource ownership, and
 production attachment remain for later E5 increments; this checkpoint makes no
 closure claim. Focused E4+E5 verification passes 20/20; lint, the production
 build, and the full web suite pass 204/204.
+
+Implementation increment 2 adds exact E1 transition and listener-window
+construction, source-frame/unit conversion, E4/E5 counter reconciliation,
+partial-frame carry, explicit unsupported API states, boundary-uncertainty
+sidecars, and fail-closed local gaps for delayed, ambiguous, or contradictory
+epochs. Fetch/AudioContext resource ownership and production attachment remain
+unimplemented. Focused E1+E4+E5 verification passes 42/42; closure is not yet
+claimed. Lint, the production build, and the full web suite pass 208/208.

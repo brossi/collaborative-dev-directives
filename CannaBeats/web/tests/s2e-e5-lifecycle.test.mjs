@@ -3,8 +3,12 @@ import test from 'node:test';
 
 import { E4PcmCore } from '../public/s2e-e4-worklet-core.js';
 import {
-  E5LifecycleError, E5ListenerLifecycle, E5WorkletPort,
+  E5LifecycleError, E5ListenerLifecycle, E5PcmChunker, E5WindowProjector,
+  E5WorkletPort,
 } from '../lib/s2e-e5-lifecycle.mjs';
+import {
+  canonicalMeasurementBytes, validateMeasurementSeries,
+} from '../lib/s2e-e1-contract.mjs';
 
 function timerHarness() {
   let next = 1;
@@ -122,7 +126,7 @@ test('attempt milestones are once-only and reconnect begins only on a later atte
   lifecycle.beginAttempt();
 
   assert.deepEqual(
-    lifecycle.transitions.map((entry) => entry.type),
+    lifecycle.transitions.map((entry) => entry.measurements.type),
     ['request_started', 'response_headers', 'first_pcm_bytes', 'buffer_primed',
       'first_rendered_quantum', 'stream_ended', 'request_started', 'reconnect'],
   );
@@ -139,7 +143,9 @@ test('instance rotation preserves the current attempt without duplicating milest
   lifecycle.rotateInstance('22222222-2222-4222-8222-222222222222');
   lifecycle.responseHeaders();
   lifecycle.pcmDelivered({ bytes: 4, frames: 1 });
-  assert.deepEqual(lifecycle.transitions.map((entry) => entry.type), ['first_pcm_bytes']);
+  assert.deepEqual(
+    lifecycle.transitions.map((entry) => entry.measurements.type), ['first_pcm_bytes'],
+  );
   assert.equal(lifecycle.attemptSequence, 0);
   assert.equal(lifecycle.transitions[0].sequence, 0);
 });
@@ -161,4 +167,145 @@ test('local coverage gaps and transition retention are bounded', () => {
   assert.equal(lifecycle.transitions.length, 64);
   assert.equal(lifecycle.localRecords.length, 16);
   assert.equal(lifecycle.localRecords[0].durationMs, 4);
+});
+
+test('partial PCM chunks preserve every complete frame and expose terminal carry', () => {
+  const chunker = new E5PcmChunker(2);
+  const first = chunker.consume(new Uint8Array([1, 2, 3]));
+  assert.equal(first.receivedFrames, 0);
+  const second = chunker.consume(new Uint8Array([4, 5, 6, 7, 8, 9]));
+  assert.equal(second.receivedFrames, 2);
+  assert.deepEqual([...new Uint8Array(second.buffer)], [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(chunker.finish(), false);
+});
+
+function windowHarness(clientOverrides = {}) {
+  let now = 0;
+  const lifecycle = new E5ListenerLifecycle({
+    instanceId: '11111111-1111-4111-8111-111111111111', now: () => now,
+  });
+  lifecycle.beginAttempt();
+  const projector = new E5WindowProjector({
+    lifecycle,
+    format: { sourceSampleRate: 48000, sourceChannels: 2, outputSampleRate: 48000 },
+    client: {
+      longTaskStatus: 'observed',
+      baseLatencyMs: { status: 'observed', value: 5 },
+      outputLatencyMs: { status: 'unsupported' },
+      browserFamily: 'chromium',
+      browserMajor: { status: 'observed', value: 140 },
+      osFamily: 'macos',
+      displayMode: 'browser',
+      implementationVersion: 1,
+      ...clientOverrides,
+    },
+    startBoundary: { dispatchMs: 0, replyMs: 2 },
+  });
+  return {
+    lifecycle,
+    projector,
+    setNow(value) { now = value; },
+  };
+}
+
+function snapshot(overrides = {}) {
+  return {
+    epoch: 1,
+    sourceSampleRate: 48000,
+    sourceChannels: 2,
+    outputSampleRate: 48000,
+    receivedFrames: 10,
+    renderedFrames: 128,
+    silentInputFrames: 2,
+    clippedInputFrames: 1,
+    bufferSampleCount: 2,
+    bufferCurrentFrames: 480,
+    bufferMinFrames: 240,
+    bufferMaxFrames: 480,
+    bufferSumFrames: 720,
+    bufferTrendStartFrames: 240,
+    bufferTrendEndFrames: 480,
+    underrunCount: 0,
+    underrunFrames: 0,
+    reprimeCount: 0,
+    windowStartedInUnderrun: false,
+    overflowCount: 0,
+    discardedFrames: 0,
+    resetCount: 0,
+    ...overrides,
+  };
+}
+
+test('acknowledged E4 metrics become one exact validated E1 listener window', () => {
+  const { lifecycle, projector } = windowHarness();
+  projector.recordChunk({ frames: 4, atMs: 100 });
+  projector.recordChunk({ frames: 6, atMs: 160 });
+  projector.setAudioContextState('running', 8990);
+  projector.setVisibilityState('visible', 8991);
+  const result = projector.finalize({
+    snapshot: snapshot(),
+    endBoundary: { dispatchMs: 9000, replyMs: 9002 },
+    longTaskEntries: [{ startTime: 1000, duration: 50 }],
+  });
+  assert.equal(result.status, 'accepted');
+  assert.equal(result.boundaryUncertaintyMs, 2);
+  assert.equal(result.report.measurements.receivedBytes, 40);
+  assert.deepEqual({ ...result.report.measurements.chunkGap }, {
+    status: 'observed', count: 1, meanMs: 60, maxMs: 60,
+  });
+  assert.equal(result.report.measurements.bufferDepth.meanMs, 7.5);
+  assert.equal(result.report.measurements.signalPresence, 'present');
+  assert.equal(result.report.measurements.clippingSeverity, 'sustained');
+  assert.equal(result.report.measurements.longTasks.count, 1);
+  assert.doesNotThrow(() => canonicalMeasurementBytes(result.report));
+  assert.equal(lifecycle.windows.length, 1);
+  assert.doesNotThrow(() => validateMeasurementSeries([
+    ...lifecycle.transitions, ...lifecycle.windows,
+  ].sort((left, right) => left.sequence - right.sequence)));
+});
+
+test('ambiguous, delayed, contradictory, and carried-zero windows become local gaps', () => {
+  const ambiguous = windowHarness();
+  ambiguous.projector.recordChunk({ frames: 10, atMs: 100 });
+  assert.deepEqual(ambiguous.projector.finalize({
+    snapshot: snapshot(),
+    endBoundary: { dispatchMs: 9000, replyMs: 9010 },
+    longTaskEntries: [{ startTime: 8999, duration: 5 }],
+  }), { status: 'gap', reason: 'boundary_ambiguous' });
+  assert.equal(ambiguous.lifecycle.windows.length, 0);
+
+  const delayed = windowHarness();
+  assert.deepEqual(delayed.projector.finalize({
+    snapshot: snapshot({ receivedFrames: 0, silentInputFrames: 0, clippedInputFrames: 0 }),
+    endBoundary: { dispatchMs: 11000, replyMs: 11002 },
+  }), { status: 'gap', reason: 'timer_delayed' });
+
+  const mismatch = windowHarness();
+  mismatch.projector.recordChunk({ frames: 9, atMs: 100 });
+  assert.equal(mismatch.projector.finalize({
+    snapshot: snapshot(), endBoundary: { dispatchMs: 9000, replyMs: 9002 },
+  }).reason, 'projection_invalid');
+
+  const carried = windowHarness();
+  carried.projector.recordChunk({ frames: 10, atMs: 100 });
+  assert.equal(carried.projector.finalize({
+    snapshot: snapshot({ windowStartedInUnderrun: true }),
+    endBoundary: { dispatchMs: 9000, replyMs: 9002 },
+  }).reason, 'projection_invalid');
+});
+
+test('unsupported browser APIs remain explicit rather than observed healthy zero', () => {
+  const { projector } = windowHarness({
+    longTaskStatus: 'unsupported',
+    baseLatencyMs: { status: 'unsupported' },
+    outputLatencyMs: { status: 'unknown' },
+  });
+  projector.recordChunk({ frames: 10, atMs: 100 });
+  const result = projector.finalize({
+    snapshot: snapshot(), endBoundary: { dispatchMs: 9000, replyMs: 9002 },
+  });
+  assert.equal(result.status, 'accepted');
+  assert.deepEqual({ ...result.report.measurements.longTasks }, { status: 'unsupported' });
+  assert.deepEqual({ ...result.report.measurements.baseLatencyMs }, { status: 'unsupported' });
+  assert.deepEqual({ ...result.report.measurements.outputLatencyMs }, { status: 'unknown' });
 });

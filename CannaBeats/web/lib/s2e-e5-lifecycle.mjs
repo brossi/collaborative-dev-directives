@@ -1,5 +1,10 @@
+import {
+  canonicalMeasurementBytes, classifySignalWindow, validateMeasurementJson,
+} from './s2e-e1-contract.mjs';
+
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const MAX_STAGED_PCM_BYTES = 1024 * 1024;
+const MAX_WINDOWS = 90;
 const MAX_TRANSITIONS = 64;
 const MAX_LOCAL_RECORDS = 16;
 
@@ -19,6 +24,10 @@ function canonicalUuid(value) {
 
 function frozen(value) {
   return Object.freeze(value);
+}
+
+function jsonBytes(value) {
+  return new TextEncoder().encode(JSON.stringify(value));
 }
 
 export class E5LifecycleError extends Error {
@@ -212,6 +221,7 @@ export class E5ListenerLifecycle {
     this.now = now;
     this.attemptSequence = -1;
     this.attempt = null;
+    this.windows = [];
     this.transitions = [];
     this.localRecords = [];
     this.nextSequence = 0;
@@ -293,6 +303,7 @@ export class E5ListenerLifecycle {
     if (!canonicalUuid(instanceId) || instanceId === this.instanceId) fail('instance_invalid');
     this.instanceId = instanceId;
     this.nextSequence = 0;
+    this.windows.length = 0;
     this.transitions.length = 0;
     this.localRecords.length = 0;
   }
@@ -303,6 +314,25 @@ export class E5ListenerLifecycle {
     pushBounded(this.localRecords, {
       type: 'coverage_gap', reason, durationMs, occurredAtMs: this.#time(),
     }, MAX_LOCAL_RECORDS);
+  }
+
+  appendWindow(report) {
+    try {
+      canonicalMeasurementBytes(report);
+    } catch {
+      fail('projection_invalid');
+    }
+    if (report.kind !== 'listener_window' || report.instanceId !== this.instanceId) {
+      fail('projection_invalid');
+    }
+    pushBounded(this.windows, report, MAX_WINDOWS);
+  }
+
+  allocateSequence() {
+    const sequence = this.nextSequence;
+    if (sequence >= MAX_SAFE) fail('sequence_exhausted');
+    this.nextSequence += 1;
+    return sequence;
   }
 
   #milestone(type) {
@@ -317,15 +347,25 @@ export class E5ListenerLifecycle {
   }
 
   #transition(type, detail) {
-    pushBounded(this.transitions, {
-      instanceId: this.instanceId,
-      sequence: this.nextSequence,
-      monotonicStartMs: this.#time(),
-      connectionAttemptSequence: this.attemptSequence,
-      type,
-      ...detail,
-    }, MAX_TRANSITIONS);
-    this.nextSequence += 1;
+    const occurredAtMs = this.#time();
+    try {
+      const report = validateMeasurementJson(jsonBytes({
+        schemaVersion: 1,
+        kind: 'listener_transition',
+        instanceId: this.instanceId,
+        sequence: this.allocateSequence(),
+        monotonicStartMs: occurredAtMs,
+        durationMs: 0,
+        measurements: {
+          connectionAttemptSequence: this.attemptSequence,
+          type,
+          ...detail,
+        },
+      }));
+      pushBounded(this.transitions, report, MAX_TRANSITIONS);
+    } catch {
+      this.recordGap('projection_invalid', 0);
+    }
   }
 
   #requireOpen() {
@@ -339,6 +379,279 @@ export class E5ListenerLifecycle {
   }
 }
 
+function boundary(value) {
+  if (!value || !finiteTime(value.dispatchMs) || !finiteTime(value.replyMs)
+    || value.replyMs < value.dispatchMs) fail('boundary_invalid');
+  return frozen({
+    dispatchMs: value.dispatchMs,
+    replyMs: value.replyMs,
+    midpointMs: value.dispatchMs + ((value.replyMs - value.dispatchMs) / 2),
+    uncertaintyMs: (value.replyMs - value.dispatchMs) / 2,
+  });
+}
+
+function overlaps(leftStart, leftEnd, rightStart, rightEnd) {
+  return leftStart < rightEnd && leftEnd > rightStart;
+}
+
+function finiteCounter(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+export class E5PcmChunker {
+  constructor(channels) {
+    if (![1, 2].includes(channels)) fail('format_invalid');
+    this.channels = channels;
+    this.bytesPerFrame = channels * 2;
+    this.carry = new Uint8Array(0);
+  }
+
+  consume(value) {
+    if (!(value instanceof Uint8Array)
+      || Object.getPrototypeOf(value) !== Uint8Array.prototype) fail('chunk_invalid');
+    const combined = new Uint8Array(this.carry.length + value.length);
+    combined.set(this.carry);
+    combined.set(value, this.carry.length);
+    const completeBytes = combined.length - (combined.length % this.bytesPerFrame);
+    const pcm = combined.slice(0, completeBytes);
+    this.carry = combined.slice(completeBytes);
+    return frozen({
+      buffer: pcm.buffer,
+      receivedBytes: completeBytes,
+      receivedFrames: completeBytes / this.bytesPerFrame,
+    });
+  }
+
+  finish() {
+    const complete = this.carry.length === 0;
+    this.carry = new Uint8Array(0);
+    return complete;
+  }
+}
+
+export class E5WindowProjector {
+  constructor({ lifecycle, format, client, startBoundary }) {
+    if (!(lifecycle instanceof E5ListenerLifecycle)) fail('projector_invalid');
+    if (!format || !Number.isInteger(format.sourceSampleRate)
+      || !Number.isInteger(format.outputSampleRate) || ![1, 2].includes(format.sourceChannels)) {
+      fail('format_invalid');
+    }
+    this.lifecycle = lifecycle;
+    this.format = frozen({ ...format });
+    this.client = frozen({ ...client });
+    this.startBoundary = boundary(startBoundary);
+    this.#resetAccumulator();
+  }
+
+  recordChunk({ frames, atMs }) {
+    if (!positiveInteger(frames) || !finiteTime(atMs)) fail('delivery_invalid');
+    this.#observation(atMs);
+    const bytes = frames * this.format.sourceChannels * 2;
+    if (!Number.isSafeInteger(bytes)) fail('delivery_invalid');
+    if (this.chunkCount > 0) {
+      const gap = atMs - this.lastChunkMs;
+      if (!finiteTime(gap)) fail('delivery_invalid');
+      this.chunkGapCount += 1;
+      this.chunkGapSumMs += gap;
+      this.chunkGapMaxMs = Math.max(this.chunkGapMaxMs, gap);
+    }
+    this.chunkCount += 1;
+    this.receivedFrames += frames;
+    this.receivedBytes += bytes;
+    this.lastChunkMs = atMs;
+  }
+
+  recordReconnect(atMs) {
+    this.#observation(atMs);
+    this.reconnectCount += 1;
+  }
+
+  recordSuspension(atMs) {
+    this.#observation(atMs);
+    this.suspensionCount += 1;
+  }
+
+  setTerminalCategory(category, atMs) {
+    this.#observation(atMs);
+    this.terminalCategory = category;
+  }
+
+  setAudioContextState(state, atMs) {
+    this.#observation(atMs);
+    this.audioContextState = state;
+  }
+
+  setVisibilityState(state, atMs) {
+    this.#observation(atMs);
+    this.visibilityState = state;
+  }
+
+  finalize({ snapshot, endBoundary, longTaskEntries = [] }) {
+    const end = boundary(endBoundary);
+    const start = this.startBoundary;
+    const durationMs = end.midpointMs - start.midpointMs;
+    const gap = (reason) => {
+      this.lifecycle.recordGap(reason, Math.max(0, durationMs));
+      this.startBoundary = end;
+      this.#resetAccumulator();
+      return frozen({ status: 'gap', reason });
+    };
+    if (!(durationMs > 0 && durationMs <= 10000)) return gap('timer_delayed');
+    if (!Array.isArray(longTaskEntries)) return gap('projection_invalid');
+    if ((this.firstObservationMs !== null && this.firstObservationMs < start.replyMs)
+      || (this.lastObservationMs !== null && this.lastObservationMs >= end.dispatchMs)) {
+      return gap('boundary_ambiguous');
+    }
+
+    let longTaskCount = 0;
+    let longTaskMaxMs = 0;
+    for (const entry of longTaskEntries) {
+      if (!entry || !finiteTime(entry.startTime) || !finiteTime(entry.duration)) {
+        return gap('projection_invalid');
+      }
+      const entryEnd = entry.startTime + entry.duration;
+      if (!finiteTime(entryEnd)) return gap('projection_invalid');
+      if (overlaps(entry.startTime, entryEnd, start.dispatchMs, start.replyMs)
+        || overlaps(entry.startTime, entryEnd, end.dispatchMs, end.replyMs)) {
+        return gap('boundary_ambiguous');
+      }
+      if (entry.startTime >= start.replyMs && entryEnd <= end.dispatchMs) {
+        longTaskCount += 1;
+        longTaskMaxMs = Math.max(longTaskMaxMs, entry.duration);
+      }
+    }
+
+    try {
+      const counters = [
+        'receivedFrames', 'silentInputFrames', 'clippedInputFrames',
+        'bufferSampleCount', 'bufferCurrentFrames', 'bufferMinFrames',
+        'bufferMaxFrames', 'bufferSumFrames', 'bufferTrendStartFrames',
+        'bufferTrendEndFrames', 'underrunCount', 'underrunFrames',
+        'reprimeCount', 'overflowCount', 'discardedFrames', 'resetCount',
+      ];
+      if (!snapshot || counters.some((key) => !finiteCounter(snapshot[key]))
+        || snapshot.receivedFrames !== this.receivedFrames
+        || snapshot.sourceSampleRate !== this.format.sourceSampleRate
+        || snapshot.sourceChannels !== this.format.sourceChannels
+        || snapshot.outputSampleRate !== this.format.outputSampleRate
+        || typeof snapshot.windowStartedInUnderrun !== 'boolean') {
+        return gap('projection_invalid');
+      }
+      const frameMs = 1000 / snapshot.sourceSampleRate;
+      const bufferDepth = snapshot.bufferSampleCount === 0
+        ? { status: 'unknown' }
+        : {
+          status: 'observed',
+          sampleCount: snapshot.bufferSampleCount,
+          currentMs: snapshot.bufferCurrentFrames * frameMs,
+          minMs: snapshot.bufferMinFrames * frameMs,
+          maxMs: snapshot.bufferMaxFrames * frameMs,
+          meanMs: (snapshot.bufferSumFrames / snapshot.bufferSampleCount) * frameMs,
+          trendMsPerSecond: ((snapshot.bufferTrendEndFrames
+            - snapshot.bufferTrendStartFrames) * frameMs) / (durationMs / 1000),
+        };
+      const underrunDurationMs = (snapshot.underrunFrames
+        / snapshot.outputSampleRate) * 1000;
+      if (snapshot.windowStartedInUnderrun && underrunDurationMs === 0) {
+        return gap('projection_invalid');
+      }
+      const signal = classifySignalWindow(
+        snapshot.receivedFrames,
+        snapshot.silentInputFrames,
+        snapshot.clippedInputFrames,
+        snapshot.sourceChannels,
+      );
+      const chunkGap = this.chunkCount < 2
+        ? { status: 'not_applicable' }
+        : {
+          status: 'observed', count: this.chunkGapCount,
+          meanMs: this.chunkGapSumMs / this.chunkGapCount,
+          maxMs: this.chunkGapMaxMs,
+        };
+      const longTasks = this.client.longTaskStatus === 'observed'
+        ? { status: 'observed', count: longTaskCount, maxDurationMs: longTaskMaxMs }
+        : { status: this.client.longTaskStatus };
+      const report = validateMeasurementJson(jsonBytes({
+        schemaVersion: 1,
+        kind: 'listener_window',
+        instanceId: this.lifecycle.instanceId,
+        sequence: this.lifecycle.allocateSequence(),
+        monotonicStartMs: start.midpointMs,
+        durationMs,
+        measurements: {
+          connectionAttemptSequence: this.lifecycle.attemptSequence,
+          receivedBytes: this.receivedBytes,
+          receivedFrames: this.receivedFrames,
+          chunkCount: this.chunkCount,
+          chunkGap,
+          reconnectCount: this.reconnectCount,
+          terminalCategory: this.terminalCategory,
+          bufferDepth,
+          underrunCount: snapshot.underrunCount,
+          underrunDurationMs,
+          reprimeCount: snapshot.reprimeCount,
+          windowStartedInUnderrun: snapshot.windowStartedInUnderrun,
+          overflowCount: snapshot.overflowCount,
+          discardedFrames: snapshot.discardedFrames,
+          resetCount: snapshot.resetCount,
+          sourceSampleRate: snapshot.sourceSampleRate,
+          sourceChannels: snapshot.sourceChannels,
+          outputSampleRate: snapshot.outputSampleRate,
+          nominalRateRatio: snapshot.sourceSampleRate / snapshot.outputSampleRate,
+          audioContextState: this.audioContextState,
+          baseLatencyMs: this.client.baseLatencyMs,
+          outputLatencyMs: this.client.outputLatencyMs,
+          visibilityState: this.visibilityState,
+          suspensionCount: this.suspensionCount,
+          longTasks,
+          ...signal,
+          browserFamily: this.client.browserFamily,
+          browserMajor: this.client.browserMajor,
+          osFamily: this.client.osFamily,
+          displayMode: this.client.displayMode,
+          implementationVersion: this.client.implementationVersion,
+        },
+      }));
+      this.lifecycle.appendWindow(report);
+      const result = frozen({
+        status: 'accepted',
+        report,
+        boundaryUncertaintyMs: start.uncertaintyMs + end.uncertaintyMs,
+      });
+      this.startBoundary = end;
+      this.#resetAccumulator();
+      return result;
+    } catch {
+      return gap('projection_invalid');
+    }
+  }
+
+  #resetAccumulator() {
+    this.receivedBytes = 0;
+    this.receivedFrames = 0;
+    this.chunkCount = 0;
+    this.chunkGapCount = 0;
+    this.chunkGapSumMs = 0;
+    this.chunkGapMaxMs = 0;
+    this.lastChunkMs = null;
+    this.reconnectCount = 0;
+    this.suspensionCount = 0;
+    this.terminalCategory = this.lifecycle.attempt?.terminalCategory ?? 'open';
+    this.audioContextState = this.lifecycle.contextStateValue;
+    this.visibilityState = 'unknown';
+    this.firstObservationMs = null;
+    this.lastObservationMs = null;
+  }
+
+  #observation(atMs) {
+    if (!finiteTime(atMs) || (this.lastObservationMs !== null && atMs < this.lastObservationMs)) {
+      fail('observation_invalid');
+    }
+    if (this.firstObservationMs === null) this.firstObservationMs = atMs;
+    this.lastObservationMs = atMs;
+  }
+}
+
 export const E5_LIMITS = frozen({
-  MAX_STAGED_PCM_BYTES, MAX_TRANSITIONS, MAX_LOCAL_RECORDS,
+  MAX_STAGED_PCM_BYTES, MAX_WINDOWS, MAX_TRANSITIONS, MAX_LOCAL_RECORDS,
 });
