@@ -4,7 +4,7 @@
 
 - Checkpoint: E3 — evidence derivation and comparison
 - Scope revision: `E3-spec-v1`
-- Status: `implementation-candidate`
+- Status: `closure-review`
 - Risk class: `A — isolated`
 - Required prior verified checkpoints: E1 at `736a401`; E2 at `df41d2c`
 - Explicitly excluded later checkpoints: persistence and queries (E7), HTTP and
@@ -12,6 +12,11 @@
   real-host measurements (E12)
 - Reviewers and review date: primary Codex review 2026-08-14; independent
   closure required before E11 or another consumer attaches
+
+Implementation checkpoint: the fixed classifier and focused table are
+implemented. Combined E1-E3 verification passes 36/36 with 96.73% E3 line and
+88.41% E3 branch coverage. Independent closure is pending; no consumer is
+authorized yet.
 
 ## Boundary and scale
 
@@ -56,7 +61,7 @@ classifyDiagnosticEvidence({
 The outer object is an internal inert object assembled by E7/E11. Every envelope
 must retain E2 private provenance. E3 validates:
 
-- one shared `traceId` and `timebaseId`;
+- one shared `traceId`, correlation segment, lease, and `timebaseId`;
 - exact authority/report family agreement;
 - source and relay pairs share instance, kind, and strictly increasing sequence;
 - E1 pair-series relations, including nondecreasing cumulative counters;
@@ -76,7 +81,7 @@ Source and relay deltas are `current - prior`. Negative deltas are invalid.
 
 `source_anomalous` is true when any source delta for `captureGapCount`,
 `droppedUploadCount`, `reconnectCount`, or `publisherRestartCount` is positive;
-`publisherState` is `backoff|error|unknown`; or captured, enqueued, and published
+`publisherState` is `backoff|error`; or captured, enqueued, and published
 frame deltas are not equal.
 
 `source_regular` requires all four event deltas to be zero,
@@ -87,20 +92,26 @@ captured/enqueued/published frame deltas.
 
 `relay_anomalous` is true when any relay delta for `ingressGapCount`,
 `rejectedIngressCount`, `droppedIngressCount`, `backpressureClosureCount`, or
-`generationFenceDisconnectCount` is positive.
+`generationFenceDisconnectCount` is positive, or ingress advances while at
+least one listener is active and delivered bytes do not advance.
 
-`relay_regular` requires all five deltas to be zero and a positive ingress-frame
-delta. Listener accept/close counts are retained evidence but are not themselves
-an audio-failure signal.
+`relay_regular` requires all five deltas to be zero, positive ingress and
+delivered-byte deltas, and at least one active listener. Listener accept/close
+counts are retained evidence but are not themselves an audio-failure signal.
 
 ### Listener delivery
 
 `delivery_anomalous` is true when `receivedFrames == 0`, `reconnectCount > 0`,
-`terminalCategory` is not `open`, or an observed `chunkGap.maxMs > 250`.
+`terminalCategory` is one of `no_response`, `rejected`, `unsupported_format`,
+`stream_error`, `stream_ended`, or `aborted`; or an observed
+`chunkGap.maxMs > 250`.
 
 `delivery_regular` requires positive received frames, zero reconnects, terminal
 category `open`, and either `chunkGap:not_applicable` or observed maximum at
 most 250 ms.
+
+Unknown publisher or listener terminal state is neither regular nor anomalous
+and therefore yields `insufficient_evidence`.
 
 ### Listener buffer
 
@@ -165,7 +176,8 @@ evidenceRef = {
 
 Finite missing codes are `source`, `relay`, `listener`, `trace_mismatch`,
 `timebase_mismatch`, `invalid_pair`, `duplicate_listener`, `unknown_state`,
-`ordering_overlap`, `contradictory_evidence`, and `no_anomaly`.
+`segment_mismatch`, `ordering_overlap`, `contradictory_evidence`, and
+`no_anomaly`.
 
 Suspicion results have `missing:[]`. `insufficient_evidence` has at least one
 missing code and includes only valid references that explain the failed

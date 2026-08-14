@@ -762,9 +762,9 @@ sample or fails closed.
 
 ### E3 — Evidence derivation and comparison reducer
 
-Status: `implementation-candidate`. The focused packet authorizes one isolated
-pure classifier and fixed-table tests; no persistence, route, UI, or producer
-integration is authorized.
+Status: `closure-review`. The isolated pure classifier and fixed-table tests are
+implemented; no persistence, route, UI, producer integration, or consumer is
+authorized before independent closure.
 
 Detailed specification packet:
 [E3 evidence derivation and comparison](s2-e-e3-comparison-spec.md).
