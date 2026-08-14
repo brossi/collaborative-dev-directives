@@ -17,6 +17,7 @@ const encoder = new TextEncoder();
 const issuanceFixtures = new WeakSet();
 const acceptedSamples = new WeakSet();
 const alignments = new WeakSet();
+const alignmentCoreBytes = new WeakMap();
 const contextFixtures = new WeakSet();
 const uploadedEnvelopes = new WeakSet();
 const operationAuthorities = new WeakSet();
@@ -255,6 +256,7 @@ export function mapMeasurementAlignment(report, sample) {
     mappingUncertaintyMs,
   }));
   alignments.add(alignment);
+  alignmentCoreBytes.set(alignment, canonicalMeasurementBytes(normalized));
   return alignment;
 }
 
@@ -317,6 +319,9 @@ export function composeUploadedEnvelope(report, alignment, serverContext) {
       : serverContext.relayGenerationId;
   if (contextInstance !== normalized.instanceId
     || alignment.sample.instanceId !== normalized.instanceId) fail('authority_invalid');
+  if (!sameBytes(
+    alignmentCoreBytes.get(alignment), canonicalMeasurementBytes(normalized),
+  )) fail('alignment_invalid');
 
   const envelope = deepFreeze(Object.assign(Object.create(null), {
     uploadVersion: 1,
@@ -382,6 +387,7 @@ export function canonicalE2OperationCommandBytes(command) {
 }
 
 function sameBytes(left, right) {
+  if (!(left instanceof Uint8Array) || !(right instanceof Uint8Array)) return false;
   if (left.byteLength !== right.byteLength) return false;
   for (let index = 0; index < left.byteLength; index += 1) {
     if (left[index] !== right[index]) return false;
@@ -507,7 +513,10 @@ function normalizeTraceState(value) {
   }, code);
   if (state.expiresAtMs !== state.startedAtMs + 21600000
     || state.segment.startedAtMs < state.startedAtMs
-    || (state.status === 'ended' && state.ended.endedAtMs < state.startedAtMs)) fail(code);
+    || (state.status === 'ended'
+      && (state.ended.endedAtMs < state.segment.startedAtMs
+        || ((state.ended.endedAtMs >= state.expiresAtMs)
+          !== (state.ended.reason === 'expired'))))) fail(code);
   return state;
 }
 
@@ -536,7 +545,7 @@ function normalizeRelayBinding(value) {
   }, code);
 }
 
-export function validateE2OperationReceiptJson(input) {
+export function restoreE2OperationReceiptFromTrustedStore(input) {
   const code = 'request_conflict';
   const parsed = parseBytes(input, code);
   if (!isRecord(parsed) || !OPERATIONS.includes(parsed.operation)) fail(code);
@@ -553,6 +562,25 @@ export function validateE2OperationReceiptJson(input) {
   }, code);
   if (receipt.requestId !== receipt.canonicalCommand.requestId
     || receipt.operation !== receipt.canonicalCommand.operation) fail(code);
+  if ((receipt.operation === 'trace_start' && receipt.result.status !== 'active')
+    || (receipt.operation === 'trace_end' && receipt.result.status !== 'ended')
+    || (receipt.operation === 'consent_opt_in'
+      && (receipt.result.status !== 'enabled'
+        || receipt.result.listenerInstanceId
+          !== receipt.canonicalCommand.parameters.listenerInstanceId
+        || receipt.result.firstAllowedSequence
+          !== receipt.canonicalCommand.parameters.firstAllowedSequence
+        || receipt.result.localConsentStartedMs
+          !== receipt.canonicalCommand.parameters.localConsentStartedMs))
+    || (receipt.operation === 'consent_stop'
+      && (receipt.result.status !== 'revoked'
+        || receipt.result.listenerInstanceId
+          !== receipt.canonicalCommand.parameters.listenerInstanceId
+        || receipt.result.generation
+          !== receipt.canonicalCommand.parameters.expectedGeneration + 1))
+    || (receipt.operation === 'relay_bind'
+      && receipt.result.relayGenerationId
+        !== receipt.canonicalCommand.parameters.relayGenerationId)) fail(code);
   const frozen = deepFreeze(receipt);
   operationCommands.add(frozen.canonicalCommand);
   if (frozen.operation === 'trace_start' || frozen.operation === 'trace_end') {
@@ -600,6 +628,7 @@ export function startDiagnosticTrace(currentTrace, command, authority, existingR
   assertAuthority(authority, 'trace_start');
   if (currentTrace !== null) {
     if (!traceStates.has(currentTrace)) fail('stale_correlation');
+    if (currentTrace.traceId === authority.issuedTraceId) fail('stale_correlation');
     if (currentTrace.status === 'active') {
       return deepFreeze(Object.assign(Object.create(null), {
         status: 'trace_busy', state: currentTrace, receipt: null,
@@ -633,7 +662,9 @@ export function endDiagnosticTrace(currentTrace, command, authority, existingRec
   assertAuthority(authority, 'trace_end');
   if (!traceStates.has(currentTrace) || currentTrace.status !== 'active'
     || currentTrace.traceId !== authority.traceId
-    || authority.nowMs < currentTrace.startedAtMs) fail('stale_correlation');
+    || authority.nowMs < currentTrace.segment.startedAtMs
+    || ((authority.nowMs >= currentTrace.expiresAtMs)
+      !== (authority.reason === 'expired'))) fail('stale_correlation');
   const state = deepFreeze(Object.assign(Object.create(null), {
     ...currentTrace,
     status: 'ended',
@@ -648,10 +679,18 @@ export function endDiagnosticTrace(currentTrace, command, authority, existingRec
 export function rotateCorrelationSegment(currentTrace, authority) {
   assertAuthority(authority, 'segment_rotate');
   if (!traceStates.has(currentTrace) || currentTrace.status !== 'active'
-    || currentTrace.traceId !== authority.traceId
-    || currentTrace.segment.leaseId !== authority.priorLeaseId
-    || authority.nowMs < currentTrace.segment.startedAtMs) fail('stale_correlation');
+    || currentTrace.traceId !== authority.traceId) fail('stale_correlation');
+  if (currentTrace.segment.leaseId === authority.leaseId
+    && currentTrace.segment.segmentId === authority.issuedSegmentId) {
+    return currentTrace;
+  }
+  if (currentTrace.segment.leaseId !== authority.priorLeaseId
+    || authority.nowMs < currentTrace.segment.startedAtMs
+    || authority.nowMs >= currentTrace.expiresAtMs) fail('stale_correlation');
   if (authority.leaseId === authority.priorLeaseId) return currentTrace;
+  if (authority.issuedSegmentId === currentTrace.segment.segmentId) {
+    fail('stale_correlation');
+  }
   const state = deepFreeze(Object.assign(Object.create(null), {
     ...currentTrace,
     segment: deepFreeze(Object.assign(Object.create(null), {
@@ -664,12 +703,17 @@ export function rotateCorrelationSegment(currentTrace, authority) {
   return state;
 }
 
-export function bindRelayGeneration(currentTrace, command, authority, existingReceipt = null) {
+export function bindRelayGeneration(
+  currentTrace, currentBinding, command, authority, existingReceipt = null,
+) {
   assertCommand(command, 'relay_bind');
   const replay = replayReceipt(existingReceipt, command);
   if (replay) return replay;
   assertAuthority(authority, 'relay_bind');
-  if (!traceStates.has(currentTrace) || currentTrace.status !== 'active'
+  if ((currentBinding !== null && !relayBindings.has(currentBinding))
+    || (currentBinding !== null
+      && currentBinding.relayGenerationId === command.parameters.relayGenerationId)
+    || !traceStates.has(currentTrace) || currentTrace.status !== 'active'
     || currentTrace.traceId !== authority.traceId
     || currentTrace.segment.segmentId !== authority.segmentId
     || currentTrace.segment.leaseId !== authority.leaseId
@@ -694,7 +738,10 @@ export function optInDiagnosticSharing(currentConsent, command, authority, exist
   if ((currentConsent !== null && !consentStates.has(currentConsent))
     || command.parameters.listenerInstanceId !== authority.listenerInstanceId
     || (currentConsent !== null && (currentConsent.traceId !== authority.traceId
-      || currentConsent.listenerInstanceId !== authority.listenerInstanceId))) {
+      || currentConsent.listenerInstanceId !== authority.listenerInstanceId
+      || command.parameters.firstAllowedSequence < currentConsent.firstAllowedSequence
+      || command.parameters.localConsentStartedMs < currentConsent.localConsentStartedMs
+      || authority.nowMs < currentConsent.changedAtMs))) {
     fail('authority_invalid');
   }
   const generation = currentConsent === null ? 1 : currentConsent.generation + 1;
@@ -753,9 +800,9 @@ export function classifyDiagnosticReportIngest({
       canonicalMeasurementBytes(incomingEnvelope.measurementCore),
     ) ? 'replayed' : 'report_conflict';
   }
+  if (incomingEnvelope.serverContext.authorityKind !== 'listener') return 'accepted';
   if (!consentStates.has(consent) || !Number.isSafeInteger(grantGeneration)
     || grantGeneration < 1 || consent.status !== 'enabled'
-    || incomingEnvelope.serverContext.authorityKind !== 'listener'
     || consent.generation !== grantGeneration
     || consent.traceId !== incomingEnvelope.serverContext.traceId
     || consent.listenerInstanceId !== incomingEnvelope.measurementCore.instanceId

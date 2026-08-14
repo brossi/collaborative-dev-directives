@@ -16,12 +16,12 @@ import {
   endDiagnosticTrace,
   mapMeasurementAlignment,
   optInDiagnosticSharing,
+  restoreE2OperationReceiptFromTrustedStore,
   rotateCorrelationSegment,
   startDiagnosticTrace,
   stopDiagnosticSharing,
   uploadedEnvelopeIdentity,
   validateE2OperationCommandJson,
-  validateE2OperationReceiptJson,
 } from '../lib/s2e-e2-correlation.mjs';
 import {
   canonicalMeasurementBytes,
@@ -41,6 +41,8 @@ const SEGMENT_2 = 'a23e4567-e89b-42d3-a456-426614174000';
 const LEASE_2 = 'b23e4567-e89b-42d3-a456-426614174000';
 const REQUEST_1 = 'c23e4567-e89b-42d3-a456-426614174000';
 const REQUEST_2 = 'd23e4567-e89b-42d3-a456-426614174000';
+const REQUEST_3 = 'e23e4567-e89b-42d3-a456-426614174000';
+const REQUEST_4 = 'f23e4567-e89b-42d3-a456-426614174000';
 const bytes = (value) => Buffer.from(JSON.stringify(value));
 
 function base(kind, measurements, overrides = {}) {
@@ -96,14 +98,19 @@ function listenerWindow(overrides = {}) {
   }, overrides);
 }
 
-function sourceWindow() {
-  return base('source_window', {
+function sourceWindow(overrides = {}) {
+  const value = base('source_window', {
     sampleRate: 48000, channels: 2, encoding: 's16le', capturedFrames: 48000,
     enqueuedFrames: 48000, publishedFrames: 48000, publishedBytes: 192000,
     captureGapCount: 0, droppedUploadCount: 0, reconnectCount: 0,
     publisherRestartCount: 0, publisherState: 'publishing',
     playbackObservation: 'playing',
   });
+  return {
+    ...value,
+    ...overrides,
+    measurements: { ...value.measurements, ...overrides.measurements },
+  };
 }
 
 function listenerTransition() {
@@ -218,6 +225,13 @@ test('physical sample uses ordered offset bounds without repairing impossible ti
   expectCode('sample_invalid', () => sample({ localReceiveMs: 2100.0001 }));
   expectCode('sample_invalid', () => sample({}, issuance({ serverSendMs: 1025 })));
   expectCode('sample_invalid', () => sample({}, issuance({ serverReceiveMs: 1010, serverSendMs: 1005 })));
+
+  const exactMaximum = sample(
+    { localReceiveMs: 2100 }, issuance({ serverReceiveMs: 1000, serverSendMs: 1000 }),
+  );
+  const lower = exactMaximum.serverSendMs - exactMaximum.localReceiveMs;
+  const upper = exactMaximum.serverReceiveMs - exactMaximum.localSendMs;
+  assert.equal((upper - lower) / 2, 1000);
 });
 
 test('sample provenance rejects caller server labels, mismatched identity, and forged records', () => {
@@ -246,6 +260,28 @@ test('alignment maps subsequent report intervals and fails closed at validity bo
   expectCode('sample_expired', () => mapMeasurementAlignment(
     report(listenerWindow({ monotonicStartMs: 50200, durationMs: 10000 })), sample(),
   ));
+  assert.equal(mapMeasurementAlignment(
+    report(listenerWindow({ monotonicStartMs: 50120, durationMs: 10000 })), sample(),
+  ).mappedEndLatestMs, 61020);
+  expectCode('alignment_invalid', () => mapMeasurementAlignment(
+    report(),
+    sample({}, issuance({
+      serverReceiveMs: Number.MAX_SAFE_INTEGER - 10,
+      serverSendMs: Number.MAX_SAFE_INTEGER - 10,
+    })),
+  ));
+});
+
+test('alignment provenance cannot be reused by another same-instance report', () => {
+  const first = report(listenerWindow());
+  const aligned = mapMeasurementAlignment(first, sample());
+  const later = report(listenerWindow({ sequence: 1, monotonicStartMs: 50000 }));
+  expectCode('alignment_invalid', () => composeUploadedEnvelope(
+    later, aligned, context('listener'),
+  ));
+  expectCode('alignment_invalid', () => composeUploadedEnvelope(
+    report(listenerTransition()), aligned, context('listener'),
+  ));
 });
 
 test('all six E1 kinds preserve their core and derive family-specific authority', () => {
@@ -271,6 +307,12 @@ test('all six E1 kinds preserve their core and derive family-specific authority'
   expectCode('authority_invalid', () => composeUploadedEnvelope(
     normalized, mapMeasurementAlignment(normalized, sample()), Object.freeze({}),
   ));
+  expectCode('authority_invalid', () => context('listener', { prohibited: true }));
+  expectCode('authority_invalid', () => composeUploadedEnvelope(
+    normalized,
+    mapMeasurementAlignment(normalized, sample()),
+    context('listener', { listenerInstanceId: TRACE_2 }),
+  ));
 });
 
 test('different server timebases remain explicitly unrelated', () => {
@@ -295,7 +337,7 @@ test('trace lifecycle is fixed, monotonic, replay-safe, and single-active', () =
   );
   assert.equal(replayed.status, 'replayed');
   assert.strictEqual(replayed.state, created.state);
-  const restoredReceipt = validateE2OperationReceiptJson(
+  const restoredReceipt = restoreE2OperationReceiptFromTrustedStore(
     canonicalE2OperationReceiptBytes(created.receipt),
   );
   const restartedReplay = startDiagnosticTrace(
@@ -333,6 +375,11 @@ test('trace lifecycle is fixed, monotonic, replay-safe, and single-active', () =
     }),
     ended.receipt,
   ).status, 'replayed');
+  expectCode('stale_correlation', () => startDiagnosticTrace(
+    ended.state,
+    command('trace_start', {}, REQUEST_3),
+    startAuthority({ nowMs: 3000, issuedTraceId: TRACE }),
+  ));
 });
 
 test('lease replacement rotates one segment and relay generation binds immutably', () => {
@@ -345,13 +392,25 @@ test('lease replacement rotates one segment and relay generation binds immutably
   }));
   assert.equal(rotated.segment.segmentId, SEGMENT_2);
   assert.equal(rotated.segment.leaseId, LEASE_2);
+  assert.strictEqual(rotated, rotateCorrelationSegment(rotated, operationAuthority({
+    operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
+    priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,
+  })));
+  expectCode('stale_correlation', () => rotateCorrelationSegment(trace, operationAuthority({
+    operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
+    priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT,
+  })));
   expectCode('stale_correlation', () => rotateCorrelationSegment(trace, operationAuthority({
     operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
     priorLeaseId: LEASE_2, leaseId: LEASE, issuedSegmentId: SEGMENT_2,
   })));
+  expectCode('stale_correlation', () => rotateCorrelationSegment(trace, operationAuthority({
+    operation: 'segment_rotate', nowMs: trace.expiresAtMs, traceId: TRACE,
+    priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,
+  })));
 
   const relayCommand = command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_2);
-  const binding = bindRelayGeneration(rotated, relayCommand, operationAuthority({
+  const binding = bindRelayGeneration(rotated, null, relayCommand, operationAuthority({
     operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT_2,
     leaseId: LEASE_2, relayGenerationId: INSTANCE,
   }));
@@ -360,6 +419,7 @@ test('lease replacement rotates one segment and relay generation binds immutably
   });
   assert.equal(bindRelayGeneration(
     trace,
+    binding.state,
     command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_2),
     operationAuthority({
       operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT,
@@ -367,6 +427,48 @@ test('lease replacement rotates one segment and relay generation binds immutably
     }),
     binding.receipt,
   ).status, 'replayed');
+
+  const firstBinding = bindRelayGeneration(
+    trace,
+    null,
+    command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_3),
+    operationAuthority({
+      operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT,
+      leaseId: LEASE, relayGenerationId: INSTANCE,
+    }),
+  );
+  expectCode('stale_correlation', () => bindRelayGeneration(
+    rotated,
+    firstBinding.state,
+    command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_4),
+    operationAuthority({
+      operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT_2,
+      leaseId: LEASE_2, relayGenerationId: INSTANCE,
+    }),
+  ));
+  expectCode('stale_correlation', () => endDiagnosticTrace(
+    rotated,
+    command('trace_end', {}, REQUEST_4),
+    operationAuthority({
+      operation: 'trace_end', nowMs: 1500, traceId: TRACE, reason: 'host_stopped',
+    }),
+  ));
+  expectCode('stale_correlation', () => endDiagnosticTrace(
+    rotated,
+    command('trace_end', {}, REQUEST_4),
+    operationAuthority({
+      operation: 'trace_end', nowMs: rotated.expiresAtMs,
+      traceId: TRACE, reason: 'host_stopped',
+    }),
+  ));
+  assert.equal(endDiagnosticTrace(
+    rotated,
+    command('trace_end', {}, REQUEST_4),
+    operationAuthority({
+      operation: 'trace_end', nowMs: rotated.expiresAtMs,
+      traceId: TRACE, reason: 'expired',
+    }),
+  ).state.ended.reason, 'expired');
 });
 
 test('consent is forward-only and stop preserves accepted replay semantics', () => {
@@ -404,7 +506,7 @@ test('consent is forward-only and stop preserves accepted replay semantics', () 
   assert.equal(classifyDiagnosticReportIngest({
     existingEnvelope: null, incomingEnvelope: sourceEnvelope,
     consent: optIn.state, grantGeneration: 1,
-  }), 'sharing_disabled');
+  }), 'accepted');
 
   const stopped = stopDiagnosticSharing(
     optIn.state,
@@ -418,6 +520,18 @@ test('consent is forward-only and stop preserves accepted replay semantics', () 
   );
   assert.equal(stopped.state.status, 'revoked');
   assert.equal(stopped.state.generation, 2);
+  expectCode('authority_invalid', () => optInDiagnosticSharing(
+    stopped.state,
+    command('consent_opt_in', {
+      listenerInstanceId: INSTANCE,
+      firstAllowedSequence: 0,
+      localConsentStartedMs: 0,
+    }, REQUEST_3),
+    operationAuthority({
+      operation: 'consent_opt_in', nowMs: 1500, traceId: TRACE,
+      listenerInstanceId: INSTANCE,
+    }),
+  ));
   assert.equal(classifyDiagnosticReportIngest({
     existingEnvelope: null, incomingEnvelope: eligible,
     consent: stopped.state, grantGeneration: 1,
@@ -435,6 +549,92 @@ test('consent is forward-only and stop preserves accepted replay semantics', () 
     existingEnvelope: eligible, incomingEnvelope: conflict,
     consent: stopped.state, grantGeneration: 1,
   }), 'report_conflict');
+});
+
+test('source and relay ingest use authority context without listener consent', () => {
+  for (const [fixture, family] of [[sourceWindow(), 'source'], [relayWindow(), 'relay']]) {
+    const core = report(fixture);
+    const acceptedEnvelope = composeUploadedEnvelope(
+      core, mapMeasurementAlignment(core, sample()), context(family),
+    );
+    assert.equal(classifyDiagnosticReportIngest({
+      existingEnvelope: null,
+      incomingEnvelope: acceptedEnvelope,
+      consent: null,
+      grantGeneration: null,
+    }), 'accepted');
+    assert.equal(classifyDiagnosticReportIngest({
+      existingEnvelope: acceptedEnvelope,
+      incomingEnvelope: acceptedEnvelope,
+      consent: null,
+      grantGeneration: null,
+    }), 'replayed');
+  }
+
+  const originalCore = report(sourceWindow());
+  const changedCore = report(sourceWindow({ measurements: { publisherState: 'backoff' } }));
+  const original = composeUploadedEnvelope(
+    originalCore, mapMeasurementAlignment(originalCore, sample()), context('source'),
+  );
+  const changed = composeUploadedEnvelope(
+    changedCore, mapMeasurementAlignment(changedCore, sample()), context('source'),
+  );
+  assert.equal(classifyDiagnosticReportIngest({
+    existingEnvelope: original,
+    incomingEnvelope: changed,
+    consent: null,
+    grantGeneration: null,
+  }), 'report_conflict');
+});
+
+test('trusted receipt restoration rejects operation-result contradictions', () => {
+  const created = startDiagnosticTrace(
+    null, command('trace_start'), startAuthority(),
+  );
+  const activeAsEnded = JSON.parse(Buffer.from(
+    canonicalE2OperationReceiptBytes(created.receipt),
+  ).toString('utf8'));
+  activeAsEnded.operation = 'trace_end';
+  activeAsEnded.canonicalCommand.operation = 'trace_end';
+  expectCode('request_conflict', () => restoreE2OperationReceiptFromTrustedStore(
+    bytes(activeAsEnded),
+  ));
+
+  const optIn = optInDiagnosticSharing(
+    null,
+    command('consent_opt_in', {
+      listenerInstanceId: INSTANCE, firstAllowedSequence: 1,
+      localConsentStartedMs: 120,
+    }, REQUEST_2),
+    operationAuthority({
+      operation: 'consent_opt_in', nowMs: 1000, traceId: TRACE,
+      listenerInstanceId: INSTANCE,
+    }),
+  );
+  const enabledAsStopped = JSON.parse(Buffer.from(
+    canonicalE2OperationReceiptBytes(optIn.receipt),
+  ).toString('utf8'));
+  enabledAsStopped.operation = 'consent_stop';
+  enabledAsStopped.canonicalCommand.operation = 'consent_stop';
+  enabledAsStopped.canonicalCommand.parameters = {
+    listenerInstanceId: INSTANCE, expectedGeneration: 1,
+  };
+  expectCode('request_conflict', () => restoreE2OperationReceiptFromTrustedStore(
+    bytes(enabledAsStopped),
+  ));
+
+  const relayCommand = command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_3);
+  const relay = bindRelayGeneration(created.state, null, relayCommand, operationAuthority({
+    operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT,
+    leaseId: LEASE, relayGenerationId: INSTANCE,
+  }));
+  const mismatchedRelay = JSON.parse(Buffer.from(
+    canonicalE2OperationReceiptBytes(relay.receipt),
+  ).toString('utf8'));
+  mismatchedRelay.result.relayGenerationId = TRACE_2;
+  expectCode('request_conflict', () => restoreE2OperationReceiptFromTrustedStore(
+    bytes(mismatchedRelay),
+  ));
 });
 
 test('E2 dependency firewall imports E1 only and contains no later boundary', async () => {

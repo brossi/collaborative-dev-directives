@@ -204,6 +204,9 @@ startLatest <= endLatest
 Expiry is evaluated when the report first linearizes. Once E7 stores a valid
 alignment, later sample expiry does not invalidate it. Collector receipt time
 is E7 transport metadata, not part of this envelope and not event-time truth.
+The pure mapper privately binds every derived alignment to the exact canonical
+E1 bytes from which it was calculated. Envelope composition rejects reuse with
+another sequence, interval, kind, or payload even when the instance ID matches.
 
 ### Branded server context
 
@@ -295,10 +298,17 @@ Trace commands carry a canonical request UUID. The pure reducer accepts a
 branded current host/run/lease authority and derives all IDs except request ID.
 An active trace for another run returns `trace_busy`; an active trace for the
 same run returns the existing trace only for the exact accepted request replay.
+An ended trace ID cannot reopen, a new lease must receive a segment ID distinct
+from the current segment, and terminal time cannot precede the final segment.
+At or after `expiresAtMs`, `expired` is the only accepted terminal reason.
+Repeating an already-applied lease/segment projection returns that exact state;
+it does not create another segment.
 
 Relay generation binding is exact `{relayGenerationId, traceId, segmentId,
 leaseId}`. Once created it is immutable. A delayed report uses that original
-binding or is rejected; current lease lookup never relabels it.
+binding or is rejected; current lease lookup never relabels it. The reducer
+receives the retained binding for that generation and rejects a fresh request
+that attempts to bind it again, including after segment rotation.
 
 ### Fixed operation replay
 
@@ -328,11 +338,14 @@ A successful pure reducer returns an exact branded receipt:
 }
 ```
 
-The operation-specific result is respectively a trace state, ended trace state,
-consent state, consent state, or immutable relay binding. E2 canonical encoding
-of `canonicalCommand` supplies the replay bytes. E2 exposes a strict receipt JSON
-validator so E7 can reload a persisted receipt after restart and recover its
-private provenance brand. On retry, identical canonical command bytes return
+The operation-specific result is respectively an active trace state, ended
+trace state, enabled consent state, revoked consent state, or immutable relay
+binding. E2 canonical encoding of `canonicalCommand` supplies the replay bytes.
+E2 exposes an explicitly trusted-store restoration function for E7; it is not
+an untrusted ingest surface. Restoration validates the operation/result status,
+command identity, consent boundary/generation, listener identity, and relay
+generation before recovering private provenance. On retry, identical canonical
+command bytes return
 the retained result with `replayed`; different bytes under the same
 request ID return `request_conflict`. The retained result is never recomputed
 from current authority.
@@ -365,7 +378,8 @@ Opt-in is forward-only. E5 supplies the next local sequence and current local
 monotonic time; E8 authenticates the instance and journals the request. A report
 is eligible only when its sequence and local start are not earlier than those
 two stored boundaries and its grant generation equals the enabled generation.
-Stop increments generation and marks revoked before returning.
+Stop increments generation and marks revoked before returning. Re-opt-in may
+advance but never lower either boundary or the server change time.
 
 The ingest/replay truth table is:
 
@@ -377,8 +391,11 @@ The ingest/replay truth table is:
 | present | different | any | `report_conflict` |
 | absent/present | malformed | any | `report_invalid`; retained value unchanged |
 
-E2 returns the decision only. E7 owns the atomic stored-identity lookup/write;
-E8 owns grant authentication and the external acknowledgement.
+This consent column applies only to listener envelopes. A first authenticated
+source or relay envelope is `accepted` without listener consent; its exact
+identity replay and conflict rows are otherwise identical. E2 returns the
+decision only. E7 owns the atomic stored-identity lookup/write; E8 owns listener
+grant and producer authority authentication plus the external acknowledgement.
 
 ### Recursive privacy matrix
 
