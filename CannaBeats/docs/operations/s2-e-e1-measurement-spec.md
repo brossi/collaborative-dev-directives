@@ -4,21 +4,21 @@
 
 - Checkpoint: E1 — measurement vocabulary and privacy schema
 - Scope revision: `E1-spec-v3`
-- Status: `designed`
-- Independently reviewed specification target: commit
-  `e2d699f3538c549a749e27543b29a07fc89e6435`, tree
-  `e5e343d513e8673accc114365b3da1f8f340139f`, on
-  `feature/slice-2-game-night-resilience`. This status-only authorization commit
-  changes no reviewed specification rule.
+- Status: `locally-verified`
+- Independently reviewed implementation target: commit
+  `736a4017710a2dbf71b6d2ee48b4cbab8077050c`, tree
+  `e620029538e66705f39899c0540e572fbbf8691c`, on
+  `feature/slice-2-game-night-resilience`. This status-only evidence commit
+  changes no reviewed specification or implementation rule.
 - Required prior verified checkpoint: S2-D local closure `25cd9a6`, as recorded
   by `docs/operations/s2-d-recovery-contract.md`
 - Explicitly excluded later checkpoints: E2 alignment/correlation authority; E3
   health derivation/comparison; E4 worklet transport; E5 browser lifecycle; E6
   UI/clipboard composition; E7 persistence; E8-E10 routing/reporters; E11 fault
   localization; E12 real-environment evidence
-- Reviewers and review date: primary Codex adversarial design review on
-  2026-08-13; independent Boyle/Gauss/Cicero closure review of `e2d699f` on
-  2026-08-13 returned `pass`
+- Reviewers and review date: primary Codex adversarial design/implementation
+  review on 2026-08-13; independent Boyle/Gauss/Cicero closure review of
+  `736a401` on 2026-08-13 returned `pass`
 
 ## Boundary map
 
@@ -596,19 +596,21 @@ are E9 and E10-owned. They are not E1 evidence.
 
 | Claim | Invariant IDs | Negative schedules | Real interface | Planned evidence | Permitted wording before pass |
 | --- | --- | --- | --- | --- | --- |
-| Exact six-kind schema/history | E1-SHAPE-001/002, E1-SEM-001/002/003 | malformed JSON, unknown, missing, impossible fields and impossible history | bounded JSON-byte API | Systematic fixed shape/truth/history matrices | designed only |
-| Stable canonical identity | E1-ID-001/002, E1-CANON-001/002 | reorder, alternate spelling, size edge | E1 module import | ECMAScript JSON numeric/string vectors plus all-kind identity matrix | designed only |
-| Exact replay/conflict | E1-REPLAY-001 | exact, conflict, distinct, concurrent equivalent | E1 module import | Six-kind Cartesian replay suite | designed only |
-| Legal signal categories and producer helper | E1-SIGNAL-001 | zero, silent, isolated/sustained thresholds, invalid counts and category pairs | E1 classifier export | Exhaustive boundary table; E4 separately proves producer use | designed only |
-| Recursive privacy/export | E1-PRIV-001/002, E1-READ-001 | nested sentinel, malformed wrapper/retained value | E1 projection/export exports | Generated recursive privacy suite | designed only |
-| Finite lifecycle outcomes | E1-REPLAY-001, E1-BOUND-001 | response loss, after-effect-before-ack, stale epoch, cancellation, restart, unsupported API, queue/disk/cleanup failure | bounded JSON-byte API | Pure retry/error tests plus explicit E2/E4-E10 ownership assertions | designed only |
-| Bounded E1 work | E1-CANON-002, E1-BOUND-001 | raw limit ±1, canonical limit ±1, series/export count 256 and 257, export byte limit ±1 | bounded JSON-byte API | Raw-byte/parser boundary vectors and elapsed/heap observation labeled local-only | designed only |
-| E1 scope isolation | E1-BOUND-001 | attempted E2/E3 import | Module dependency graph | `node --test web/tests/s2e-e1-contract.test.mjs` import assertion | designed only |
+| Exact six-kind schema/history | E1-SHAPE-001/002, E1-SEM-001/002/003 | malformed JSON, unknown, missing, impossible fields and impossible history | bounded JSON-byte API | Systematic fixed shape/truth/history matrices | locally verified at `736a401` |
+| Stable canonical identity | E1-ID-001/002, E1-CANON-001/002 | reorder, alternate spelling, size edge | E1 module import | ECMAScript JSON numeric/string vectors plus all-kind identity matrix | locally verified at `736a401` |
+| Exact replay/conflict | E1-REPLAY-001 | exact, conflict, distinct, concurrent equivalent | E1 module import | Six-kind Cartesian replay suite | locally verified at `736a401` |
+| Legal signal categories and producer helper | E1-SIGNAL-001 | zero, silent, isolated/sustained thresholds, invalid counts and category pairs | E1 classifier export | Exhaustive boundary table; E4 separately proves producer use | locally verified at `736a401` |
+| Recursive privacy/export | E1-PRIV-001/002, E1-READ-001 | nested sentinel, malformed wrapper/retained value | E1 projection/export exports | Systematic recursive privacy suite | locally verified at `736a401` |
+| Finite lifecycle outcomes | E1-REPLAY-001, E1-BOUND-001 | response loss, after-effect-before-ack, stale epoch, cancellation, restart, unsupported API, queue/disk/cleanup failure | bounded JSON-byte API | Pure retry/error tests plus explicit E2/E4-E10 ownership assertions | locally verified at `736a401` |
+| Bounded E1 work | E1-CANON-002, E1-BOUND-001 | raw limit ±1, canonical limit, series/export count 256 and 257, export byte limit | bounded JSON-byte API | Raw-byte/parser boundary vectors; fixed schemas prove individual envelopes remain below 2 KiB | locally verified at `736a401` |
+| E1 scope isolation | E1-BOUND-001 | static/dynamic import and re-export forms | Module source dependency boundary | `node --test web/tests/s2e-e1-contract.test.mjs` zero-import assertion | locally verified at `736a401` |
 
-Resource result, exact implementation tree identity, test names, and reviewed
-privacy-field output are populated only after implementation is authorized and
-the evidence exists. No S2-F measurement is deferred from E1; later checkpoints
-own browser/process/storage measurements.
+Implementation evidence: focused E1 suite `18/18`; production web build plus
+full web suite `162/162`; ESLint passed for the E1 module and focused test;
+`git diff --check` passed. The independent review exercised hostile byte views,
+forged normalized/export values, all-kind privacy, transition matrices, and
+relational boundaries against the exact target above. No S2-F measurement is
+deferred from E1; later checkpoints own browser/process/storage measurements.
 
 ## Design-review decision
 
@@ -635,8 +637,8 @@ own browser/process/storage measurements.
 - Packet linked from the normative checkpoint: `yes`
 - Every `Not applicable` names its owning checkpoint: `yes`
 - Dependency-firewall review passed: `yes` for the specification; the active
-  tree contains no E1 implementation and therefore supplies no implementation
-  evidence
+  E1 module has no imports, and the focused test rejects static/dynamic imports
+  and re-exports
 - Predictable-failure matrix resolved: `yes` in the specification
 - No open P0/P1 design finding: `yes`
 - Implementation authorized: `yes`, for the approved E1-only scope above
