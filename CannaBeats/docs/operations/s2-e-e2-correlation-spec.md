@@ -302,13 +302,16 @@ An ended trace ID cannot reopen, a new lease must receive a segment ID distinct
 from the current segment, and terminal time cannot precede the final segment.
 At or after `expiresAtMs`, `expired` is the only accepted terminal reason.
 Repeating an already-applied lease/segment projection returns that exact state;
-it does not create another segment.
+it does not create another segment. Restored state also requires the retained
+segment to begin strictly before trace expiry.
 
 Relay generation binding is exact `{relayGenerationId, traceId, segmentId,
 leaseId}`. Once created it is immutable. A delayed report uses that original
 binding or is rejected; current lease lookup never relabels it. The reducer
-receives the retained binding for that generation and rejects a fresh request
-that attempts to bind it again, including after segment rotation.
+receives E7's retained lookup for the requested generation. After exact receipt
+replay, any non-null lookup result fails closed; a new binding is created only
+from an atomically proven absent lookup. This also rejects a wrong-row lookup
+rather than silently treating it as absence.
 
 ### Fixed operation replay
 

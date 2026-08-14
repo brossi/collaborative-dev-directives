@@ -513,6 +513,7 @@ function normalizeTraceState(value) {
   }, code);
   if (state.expiresAtMs !== state.startedAtMs + 21600000
     || state.segment.startedAtMs < state.startedAtMs
+    || state.segment.startedAtMs >= state.expiresAtMs
     || (state.status === 'ended'
       && (state.ended.endedAtMs < state.segment.startedAtMs
         || ((state.ended.endedAtMs >= state.expiresAtMs)
@@ -710,9 +711,7 @@ export function bindRelayGeneration(
   const replay = replayReceipt(existingReceipt, command);
   if (replay) return replay;
   assertAuthority(authority, 'relay_bind');
-  if ((currentBinding !== null && !relayBindings.has(currentBinding))
-    || (currentBinding !== null
-      && currentBinding.relayGenerationId === command.parameters.relayGenerationId)
+  if (currentBinding !== null
     || !traceStates.has(currentTrace) || currentTrace.status !== 'active'
     || currentTrace.traceId !== authority.traceId
     || currentTrace.segment.segmentId !== authority.segmentId

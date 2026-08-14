@@ -446,6 +446,24 @@ test('lease replacement rotates one segment and relay generation binds immutably
       leaseId: LEASE_2, relayGenerationId: INSTANCE,
     }),
   ));
+  const differentBinding = bindRelayGeneration(
+    trace,
+    null,
+    command('relay_bind', { relayGenerationId: TRACE_2 }, REQUEST_4),
+    operationAuthority({
+      operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT,
+      leaseId: LEASE, relayGenerationId: TRACE_2,
+    }),
+  );
+  expectCode('stale_correlation', () => bindRelayGeneration(
+    rotated,
+    differentBinding.state,
+    command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_1),
+    operationAuthority({
+      operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT_2,
+      leaseId: LEASE_2, relayGenerationId: INSTANCE,
+    }),
+  ));
   expectCode('stale_correlation', () => endDiagnosticTrace(
     rotated,
     command('trace_end', {}, REQUEST_4),
@@ -598,6 +616,13 @@ test('trusted receipt restoration rejects operation-result contradictions', () =
   activeAsEnded.canonicalCommand.operation = 'trace_end';
   expectCode('request_conflict', () => restoreE2OperationReceiptFromTrustedStore(
     bytes(activeAsEnded),
+  ));
+  const postExpirySegment = JSON.parse(Buffer.from(
+    canonicalE2OperationReceiptBytes(created.receipt),
+  ).toString('utf8'));
+  postExpirySegment.result.segment.startedAtMs = postExpirySegment.result.expiresAtMs;
+  expectCode('request_conflict', () => restoreE2OperationReceiptFromTrustedStore(
+    bytes(postExpirySegment),
   ));
 
   const optIn = optInDiagnosticSharing(
