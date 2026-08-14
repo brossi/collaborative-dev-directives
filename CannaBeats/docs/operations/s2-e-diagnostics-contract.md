@@ -1,13 +1,11 @@
 # S2-E listener, source, and relay diagnostics contract
 
-Status: the S2-E architecture and checkpoint framework have been revised through
-the small-deployment scale filter and require a fresh design audit; detailed
-checkpoint specifications must still pass their individual closure gates. E1
-has a revised audit-candidate packet pending independent review. The
-earlier executable-contract and listener prototypes are archived outside the
-active branch and supply no evidence. No S2-E implementation or acceptance outcome is
-complete until its specification gate, boundary gate, and composed executable
-evidence pass.
+Status: the S2-E architecture and checkpoint framework use the small-deployment
+scale filter and each detailed checkpoint must pass its own closure gate. E1 is
+locally verified at its recorded exact implementation target. E2 now has a
+design-review-pending specification packet; no E2 implementation is authorized.
+The earlier broad executable-contract and listener prototypes remain archived
+outside the active branch and supply no evidence.
 
 This contract defines a bounded diagnostic plane for locating managed-audio
 quality failures. It consumes the S2-D stream, lease, handoff, and recovery
@@ -161,13 +159,14 @@ runId (server authority)
   clock; client wall time is never used. Game/collector store the accepted
   sample and mapped interval with uploaded reports. Version 1 does not sign
   samples for offline verification.
-- For local time `L`, the server-time offset lies in
-  `[serverReceiveMs - localSendMs, serverSendMs - localReceiveMs]` after ordering
-  the two bounds. The mapped event interval adds that full offset interval to
-  the local monotonic start/end. `mappingUncertaintyMs` is half the resulting
-  interval width and must not be smaller than half the local round trip after
-  subtracting the server-processing interval. The exact schema stores
-  the four timestamps and derived bounds rather than an ambiguous point offset.
+- For local time `L`, the physically valid server-time offset interval is
+  `[serverSendMs - localReceiveMs, serverReceiveMs - localSendMs]`. These bounds
+  are never sorted: local/server intervals must already be ordered and server
+  processing must not exceed the local round trip. The mapped event interval
+  adds the lower/upper offsets to the local monotonic start/end.
+  `mappingUncertaintyMs` is exactly half the offset width, equivalently half the
+  local round trip after subtracting server processing. The exact schema stores
+  all four timestamps and derived bounds rather than an ambiguous point offset.
 - Different producers and renewals normally have different samples. Cross-
   producer comparison requires the same collector timebase, a physically
   possible sample accepted with the report, and uncertainty below the fixed
@@ -242,8 +241,8 @@ than anonymous and may be attributable from the context of the game.
 
 ## Versioned measurement core and uploaded envelope
 
-E1 owns one exact, authority-free `measurementCore`. These bytes are useful for
-local validation and copy without a collector and never contain `traceId`,
+E1 owns one exact, authority-free `measurementCore` and its canonical bytes.
+They are useful for local validation and copy without a collector and never contain `traceId`,
 `runId`, `leaseId`, `role`, an alignment sample, a signature, or an assertion:
 
 ```text
@@ -258,8 +257,9 @@ measurements: exact kind-specific object
 ```
 
 E2 owns a distinct exact `uploadedReport` whose fields are
-`{measurementCore, alignment, serverContext}`. It validates E1 first and keeps
-the unchanged canonical E1 bytes. `alignment` and `serverContext` are siblings
+`{measurementCore, alignment, serverContext}`. `measurementCore` is the frozen
+E1-produced object and re-encodes to the unchanged canonical E1 bytes.
+`alignment` and `serverContext` are siblings
 of `measurementCore`; they are never inserted into or used to rewrite it.
 Game/State derive role, run, trace, lease, source, and relay-generation authority
 only into `serverContext`. A caller-
@@ -680,7 +680,7 @@ during implementation:
 | E11 | one host view and five deterministic injected faults | general observability UI or open-ended fault lab |
 | E12 | measurements on the actual few supported devices/hosts | broad device certification or fleet-scale capacity program |
 
-Execution resumes at E1. The archived pre-spec prototype remains outside the
+Execution resumes at E2. The archived pre-spec prototype remains outside the
 active branch and supplies no checkpoint evidence. E2 and E4 both require verified E1. E4 may then proceed without verified
 E2-E3 because it consumes neither authority nor comparison semantics. E5
 requires verified E4; E6 requires verified E1 and E5; E7-E12 proceed in the
@@ -689,15 +689,10 @@ already be rendered.
 
 ### E1 — Measurement vocabulary and privacy schema
 
-Status: revised detailed specification is `design-review-pending`; implementation
-remains unauthorized. The primary adversarial review corrected the previously
-implicit rules for object shape, semantic operators, transitions, signal and
-cross-field truth, recursive copy privacy, all-kind identity, E2 isolation, and
-evidence scope. The first independent audit then rejected that revision and v3
-now resolves its composition, exact-schema, history, recursive-privacy, input,
-resource, and interruption findings. A fresh independent design audit remains
-required before the packet may become `designed`. This status does not advance
-E2 or authorize E1 implementation remediation.
+Status: `locally-verified`. The bounded six-shape implementation, systematic
+finite matrices, full web build/suite, and three-perspective independent closure
+review are recorded in the detailed packet. E1 supplies no E2 authority or
+timing claim.
 
 Detailed specification packet:
 [E1 measurement vocabulary and privacy](s2-e-e1-measurement-spec.md).
@@ -718,6 +713,14 @@ is defined; and all-kind exact replay/conflict behavior passes. E6 later proves
 that the browser copy action consumes this boundary without bypassing it.
 
 ### E2 — Synchronization and correlation authority
+
+Status: detailed specification is `design-review-pending`; implementation is
+unauthorized. The packet deliberately limits E2 to a pure timing/authority
+model. E7 later owns persistence and E8 later owns authenticated HTTP/State
+composition.
+
+Detailed specification packet:
+[E2 synchronization and correlation authority](s2-e-e2-correlation-spec.md).
 
 Implement the one-active-trace lifecycle, forward-only listener consent, Game-
 derived run/role/lease correlation, relay-generation binding, and the simple

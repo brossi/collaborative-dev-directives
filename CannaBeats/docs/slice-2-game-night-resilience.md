@@ -1039,6 +1039,10 @@ second host cannot steal the source or ambiguously control the game.
 The normative design and implementation sequence are maintained in the
 [S2-E diagnostics contract](operations/s2-e-diagnostics-contract.md).
 
+Current checkpoint status: E1 measurement/privacy is locally verified at its
+recorded exact target; E2 synchronization/correlation has a
+design-review-pending specification and no authorized implementation.
+
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
 - Game is the sole collector gateway for listener, source, relay, and host
