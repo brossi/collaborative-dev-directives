@@ -299,6 +299,18 @@ export class E5ListenerLifecycle {
     }
   }
 
+  stopListener(reason) {
+    if (!['requested', 'page_teardown', 'run_changed', 'unknown'].includes(reason)) {
+      fail('stop_invalid');
+    }
+    if (this.attempt?.terminalCategory === 'open') this.attempt.terminalCategory = 'aborted';
+    if (this.attempt) {
+      this.#transition('listener_stopped', {
+        category: reason === 'unknown' ? 'unknown' : 'observed', reason,
+      });
+    }
+  }
+
   rotateInstance(instanceId) {
     if (!canonicalUuid(instanceId) || instanceId === this.instanceId) fail('instance_invalid');
     this.instanceId = instanceId;

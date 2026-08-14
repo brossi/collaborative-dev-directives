@@ -67,6 +67,11 @@ export class E5BrowserResourceScope {
     return controller;
   }
 
+  releaseAbortController(controller) {
+    if (controller !== this.abortController) fail('abort_invalid');
+    this.abortController = null;
+  }
+
   ownReader(reader) {
     this.#assertActive();
     if (this.reader || !reader || typeof reader.cancel !== 'function') fail('reader_invalid');

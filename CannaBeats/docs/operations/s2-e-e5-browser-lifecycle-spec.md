@@ -266,3 +266,15 @@ attempt orchestration still remains unattached and unimplemented. Focused
 resource verification passes 5/5; cleanup invokes every independent resource
 before awaiting asynchronous cancellation. Lint, the production build, and the
 full web suite pass 213/213. Closure is not yet claimed.
+
+Implementation increment 4 adds an unattached, dependency-injected fetch-attempt
+orchestrator. It composes the bounded resource scope, E4 request/epoch adapter,
+partial-frame chunker, exact E1 lifecycle/projector, 503 retry, format admission,
+9-second rotation, Long Task drains, and finite terminal cleanup. Production
+React remains unchanged and no upload/persistence path exists. Focused session
+verification covers normal streaming, retry, unsupported format, initialization
+failure, unsupported APIs, and teardown; closure is not yet claimed.
+Focused orchestrator verification passes 10/10, including a fetch that never
+settles and a chunk delivered while the snapshot acknowledgement is withheld.
+The combined focused lifecycle/resource/session suite passes 26/26; lint, the
+production build, and the full web suite pass 223/223.
