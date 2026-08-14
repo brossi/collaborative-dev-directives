@@ -97,18 +97,21 @@ function envelope(reportValue, family, {
   traceId = TRACE,
   segmentId = SEGMENT,
   leaseId = LEASE,
+  uncertaintyMs = 0,
 } = {}) {
   const report = validateMeasurementJson(bytes(reportValue));
   const sampleId = id(sampleSequence++);
+  const anchorLocalMs = uncertaintyMs > 0
+    ? report.monotonicStartMs - 1000 : report.monotonicStartMs;
   const issuance = createSynchronizationIssuanceFixtureForTest(bytes({
     sampleId, timebaseId, instanceId: report.instanceId,
-    serverReceiveMs: report.monotonicStartMs,
-    serverSendMs: report.monotonicStartMs,
+    serverReceiveMs: anchorLocalMs + uncertaintyMs,
+    serverSendMs: anchorLocalMs + uncertaintyMs,
   }));
   const sample = acceptSynchronizationSample(bytes({
     sampleId, instanceId: report.instanceId,
-    localSendMs: report.monotonicStartMs,
-    localReceiveMs: report.monotonicStartMs,
+    localSendMs: anchorLocalMs,
+    localReceiveMs: anchorLocalMs + (uncertaintyMs * 2),
   }), issuance);
   const suffix = family === 'source'
     ? { authorityKind: 'source', role: 'source', sourceId: SOURCE_ID, sourceInstanceId: report.instanceId }
@@ -122,21 +125,25 @@ function envelope(reportValue, family, {
   return composeUploadedEnvelope(report, mapMeasurementAlignment(report, sample), context);
 }
 
-function sourcePair({ anomaly = false, currentStart = 20000 } = {}) {
+function sourcePair({ anomaly = false, priorStart = 0, currentStart = 20000,
+  currentOverrides = {}, uncertaintyMs = 0 } = {}) {
   const instance = id(1);
   return {
-    prior: envelope(sourceReport(instance, 0, 0), 'source'),
+    prior: envelope(sourceReport(instance, 0, priorStart), 'source', { uncertaintyMs }),
     current: envelope(sourceReport(instance, 1, currentStart, anomaly
-      ? { captureGapCount: 1 } : {}), 'source'),
+      ? { captureGapCount: 1, ...currentOverrides } : currentOverrides), 'source', {
+      uncertaintyMs,
+    }),
   };
 }
 
-function relayPair({ anomaly = false, currentStart = 40000 } = {}) {
+function relayPair({ anomaly = false, priorStart = 10000, currentStart = 40000,
+  uncertaintyMs = 0 } = {}) {
   const instance = id(2);
   return {
-    prior: envelope(relayReport(instance, 0, 10000), 'relay'),
+    prior: envelope(relayReport(instance, 0, priorStart), 'relay', { uncertaintyMs }),
     current: envelope(relayReport(instance, 1, currentStart, anomaly
-      ? { ingressGapCount: 1 } : {}), 'relay'),
+      ? { ingressGapCount: 1 } : {}), 'relay', { uncertaintyMs }),
   };
 }
 
@@ -169,10 +176,11 @@ test('five fixed positive patterns classify with bounded references', () => {
   const cases = [
     ['source_suspected', classify({
       source: sourcePair({ anomaly: true, currentStart: 20000 }),
-      relay: relayPair({ anomaly: true, currentStart: 40000 }),
+      relay: relayPair({ anomaly: true, priorStart: 30000, currentStart: 40000 }),
       listeners: [listener(1, 60000, deliveryAnomaly), listener(2, 60000, deliveryAnomaly)],
     })],
     ['relay_suspected', classify({
+      source: sourcePair({ currentStart: 70000 }),
       relay: relayPair({ anomaly: true, currentStart: 40000 }),
       listeners: [listener(1, 60000, deliveryAnomaly), listener(2, 60000, deliveryAnomaly)],
     })],
@@ -206,6 +214,43 @@ test('strict precedence rejects equality and overlapping uncertainty', () => {
   });
   assert.equal(result.result, 'insufficient_evidence');
   assert.deepEqual(result.missing, ['ordering_overlap']);
+
+  const uncertainOverlap = classify({
+    source: sourcePair({ anomaly: true, currentStart: 20000 }),
+    relay: relayPair({
+      anomaly: true, priorStart: 20100, currentStart: 40000, uncertaintyMs: 100,
+    }),
+    listeners: [listener(1, 60000, deliveryAnomaly)],
+  });
+  assert.deepEqual(uncertainOverlap.missing, ['ordering_overlap']);
+});
+
+test('cumulative spans and regular coverage reject false temporal attribution', () => {
+  const overlappingDeltas = classify({
+    source: sourcePair({ anomaly: true, currentStart: 20000 }),
+    relay: relayPair({ anomaly: true, currentStart: 40000 }),
+    listeners: [listener(1, 60000, deliveryAnomaly)],
+  });
+  assert.deepEqual(overlappingDeltas.missing, ['ordering_overlap']);
+
+  const staleUpstream = classify({
+    source: sourcePair({ currentStart: 20000 }),
+    relay: relayPair({ currentStart: 20000 }),
+    listeners: [listener(1, 600000, deliveryAnomaly)],
+  });
+  assert.deepEqual(staleUpstream.missing, ['ordering_overlap']);
+});
+
+test('zero source advancement is unknown rather than affirmative regular evidence', () => {
+  const zeroFlow = sourcePair({ currentOverrides: {
+    capturedFrames: 0, enqueuedFrames: 0, publishedFrames: 0, publishedBytes: 0,
+  } });
+  const result = classify({
+    source: zeroFlow,
+    relay: relayPair({ currentStart: 20000 }),
+    listeners: [listener(1, 20000, deliveryAnomaly)],
+  });
+  assert.deepEqual(result.missing, ['unknown_state']);
 });
 
 test('single-listener diagnoses reject multiple candidates and honor thresholds', () => {
@@ -258,6 +303,24 @@ test('single-listener diagnoses reject multiple candidates and honor thresholds'
   }).result, 'insufficient_evidence');
 });
 
+test('ordered layers stay explicit and eight listeners retain the bounded output', () => {
+  const layered = classify({
+    relay: relayPair({ currentStart: 20000 }),
+    listeners: [
+      listener(1, 20000, deliveryAnomaly),
+      listener(2, 20000, bufferAnomaly),
+    ],
+  });
+  assert.equal(layered.result, 'listener_delivery_suspected');
+
+  const maximum = classify({
+    relay: relayPair({ currentStart: 20000 }),
+    listeners: Array.from({ length: 8 }, (_, index) => listener(index + 1, 20000)),
+  });
+  assert.equal(maximum.result, 'insufficient_evidence');
+  assert.equal(maximum.contributing.length, 12);
+});
+
 test('missing, mixed, duplicate, and invalid pair evidence fails finite', () => {
   assert.deepEqual(classifyDiagnosticEvidence({
     source: null, relay: relayPair(), listeners: [listener(1)],
@@ -290,7 +353,10 @@ test('missing, mixed, duplicate, and invalid pair evidence fails finite', () => 
 });
 
 test('no anomaly and unknown states stay insufficient', () => {
-  assert.deepEqual(classify({ relay: relayPair({ currentStart: 20000 }) }).missing, ['no_anomaly']);
+  assert.deepEqual(classify({
+    relay: relayPair({ currentStart: 20000 }),
+    listeners: [listener(1, 20000), listener(2, 20000)],
+  }).missing, ['no_anomaly']);
   assert.deepEqual(classify({
     relay: relayPair({ currentStart: 20000 }),
     listeners: [listener(1, 20000, { bufferDepth: { status: 'unknown' } })],

@@ -107,7 +107,35 @@ function reference(envelopeValue) {
 }
 
 function precedes(left, right) {
-  return left.alignment.mappedEndLatestMs < right.alignment.mappedStartEarliestMs;
+  return left.endLatestMs < right.startEarliestMs;
+}
+
+function pairEvidenceSpan(pairValue) {
+  return {
+    startEarliestMs: pairValue.prior.alignment.mappedEndEarliestMs,
+    endLatestMs: pairValue.current.alignment.mappedEndLatestMs,
+  };
+}
+
+function envelopeSpan(envelopeValue) {
+  return {
+    startEarliestMs: envelopeValue.alignment.mappedStartEarliestMs,
+    endLatestMs: envelopeValue.alignment.mappedEndLatestMs,
+  };
+}
+
+function pairCoversEnvelope(pairValue, envelopeValue) {
+  return pairValue.prior.alignment.mappedEndLatestMs
+      <= envelopeValue.alignment.mappedStartEarliestMs
+    && pairValue.current.alignment.mappedEndEarliestMs
+      >= envelopeValue.alignment.mappedEndLatestMs;
+}
+
+function pairCoversPair(coveringPair, coveredPair) {
+  return coveringPair.prior.alignment.mappedEndLatestMs
+      <= coveredPair.prior.alignment.mappedEndEarliestMs
+    && coveringPair.current.alignment.mappedEndEarliestMs
+      >= coveredPair.current.alignment.mappedEndLatestMs;
 }
 
 function sourceState(source) {
@@ -120,9 +148,10 @@ function sourceState(source) {
   const enqueued = delta(source, 'enqueuedFrames');
   const published = delta(source, 'publishedFrames');
   const measurements = source.current.measurementCore.measurements;
-  const flowRegular = captured === enqueued && enqueued === published;
+  const flowEqual = captured === enqueued && enqueued === published;
+  const flowRegular = captured > 0 && flowEqual;
   const stateAnomaly = ['backoff', 'error'].includes(measurements.publisherState);
-  if (eventAnomaly || stateAnomaly || !flowRegular) return 'anomalous';
+  if (eventAnomaly || stateAnomaly || !flowEqual) return 'anomalous';
   if (measurements.publisherState === 'publishing'
     && measurements.playbackObservation === 'playing' && flowRegular) return 'regular';
   return 'unknown';
@@ -238,12 +267,18 @@ export function classifyDiagnosticEvidence(input) {
   }
 
   const everyDeliveryAnomalous = listeners.every((value) => value.delivery === 'anomalous');
-  const sourceBeforeRelay = precedes(evidence.source.current, evidence.relay.current);
+  const sourceSpan = pairEvidenceSpan(evidence.source);
+  const relaySpan = pairEvidenceSpan(evidence.relay);
+  const sourceBeforeRelay = precedes(sourceSpan, relaySpan);
   const relayBeforeListeners = listeners.every((value) => precedes(
-    evidence.relay.current, value.envelope,
+    relaySpan, envelopeSpan(value.envelope),
   ));
   const sourceBeforeListeners = listeners.every((value) => precedes(
-    evidence.source.current, value.envelope,
+    sourceSpan, envelopeSpan(value.envelope),
+  ));
+  const regularUpstreamCoversListeners = listeners.every((value) => (
+    pairCoversEnvelope(evidence.source, value.envelope)
+      && pairCoversEnvelope(evidence.relay, value.envelope)
   ));
 
   if (source === 'anomalous' && relay === 'anomalous' && everyDeliveryAnomalous) {
@@ -253,7 +288,9 @@ export function classifyDiagnosticEvidence(input) {
     return insufficient('ordering_overlap', references);
   }
   if (source === 'regular' && relay === 'anomalous' && everyDeliveryAnomalous) {
-    return relayBeforeListeners
+    return pairCoversPair(evidence.source, evidence.relay)
+      && listeners.every((value) => pairCoversEnvelope(evidence.source, value.envelope))
+      && relayBeforeListeners
       ? output('relay_suspected', 'high', references)
       : insufficient('ordering_overlap', references);
   }
@@ -261,6 +298,10 @@ export function classifyDiagnosticEvidence(input) {
   if (source !== 'regular' || relay !== 'regular') {
     return insufficient(source === 'unknown' || relay === 'unknown'
       ? 'unknown_state' : 'contradictory_evidence', references);
+  }
+
+  if (!regularUpstreamCoversListeners) {
+    return insufficient('ordering_overlap', references);
   }
 
   const deliveryCandidates = listeners.filter((value) => value.delivery === 'anomalous');

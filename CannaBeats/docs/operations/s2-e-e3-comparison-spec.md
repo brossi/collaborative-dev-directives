@@ -14,8 +14,8 @@
   closure required before E11 or another consumer attaches
 
 Implementation checkpoint: the fixed classifier and focused table are
-implemented. Combined E1-E3 verification passes 36/36 with 96.73% E3 line and
-88.41% E3 branch coverage. Independent closure is pending; no consumer is
+implemented. Combined E1-E3 verification passes 39/39 with 98.27% E3 line and
+89.54% E3 branch coverage. Independent closure is pending; no consumer is
 authorized yet.
 
 ## Boundary and scale
@@ -75,7 +75,18 @@ throw caller data or attempt partial classification.
 
 ## Fixed derived states
 
-Source and relay deltas are `current - prior`. Negative deltas are invalid.
+Source and relay deltas are `current - prior`. Negative deltas are invalid. A
+cumulative delta is not localized to the current report window. Its conservative
+possible-occurrence span begins at the prior report's earliest mapped end and
+ends at the current report's latest mapped end.
+
+One cumulative pair strictly precedes another component only when the pair's
+latest possible end is before the other component's earliest possible start.
+A regular pair covers a listener window only when the listener's earliest start
+is at or after the prior report's latest mapped end and its latest end is at or
+before the current report's earliest mapped end. A regular source pair covers an
+anomalous relay pair under the equivalent conservative pair boundary. Evidence
+that does not prove these relationships yields `ordering_overlap`.
 
 ### Source
 
@@ -84,9 +95,10 @@ Source and relay deltas are `current - prior`. Negative deltas are invalid.
 `publisherState` is `backoff|error`; or captured, enqueued, and published
 frame deltas are not equal.
 
-`source_regular` requires all four event deltas to be zero,
-`publisherState == publishing`, `playbackObservation == playing`, and equal
-captured/enqueued/published frame deltas.
+`source_regular` requires all four event deltas to be zero, positive and equal
+captured/enqueued/published frame deltas, `publisherState == publishing`, and
+`playbackObservation == playing`. Equal zero flow is `unknown`, not affirmative
+regular evidence.
 
 ### Relay
 
@@ -136,14 +148,21 @@ evidence is neither.
 | Order | Required evidence | Result | Confidence |
 | --- | --- | --- | --- |
 | 1 | source anomalous; relay anomalous; every listener delivery anomalous; source interval strictly precedes relay and every listener; relay strictly precedes every listener | `source_suspected` | `high` |
-| 2 | source regular; relay anomalous; every listener delivery anomalous; relay strictly precedes every listener | `relay_suspected` | `high` |
-| 3 | source and relay regular; exactly one listener delivery anomalous; every other listener delivery regular | `listener_delivery_suspected` | `medium` |
-| 4 | source and relay regular; exactly one listener delivery regular and buffer anomalous; every other listener delivery/buffer regular | `listener_buffer_suspected` | `medium` |
-| 5 | source and relay regular; exactly one listener delivery/buffer regular and output anomalous; every other listener delivery/buffer/output regular | `browser_output_suspected` | `medium` |
+| 2 | source regular and conservatively covering the relay pair and every listener; relay anomalous; every listener delivery anomalous; relay evidence span strictly precedes every listener | `relay_suspected` | `high` |
+| 3 | source and relay regular and conservatively covering every listener; exactly one listener delivery anomalous; every other listener delivery regular | `listener_delivery_suspected` | `medium` |
+| 4 | source and relay regular and conservatively covering every listener; exactly one listener delivery regular and buffer anomalous; every other listener delivery/buffer regular | `listener_buffer_suspected` | `medium` |
+| 5 | source and relay regular and conservatively covering every listener; exactly one listener delivery/buffer regular and output anomalous; every other listener delivery/buffer/output regular | `browser_output_suspected` | `medium` |
 | fallback | any missing, unknown, contradictory, overlapping ordering evidence, zero/multiple isolated candidates, or no anomaly | `insufficient_evidence` | `insufficient` |
 
-Strict precedence is `earlier.mappedEndLatestMs < later.mappedStartEarliestMs`.
-Equality or overlap is not precedence.
+Strict precedence is `earlierEvidenceSpan.endLatestMs <
+laterEvidenceSpan.startEarliestMs`. For cumulative pairs, the evidence span is
+the possible-occurrence span defined above, not merely the current report
+window. Equality or overlap is not precedence.
+
+The table is deliberately layer-ordered for this small deployment. “Multiple
+isolated candidates” means multiple candidates within the same rule layer. A
+delivery diagnosis may therefore take precedence over a separate buffer or
+browser-output symptom; E3 does not attempt a multi-diagnosis explanation.
 
 ## Exact output
 
