@@ -4,7 +4,7 @@
 
 - Checkpoint: E6 — local UI, copy, and rendering isolation
 - Scope revision: `E6-spec-v1`
-- Status: `implementation-candidate`
+- Status: `implementation-in-progress`
 - Risk class: `B — boundary-bearing` because the local copy action discloses a
   privacy-projected diagnostic report
 - Required verified checkpoints: E1 at `736a401`; E5 at `087b8ea`
@@ -12,6 +12,8 @@
   diagnostics (E9/E10), diagnosis comparison display (E11), and real-device
   performance measurement (E12)
 - Review date: primary bounded design 2026-08-14
+- First implementation target: `af61f421e2b4112efd34dcb528eb964db1034d8a`,
+  tree `1468935e98e5825323b8077611a4b544bfab634b`
 
 ## Boundary and scale
 
@@ -103,3 +105,13 @@ unless they change privacy, authority, persistence, or playback ownership.
 - Implementation authorized: pure projection/copy and bounded React attachment
 - Production attachment remains pending E6 implementation closure
 
+## Implementation record
+
+Increment 1 implements the framework-free current-instance panel projection and
+canonical local-copy boundary. The copy is reconstructed through the verified
+E1 local-export validator/encoder; empty and mixed-instance rings fail with
+finite codes. No React, clipboard call, E5 mutation, upload, persistence, or
+network path is attached. Focused E1/E5/E6 verification passes 34/34; lint, the
+production build, and the full web suite pass 242/242. The React subscription,
+clipboard invocation, reset control, and production E5 attachment remain for
+the next increment and no E6 closure claim is made.
