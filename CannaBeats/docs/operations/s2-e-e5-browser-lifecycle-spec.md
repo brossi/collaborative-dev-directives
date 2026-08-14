@@ -310,3 +310,14 @@ method, and body-reader acquisition has the finite `stream_error` path. Focused
 verification passes 40/40; lint, the production build, and the full web suite
 pass 237/237. Final independent re-closure remains pending, so production
 attachment remains unauthorized.
+
+Implementation increment 7 raises serialization from individual rotations to
+complete control transactions. A format change now holds the queue through stop
+acknowledgement, listener-identity rotation, projector replacement, and
+configure acknowledgement; diagnostic reset holds the same boundary through
+its post-acknowledgement identity rotation. The held-format-stop plus concurrent
+reset regression proves that neither transaction can enter a stopped or
+configure-pending port owned by the other. Focused verification passes 41/41;
+lint, the production build, and the full web suite pass 238/238. Final
+independent re-closure remains pending, so production attachment remains
+unauthorized.

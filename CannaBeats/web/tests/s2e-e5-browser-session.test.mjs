@@ -50,10 +50,11 @@ function eventTarget(initial = {}) {
 function workletNode(outputSampleRate = 48000, holdSnapshots = false) {
   let clientHandler = null;
   let heldSnapshot = null;
+  let holdingSnapshots = holdSnapshots;
   const core = new E4PcmCore({
     outputSampleRate,
     postMessage(message) {
-      if (holdSnapshots && message.type === 'snapshot-rotated') {
+      if (holdingSnapshots && message.type === 'snapshot-rotated') {
         heldSnapshot = message;
         return;
       }
@@ -75,10 +76,11 @@ function workletNode(outputSampleRate = 48000, holdSnapshots = false) {
     node,
     core,
     get heldSnapshot() { return heldSnapshot; },
+    holdNextSnapshot() { holdingSnapshots = true; },
     releaseSnapshot() {
       const message = heldSnapshot;
       heldSnapshot = null;
-      holdSnapshots = false;
+      holdingSnapshots = false;
       queueMicrotask(() => clientHandler?.({ data: message }));
     },
   };
@@ -660,4 +662,29 @@ test('body-reader acquisition failure retains the finite stream outcome', async 
   );
   assert.equal(failure.measurements.reason, 'stream_error');
   assert.equal(JSON.stringify(harness.session.cleanupResult).includes('reader detail'), false);
+});
+
+test('format change and diagnostic reset serialize as complete control transactions', async () => {
+  const first = finiteReader([new Uint8Array(new Int16Array(20).buffer)]);
+  const second = pendingReader([]);
+  const harness = sessionHarness({
+    responses: [
+      response({ reader: first, sampleRate: 48000 }),
+      response({ reader: second, sampleRate: 24000 }),
+    ],
+  });
+  await harness.session.start();
+  await waitFor(() => harness.session.status === 'waiting', 'first EOF');
+  harness.worklet.holdNextSnapshot();
+  harness.timers.fireDelay(1500);
+  await waitFor(() => harness.worklet.heldSnapshot !== null, 'held format stop');
+  const resetting = harness.session.resetDiagnostics();
+  harness.worklet.releaseSnapshot();
+  const reset = await resetting;
+  await waitFor(() => harness.session.format?.sourceSampleRate === 24000, 'new format');
+  assert.equal(harness.core.sourceSampleRate, 24000);
+  assert.equal(harness.core.lifecycle, 'configured');
+  assert.equal(harness.session.lifecycle.instanceId, reset.instanceId);
+  assert.equal(harness.session.active, true);
+  await harness.session.stop();
 });

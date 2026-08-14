@@ -56,7 +56,7 @@ export class E5BrowserSession {
     this.projector = null;
     this.format = null;
     this.rotationPromise = null;
-    this.rotationTail = Promise.resolve();
+    this.controlTail = Promise.resolve();
     this.retryResolve = null;
     this.longTaskEntries = [];
     this.longTaskOverflow = false;
@@ -116,10 +116,15 @@ export class E5BrowserSession {
     if (!canonicalUuid(nextInstanceId) || nextInstanceId === this.lifecycle.instanceId) {
       throw new E5LifecycleError('reset_invalid');
     }
-    await this.#rotate('snapshot');
-    if (!this.active) throw new E5LifecycleError('reset_invalid');
-    this.lifecycle.rotateInstance(nextInstanceId);
-    return frozen({ status: 'reset', instanceId: this.lifecycle.instanceId });
+    return this.#enqueueControl(async () => {
+      if (!this.active || !this.projector || this.port.lifecycle !== 'configured') {
+        throw new E5LifecycleError('reset_invalid');
+      }
+      await this.#rotateNow('snapshot');
+      if (!this.active) throw new E5LifecycleError('reset_invalid');
+      this.lifecycle.rotateInstance(nextInstanceId);
+      return frozen({ status: 'reset', instanceId: this.lifecycle.instanceId });
+    });
   }
 
   async #run() {
@@ -243,11 +248,20 @@ export class E5BrowserSession {
       return;
     }
     if (sameFormat(this.format, nextFormat)) return;
-    await this.#rotate('stop');
-    this.lifecycle.rotateInstance(this.dependencies.uuid());
-    this.format = null;
-    this.projector = null;
-    await this.#configure(nextFormat);
+    const nextInstanceId = this.dependencies.uuid();
+    if (!canonicalUuid(nextInstanceId) || nextInstanceId === this.lifecycle.instanceId) {
+      throw new E5LifecycleError('instance_invalid');
+    }
+    await this.#enqueueControl(async () => {
+      if (!this.active || this.port.lifecycle !== 'configured') {
+        throw new E5LifecycleError('invalid_state');
+      }
+      await this.#rotateNow('stop');
+      this.lifecycle.rotateInstance(nextInstanceId);
+      this.format = null;
+      this.projector = null;
+      await this.#configure(nextFormat);
+    });
   }
 
   async #configure(nextFormat) {
@@ -271,25 +285,33 @@ export class E5BrowserSession {
   }
 
   #rotate(operation) {
-    const queued = this.rotationTail.catch(() => {}).then(async () => {
+    return this.#enqueueControl(() => this.#rotateNow(operation));
+  }
+
+  #enqueueControl(operation) {
+    const queued = this.controlTail.catch(() => {}).then(async () => {
       // Let readers waiting on the previous rotation record their staged chunk
-      // before the next command can establish another E4 boundary.
+      // before the next transaction can establish another E4 boundary.
       await Promise.resolve();
       if (!this.active) throw new E5LifecycleError('session_closed');
-      this.scope.cancel('window');
-      const rotation = this.#performRotation(operation);
-      this.rotationPromise = rotation;
-      try {
-        return await rotation;
-      } finally {
-        if (this.rotationPromise === rotation) this.rotationPromise = null;
-      }
+      return operation();
     });
-    this.rotationTail = queued;
+    this.controlTail = queued;
     return queued.catch(async (error) => {
       await this.#terminate('error', 'unknown');
       throw error;
     });
+  }
+
+  async #rotateNow(operation) {
+    this.scope.cancel('window');
+    const rotation = this.#performRotation(operation);
+    this.rotationPromise = rotation;
+    try {
+      return await rotation;
+    } finally {
+      if (this.rotationPromise === rotation) this.rotationPromise = null;
+    }
   }
 
   async #performRotation(operation) {
