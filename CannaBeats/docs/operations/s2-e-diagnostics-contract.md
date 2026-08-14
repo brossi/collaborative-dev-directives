@@ -762,10 +762,17 @@ sample or fails closed.
 
 ### E3 — Evidence derivation and comparison reducer
 
+Status: `implementation-candidate`. The focused packet authorizes one isolated
+pure classifier and fixed-table tests; no persistence, route, UI, or producer
+integration is authorized.
+
+Detailed specification packet:
+[E3 evidence derivation and comparison](s2-e-e3-comparison-spec.md).
+
 Build one version-1 pure comparison function for the five evidence patterns in
-this contract. It accepts only validated E1 reports and stored E2 intervals; it
-never accepts caller-authored health/component labels. A finite table test proves
-the positive cases and that missing, contradictory, overlapping, or unaligned
+this contract. It accepts only validated E1 reports and E2 envelopes; it never
+accepts caller-authored health/component labels. A finite table test proves the
+positive cases and that missing, contradictory, overlapping, or unaligned
 evidence returns `insufficient_evidence`. No rule engine or query language is
 introduced.
 

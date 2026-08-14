@@ -1043,6 +1043,8 @@ Current checkpoint status: E1 measurement/privacy is locally verified at its
 recorded exact target; E2 synchronization/correlation is locally verified at
 `df41d2c`. E7 persistence and E8 routing/authenticated authority integration
 remain separate unimplemented boundaries.
+E3 evidence comparison has an `implementation-candidate` fixed-rule packet;
+only its isolated pure classifier is authorized.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
