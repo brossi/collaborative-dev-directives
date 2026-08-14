@@ -20,6 +20,7 @@ import {
 } from "../lib/game-request";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 import { useManagedAudioStream, type ManagedAudioDiagnostics, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
+import { E6_EMPTY_PANEL_STATE, E6PanelController } from "../lib/s2e-e6-local-panel.mjs";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../lib/game-client-contract.ts";
 
@@ -143,7 +144,7 @@ function GameSetup({ rules, busy, onApply }: {
 
 function SharedAudioPanel({
   code, enabled, ready, status, label, compact = false, onStart, onStop,
-  onDiagnostics, onCopyDiagnostics, onResetDiagnostics,
+  diagnosticGeneration, onDiagnostics, onCopyDiagnostics, onResetDiagnostics,
 }: {
   code: string;
   enabled: boolean;
@@ -153,58 +154,39 @@ function SharedAudioPanel({
   compact?: boolean;
   onStart: (code: string) => void;
   onStop: () => void;
+  diagnosticGeneration: number;
   onDiagnostics: () => ManagedAudioDiagnostics | null;
   onCopyDiagnostics: () => Promise<"copied">;
   onResetDiagnostics: () => Promise<"reset">;
 }) {
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<ManagedAudioDiagnostics | null>(null);
-  const [diagnosticBusy, setDiagnosticBusy] = useState(false);
-  const [diagnosticNotice, setDiagnosticNotice] = useState("");
-
-  const refreshDiagnostics = useCallback(() => {
-    setDiagnostics(onDiagnostics());
-  }, [onDiagnostics]);
+  const [panelState, setPanelState] = useState<{
+    open: boolean;
+    diagnostics: ManagedAudioDiagnostics | null;
+    busy: boolean;
+    notice: string;
+  }>(E6_EMPTY_PANEL_STATE);
+  const panelController = useMemo(() => new E6PanelController({
+      read: onDiagnostics,
+      copy: onCopyDiagnostics,
+      reset: onResetDiagnostics,
+      scheduleInterval: (callback: () => void, delay: number) => window.setInterval(callback, delay),
+      cancelInterval: (timer: number) => window.clearInterval(timer),
+      onChange: setPanelState,
+    }), [onCopyDiagnostics, onDiagnostics, onResetDiagnostics]);
 
   useEffect(() => {
-    if (!diagnosticsOpen) return;
-    const timer = window.setInterval(refreshDiagnostics, 1000);
-    return () => window.clearInterval(timer);
-  }, [diagnosticsOpen, refreshDiagnostics]);
+    panelController.sync({ enabled, generation: diagnosticGeneration });
+  }, [diagnosticGeneration, enabled, panelController]);
 
-  const toggleDiagnostics = useCallback((open: boolean) => {
-    setDiagnosticsOpen(open);
-    if (open) refreshDiagnostics();
-  }, [refreshDiagnostics]);
+  useEffect(() => () => panelController.dispose(), [panelController]);
 
-  const copyDiagnostics = useCallback(async () => {
-    setDiagnosticBusy(true);
-    setDiagnosticNotice("");
-    try {
-      await onCopyDiagnostics();
-      setDiagnosticNotice("Local diagnostic report copied.");
-    } catch {
-      setDiagnosticNotice(diagnostics?.copyAvailable
-        ? "The report could not be copied. Audio is unchanged."
-        : "A report will be available after the first diagnostic window.");
-    } finally {
-      setDiagnosticBusy(false);
-    }
-  }, [diagnostics?.copyAvailable, onCopyDiagnostics]);
-
-  const resetDiagnostics = useCallback(async () => {
-    setDiagnosticBusy(true);
-    setDiagnosticNotice("");
-    try {
-      await onResetDiagnostics();
-      refreshDiagnostics();
-      setDiagnosticNotice("Local diagnostics reset. Audio kept playing.");
-    } catch {
-      setDiagnosticNotice("Diagnostics could not be reset. Check the audio status above.");
-    } finally {
-      setDiagnosticBusy(false);
-    }
-  }, [onResetDiagnostics, refreshDiagnostics]);
+  const diagnostics = panelState.diagnostics as ManagedAudioDiagnostics | null;
+  const diagnosticNotice = panelState.notice === "copied" ? "Local diagnostic report copied."
+    : panelState.notice === "reset" ? "Local diagnostics reset. Audio kept playing."
+      : panelState.notice === "copy_unavailable" ? "A report will be available after the first diagnostic window."
+        : panelState.notice === "copied_failed" ? "The report could not be copied. Audio is unchanged."
+          : panelState.notice === "reset_failed" ? "Diagnostics could not be reset. Check the audio status above."
+            : "";
 
   return (
     <section className={`shared-audio-panel ${compact ? "compact" : ""} ${enabled ? "has-diagnostics" : ""}`}>
@@ -219,7 +201,7 @@ function SharedAudioPanel({
         <button className="text-button" type="button" onClick={onStop}>Stop listening</button>
       )}
       {enabled && (
-        <details className="audio-diagnostics" onToggle={(event) => toggleDiagnostics(event.currentTarget.open)}>
+        <details className="audio-diagnostics" open={panelState.open} onToggle={(event) => panelController.setOpen(event.currentTarget.open)}>
           <summary>Local audio diagnostics</summary>
           <div className="audio-diagnostics-body">
             <p className="helper">Upload disabled. These measurements stay in this browser unless you copy them.</p>
@@ -227,16 +209,21 @@ function SharedAudioPanel({
               <dl className="audio-diagnostics-grid">
                 <div><dt>Stream</dt><dd>{diagnostics.status}</dd></div>
                 <div><dt>Windows</dt><dd>{diagnostics.windowCount}</dd></div>
+                <div><dt>Transitions</dt><dd>{diagnostics.transitionCount}</dd></div>
+                <div><dt>Coverage gaps</dt><dd>{diagnostics.gapCount}</dd></div>
+                <div><dt>Dropped transitions</dt><dd>{diagnostics.droppedTransitionCount}</dd></div>
                 <div><dt>Buffer</dt><dd>{diagnostics.latestWindow?.bufferStatus === "observed" ? `${Math.round(diagnostics.latestWindow.bufferCurrentMs ?? 0)} ms` : "Collecting"}</dd></div>
                 <div><dt>Context</dt><dd>{diagnostics.latestWindow?.audioContextState ?? "Collecting"}</dd></div>
                 <div><dt>Signal</dt><dd>{diagnostics.latestWindow?.signalPresence ?? "Collecting"}</dd></div>
+                <div><dt>Clipping</dt><dd>{diagnostics.latestWindow?.clippingSeverity ?? "Collecting"}</dd></div>
                 <div><dt>Underruns</dt><dd>{diagnostics.latestWindow?.underrunCount ?? 0}</dd></div>
+                <div><dt>Overflows</dt><dd>{diagnostics.latestWindow?.overflowCount ?? 0}</dd></div>
               </dl>
             ) : <p className="helper">Diagnostics will appear after audio initialization.</p>}
             <p className="audio-copy-disclosure">{diagnostics?.disclosure ?? "A local report will be available after audio initialization."}</p>
             <div className="audio-diagnostics-actions">
-              <button className="text-button" disabled={diagnosticBusy || !diagnostics?.copyAvailable} onClick={() => void copyDiagnostics()} type="button">Copy local report</button>
-              <button className="text-button" disabled={diagnosticBusy || !diagnostics} onClick={() => void resetDiagnostics()} type="button">Reset diagnostics</button>
+              <button className="text-button" disabled={panelState.busy || !diagnostics?.copyAvailable} onClick={() => void panelController.copy()} type="button">Copy local report</button>
+              <button className="text-button" disabled={panelState.busy || !diagnostics} onClick={() => void panelController.reset()} type="button">Reset diagnostics</button>
             </div>
             <p className="visually-hidden" aria-live="polite" role="status">{diagnosticNotice}</p>
             {diagnosticNotice && <p className="audio-diagnostics-notice" aria-hidden="true">{diagnosticNotice}</p>}
@@ -966,6 +953,7 @@ export default function Home() {
               label={managedAudio.label}
               onStart={(code) => { void managedAudio.start(code); }}
               onStop={managedAudio.stop}
+              diagnosticGeneration={managedAudio.diagnosticGeneration}
               onDiagnostics={managedAudio.diagnostics}
               onCopyDiagnostics={managedAudio.copyDiagnostics}
               onResetDiagnostics={managedAudio.resetDiagnostics}
@@ -1124,6 +1112,7 @@ export default function Home() {
           label={managedAudio.label}
           onStart={(code) => { void managedAudio.start(code); }}
           onStop={managedAudio.stop}
+          diagnosticGeneration={managedAudio.diagnosticGeneration}
           onDiagnostics={managedAudio.diagnostics}
           onCopyDiagnostics={managedAudio.copyDiagnostics}
           onResetDiagnostics={managedAudio.resetDiagnostics}

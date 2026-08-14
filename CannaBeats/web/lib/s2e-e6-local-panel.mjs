@@ -1,5 +1,5 @@
 import {
-  canonicalLocalDiagnosticExportBytes,
+  canonicalLocalDiagnosticExportBytes, canonicalMeasurementBytes,
   validateLocalDiagnosticExportJson,
 } from './s2e-e1-contract.mjs';
 
@@ -26,9 +26,14 @@ function snapshotReports(lifecycle) {
     || !Array.isArray(lifecycle.localRecords)
     || !Number.isSafeInteger(lifecycle.droppedTransitionCount)
     || lifecycle.droppedTransitionCount < 0) fail();
-  const summaries = [...lifecycle.windows, ...lifecycle.transitions]
-    .sort((left, right) => left.sequence - right.sequence);
+  const summaries = [...lifecycle.windows, ...lifecycle.transitions];
+  try {
+    for (const report of summaries) canonicalMeasurementBytes(report);
+  } catch {
+    fail();
+  }
   if (summaries.some((report) => report?.instanceId !== lifecycle.instanceId)) fail();
+  summaries.sort((left, right) => left.sequence - right.sequence);
   return summaries;
 }
 
@@ -92,3 +97,123 @@ export function createE6LocalCopy({ lifecycle, generatedAtMonotonicMs }) {
 
 export const E6_COPY_DISCLOSURE = DISCLOSURE;
 
+const EMPTY_PANEL_STATE = Object.freeze({
+  open: false, diagnostics: null, busy: false, notice: '',
+});
+
+export class E6PanelController {
+  constructor({ read, copy, reset, scheduleInterval, cancelInterval, onChange }) {
+    if (![read, copy, reset, scheduleInterval, cancelInterval, onChange]
+      .every((value) => typeof value === 'function')) fail('controller_invalid');
+    this.read = read;
+    this.copyAction = copy;
+    this.resetAction = reset;
+    this.scheduleInterval = scheduleInterval;
+    this.cancelInterval = cancelInterval;
+    this.onChange = onChange;
+    this.enabled = false;
+    this.generation = -1;
+    this.timer = null;
+    this.actionToken = 0;
+    this.disposed = false;
+    this.state = EMPTY_PANEL_STATE;
+  }
+
+  sync({ enabled, generation }) {
+    if (this.disposed || typeof enabled !== 'boolean'
+      || !Number.isSafeInteger(generation) || generation < 0) fail('controller_invalid');
+    const replaced = generation !== this.generation;
+    this.enabled = enabled;
+    this.generation = generation;
+    if (replaced || !enabled) {
+      this.actionToken += 1;
+      this.#cancelTimer();
+      this.#publish(EMPTY_PANEL_STATE);
+    }
+  }
+
+  setOpen(open) {
+    if (this.disposed || typeof open !== 'boolean') fail('controller_invalid');
+    if (!this.enabled || !open) {
+      this.#cancelTimer();
+      this.#publish({ ...this.state, open: false });
+      return;
+    }
+    this.#publish({ ...this.state, open: true });
+    this.#refresh();
+    if (this.timer === null) {
+      this.timer = this.scheduleInterval(() => this.#refresh(), 1000);
+    }
+  }
+
+  async copy() {
+    if (this.disposed || this.state.busy) return false;
+    if (!this.state.diagnostics?.copyAvailable) {
+      this.#publish({ ...this.state, notice: 'copy_unavailable' });
+      return false;
+    }
+    return this.#action('copied', this.copyAction, false);
+  }
+
+  async reset() {
+    if (this.disposed || this.state.busy || !this.state.diagnostics) return false;
+    return this.#action('reset', this.resetAction, true);
+  }
+
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.actionToken += 1;
+    this.#cancelTimer();
+  }
+
+  async #action(success, action, refresh) {
+    const token = ++this.actionToken;
+    const generation = this.generation;
+    this.#publish({ ...this.state, busy: true, notice: '' });
+    try {
+      await action();
+      if (!this.#current(token, generation)) return false;
+      if (refresh) this.#refresh();
+      this.#publish({ ...this.state, busy: false, notice: success });
+      return true;
+    } catch {
+      if (!this.#current(token, generation)) return false;
+      this.#publish({ ...this.state, busy: false, notice: `${success}_failed` });
+      return false;
+    }
+  }
+
+  #current(token, generation) {
+    return !this.disposed && token === this.actionToken
+      && generation === this.generation && this.enabled;
+  }
+
+  #refresh() {
+    if (this.disposed || !this.enabled || !this.state.open) return;
+    let diagnostics = null;
+    try {
+      diagnostics = this.read();
+    } catch {
+      diagnostics = null;
+    }
+    this.#publish({ ...this.state, diagnostics });
+  }
+
+  #cancelTimer() {
+    if (this.timer === null) return;
+    this.cancelInterval(this.timer);
+    this.timer = null;
+  }
+
+  #publish(next) {
+    this.state = Object.freeze(next);
+    try {
+      this.onChange(this.state);
+    } catch {
+      // Rendering observation never affects collection or playback.
+    }
+  }
+}
+
+export const E6_EMPTY_PANEL_STATE = EMPTY_PANEL_STATE;

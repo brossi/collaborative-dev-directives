@@ -130,3 +130,16 @@ browser smoke check loaded the client without a production-bundle error; the
 development-only CSP warning and unavailable local Access dependency do not
 qualify the in-lobby panel. Independent E6 closure remains pending, so this is
 an attached release candidate rather than a local-verification claim.
+
+Increment 3 remediates the first adversarial attachment review. A small E6-only
+controller now owns panel visibility, the sole refresh timer, one pending local
+action, and the current session generation. Stop, restart, replacement, and
+unmount cancel the timer, close the panel, clear its projection, and fence stale
+action acknowledgements without touching E5 playback authority. The rendered
+summary now includes every bounded field promised above. Malformed E5-ring
+input is validated before sorting and fails with `panel_invalid`. Executable
+controller schedules cover open→stop, open→stop→restart, clipboard failure,
+concurrent reset suppression, and a reset acknowledgement after session
+replacement. Focused E1/E5/E6 verification passes 49/49; the production build
+and full web suite pass 246/246; lint and `git diff --check` pass. Independent
+re-closure remains required before changing the checkpoint status.

@@ -3,7 +3,8 @@ import test from 'node:test';
 
 import { validateMeasurementJson } from '../lib/s2e-e1-contract.mjs';
 import {
-  createE6LocalCopy, E6_COPY_DISCLOSURE, E6PanelError, projectE6LocalPanel,
+  createE6LocalCopy, E6_COPY_DISCLOSURE, E6PanelController, E6PanelError,
+  projectE6LocalPanel,
 } from '../lib/s2e-e6-local-panel.mjs';
 
 const INSTANCE = '123e4567-e89b-42d3-a456-426614174000';
@@ -118,10 +119,85 @@ test('empty and mixed-instance rings fail with finite copy outcomes', () => {
   );
 });
 
+test('malformed ring entries fail before sorting with one finite panel error', () => {
+  const malformed = { instanceId: INSTANCE };
+  assert.throws(
+    () => projectE6LocalPanel({
+      status: 'playing', lifecycle: lifecycle({ transitions: [malformed, listenerTransition()] }),
+    }),
+    (error) => error instanceof E6PanelError && error.code === 'panel_invalid',
+  );
+});
+
+test('panel controller cancels polling on stop and stays closed after restart', () => {
+  let reads = 0;
+  let nextTimer = 1;
+  const timers = new Map();
+  const states = [];
+  const controller = new E6PanelController({
+    read: () => ({ copyAvailable: true, ordinal: ++reads }),
+    copy: async () => {},
+    reset: async () => {},
+    scheduleInterval(callback, delay) {
+      const id = nextTimer++;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    cancelInterval: (id) => timers.delete(id),
+    onChange: (state) => states.push(state),
+  });
+  controller.sync({ enabled: true, generation: 1 });
+  controller.setOpen(true);
+  assert.equal(timers.size, 1);
+  assert.equal(states.at(-1).open, true);
+  const staleTick = [...timers.values()][0].callback;
+  staleTick();
+  assert.equal(reads, 2);
+
+  controller.sync({ enabled: false, generation: 2 });
+  assert.equal(timers.size, 0);
+  assert.deepEqual(states.at(-1), {
+    open: false, diagnostics: null, busy: false, notice: '',
+  });
+  staleTick();
+  assert.equal(reads, 2);
+
+  controller.sync({ enabled: true, generation: 3 });
+  assert.equal(states.at(-1).open, false);
+  assert.equal(timers.size, 0);
+});
+
+test('panel controller serializes actions and ignores a stale reset acknowledgement', async () => {
+  let resetCalls = 0;
+  let resolveReset;
+  const heldReset = new Promise((resolve) => { resolveReset = resolve; });
+  const states = [];
+  const controller = new E6PanelController({
+    read: () => ({ copyAvailable: true }),
+    copy: async () => { throw new Error('clipboard detail'); },
+    reset: async () => { resetCalls += 1; await heldReset; },
+    scheduleInterval: () => 1,
+    cancelInterval: () => {},
+    onChange: (state) => states.push(state),
+  });
+  controller.sync({ enabled: true, generation: 1 });
+  controller.setOpen(true);
+  assert.equal(await controller.copy(), false);
+  assert.equal(states.at(-1).notice, 'copied_failed');
+
+  const first = controller.reset();
+  assert.equal(await controller.reset(), false);
+  assert.equal(resetCalls, 1);
+  controller.sync({ enabled: true, generation: 2 });
+  resolveReset();
+  assert.equal(await first, false);
+  assert.equal(states.at(-1).notice, '');
+  assert.equal(states.at(-1).open, false);
+});
+
 test('copy disclosure names pseudonymous fields and prohibited categories before UI attachment', () => {
   assert.match(E6_COPY_DISCLOSURE, /temporary diagnostic ID/);
   assert.match(E6_COPY_DISCLOSURE, /browser and operating-system family/);
   assert.match(E6_COPY_DISCLOSURE, /local timing/);
   assert.match(E6_COPY_DISCLOSURE, /no name, account, room code, song, audio, token, IP address, or upload/);
 });
-

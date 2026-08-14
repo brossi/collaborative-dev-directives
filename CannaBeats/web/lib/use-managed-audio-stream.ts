@@ -54,11 +54,13 @@ function observedLatency(seconds: unknown) {
 export function useManagedAudioStream() {
   const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState<ManagedAudioStatus>("idle");
+  const [diagnosticGeneration, setDiagnosticGeneration] = useState(0);
   const sessionRef = useRef<InstanceType<typeof E5BrowserSession> | null>(null);
   const generationRef = useRef(0);
 
   const stop = useCallback(() => {
     generationRef.current += 1;
+    setDiagnosticGeneration(generationRef.current);
     const session = sessionRef.current;
     sessionRef.current = null;
     setEnabled(false);
@@ -68,6 +70,7 @@ export function useManagedAudioStream() {
 
   const start = useCallback(async (code: string) => {
     generationRef.current += 1;
+    setDiagnosticGeneration(generationRef.current);
     const generation = generationRef.current;
     const priorSession = sessionRef.current;
     sessionRef.current = null;
@@ -175,6 +178,6 @@ export function useManagedAudioStream() {
   const ready = status === "buffering" || status === "playing";
   return {
     enabled, ready, status, label: STATUS_LABELS[status], start, stop,
-    diagnostics, copyDiagnostics, resetDiagnostics,
+    diagnosticGeneration, diagnostics, copyDiagnostics, resetDiagnostics,
   };
 }
