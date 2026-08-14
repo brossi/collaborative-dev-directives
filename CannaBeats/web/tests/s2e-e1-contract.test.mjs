@@ -304,6 +304,35 @@ test('transition reason/category matrices reject every alternate category', () =
       else expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
     }
   }
+
+  const observedOnly = [
+    ...['request_started', 'response_headers', 'first_pcm_bytes', 'buffer_primed', 'first_rendered_quantum',
+      'underrun', 'reset', 'reconnect', 'context_suspended', 'context_resumed', 'stream_ended']
+      .map((type) => listenerTransition(0, type, {
+        ...(type === 'request_started' ? { elapsedMs: 0 } : {}),
+        ...(['response_headers', 'first_pcm_bytes', 'buffer_primed', 'first_rendered_quantum'].includes(type) ? { elapsedMs: 1 } : {}),
+        ...(type === 'stream_ended' ? { reason: 'eof' } : {}),
+      })),
+    ...['capture_started', 'publisher_started'].map((type) => base('source_transition', 0, { measurements: { type, category: 'observed' } })),
+    ...['process_started', 'generation_started'].map((type) => base('relay_transition', 0, { measurements: { type, category: 'observed' } })),
+  ];
+  for (const value of observedOnly) {
+    for (const category of ['error', 'unknown']) {
+      const invalid = structuredClone(value);
+      invalid.measurements.category = category;
+      expectCode('report_invalid', () => validateMeasurementJson(bytes(invalid)));
+    }
+  }
+
+  for (const invalid of [
+    listenerTransition(0, 'request_started', { elapsedMs: 0, reason: 'eof' }),
+    listenerTransition(0, 'underrun', { elapsedMs: 1 }),
+    base('source_transition', 0, { measurements: { type: 'capture_started', category: 'observed', reason: 'requested' } }),
+    base('source_transition', 0, { measurements: { type: 'capture_started', category: 'observed', connectionAttemptSequence: 0 } }),
+    base('relay_transition', 0, { measurements: { type: 'process_started', category: 'observed', reason: 'requested' } }),
+  ]) {
+    expectCode('report_invalid', () => validateMeasurementJson(bytes(invalid)));
+  }
 });
 
 test('bounded byte boundary and exact shape reject predictable malformed inputs', () => {
@@ -434,6 +463,32 @@ test('cross-field truth tables reject impossible listener, source, and relay val
   for (const value of impossible) {
     expectCode('report_invalid', () => validateMeasurementJson(bytes(value)));
   }
+});
+
+test('cross-field truth tables accept their finite boundary rows', () => {
+  const valid = [
+    listenerWindow(0, { measurements: {
+      receivedBytes: 0, receivedFrames: 0, chunkCount: 0,
+      chunkGap: { status: 'not_applicable' }, signalPresence: 'unknown', clippingSeverity: 'unknown',
+    } }),
+    listenerWindow(0, { measurements: {
+      receivedBytes: 4, receivedFrames: 1, chunkCount: 1,
+      chunkGap: { status: 'not_applicable' }, signalPresence: 'present', clippingSeverity: 'none',
+    } }),
+    listenerWindow(0, { measurements: {
+      underrunCount: 0, windowStartedInUnderrun: true, underrunDurationMs: 1, reprimeCount: 1,
+    } }),
+    listenerWindow(0, { measurements: { overflowCount: 1, discardedFrames: 1 } }),
+    listenerWindow(0, { measurements: { longTasks: { status: 'observed', count: 1, maxDurationMs: 1 } } }),
+    sourceWindow(0, { measurements: {
+      capturedFrames: 3, enqueuedFrames: 2, publishedFrames: 1, publishedBytes: 4,
+    } }),
+    relayWindow(0, { measurements: {
+      acceptedListenerCount: 2, closedListenerCount: 2, activeListenerCount: 0,
+      backpressureClosureCount: 1, generationFenceDisconnectCount: 1,
+    } }),
+  ];
+  for (const value of valid) assert.equal(validateMeasurementJson(bytes(value)).kind, value.kind);
 });
 
 test('signal classifier covers zero, silent, present, isolated, and sustained windows', () => {
