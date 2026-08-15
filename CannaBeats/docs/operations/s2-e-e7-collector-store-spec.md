@@ -219,7 +219,12 @@ in-memory `readSessionId` holding `{traceId,maxRowOrdinal,reportCount,digest}`.
 At most 16 sessions exist and each expires after five minutes or process
 restart. Its first page returns that ID plus a cursor. Subsequent cursors are
 exact `{readSessionId,last:{mappedStartEarliestMs,mappedEndLatestMs,kind,
-instanceId,sequence}}`; the last tuple must match a row in that snapshot.
+instanceId,sequence}}`. The session also stores the exact last tuple returned by
+the immediately preceding page. A subsequent cursor must equal that stored
+tuple, not merely any row in the snapshot; the store advances it atomically only
+after producing the next page. Jumping ahead, replaying an old cursor, or racing
+two requests with the same cursor returns `read_expired` and invalidates the
+session. A complete final page deletes the session before returning.
 
 Every page revalidates all snapshot rows with `row_ordinal <= maxRowOrdinal`,
 their derived columns, count, and digest before selecting at most 256 rows in
@@ -270,6 +275,7 @@ serializes different requests; callers do not coordinate in memory.
 | Segment rotation response loss/restart | one inserted segment and advanced current pointer | same-lease retry returns the retained segment | second segment for one lease or lost prior binding |
 | Issuance response loss/expiry | unused issuance remains bounded until expiry | new attempt uses a new issuance | pairing old server times with new local observation |
 | Purge versus read/ingest | transaction order decides; purge invalidates read sessions | complete finalized old projection or `read_expired`/inactive | publishing provisional partial pages |
+| Skipped/replayed/concurrent page cursor | read session remains exact or is invalidated | next exact page or `read_expired` | skipped rows, duplicate finalization, incomplete `complete:true` |
 | Process exit after commit | committed transaction survives | replay after restart | reconstructed caller result differs |
 | Process exit before commit | SQLite rollback | retry may accept | orphan counter/row |
 | Busy reader/WAL checkpoint | logical data remains correct | bounded deferred checkpoint; reads remain finite | false physical-erasure claim |
