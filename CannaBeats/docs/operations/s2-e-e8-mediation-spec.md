@@ -665,3 +665,157 @@ synchronization, and listener ingest. E8.3c retains
 source/relay mediation, the maintenance caller and purge route, and final
 cross-route isolation rehearsal. E12 retains real-host/browser timing and
 packaging measurements.
+
+## E8.3b listener consent and report
+
+Governing invariant:
+
+> An authenticated current run member may upload only E1 reports created at or
+> after one explicit opt-in boundary for one memory-only listener instance; an
+> exact retry preserves its original consent/report result, while stop,
+> expiry, restart, membership loss, or correlation change can only reduce that
+> authority.
+
+This is one browser-to-Game authority boundary. It does not attach source or
+relay reporters, add durable Game state, create a general capability system, or
+make diagnostics part of gameplay readiness.
+
+### Exact browser and State boundary
+
+E8.3b adds two same-origin browser routes:
+
+| Route | Exact operation families |
+| --- | --- |
+| `/api/diagnostics/listener` | `opt_in`, `synchronize`, `stop` |
+| `/api/diagnostics/listener-report` | one listener report upload |
+
+`opt_in` accepts exactly `{action,requestId,runId,listenerInstanceId,
+firstAllowedSequence,localConsentStartedMs}`. `synchronize` accepts exactly
+`{action,requestId,grantId}`. `stop` accepts exactly
+`{action,requestId,grantId}`. Report upload accepts exactly `{grantId,
+measurementCore,sampleObservation}`; the observation contains only
+`sampleId`, `instanceId`, `localSendMs`, and `localReceiveMs`. All request,
+run, instance, grant, and sample identities are lowercase canonical UUIDs.
+Bodies retain the E8.3a bounded-reader, origin, deadline, no-store, and finite
+browser-error rules.
+
+State adds one Game-scoped read-only projection
+`diagnosticRunMemberAuthority({runId,principalId})`. It returns exactly
+`{authorityVersion:1,status:active|ended,runId,runGeneration,role:host|member}`
+only when the principal is a durable member of that run. It reveals no lobby
+code, membership list, name, score, or song. Opt-in and report require
+`status:active`; stop may use the same durable ended membership so authority can
+be reduced after a run ends. Missing membership is concealed as
+`diagnostic_not_found`.
+
+### Memory-only listener grant
+
+Game keeps at most 32 grant records in one process-local `Map`. A grant ID is a
+deterministic version-5 UUID derived from `{traceId,listenerInstanceId,
+consentGeneration}` with the new fixed `listener-grant` label. Each record contains only `{grantId,principalId,
+runId,runGeneration,traceId,correlationSegmentId,leaseId,listenerInstanceId,
+role,generation,status,expiresAtMs,lastStopRequestId}`. Expiry is exactly the
+earlier of `consent.changedAtMs + 15 minutes` and trace expiry, so replay
+reconstructs the identical value. Lazy
+cleanup runs before grant lookup or insertion. At the fixed cap, a new opt-in
+returns `quota_exhausted`; no eviction can transfer or revive authority.
+
+The grant is returned only to that browser response and remains in memory; it
+is not placed in a cookie, URL, log, collector row, State row, or local browser
+storage. Page or Game restart loses it. A same-process exact opt-in retry derives
+the same grant ID and returns the same binding. E8.1 adds one Game-scoped exact
+operation-receipt lookup for `consent_opt_in|consent_stop`; it returns only the
+validated retained E2 receipt for that request ID or `receipt_absent`. After a
+Game restart, opt-in retry authenticates the principal, restores that receipt,
+binds its trace and instance to the request and State membership, and
+reconstructs the identical grant without backfilling an earlier local report.
+Stop retry likewise derives the original grant generation from its retained
+command/result. Conflicting request-ID reuse fails before a new grant is
+installed. The receipt lookup is not a report, host-read, or arbitrary request
+enumeration API.
+
+Stop retains the grant as `revoked` until its original expiry rather than
+deleting it. This permits exact stop replay and lets the collector decide the
+required race: a report identity accepted before stop remains `replayed`, while
+unseen work from the revoked generation returns `sharing_disabled`. A revoked
+grant can authorize only exact stop retry and report replay classification; it
+cannot synchronize, opt in another instance, or authorize a new report.
+
+### Synchronization and report composition
+
+Synchronization sample IDs are deterministic UUIDs derived from the browser
+request ID with the fixed `synchronization-sample` label. Game records one
+`serverReceiveMs`, creates the exact E2 issuance with `timebaseId=traceId` and
+the grant's listener instance, records `serverSendMs` immediately before its
+bounded collector call, and persists it through the existing Game-scoped
+issuance endpoint. Exact retry first asks for the retained issuance by sample
+ID and returns it only when trace, timebase, and instance match the grant.
+
+For upload, Game authenticates the principal, resolves the exact grant, repeats
+State membership, reconciles the active trace/current managed stream, and
+requires the grant's run generation, trace, segment, and lease still match.
+Game restores the retained issuance by caller-supplied `sampleId`, requires its
+trace/timebase/instance match the grant, accepts the four-field local timing
+observation through E2, validates the E1 measurement core, maps its alignment,
+and creates the listener server context itself. The role comes only from State.
+The unchanged composed E2 envelope and grant generation are then sent to the
+collector. Neither principal nor grant is forwarded. Game accepts only the
+finite collector ingest outcomes and verifies an accepted/replayed envelope is
+the exact submitted envelope before projecting `{status,receivedAt}`.
+
+Successful opt-in is the upload linearization point. The UI supplies its current
+next report sequence and monotonic click time, receives the grant only after the
+collector consent commit, and never uploads an existing local-ring entry.
+Upload uses one replaceable pending report, no durable browser queue, and no
+automatic backfill. Stop becomes visible only after its collector commit; after
+acknowledgement the UI disables sharing and discards any unsent report. Lost or
+malformed responses keep the operation uncertain and retry the exact request.
+Collector failure changes only sharing status; local measurement, copy, audio,
+gameplay, and readiness continue unchanged.
+
+### E8.3b closure matrix
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `runtime`: opt-in authenticates Access, proves active State membership and current trace/stream correlation, commits E2 consent, then installs the deterministic bounded grant. |
+| Update | `runtime`: only `enabled -> revoked` and lazy expiry are permitted; trace/run/instance/generation binding is immutable. |
+| Delete | `structural`: grants are memory-only and disappear on process restart; lazy expiry removes only expired records. Revocation is retained until expiry for replay truth. |
+| Omit | `runtime`: every report requires grant, membership, active trace, exact segment/lease, retained issuance, E1 validation, and E2 composition before collector dispatch. |
+| Duplicate | `runtime`: deterministic grant/sample IDs plus collector request/report identity return exact replay; the 32-grant map has one record per grant ID. |
+| Reorder | `runtime`: collector consent generation and first sequence/time boundaries decide stop-versus-report ordering; Game does not backfill or reorder its single pending report. |
+| Replay | `runtime`: opt-in/stop use exact E2 request receipts; synchronization reuses the retained issuance; report replay is decided by E7 identity before revoked consent. |
+| Conflict | `runtime`: changed reuse of request, sample, grant, instance, or report identity fails before current authority can create another effect. |
+| Concurrency | `runtime`: one tail keyed by opt-in request until grant creation and then by grant ID serializes synchronization, stop, and report dispatch; collector transactions remain final consent/report authority. |
+| Expiry | `runtime`: grant lookup rejects at `now >= expiresAtMs`; issuance and trace equality retain their verified E7 boundaries. |
+| Restart | `structural`: Game grants vanish; exact opt-in may reconstruct from the collector receipt, while reports cannot proceed until a fresh in-memory grant exists. |
+| Dependency failure | `runtime`: bounded Access/State/collector calls return finite diagnostic failure and cannot mutate playback, room state, or local E5/E6 records. |
+| Corruption | `runtime`: grants are closed module records; every collector/State response is exact and rebound to the grant and request before projection. |
+| Capacity | `runtime`: 32 grants, one pending operation per grant, 15-minute lifetime, 8 KiB browser body, and existing E1/E2/E7 byte/report limits. |
+
+### E8.3b derived schedules and authorization
+
+Before closure, tests derive these schedules from the matrix:
+
+- opt-in exact replay, changed-request conflict, response loss after collector
+  commit, Game restart reconstruction, cap `31/32/33`, and trace/run/lease
+  replacement before grant installation;
+- synchronization exact retry, changed instance/trace substitution, expiry
+  equality, and delayed old-grant response after restart;
+- report accepted/replayed/conflict, report-before-stop versus stop-before-report,
+  unseen revoked work, pre-opt-in sequence/time, rate limit, and one pending
+  upload replacement;
+- membership loss, ended run, segment/lease rotation, trace expiry, malformed or
+  oversized E1/sample/collector output, and Access/State/collector timeout; and
+- UI opt-in/stop response loss, no pre-opt-in backfill, no durable grant, and
+  collector failure with unchanged local measurement/audio/game state.
+
+The local pre-code counterexample question is: what smallest changed grant,
+sample, consent generation, report identity, or retained response preserves all
+currently checked fields but would authorize a different member, instance,
+trace, segment, lease, time interval, or pre-opt-in report? Each valid answer is
+added to the matrix-derived tests before closure review.
+
+E8.3b implementation is authorized only within this boundary. E8.3c remains
+unauthorized and retains source/relay/maintenance callers and final local
+cross-route failure isolation. E12 retains deployed-browser timing, real-host
+credential installation, and measured network/resource behavior.
