@@ -1,7 +1,7 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1 and E8.2 locally verified; E8.3a implemented with independent
-closure review pending`. E8.1/E8.2 independent closure found no open P0/P1.
+Status: `E8.1, E8.2, and E8.3a locally verified`. Independent closure found no
+open P0/P1 in those increments.
 E8.3b and E8.3c remain unimplemented and unauthorized until their preceding
 increments close.
 
@@ -656,10 +656,12 @@ unit evidence at E8.3a; it has not been claimed as a completed state-cutover
 rehearsal. E8.3c owns the final local cross-route isolation scenario and E12
 owns installation and restart evidence on the real deployment hosts.
 
-Open local findings after remediation: P0 `0`, P1 `0`, P2 `0`. E8.3a is not yet
-marked locally verified because the affected independent perspectives must
-re-review the remediation. E8.3b retains
-listener grant, consent, synchronization, and listener ingest. E8.3c retains
+Independent affected-perspective closure passed against implementation commit
+`504686e6c3e43fe666af5bcdb150c8b047dfe1f0` and tree
+`fc563b334c4328054ce3a7a123ed6d4d695c5b50`: authority/replay,
+HTTP/privacy, and topology/evidence each found P0 `0`, P1 `0`, P2 `0`.
+E8.3a is locally verified. E8.3b retains listener grant, consent,
+synchronization, and listener ingest. E8.3c retains
 source/relay mediation, the maintenance caller and purge route, and final
 cross-route isolation rehearsal. E12 retains real-host/browser timing and
 packaging measurements.
