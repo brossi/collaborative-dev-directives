@@ -1,8 +1,8 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1, E8.2, E8.3a, and E8.3b locally verified; E8.3c implemented with closure review pending`.
-Independent closure found no open P0/P1 in the verified increments. E8.3c is
-the final contained mediation increment before the E9/E10 producer reporters.
+Status: `E8.1, E8.2, E8.3a, E8.3b, and E8.3c locally verified`.
+Independent closure found no open P0, P1, or P2 in the completed mediation
+increments. E9/E10 producer reporters are the next contained work.
 
 This packet applies the repository scale filter: one private collector, one
 Game gateway, one State authority service, and two collector credentials. It
@@ -1097,6 +1097,29 @@ Verification at this checkpoint:
 - Web lint: zero errors; one pre-existing E5 unused-parameter warning.
 - `git diff --check`: pass.
 
-Open local findings: `P0=0`, `P1=0`, `P2=0`. Independent E8.3c closure review
-is still required before this increment is marked locally verified. E9/E10,
-E11, and E12 deferrals remain unchanged.
+Open local findings: `P0=0`, `P1=0`, `P2=0`.
+
+### E8.3c closure record
+
+Independent closure review passed the exact final implementation target
+`edad69e84be925a463b7b797b6296e6a34916f54` (tree
+`9b93a8084a5449b65838638283294806c5413faa`) with no open P0, P1, or P2
+findings. The authority/replay, HTTP/privacy, and topology/evidence
+perspectives all passed under the friends-and-family scale filter after the
+matrix-derived remediation.
+
+Final verification was:
+
+- Diagnostics service: `52/52`;
+- State authority regression: `67/67`;
+- Web production build and complete suite: `312/312`;
+- affected final audit suites: `24/24` Web, `3/3` maintenance, and `3/3`
+  credential preflight;
+- Web lint: zero errors, with only the pre-existing E5 `_status` warning; and
+- `git diff --check`: pass.
+
+E8.3c is locally verified and closed. E9/E10 retain producer snapshot and
+reporter attachment, E11 retains comparison presentation, and E12 retains
+real-host installation, deployed credential evidence, timing, and measured
+resource behavior. This closure record is bookkeeping only and does not alter
+the independently reviewed implementation tree.
