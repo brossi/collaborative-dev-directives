@@ -1,8 +1,9 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E E1-E7.3 are locally verified; E8-E12 and S2-F
-  real-environment proof remain open
+  verified; S2-E E1-E7.3 are locally verified; E8.1 is implemented with
+  independent closure review pending; E8.2-E12 and S2-F real-environment proof
+  remain open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`

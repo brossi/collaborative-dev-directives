@@ -6,7 +6,9 @@ E1-E6 are locally verified at their recorded exact targets. E7.1 and E7.2
 implement the unwired collector store, and E7.2 has passed and recorded its targeted
 transaction, retained-read, corruption, lifetime, and physical-boundary closure
 reviews with no open P0/P1. E7.3 has passed its process, topology, disposal,
-and volume-identity closure reviews; E8-E12 remain open.
+and volume-identity closure reviews. E8.1's unwired collector credential
+boundary is implemented with independent closure review pending; E8.2-E12
+remain open.
 The earlier broad executable-contract and listener prototypes remain
 archived outside the active branch and supply no evidence.
 
@@ -122,8 +124,11 @@ The corresponding version-1 seams are fixed before implementation:
 | Game → collector | versioned internal trace, ingest, and read operations under one Game credential |
 | operations → collector | status and whole-trace purge under the maintenance credential |
 
-All mutations require canonical request UUIDs. Exact replay returns the same
-finite result; conflicting identity reuse fails. The internal collector request
+Trace, consent, relay-binding, and purge commands require canonical request
+UUIDs. Segment rotation is idempotent by the exact retained prior/current lease
+edge, synchronization issuance by `sampleId`, and reports by their E1 identity.
+Exact replay returns the same finite result; conflicting identity reuse fails.
+The internal collector request
 contains the already-validated E1 bytes plus server-derived correlation. The
 collector revalidates E1 and owns `(traceId, instanceId, sequence)` replay. This
 two-boundary validation is enough for one private gateway; version 1 introduces
@@ -873,6 +878,9 @@ maintenance credentials, exact caller matrix, request/body deadlines, and
 State-derived authority mediation.
 
 ### E8 — Game/State mediation and consent routing
+
+The contained implementation sequence and current gate are maintained in
+[E8 diagnostic mediation](s2-e-e8-mediation-spec.md).
 
 Wire trace management, listener opt-in, source authority lookup, relay-generation
 binding, host reads, and forward-only consent through Game. Test the real HTTP

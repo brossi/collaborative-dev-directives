@@ -180,6 +180,11 @@ function reportFamily(kind) {
 
 /** Test-only issuance seam. E8 replaces this with authenticated server facts. */
 export function createSynchronizationIssuanceFixtureForTest(input) {
+  return validateSynchronizationIssuanceJson(input);
+}
+
+/** Exact E8 boundary for a synchronization issuance created by trusted Game time. */
+export function validateSynchronizationIssuanceJson(input) {
   const code = 'sample_invalid';
   const issuance = deepFreeze(exactRecord(parseBytes(input, code), {
     sampleId: (value) => uuid(value, code),
@@ -399,6 +404,11 @@ export function canonicalUploadedEnvelopeBytes(envelope) {
   return encoded;
 }
 
+/** Exact canonical-byte boundary for an E8 authenticated upload. */
+export function validateUploadedEnvelopeJson(input) {
+  return restoreUploadedEnvelopeFromTrustedStore(input);
+}
+
 export function restoreUploadedEnvelopeFromTrustedStore(input) {
   let source;
   let parsed;
@@ -565,6 +575,11 @@ function normalizeOperationAuthority(parsed) {
 
 /** Test-only operation seam. E8 replaces this with authenticated State facts. */
 export function createOperationAuthorityFixtureForTest(input) {
+  return validateOperationAuthorityJson(input);
+}
+
+/** Exact E8 boundary for authority facts already derived by Game and State. */
+export function validateOperationAuthorityJson(input) {
   const authority = deepFreeze(normalizeOperationAuthority(
     parseBytes(input, 'authority_invalid'),
   ));
