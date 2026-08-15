@@ -51,6 +51,7 @@ export const STATE_SERVICE_CONTRACT = Object.freeze({
     room: ROOM_PROJECTION_VERSION,
     history: HISTORY_PROJECTION_VERSION,
     accessLobby: 1,
+    diagnosticAuthority: 1,
   }),
   gameCommands: GAME_COMMAND_TYPES,
   recovery: Object.freeze({

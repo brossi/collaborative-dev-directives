@@ -1,9 +1,9 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E E1-E7.3 are locally verified; E8.1 is implemented with
-  independent closure review pending; E8.2-E12 and S2-F real-environment proof
-  remain open
+  verified; S2-E E1-E7.3 are locally verified; E8.1 and E8.2 are implemented
+  with independent closure review pending; E8.3-E12 and S2-F real-environment
+  proof remain open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1049,9 +1049,10 @@ are locally verified at `b0596f2`. E7.1 and E7.2 implement the unwired collector
 store; the targeted E7.2 transaction, retained-read, corruption, lifetime, and
 physical-boundary reviews found no open P0/P1. E7.3 service isolation,
 resolved-volume identity, and checked disposal have also passed targeted
-closure review. E8 routing/authenticated
-authority, E9/E10 producer integration, E11 composition, and E12 real-device
-timing remain open.
+closure review. E8.1's collector credential boundary and E8.2's read-only State
+authority projections are implemented with independent closure review pending.
+E8.3 Game mediation, E9/E10 producer integration, E11 composition, and E12
+real-device timing remain open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.

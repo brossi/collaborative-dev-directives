@@ -482,6 +482,56 @@ export class StateOwner {
     return projectStateHistory({ run,stream,state,events,total });
   }
 
+  diagnosticRunHostAuthority({ runId, principalId }) {
+    if (!UUID_PATTERN.test(runId)) throw new Error("Run ID must be a canonical UUID.");
+    if (typeof principalId !== "string" || !principalId) {
+      throw new Error("Diagnostic host principal is required.");
+    }
+    const row = this.#db.prepare(`SELECT r.id AS run_id,r.ended_at,r.terminal_outcome,
+        l.host_principal_id,l.status,l.active_run_id,l.run_generation
+      FROM game_runs r JOIN lobbies l ON l.code=r.lobby_code
+      WHERE r.id=? AND l.host_principal_id=?`).get(runId,principalId);
+    if (!row) throw new Error("Diagnostic run lookup was not found.");
+    const active = row.ended_at === null && row.terminal_outcome === null
+      && row.status === "playing" && row.active_run_id === row.run_id;
+    const ended = row.ended_at !== null && row.terminal_outcome !== null
+      && row.status === "ended" && row.active_run_id === row.run_id;
+    if (!active && !ended) throw new Error("Diagnostic run authority is inconsistent.");
+    return {
+      authorityVersion: 1,status: active ? "active" : "ended",
+      runId: row.run_id,runGeneration: row.run_generation,isHost: true,
+    };
+  }
+
+  diagnosticManagedStreamAuthority({ sourceId = null, now = Date.now() } = {}) {
+    if (sourceId !== null && !UUID_PATTERN.test(sourceId)) {
+      throw new Error("Source ID must be a canonical UUID.");
+    }
+    safeNonnegative(now,"Diagnostic authority time");
+    const rows = this.#db.prepare(`SELECT r.id AS run_id,l.run_generation,
+        lease.id AS lease_id,lease.source_id,lease.expires_at
+      FROM managed_leases lease
+      JOIN managed_sources source ON source.id=lease.source_id AND source.enabled=1
+      JOIN lobbies l ON l.code=lease.lobby_code AND l.audio_mode='managed'
+        AND l.status='playing'
+      JOIN game_runs r ON r.id=l.active_run_id AND r.lobby_code=l.code
+        AND r.ended_at IS NULL AND r.terminal_outcome IS NULL
+      WHERE lease.expires_at>? AND (? IS NULL OR lease.source_id=?)
+        AND NOT EXISTS (
+          SELECT 1 FROM managed_source_handoff_current handoff
+          WHERE handoff.source_id=lease.source_id AND handoff.handoff_state<>'safe'
+        )
+      ORDER BY lease.id LIMIT 2`).all(now,sourceId,sourceId);
+    if (rows.length > 1) throw new Error("Diagnostic managed-stream authority is inconsistent.");
+    if (!rows.length) return { authorityVersion: 1,status: "absent" };
+    const row = rows[0];
+    return {
+      authorityVersion: 1,status: "active",runId: row.run_id,
+      runGeneration: row.run_generation,leaseId: row.lease_id,
+      sourceId: row.source_id,leaseExpiresAt: row.expires_at,
+    };
+  }
+
   createRun({
     commandId = randomUUID(), lobbyCode, runId = randomUUID(), actorPrincipalId,
     rules, now = Date.now(),

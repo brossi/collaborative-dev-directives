@@ -1,7 +1,7 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1 implemented; independent closure review pending`. E8.2 and E8.3
-remain unimplemented and unauthorized until the preceding increment closes.
+Status: `E8.1 and E8.2 implemented; independent closure review pending`. E8.3
+remains unimplemented and unauthorized until the preceding increments close.
 
 This packet applies the repository scale filter: one private collector, one
 Game gateway, one State authority service, and two collector credentials. It
@@ -174,3 +174,143 @@ This record claims no deployed secret, State authority response, public Game
 route, producer caller, host authorization, or failure isolation across a Game
 transaction. Permitted status remains `E8.1 implemented; independent closure
 review pending`.
+
+## E8.2 State diagnostic authority
+
+E8.2 adds exactly two read-only Game-scoped State projections. It does not add
+a diagnostic credential to State, mint an assertion, write diagnostic state,
+or expose these routes to a browser, source, relay, Access, or operator caller.
+E8.3 remains responsible for composing these facts with Game authentication and
+collector requests.
+
+### Governing invariant
+
+> State returns diagnostic authority only from its durable run-host identity or
+> its single current managed-stream lease; a caller supplies only a lookup key,
+> and every absent, stale, ended, expired, disabled, local-mode, or quarantined
+> stream projects as finite non-authority without mutating State.
+
+### Exact projections
+
+`POST /v1/diagnostics/run-host-authority` uses the existing Game bearer and
+Game principal assertion. Its exact request is `{runId}`. `runId` is a lookup,
+not a caller-authored authority claim. A successful durable-host projection is:
+
+```json
+{
+  "authorityVersion": 1,
+  "status": "active",
+  "runId": "UUID",
+  "runGeneration": 1,
+  "isHost": true
+}
+```
+
+`status` is exactly `active` or `ended`. Active requires the run to be
+unterminated and still be the lobby's active run in `playing` status at the same
+generation. Ended requires the durable run terminal fields and does not depend
+on current lobby membership, retained game events, or history lifecycle. A
+missing run or a principal other than the durable lobby host returns the
+existing finite `404 not_found`; State does not reveal which condition failed.
+An inconsistent retained active/terminal relationship fails closed through the
+existing State error boundary.
+
+`POST /v1/diagnostics/managed-stream-authority` uses only the existing Game
+bearer; it does not accept a principal assertion. Its exact request is either
+`{}` for the deployment's sole current managed stream or `{sourceId}` after
+Game has authenticated a source. The exact non-authority response is:
+
+```json
+{"authorityVersion":1,"status":"absent"}
+```
+
+The exact active response is:
+
+```json
+{
+  "authorityVersion": 1,
+  "status": "active",
+  "runId": "UUID",
+  "runGeneration": 1,
+  "leaseId": "UUID",
+  "sourceId": "UUID",
+  "leaseExpiresAt": 123
+}
+```
+
+Active requires one unexpired lease for an enabled source, a `managed` lobby in
+`playing` state, the lobby's unterminated active run at the same generation, and
+no unresolved handoff for that source. `{sourceId}` additionally requires the
+exact current source. No match returns `absent`; stale or delayed source/relay
+work cannot be rebound to another run. More than one qualifying row is
+ambiguous for the unscoped relay lookup and fails closed rather than selecting
+one. The State clock supplies
+the expiry boundary; equality is expired.
+
+Both methods are read-only at the owner boundary. They do not update source
+`last_seen_at`, reap leases, create commands, resolve handoffs, touch history,
+or consume a request identity.
+
+### E8.2 closure matrix
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `not_applicable`: both projections are read-only and create no receipt or assertion. |
+| Update | `structural`: owner methods contain only bounded `SELECT` statements. |
+| Delete | `not_applicable`: expiry projects absent and does not reap the lease. |
+| Omit | `runtime`: run host requires exactly `runId`; managed stream accepts exactly zero fields or one `sourceId`. |
+| Duplicate | `structural`: one route and one owner method own each projection; managed-stream cardinality must be zero or one. |
+| Reorder | `not_applicable`: neither projection has sequence input or output. |
+| Replay | `structural`: repeated reads over unchanged State return the same exact projection without a receipt. |
+| Conflict | `runtime`: caller fields outside the exact lookup shape fail; retained authority contradictions fail closed. |
+| Concurrency | `structural`: the existing single State owner serializes writes; each projection is one bounded read snapshot. |
+| Expiry | `runtime`: `expires_at <= State now` is absent; no caller time is accepted. |
+| Restart | `runtime`: projections derive again from the durable State rows and require no diagnostic sidecar. |
+| Dependency failure | `structural`: State does not call Game or the collector; collector availability cannot affect either projection or State readiness. |
+| Corruption | `runtime`: State startup validation remains the primary retained-data gate and impossible projection cardinality/relationships fail closed. |
+| Capacity | `structural`: one indexed run lookup or at most two bounded current-stream rows; no scan or retained output growth. |
+
+### E8.2 derived schedules and exit
+
+- active host, ended host, non-host, missing run, removed non-host membership,
+  sealed history, and purged history;
+- active managed stream, wrong source, expired-at-equality, disabled source,
+  local mode, ended run, released lease, unresolved handoff, and impossible
+  duplicate authority;
+- malformed/extra request fields, Access/operator/source/cross-scope denial,
+  forged principal assertion, repeated read, restart, and unchanged State
+  validation/report rows before and after reads; and
+- collector unavailable is structurally irrelevant because State has no
+  collector import, credential, mount, request, or readiness dependency.
+
+E8.2 closes when these matrix schedules and existing State regressions pass and
+an independent review finds no open P0/P1. E8.3 remains unauthorized until that
+closure record is committed.
+
+### E8.2 implementation record
+
+`StateOwner` now owns the two bounded projections and `server.mjs` exposes them
+only under the existing Game service credential. The durable-host route also
+requires the existing short-lived Game principal assertion. The managed-stream
+route deliberately has no principal because E8.3 uses it after its source or
+relay caller boundary; State accepts only an optional source locator and derives
+every returned run, generation, lease, source, and expiry field.
+
+Matrix-derived tests cover active and historical hosts through whole-history
+purge, non-host concealment, active/source-scoped/ambiguous managed streams,
+expiry before/equality/after, release with unresolved handoff, restart,
+read-only validation stability, exact request shape, forged/cross-scope denial,
+and the published projection version. The local smallest-counterexample pass
+found no path that can substitute another run or source while preserving the
+checked durable relationships; an ambiguous unscoped stream fails closed.
+
+Verification at the implementation worktree:
+
+- complete State service suite: `64/64`;
+- E1/E2 authority regression suite: `32/32`;
+- syntax and `git diff --check`: pass.
+
+This record claims no Game caller route, trace composition, consent routing,
+collector call, mounted diagnostic credential, or source/relay reporter. Those
+remain E8.3 or later work. Permitted status is `E8.2 implemented; independent
+closure review pending`.

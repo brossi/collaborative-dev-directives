@@ -51,6 +51,18 @@ function requireRequestId(body, field) {
   }
 }
 
+function requireExactObject(body, { required = [], optional = [] } = {}) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new Error("Request body must be an object.");
+  }
+  const allowed = new Set([...required,...optional]);
+  const keys = Object.keys(body);
+  if (required.some((key) => !Object.hasOwn(body,key))
+      || keys.some((key) => !allowed.has(key))) {
+    throw new Error("Request body is invalid.");
+  }
+}
+
 function validPrincipalAssertion(request, principalId, { key, issuer, scope, now }) {
   const supplied = request.headers["x-cannabeats-principal-signature"];
   const suppliedIssuer = request.headers["x-cannabeats-principal-issuer"];
@@ -264,6 +276,22 @@ export function createStateServer({
         return writeJson(response,200,owner.recoverPrincipal({
           principalId,preferredLobbyCode: url.searchParams.get("preferredLobbyCode"),
           pendingActionLobbyCode: url.searchParams.get("pendingActionLobbyCode"),
+        }));
+      }
+      if (request.method === "POST" && url.pathname === "/v1/diagnostics/run-host-authority") {
+        if (!requireCaller(gameCaller)) return;
+        if (!requirePrincipal("game")) return;
+        requireExactObject(body,{ required: ["runId"] });
+        return writeJson(response,200,owner.diagnosticRunHostAuthority({
+          runId: body.runId,principalId,
+        }));
+      }
+      if (request.method === "POST"
+          && url.pathname === "/v1/diagnostics/managed-stream-authority") {
+        if (!requireCaller(gameCaller)) return;
+        requireExactObject(body,{ optional: ["sourceId"] });
+        return writeJson(response,200,owner.diagnosticManagedStreamAuthority({
+          sourceId: body.sourceId ?? null,now,
         }));
       }
       const lobbyAudio = url.pathname.match(/^\/v1\/lobbies\/([^/]+)\/audio$/);

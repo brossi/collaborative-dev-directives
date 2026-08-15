@@ -7,8 +7,8 @@ implement the unwired collector store, and E7.2 has passed and recorded its targ
 transaction, retained-read, corruption, lifetime, and physical-boundary closure
 reviews with no open P0/P1. E7.3 has passed its process, topology, disposal,
 and volume-identity closure reviews. E8.1's unwired collector credential
-boundary is implemented with independent closure review pending; E8.2-E12
-remain open.
+boundary and E8.2's read-only State authority projections are implemented with
+independent closure review pending; E8.3-E12 remain open.
 The earlier broad executable-contract and listener prototypes remain
 archived outside the active branch and supply no evidence.
 

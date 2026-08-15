@@ -98,6 +98,8 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
     ["POST", "/v1/lobbies/ABC123/runs", "game"],
     ["GET", "/v1/lobbies/ABC123", "game"],
     ["GET", "/v1/lobbies/ABC123/audio", "game"],
+    ["POST", "/v1/diagnostics/run-host-authority", "game"],
+    ["POST", "/v1/diagnostics/managed-stream-authority", "game"],
     ["GET", `/v1/history/${commandId}`, "game"],
     ["POST", "/v1/lobbies/ABC123/actions", "game"],
     ["POST", "/v1/lobbies/ABC123/admissions", "access"],
@@ -148,6 +150,84 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
   }
 });
 
+test("diagnostic authority HTTP routes expose only State-derived Game facts", async () => {
+  const path = join(root,"diagnostic-authority-http.sqlite");
+  const host = randomUUID();
+  const member = randomUUID();
+  const runId = randomUUID();
+  const sourceId = randomUUID();
+  const owner = developmentOwner(path);
+  owner.activate({ now: 1 });
+  owner.createLobby({ commandId: randomUUID(),code: "DHT234",hostPrincipalId: host,now: 2 });
+  owner.addLobbyMember({
+    commandId: randomUUID(),lobbyCode: "DHT234",principalId: member,
+    admittedByPrincipalId: member,now: 3,
+  });
+  owner.createRun({
+    commandId: randomUUID(),lobbyCode: "DHT234",runId,actorPrincipalId: host,now: 4,
+  });
+  owner.registerManagedSource({
+    commandId: randomUUID(),sourceId,displayName: "HTTP Source",
+    tokenHash: "e".repeat(64),now: 5,
+  });
+  const lease = owner.acquireManagedLease({
+    commandId: randomUUID(),lobbyCode: "DHT234",sourceId,
+    actorPrincipalId: host,leaseDurationMs: 200,now: 6,
+  });
+  owner.close();
+  const server = createStateServer({
+    databasePath: path,credentials: scopedCredentials,clock: () => 100,
+  });
+  await new Promise((resolve) => server.listen(0,"127.0.0.1",resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const hostHeaders = {
+    authorization: `Bearer ${scopedCredentials.gameToken}`,
+    "content-type": "application/json",...signedPrincipalHeaders(host,"game"),
+  };
+  try {
+    const hostResponse = await fetch(`${origin}/v1/diagnostics/run-host-authority`,{
+      method: "POST",headers: hostHeaders,body: JSON.stringify({ runId }),
+    });
+    assert.equal(hostResponse.status,200);
+    assert.deepEqual(await hostResponse.json(),{
+      authorityVersion: 1,status: "active",runId,runGeneration: 1,isHost: true,
+    });
+    const memberResponse = await fetch(`${origin}/v1/diagnostics/run-host-authority`,{
+      method: "POST",headers: {
+        ...hostHeaders,...signedPrincipalHeaders(member,"game"),
+      },body: JSON.stringify({ runId }),
+    });
+    assert.equal(memberResponse.status,404);
+    assert.deepEqual(await memberResponse.json(),{ code: "not_found" });
+    const managedResponse = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
+      method: "POST",headers: {
+        authorization: `Bearer ${scopedCredentials.gameToken}`,
+        "content-type": "application/json",
+      },body: JSON.stringify({ sourceId }),
+    });
+    assert.equal(managedResponse.status,200);
+    assert.deepEqual(await managedResponse.json(),{
+      authorityVersion: 1,status: "active",runId,runGeneration: 1,
+      leaseId: lease.leaseId,sourceId,leaseExpiresAt: 206,
+    });
+    const extra = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
+      method: "POST",headers: hostHeaders,
+      body: JSON.stringify({ sourceId,runId }),
+    });
+    assert.equal(extra.status,400);
+    assert.deepEqual(await extra.json(),{ code: "invalid_request" });
+    const access = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
+      method: "POST",headers: {
+        authorization: `Bearer ${scopedCredentials.accessToken}`,
+        "content-type": "application/json",
+      },body: "{}",
+    });
+    assert.equal(access.status,403);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("HTTP boundary authenticates callers and derives the lobby host from its principal claim", async () => {
   const server = createStateServer({
     allowDevelopmentActivation: true,
@@ -178,7 +258,7 @@ test("HTTP boundary authenticates callers and derives the lobby host from its pr
       httpContractVersion: 1,
       schemaGeneration: 4,
       protocolVersion: 4,
-      projections: { room: 1, history: 1, accessLobby: 1 },
+      projections: { room: 1, history: 1, accessLobby: 1, diagnosticAuthority: 1 },
       gameCommands: [
         "add_host_player", "remove_player", "configure_rules", "start_game",
         "begin_round", "place_song", "retract_placement", "reveal_answer",

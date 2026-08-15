@@ -144,6 +144,131 @@ test("access lobby projection and membership are owner-scoped and idempotent", (
   owner.close();
 });
 
+test("diagnostic authority is durable for hosts and current-only for managed streams", () => {
+  const path = join(root,"diagnostic-authority.sqlite");
+  const owner = developmentOwner(path);
+  owner.activate({ now: 1 });
+  const host = randomUUID();
+  const member = randomUUID();
+  const runId = randomUUID();
+  const sourceId = randomUUID();
+  owner.createLobby({ commandId: randomUUID(),code: "DIA234",hostPrincipalId: host,now: 2 });
+  owner.addLobbyMember({
+    commandId: randomUUID(),lobbyCode: "DIA234",principalId: member,
+    admittedByPrincipalId: member,now: 3,
+  });
+  owner.createRun({
+    commandId: randomUUID(),lobbyCode: "DIA234",runId,actorPrincipalId: host,now: 4,
+  });
+  owner.registerManagedSource({
+    commandId: randomUUID(),sourceId,displayName: "Diagnostic Source",
+    tokenHash: "d".repeat(64),now: 5,
+  });
+  const lease = owner.acquireManagedLease({
+    commandId: randomUUID(),lobbyCode: "DIA234",sourceId,
+    actorPrincipalId: host,leaseDurationMs: 100,now: 6,
+  });
+  const before = owner.validate();
+  assert.deepEqual(owner.diagnosticRunHostAuthority({ runId,principalId: host }),{
+    authorityVersion: 1,status: "active",runId,runGeneration: 1,isHost: true,
+  });
+  assert.throws(() => owner.diagnosticRunHostAuthority({
+    runId,principalId: member,
+  }),/not found/i);
+  assert.deepEqual(owner.diagnosticManagedStreamAuthority({ now: 7 }),{
+    authorityVersion: 1,status: "active",runId,runGeneration: 1,
+    leaseId: lease.leaseId,sourceId,leaseExpiresAt: 106,
+  });
+  assert.deepEqual(owner.diagnosticManagedStreamAuthority({ sourceId,now: 106 }),{
+    authorityVersion: 1,status: "absent",
+  });
+  assert.deepEqual(owner.diagnosticManagedStreamAuthority({ sourceId,now: 107 }),{
+    authorityVersion: 1,status: "absent",
+  });
+  assert.deepEqual(owner.diagnosticManagedStreamAuthority({
+    sourceId: randomUUID(),now: 7,
+  }),{ authorityVersion: 1,status: "absent" });
+  assert.deepEqual(owner.validate(),before);
+  owner.close();
+
+  const reopened = developmentOwner(path);
+  assert.deepEqual(reopened.diagnosticRunHostAuthority({ runId,principalId: host }),{
+    authorityVersion: 1,status: "active",runId,runGeneration: 1,isHost: true,
+  });
+  assert.deepEqual(reopened.diagnosticManagedStreamAuthority({ sourceId,now: 7 }),{
+    authorityVersion: 1,status: "active",runId,runGeneration: 1,
+    leaseId: lease.leaseId,sourceId,leaseExpiresAt: 106,
+  });
+  reopened.applyGameCommand({
+    lobbyCode: "DIA234",actorPrincipalId: host,actionId: randomUUID(),
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "select_audio",mode: "local" },now: 8,
+  });
+  assert.deepEqual(reopened.diagnosticManagedStreamAuthority({ sourceId,now: 9 }),{
+    authorityVersion: 1,status: "absent",
+  });
+  reopened.close();
+});
+
+test("diagnostic host authority survives terminal history sealing and purge", () => {
+  const owner = developmentOwner(join(root,"diagnostic-ended-host.sqlite"));
+  owner.activate({ now: 1 });
+  const host = randomUUID();
+  const runId = randomUUID();
+  owner.createLobby({ commandId: randomUUID(),code: "END234",hostPrincipalId: host,now: 2 });
+  owner.createRun({
+    commandId: randomUUID(),lobbyCode: "END234",runId,actorPrincipalId: host,now: 3,
+  });
+  owner.applyGameCommand({
+    lobbyCode: "END234",actorPrincipalId: host,actionId: randomUUID(),
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "abandon_game" },now: 4,
+  });
+  assert.deepEqual(owner.diagnosticRunHostAuthority({ runId,principalId: host }),{
+    authorityVersion: 1,status: "ended",runId,runGeneration: 1,isHost: true,
+  });
+  owner.sealHistory({ commandId: randomUUID(),runId,now: 5 });
+  owner.purgeHistory({ commandId: randomUUID(),runId,eligibleBefore: 4,now: 6 });
+  assert.deepEqual(owner.diagnosticRunHostAuthority({ runId,principalId: host }),{
+    authorityVersion: 1,status: "ended",runId,runGeneration: 1,isHost: true,
+  });
+  owner.close();
+});
+
+test("diagnostic managed-stream lookup fails closed on ambiguous current authority", () => {
+  const owner = developmentOwner(join(root,"diagnostic-ambiguous-stream.sqlite"));
+  owner.activate({ now: 1 });
+  const streams = [
+    { code: "DMA234",host: randomUUID(),runId: randomUUID(),sourceId: randomUUID(),token: "a" },
+    { code: "DMB234",host: randomUUID(),runId: randomUUID(),sourceId: randomUUID(),token: "b" },
+  ];
+  for (const [index,stream] of streams.entries()) {
+    const now = 2 + index * 5;
+    owner.createLobby({
+      commandId: randomUUID(),code: stream.code,hostPrincipalId: stream.host,now,
+    });
+    owner.createRun({
+      commandId: randomUUID(),lobbyCode: stream.code,runId: stream.runId,
+      actorPrincipalId: stream.host,now: now + 1,
+    });
+    owner.registerManagedSource({
+      commandId: randomUUID(),sourceId: stream.sourceId,displayName: `Source ${index}`,
+      tokenHash: stream.token.repeat(64),now: now + 2,
+    });
+    owner.acquireManagedLease({
+      commandId: randomUUID(),lobbyCode: stream.code,sourceId: stream.sourceId,
+      actorPrincipalId: stream.host,leaseDurationMs: 100,now: now + 3,
+    });
+  }
+  assert.throws(() => owner.diagnosticManagedStreamAuthority({ now: 11 }),/inconsistent/i);
+  for (const stream of streams) {
+    assert.equal(owner.diagnosticManagedStreamAuthority({
+      sourceId: stream.sourceId,now: 11,
+    }).runId,stream.runId);
+  }
+  owner.close();
+});
+
 test("state ownership is crash-released and canonical across path aliases", async () => {
   const path = join(root, "process-owned.sqlite");
   const modulePath = new URL("../src/owner.mjs", import.meta.url).href;
