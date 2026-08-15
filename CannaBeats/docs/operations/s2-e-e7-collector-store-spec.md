@@ -202,7 +202,7 @@ E7 exposes only these internal operations to its later adapter:
 | --- | --- |
 | `trace_start` | Verified E2 command, authority fixture, current active lookup, and issued IDs; commits active trace, first segment, and E2 receipt or returns `trace_busy`/replay. |
 | `trace_end` | Verified E2 command/authority/current trace; commits terminal E2 state, `purge_after=ended_at+172800000`, and receipt. At `now >= active_expires_at`, the authority-free expiry edge first stores `ended_at=active_expires_at` with no request receipt. |
-| `segment_rotate` | Verified current trace plus E2 authority fixture. Same current lease returns the retained segment; a changed lease atomically inserts the distinct issued segment and advances `current_segment_id`. It has no request receipt. |
+| `segment_rotate` | Verified current trace plus E2 authority fixture. Same exact lease/segment edge returns `{status: replayed, state}`; a changed lease atomically inserts the distinct issued segment, advances `current_segment_id`, and returns `{status: accepted, state}`. It has no request receipt. |
 | `issuance_put` | Exact server issuance derived by E8; commits one sample lookup retained until `server_send_ms+120000`. E2 still enforces the 60-second local measurement interval. It has no replay receipt and duplicate sample identity must be byte-identical. |
 | `consent_opt_in|consent_stop` | Verified E2 command/authority/current consent; commits forward-only consent and E2 receipt atomically. |
 | `relay_bind` | Verified E2 command/authority plus atomically loaded generation binding; commits one immutable binding and E2 receipt. |

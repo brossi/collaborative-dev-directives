@@ -112,7 +112,7 @@ export function delegateGameCollectorOperation(collector, operation, receivedAt)
     return collector.endTrace(operation.command, operation.authority);
   }
   if (operation.operation === 'rotateSegment') {
-    return { status: 'accepted', state: collector.rotateSegment(operation.authority) };
+    return collector.rotateSegment(operation.authority);
   }
   if (operation.operation === 'putIssuance') {
     return { status: collector.putIssuance(operation.traceId, operation.issuance) };

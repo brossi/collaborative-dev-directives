@@ -352,7 +352,14 @@ test('trace, segment, consent, relay, and receipts survive restart exactly', () 
     operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
     priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,
   }));
-  assert.equal(rotated.segment.segmentId, SEGMENT_2);
+  assert.equal(rotated.status, 'accepted');
+  assert.equal(rotated.state.segment.segmentId, SEGMENT_2);
+  const rotationReplay = collector.rotateSegment(authority({
+    operation: 'segment_rotate', nowMs: 2100, traceId: TRACE,
+    priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,
+  }));
+  assert.equal(rotationReplay.status, 'replayed');
+  assert.equal(rotationReplay.state.segment.startedAtMs, 2000);
 
   const optCommand = command('consent_opt_in', {
     listenerInstanceId: INSTANCE, firstAllowedSequence: 0,
@@ -965,7 +972,7 @@ test('physical pressure rejects new effects but permits replay, end, purge, and 
   assert.equal(collector.rotateSegment(authority({
     operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
     priorLeaseId: LEASE, leaseId: LEASE, issuedSegmentId: SEGMENT_2,
-  })).segment.segmentId, SEGMENT);
+  })).state.segment.segmentId, SEGMENT);
   expectCode('collector_degraded', () => collector.rotateSegment(authority({
     operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
     priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,

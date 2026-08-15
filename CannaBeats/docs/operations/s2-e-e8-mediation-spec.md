@@ -624,10 +624,14 @@ still be substituted without changing those identities. The same boundary now
 binds accepted operation timestamps to the single submitted collector time and
 requires every receipt-bearing response to match both its exact command and
 returned state; stale stop refreshes retain every immutable trace field.
+Receipt-free segment rotation separately returns `accepted` or `replayed`, so
+Game requires the submitted timestamp only for a newly applied edge while an
+exact replay retains its original segment timestamp. An ended stop replay must
+equal the complete preflight state, including its terminal timestamp.
 
 Matrix-derived evidence presently passes:
 
-- Web production build and complete suite: `npm test` in `web` (`272/272`);
+- Web production build and complete suite: `npm test` in `web` (`273/273`);
 - Web lint: `npm run lint` (zero errors; one pre-existing E5 unused-parameter
   warning);
 - diagnostics service/store/topology: `node --test --test-concurrency=1

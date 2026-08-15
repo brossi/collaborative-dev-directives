@@ -25,7 +25,7 @@ function fixture() {
     startReceiptContext: (requestId) => collector.traceStartReceiptContext(requestId),
     startTrace: ({ command,authority }) => collector.startTrace(command,authority),
     endTrace: ({ command,authority }) => collector.endTrace(command,authority),
-    rotateSegment: ({ authority }) => ({ status: "accepted",state: collector.rotateSegment(authority) }),
+    rotateSegment: ({ authority }) => collector.rotateSegment(authority),
     readTrace: ({ traceId,cursor }) => collector.readTrace(Buffer.from(JSON.stringify({ traceId,cursor }))),
   };
   const runId = randomUUID();
@@ -297,6 +297,61 @@ test("operation results retain the exact submitted timing and receipt projection
     headers: shiftedRotate.headers,traceId: rotating.traceId,
   }),(error) => error.code === "collector_response_invalid");
   shiftedRotate.collector.close();
+});
+
+test("replayed lifecycle results preserve their originally retained timestamps", async () => {
+  const rotation = fixture();
+  const started = await rotation.mediation.start({
+    headers: rotation.headers,requestId: randomUUID(),runId: rotation.runId,
+  });
+  const prior = rotation.adapter.traceContext({ traceId: started.traceId }).state;
+  rotation.setNow(2000);
+  rotation.authority.leaseId = rotation.nextLeaseId;
+  const first = await rotation.mediation.status({
+    headers: rotation.headers,traceId: started.traceId,
+  });
+  assert.equal(first.status,"active");
+  const replayingRotation = createDiagnosticMediation({
+    access: rotation.access,state: rotation.state,clock: () => 2001,
+    collector: {
+      ...rotation.adapter,
+      traceContext: () => ({ status: "found",state: prior }),
+    },
+  });
+  const replayed = await replayingRotation.status({
+    headers: rotation.headers,traceId: started.traceId,
+  });
+  assert.equal(replayed.status,"active");
+  assert.equal(rotation.collector.traceContext({ traceId: started.traceId })
+    .state.segment.startedAtMs,2000);
+  rotation.collector.close();
+
+  const stop = fixture();
+  const active = await stop.mediation.start({
+    headers: stop.headers,requestId: randomUUID(),runId: stop.runId,
+  });
+  stop.setNow(2000);
+  const stopRequestId = randomUUID();
+  const original = await stop.mediation.stop({
+    headers: stop.headers,requestId: stopRequestId,traceId: active.traceId,
+  });
+  const replayingStop = createDiagnosticMediation({
+    access: stop.access,state: stop.state,clock: () => 3000,
+    collector: {
+      ...stop.adapter,
+      endTrace: (value) => {
+        const result = stop.adapter.endTrace(value);
+        const state = {
+          ...result.state,ended: { ...result.state.ended,endedAtMs: 2001 },
+        };
+        return { ...result,state,receipt: { ...result.receipt,result: state } };
+      },
+    },
+  });
+  await assert.rejects(() => replayingStop.stop({
+    headers: stop.headers,requestId: stopRequestId,traceId: original.traceId,
+  }),(error) => error.code === "collector_response_invalid");
+  stop.collector.close();
 });
 
 test("a stop racing exact trace expiry returns the retained expired projection", async () => {

@@ -637,7 +637,7 @@ export class DiagnosticCollector {
       expireActiveIfDue(this.db, authority.nowMs);
       const current = restoreTrace(traceRow(this.db, authority.traceId));
       const next = rotateCorrelationSegment(current, authority);
-      if (next === current) return next;
+      if (next === current) return { status: 'replayed',state: next };
       this.#assertPhysicalAdmission();
       const segmentCount = this.db.prepare(`SELECT COUNT(*) AS n
         FROM diagnostic_segments WHERE trace_id=?`).get(next.traceId).n;
@@ -652,7 +652,7 @@ export class DiagnosticCollector {
         AND NOT EXISTS (SELECT 1 FROM diagnostic_reports WHERE segment_id=?)
         AND NOT EXISTS (SELECT 1 FROM diagnostic_relay_bindings WHERE segment_id=?)`)
         .run(priorSegmentId, priorSegmentId, priorSegmentId);
-      return next;
+      return { status: 'accepted',state: next };
     });
   }
 

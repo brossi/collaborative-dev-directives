@@ -292,9 +292,12 @@ export function createDiagnosticMediation({
     const state = relatedTrace(restoreTrace(rotated?.state),{
       traceId: trace.traceId,runId: trace.runId,runGeneration: trace.runGeneration,
       status: "active",startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
-      leaseId: current.leaseId,segmentId: issuedSegmentId,segmentStartedAtMs: nowMs,
+      leaseId: current.leaseId,segmentId: issuedSegmentId,
+      ...(rotated?.status === "accepted" ? { segmentStartedAtMs: nowMs } : {}),
     });
-    if (rotated?.status !== "accepted") fail(502,"collector_response_invalid");
+    if (!["accepted","replayed"].includes(rotated?.status)) {
+      fail(502,"collector_response_invalid");
+    }
     return state;
   }
 
@@ -368,6 +371,7 @@ export function createDiagnosticMediation({
     let trace = await traceForHost(headers,traceId,{ reconcileActive: false });
     const stopCommand = command({ requestId,operation: "trace_end",parameters: {} });
     try {
+      const priorTrace = trace;
       const nowMs = clock();
       const result = await collector.endTrace({
         command: stopCommand,
@@ -387,6 +391,10 @@ export function createDiagnosticMediation({
         fail(502,"collector_response_invalid");
       }
       relatedReceipt(result,stopCommand,trace);
+      if (result.status === "replayed" && priorTrace.status === "ended"
+        && !sameBytes(canonicalTraceStateBytes(priorTrace),canonicalTraceStateBytes(trace))) {
+        fail(502,"collector_response_invalid");
+      }
     } catch (error) {
       if (!["stale_correlation","trace_inactive"].includes(error?.code)) {
         throw error;
