@@ -94,6 +94,7 @@ export function useManagedAudioStream() {
   const sharingRef = useRef<InstanceType<typeof E8ListenerSharingController> | null>(null);
   const generationRef = useRef(0);
   const sharingGenerationRef = useRef(0);
+  const sharingBlockedRef = useRef(false);
 
   const retireSharing = useCallback(async () => {
     sharingGenerationRef.current += 1;
@@ -211,11 +212,14 @@ export function useManagedAudioStream() {
   const resetDiagnostics = useCallback(async () => {
     const session = sessionRef.current;
     if (!session) throw new Error("reset_failed");
+    sharingBlockedRef.current = true;
     try {
       await retireSharing();
       await session.resetDiagnostics();
     } catch {
       throw new Error("reset_failed");
+    } finally {
+      sharingBlockedRef.current = false;
     }
     return "reset" as const;
   }, [retireSharing]);
@@ -260,7 +264,7 @@ export function useManagedAudioStream() {
   }, []);
 
   const optInDiagnostics = useCallback(async (runId: string) => (
-    sharingController().optIn(runId)
+    sharingBlockedRef.current ? false : sharingController().optIn(runId)
   ), [sharingController]);
 
   const stopDiagnosticsSharing = useCallback(async () => {

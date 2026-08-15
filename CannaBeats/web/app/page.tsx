@@ -242,11 +242,11 @@ function SharedAudioPanel({
               <button className="text-button" disabled={panelState.busy || !diagnostics?.copyAvailable} onClick={() => void panelController.copy()} type="button">Copy local report</button>
               <button className="text-button" disabled={panelState.busy || !diagnostics} onClick={() => void panelController.reset()} type="button">Reset diagnostics</button>
               {sharing.status === "enabled" ? (
-                <button className="text-button" onClick={() => void onStopSharing()} type="button">Stop sharing</button>
+                <button className="text-button" disabled={panelState.busy} onClick={() => void onStopSharing()} type="button">Stop sharing</button>
               ) : sharing.status === "stopping" ? (
-                <button className="text-button" onClick={() => void onStopSharing()} type="button">Retry stop sharing</button>
+                <button className="text-button" disabled={panelState.busy} onClick={() => void onStopSharing()} type="button">Retry stop sharing</button>
               ) : (
-                <button className="text-button" disabled={!diagnostics || sharing.status === "enabling"} onClick={() => void onShareDiagnostics(runId)} type="button">{sharing.status === "enabling" ? "Starting sharing…" : "Share future diagnostics"}</button>
+                <button className="text-button" disabled={panelState.busy || !diagnostics || sharing.status === "enabling"} onClick={() => void onShareDiagnostics(runId)} type="button">{sharing.status === "enabling" ? "Starting sharing…" : "Share future diagnostics"}</button>
               )}
             </div>
             <p className="visually-hidden" aria-live="polite" role="status">{diagnosticNotice}</p>

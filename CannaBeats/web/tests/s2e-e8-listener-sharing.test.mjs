@@ -248,6 +248,74 @@ test('disposed opt-in completion cannot install a grant or schedule uploads', as
   assert.equal(f.controller.timer,null);
 });
 
+test('a stale rejected upload cannot interfere with a concurrent stop', async () => {
+  const f = fixture();
+  await f.controller.optIn(randomUUID());
+  f.lifecycle.transitions.push(report(f.instanceId,2));
+  f.lifecycle.nextSequence = 3;
+  const original = f.controller.request;
+  let rejectSync;
+  let releaseStop;
+  const heldSync = new Promise((_,reject) => { rejectSync = reject; });
+  const heldStop = new Promise((resolve) => { releaseStop = resolve; });
+  f.controller.request = async (path,body) => {
+    if (body.action === 'synchronize') return heldSync;
+    if (body.action === 'stop') {
+      await heldStop;
+      return original(path,body);
+    }
+    return original(path,body);
+  };
+  const flushing = f.controller.flush();
+  await Promise.resolve();
+  const stopping = f.controller.stop();
+  rejectSync(Object.assign(new Error('stale'),{ code: 'diagnostic_not_found' }));
+  assert.equal(await flushing,false);
+  releaseStop();
+  assert.equal(await stopping,true);
+  assert.equal(f.controller.state.status,'disabled');
+  assert.equal(f.controller.grant,null);
+});
+
+test('opt-in completion cannot install a grant for a rotated listener instance', async () => {
+  const f = fixture();
+  const original = f.controller.request;
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  f.controller.request = async (path,body) => {
+    if (body.action === 'opt_in') await held;
+    return original(path,body);
+  };
+  const pending = f.controller.optIn(randomUUID());
+  f.lifecycle.instanceId = randomUUID();
+  f.lifecycle.windows = [];
+  f.lifecycle.transitions = [];
+  f.lifecycle.nextSequence = 0;
+  release();
+  assert.equal(await pending,false);
+  assert.equal(f.controller.grant,null);
+  assert.equal(f.controller.optInIntent,null);
+  assert.equal(f.controller.state.notice,'grant_lost');
+});
+
+test('an overlong server synchronization interval is rejected before upload', async () => {
+  const f = fixture();
+  await f.controller.optIn(randomUUID());
+  f.lifecycle.transitions.push(report(f.instanceId,2));
+  f.lifecycle.nextSequence = 3;
+  const original = f.controller.request;
+  f.controller.request = async (path,body) => body.action === 'synchronize'
+    ? {
+        status: 'accepted',grantId: f.grantId,sampleId: randomUUID(),
+        timebaseId: f.controller.grant.traceId,instanceId: f.instanceId,
+        serverReceiveMs: 0,serverSendMs: 2_001,
+      }
+    : original(path,body);
+  assert.equal(await f.controller.flush(),false);
+  assert.equal(f.calls.filter(([path]) => path.endsWith('listener-report')).length,0);
+  assert.equal(f.controller.pendingReport.sampleObservation,null);
+});
+
 test('grant-lost clears the old intent so a fresh opt-in uses a new request', async () => {
   const f = fixture();
   const original = f.controller.request;
@@ -286,4 +354,10 @@ test('production audio start detaches optional diagnostic retirement before init
   assert.match(start,/void retireSharing\(\);/);
   assert.doesNotMatch(start,/await retireSharing\(\);/);
   assert.ok(start.indexOf('void retireSharing();') < start.indexOf('new E5BrowserSession'));
+  const reset = source.slice(
+    source.indexOf('const resetDiagnostics = useCallback'),
+    source.indexOf('const sharingController = useCallback'),
+  );
+  assert.match(reset,/sharingBlockedRef\.current = true;[\s\S]*await retireSharing\(\);[\s\S]*await session\.resetDiagnostics\(\);[\s\S]*sharingBlockedRef\.current = false;/);
+  assert.match(source,/sharingBlockedRef\.current \? false : sharingController\(\)\.optIn\(runId\)/);
 });

@@ -107,6 +107,7 @@ test("listener opt-in returns one bounded grant and exact same-process replay", 
   const accepted = await f.listener.optIn(input);
   assert.equal(accepted.status,"enabled");
   assert.equal(accepted.listenerInstanceId,f.listenerInstanceId);
+  f.authority.leaseId = randomUUID();
   assert.deepEqual(await f.listener.optIn(input),accepted);
   await assert.rejects(() => f.listener.optIn({
     ...input,firstAllowedSequence: 1,
@@ -192,6 +193,13 @@ test("synchronization replay is bound to the grant's current trace segment", asy
   const request = { headers: f.headers,requestId: randomUUID(),grantId: grant.grantId };
   const issued = await f.listener.synchronize(request);
   assert.equal(issued.status,"accepted");
+  const issuanceContext = f.adapter.issuanceContext;
+  f.adapter.issuanceContext = async (sampleId) => ({
+    ...await issuanceContext(sampleId),traceId: randomUUID(),
+  });
+  await assert.rejects(() => f.listener.synchronize(request),
+    (error) => error.code === "request_conflict");
+  f.adapter.issuanceContext = issuanceContext;
   assert.equal((await f.listener.synchronize(request)).status,"replayed");
   f.authority.leaseId = randomUUID();
   assert.equal((await f.listener.synchronize(request)).status,"replayed");
@@ -199,6 +207,25 @@ test("synchronization replay is bound to the grant's current trace segment", asy
     headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
   }),(error) => error.code === "stale_correlation");
   f.collector.close();
+});
+
+test("trace lookup rejects a valid state substituted for the requested trace", async () => {
+  const f = await fixture();
+  const other = await fixture();
+  const grant = await f.listener.optIn({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+    listenerInstanceId: f.listenerInstanceId,firstAllowedSequence: 0,
+    localConsentStartedMs: 100,
+  });
+  const original = f.adapter.traceContext;
+  f.adapter.traceContext = async (locator) => locator.traceId
+    ? other.adapter.traceContext({ activeRunId: other.runId })
+    : original(locator);
+  await assert.rejects(() => f.listener.synchronize({
+    headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
+  }),(error) => error.code === "collector_response_invalid");
+  f.collector.close();
+  other.collector.close();
 });
 
 test("grant store bounds records and concurrent tails at 31/32/33", async () => {

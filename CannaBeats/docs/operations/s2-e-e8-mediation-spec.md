@@ -849,8 +849,8 @@ uncertain.
 
 Local evidence before independent review:
 
-- full production Web build and suite: `npm test` in `web` (`296/296`);
-- focused listener mediation/controller/routes: `28/28`;
+- full production Web build and suite: `npm test` in `web` (`300/300`);
+- focused listener mediation/controller/routes: `32/32`;
 - fixed grant capacity: explicit `31/32/33` rows and expiry equality; and
 - lint: zero errors, with only the pre-existing E5 `_status` warning.
 

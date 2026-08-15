@@ -93,6 +93,9 @@ export class E8ListenerSharingController {
         fail('sharing_response_invalid');
       }
       const acknowledgedLifecycle = this.readLifecycle();
+      if (acknowledgedLifecycle.instanceId !== this.optInIntent.listenerInstanceId) {
+        fail('grant_lost');
+      }
       const acknowledgedNextSequence = Number.isSafeInteger(acknowledgedLifecycle.nextSequence)
         ? acknowledgedLifecycle.nextSequence
         : summaries(acknowledgedLifecycle)
@@ -186,6 +189,7 @@ export class E8ListenerSharingController {
         if (![issuance.serverReceiveMs,issuance.serverSendMs]
           .every((value) => Number.isSafeInteger(value) && value >= 0)
           || issuance.serverSendMs < issuance.serverReceiveMs
+          || issuance.serverSendMs - issuance.serverReceiveMs > 2_000
           || !Number.isFinite(localSendMs) || !Number.isFinite(localReceiveMs)
           || localReceiveMs < localSendMs || localReceiveMs - localSendMs > 2_000) {
           fail('sample_invalid');
@@ -218,6 +222,7 @@ export class E8ListenerSharingController {
       });
       return true;
     } catch (error) {
+      if (!this.#current(operationEpoch)) return false;
       if (synchronizing && this.pendingReport) {
         this.pendingReport.syncRequestId = this.uuid();
       }
