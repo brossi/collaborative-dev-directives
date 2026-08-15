@@ -26,7 +26,7 @@ export function createAccessGatewayClient({
 } = {}) {
   if (!origin || !token) throw new Error("Access gateway origin and game credential are required.");
   const accessOrigin = new URL(origin).origin;
-  async function request(pathname, body) {
+  async function request(pathname, body, { signal } = {}) {
     const response = await fetchImpl(`${accessOrigin}${pathname}`, {
       method: "POST",
       headers: {
@@ -34,6 +34,7 @@ export function createAccessGatewayClient({
         "x-cannabeats-internal-token": token,
       },
       body: JSON.stringify(body),
+      ...(signal ? { signal } : {}),
       cache: "no-store",
     });
     let payload;
@@ -49,9 +50,9 @@ export function createAccessGatewayClient({
     return payload;
   }
   return Object.freeze({
-    principal: ({ authorization, cookie }) => request("/api/internal/game/principal", {
+    principal: ({ authorization, cookie, signal = undefined }) => request("/api/internal/game/principal", {
       authorization: authorization ?? "", cookie: cookie ?? "",
-    }),
+    }, { signal }),
     recoverPrincipal: ({ authorization, cookie, pendingActionLobbyCode }) => request(
       "/api/internal/game/recover-principal", {
         authorization: authorization ?? "",cookie: cookie ?? "",

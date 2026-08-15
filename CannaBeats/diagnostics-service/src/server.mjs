@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { DiagnosticCollector } from './collector.mjs';
@@ -313,7 +314,23 @@ export function createDiagnosticService({
   });
 }
 
+export function authenticatedApiFromEnvironment(environment = process.env, read = readFileSync) {
+  const required = environment.CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED;
+  if (required !== undefined && !['true','false'].includes(required)) {
+    throw new Error('diagnostic_configuration_invalid');
+  }
+  if (required !== 'true') return null;
+  const gamePath = environment.CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE;
+  const maintenancePath = environment.CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE;
+  if (!gamePath || !maintenancePath) throw new Error('diagnostic_configuration_invalid');
+  return validateDiagnosticCredentials({
+    gameToken: read(gamePath, 'utf8').trim(),
+    maintenanceToken: read(maintenancePath, 'utf8').trim(),
+  });
+}
+
 export async function runDiagnosticServiceFromEnvironment() {
+  const authenticatedApi = authenticatedApiFromEnvironment();
   const service = createDiagnosticService({
     databasePath: process.env.CANNABEATS_DIAGNOSTIC_DATABASE_PATH
       || '/diagnostics/cannabeats-diagnostics.sqlite',
@@ -323,6 +340,7 @@ export async function runDiagnosticServiceFromEnvironment() {
         || '/diagnostics/.locks',
     },
     volumeTopology: volumeTopologyFromEnvironment(process.env),
+    authenticatedApi,
     onLifecycle(event) {
       process.stdout.write(`${JSON.stringify(event)}\n`);
     },

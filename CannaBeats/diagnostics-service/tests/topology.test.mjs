@@ -46,9 +46,15 @@ test('diagnostics is one private optional service with one disposable volume', (
   assert.equal(diagnostics.pids_limit, 64);
   assert.equal(diagnostics.ports, undefined);
   assert.equal(diagnostics.depends_on, undefined);
-  assert.deepEqual(diagnostics.volumes, [{
+  assert.deepEqual(diagnostics.volumes.filter((volume) => volume.type === 'volume'), [{
     type: 'volume', source: 'cannabeats_diagnostics_data', target: '/diagnostics', volume: {},
   }]);
+  assert.deepEqual(diagnostics.volumes.filter((volume) => volume.type === 'bind')
+    .map((volume) => volume.target).sort(),[
+    '/run/secrets/cannabeats/diagnostics-game-token',
+    '/run/secrets/cannabeats/diagnostics-maintenance-token',
+  ]);
+  assert.equal(diagnostics.environment.CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED,'true');
   assert.equal(diagnostics.environment.CANNABEATS_DIAGNOSTICS_DATA_VOLUME,
     'cannabeats_diagnostics_data');
   assert.equal(diagnostics.environment.CANNABEATS_DATA_VOLUME, 'cannabeats_poc_data');
@@ -57,6 +63,27 @@ test('diagnostics is one private optional service with one disposable volume', (
   assert.equal(diagnostics.logging.driver, 'json-file');
   assert.equal(diagnostics.logging.options['max-size'], '1m');
   assert.equal(diagnostics.logging.options['max-file'], '4');
+});
+
+test('authenticated topology keeps collector credentials scoped and optional', (context) => {
+  const compose = renderedCompose();
+  if (!compose) {
+    context.skip('Docker Compose is unavailable');
+    return;
+  }
+  const game = compose.services.game;
+  assert.equal(game.environment.CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN,'http://diagnostics:3020');
+  assert.equal(game.environment.CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE,
+    '/run/secrets/cannabeats/diagnostics-game-token');
+  assert.equal(game.volumes.some((volume) =>
+    volume.target === '/run/secrets/cannabeats/diagnostics-game-token'),true);
+  assert.equal(game.volumes.some((volume) =>
+    volume.target === '/run/secrets/cannabeats/diagnostics-maintenance-token'),false);
+  assert.equal(Object.hasOwn(game.depends_on ?? {},'diagnostics'),false);
+  for (const name of ['app','state','backup','history','operator']) {
+    assert.equal((compose.services[name].volumes ?? []).some((volume) =>
+      String(volume.target).includes('diagnostics-')),false,name);
+  }
 });
 
 test('rendered volume identities are passed to the runtime collision preflight', (context) => {

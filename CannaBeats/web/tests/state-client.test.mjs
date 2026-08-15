@@ -40,3 +40,22 @@ test("game state client returns only stable gateway failures", async () => {
     (error) => error instanceof StateGatewayError && error.status === 502
       && error.code === "state_response_invalid");
 });
+
+test("diagnostic State calls separate principal host authority from unscoped stream authority", async () => {
+  const calls = [];
+  const client = createGameStateClient({
+    origin: "http://state:3010",token: "game-token",principalAssertionKey: "game-key",
+    clock: () => 200,
+    fetchImpl: async (url,options) => {
+      calls.push({ url:String(url),options });
+      return Response.json({ authorityVersion: 1,status: "absent" });
+    },
+  });
+  const runId = randomUUID();
+  await client.diagnosticRunHost({ runId,principalId: "principal-1" });
+  await client.diagnosticManagedStream();
+  assert.deepEqual(JSON.parse(calls[0].options.body),{ runId });
+  assert.equal(calls[0].options.headers["x-cannabeats-principal"],"principal-1");
+  assert.deepEqual(JSON.parse(calls[1].options.body),{});
+  assert.equal(Object.hasOwn(calls[1].options.headers,"x-cannabeats-principal"),false);
+});

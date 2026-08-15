@@ -20,17 +20,29 @@ services:
       CANNABEATS_ACCESS_SERVICE_INTERNAL_ORIGIN: http://app:3002
       CANNABEATS_STATE_GAME_TOKEN_FILE: /run/secrets/cannabeats/state-game-token
       CANNABEATS_STATE_GAME_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-game-principal-assertion-key
+      CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN: http://diagnostics:3020
+      CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-game-token
       CANNABEATS_ENABLE_LEGACY_STATE: "false"
     volumes: !override
       - ${AUDIO_RELAY_LISTEN_TOKEN_HOST_FILE:-./secrets/audio-relay-listen-token}:${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}:ro
       - ${GAME_SERVICE_TOKEN_HOST_FILE:-./secrets/game-service-token}:${GAME_SERVICE_TOKEN_FILE:-/run/secrets/cannabeats/game-service-token}:ro
       - ${STATE_GAME_TOKEN_HOST_FILE:-./secrets/state-game-token}:/run/secrets/cannabeats/state-game-token:ro
       - ${STATE_GAME_PRINCIPAL_ASSERTION_KEY_HOST_FILE:-./secrets/state-game-principal-assertion-key}:/run/secrets/cannabeats/state-game-principal-assertion-key:ro
+      - ${DIAGNOSTICS_GAME_TOKEN_HOST_FILE:-./secrets/diagnostics-game-token}:/run/secrets/cannabeats/diagnostics-game-token:ro
     depends_on:
       state:
         condition: service_healthy
       app:
         condition: service_started
+
+  diagnostics:
+    environment:
+      CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED: "true"
+      CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-game-token
+      CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-maintenance-token
+    volumes:
+      - ${DIAGNOSTICS_GAME_TOKEN_HOST_FILE:-./secrets/diagnostics-game-token}:/run/secrets/cannabeats/diagnostics-game-token:ro
+      - ${DIAGNOSTICS_MAINTENANCE_TOKEN_HOST_FILE:-./secrets/diagnostics-maintenance-token}:/run/secrets/cannabeats/diagnostics-maintenance-token:ro
 
   backup:
     network_mode: !reset null

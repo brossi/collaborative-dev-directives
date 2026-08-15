@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import { DiagnosticCollector } from '../src/collector.mjs';
 import {
+  authenticatedApiFromEnvironment,
   classifyDiagnosticHttpFailure,
   createDiagnosticService,
   delegateGameCollectorOperation,
@@ -24,6 +25,27 @@ const TIMEBASE = '323e4567-e89b-42d3-a456-426614174000';
 const INSTANCE = '123e4567-e89b-42d3-a456-426614174000';
 const authenticatedApi = Object.freeze({
   gameToken: GAME_TOKEN, maintenanceToken: MAINTENANCE_TOKEN,
+});
+
+test('environment requires both distinct scoped credentials before authenticated startup', () => {
+  const paths = new Map([
+    ['/game',GAME_TOKEN],['/maintenance',MAINTENANCE_TOKEN],['/same',GAME_TOKEN],
+  ]);
+  const read = (path) => paths.get(path);
+  assert.equal(authenticatedApiFromEnvironment({},read),null);
+  assert.deepEqual(authenticatedApiFromEnvironment({
+    CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED: 'true',
+    CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE: '/game',
+    CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE: '/maintenance',
+  },read),authenticatedApi);
+  assert.throws(() => authenticatedApiFromEnvironment({
+    CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED: 'true',
+    CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE: '/same',
+    CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE: '/same',
+  },read),(error) => error.code === 'credential_invalid');
+  assert.throws(() => authenticatedApiFromEnvironment({
+    CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED: 'sometimes',
+  },read),/diagnostic_configuration_invalid/);
 });
 
 function temporaryDirectory() {

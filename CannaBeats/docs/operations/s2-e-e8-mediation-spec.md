@@ -1,8 +1,9 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1 and E8.2 locally verified`. Their independent closure review found
-no open P0/P1. E8.3a is implementation-authorized; E8.3b and E8.3c remain
-unimplemented and unauthorized until their preceding increments close.
+Status: `E8.1 and E8.2 locally verified; E8.3a implemented with independent
+closure review pending`. E8.1/E8.2 independent closure found no open P0/P1.
+E8.3b and E8.3c remain unimplemented and unauthorized until their preceding
+increments close.
 
 This packet applies the repository scale filter: one private collector, one
 Game gateway, one State authority service, and two collector credentials. It
@@ -582,3 +583,57 @@ only mocked clients. E8.3b owns listener grants, consent, synchronization, and
 listener ingestion. E8.3c owns source/relay routes, the relay and maintenance
 caller credentials, maintenance purge, and the final cross-route
 failure-isolation rehearsal.
+
+### E8.3a implementation checkpoint
+
+The governing invariant is implemented without expanding the boundary into
+listener consent or producer mediation. The existing closure-matrix
+dispositions remain unchanged. Their enforcement locations are:
+
+- Game request/body/origin and finite error boundary:
+  `web/lib/server/diagnostic-routes.mjs` and the two
+  `web/app/api/diagnostics` routes;
+- Access/State bounded authority lookups, deterministic reconciliation, and
+  request replay: `web/lib/server/diagnostic-mediation.mjs`,
+  `web/lib/server/access-gateway.mjs`, and
+  `web/lib/server/state-client.mjs`;
+- fixed Game-scoped collector client and exact read restoration:
+  `web/lib/server/diagnostic-collector-client.mjs`;
+- authenticated diagnostics startup and scoped deployment mounts:
+  `diagnostics-service/src/server.mjs` and
+  `spikes/access-spotify-poc/compose.state-cutover.yaml`.
+
+The pre-audit counterexample pass changed two implementation details before
+closure review: active request deadlines remain process-owned until settlement,
+and host stop bypasses current-stream reconciliation so it records the exact
+host command even after stream authority disappears. It also found and fixed a
+real composed adapter mismatch that isolated client mocks did not expose.
+
+Matrix-derived evidence presently passes:
+
+- Web production build and complete suite: `npm test` in `web` (`262/262`);
+- Web lint: `npm run lint` (zero errors; one pre-existing E5 unused-parameter
+  warning);
+- diagnostics service/store/topology: `node --test --test-concurrency=1
+  tests/*.test.mjs` in `diagnostics-service` (`48/48`);
+- State authority regression: the equivalent command in `state-service`
+  (`67/67`); and
+- Access boundary regression: `node --test --test-concurrency=1
+  test/server.test.mjs` in `spikes/access-spotify-poc` (`17/17`).
+
+The composed test starts real Access, State, and authenticated diagnostics HTTP
+services, drops the first start response after collector commit, restarts the
+collector, and proves the browser's exact retry returns the retained original
+result before exercising read and non-host concealment. Focused schedules also
+cover deterministic changed-run
+conflict, simultaneous starts, stream-independent host stop, authority-loss and
+lease-rotation reconciliation, malformed/oversized/stalled browser input,
+malformed/timeout collector output, credential separation, and absence of a
+collector dependency from gameplay, audio, or readiness modules.
+
+Open local findings: P0 `0`, P1 `0`, P2 `0`. E8.3a is not yet marked locally
+verified because independent closure review remains pending. E8.3b retains
+listener grant, consent, synchronization, and listener ingest. E8.3c retains
+source/relay mediation, the maintenance caller and purge route, and final
+cross-route isolation rehearsal. E12 retains real-host/browser timing and
+packaging measurements.

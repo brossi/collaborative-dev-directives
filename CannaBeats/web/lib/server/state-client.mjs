@@ -34,24 +34,30 @@ export function createGameStateClient({
     throw new Error("Game state-service origin and scoped credentials are required.");
   }
   const stateOrigin = new URL(origin).origin;
-  async function request(pathname, { principalId, method = "GET", body } = {}) {
-    if (typeof principalId !== "string" || !principalId) {
+  async function request(pathname, {
+    principalId,method = "GET",body,signal,requirePrincipal = true,
+  } = {}) {
+    if (requirePrincipal && (typeof principalId !== "string" || !principalId)) {
       throw new Error("A principal is required for a game state request.");
     }
-    const expiresAt = clock() + 30_000;
-    const claim = `game\ncannabeats-state\ngame\n${principalId}\n${expiresAt}`;
+    const expiresAt = requirePrincipal ? clock() + 30_000 : null;
+    const claim = requirePrincipal
+      ? `game\ncannabeats-state\ngame\n${principalId}\n${expiresAt}` : null;
     const response = await fetchImpl(`${stateOrigin}${pathname}`, {
       method,
       headers: {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
-        "x-cannabeats-principal": principalId,
-        "x-cannabeats-principal-issuer": "game",
-        "x-cannabeats-principal-expires-at": String(expiresAt),
-        "x-cannabeats-principal-signature": createHmac("sha256", principalAssertionKey)
-          .update(claim).digest("hex"),
+        ...(requirePrincipal ? {
+          "x-cannabeats-principal": principalId,
+          "x-cannabeats-principal-issuer": "game",
+          "x-cannabeats-principal-expires-at": String(expiresAt),
+          "x-cannabeats-principal-signature": createHmac("sha256", principalAssertionKey)
+            .update(claim).digest("hex"),
+        } : {}),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(signal ? { signal } : {}),
       cache: "no-store",
     });
     let payload;
@@ -90,6 +96,16 @@ export function createGameStateClient({
       `/v1/lobbies/${encodeURIComponent(code)}/actions`, {
         principalId, method: "POST",
         body: { actionId, expectedRunId, expectedRunGeneration, expectedRevision, command },
+      },
+    ),
+    diagnosticRunHost: ({ runId,principalId,signal }) => request(
+      "/v1/diagnostics/run-host-authority",{
+        principalId,method: "POST",body: { runId },signal,
+      },
+    ),
+    diagnosticManagedStream: ({ signal } = {}) => request(
+      "/v1/diagnostics/managed-stream-authority",{
+        method: "POST",body: {},signal,requirePrincipal: false,
       },
     ),
   });
