@@ -696,6 +696,15 @@ healthy readiness; and label-scoped cleanup removed the container, network, and
 volume with no remnants. This is local disposable-container evidence, not a
 production packaging or real-host claim.
 
+A second unique project, `cannabeats-e73-20260815-c1`, seeded a labeled
+diagnostics volume with a 22-byte incompatible store. The real container exited
+with its finite startup failure, and the store remained byte-for-byte identical
+at SHA-256 `57089ddd9086976132247e33581f17532a4be86a722d96ce2c9b7519e741ad1e`.
+After confirming the exact Compose ownership labels, removal targeted only that
+diagnostics volume. Starting the same topology recreated an empty healthy
+generation-1 store; final label-scoped cleanup left no project container,
+network, or volume.
+
 The implementation worktree is based on E7.2 checkpoint `93f1715`. No E8 route,
 credential, authority lookup, or producer caller exists. Permitted status is
 `E7.3 implemented; independent closure review pending`.
