@@ -23,7 +23,7 @@ export function createDiagnosticSourceStateClient({
           method: "POST",signal,cache: "no-store",
           headers: { authorization,"content-type": "application/json" },body: "{}",
         });
-        const value = await boundedJsonResponse(response);
+        const value = await boundedJsonResponse(response,8_192);
         if (!response.ok) throw new DiagnosticSourceStateError(
           response.status,response.status === 403 ? "authentication_required" : "state_unavailable",
         );

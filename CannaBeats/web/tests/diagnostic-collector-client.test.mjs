@@ -84,3 +84,13 @@ test("collector client bounds malformed dependency output and timeout", async ()
     (error) => error instanceof DiagnosticCollectorGatewayError
       && error.status === 503 && error.code === "collector_unavailable");
 });
+
+test("producer collector profile enforces its exact 8 KiB response cap", async () => {
+  const client = createDiagnosticCollectorClient({
+    origin: "http://diagnostics:3020",token,maxResponseBytes: 8192,
+    fetchImpl: async () => new Response("x".repeat(8193)),
+  });
+  await assert.rejects(() => client.traceContext({ active: true }),
+    (error) => error instanceof DiagnosticCollectorGatewayError
+      && error.code === "collector_response_invalid");
+});

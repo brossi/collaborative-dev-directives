@@ -48,7 +48,7 @@ function exact(value, keys) {
   return value;
 }
 
-async function responseBytes(response) {
+async function responseBytes(response,maxBytes) {
   if (!response.body) fail(502,"collector_response_invalid");
   const reader = response.body.getReader();
   const chunks = [];
@@ -58,7 +58,7 @@ async function responseBytes(response) {
       const { done,value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_RESPONSE_BYTES) {
+      if (size > maxBytes) {
         await reader.cancel();
         fail(502,"collector_response_invalid");
       }
@@ -144,8 +144,11 @@ export function createDiagnosticCollectorClient({
   token = secret(),
   fetchImpl = fetch,
   deadlineMs = 2_000,
+  maxResponseBytes = MAX_RESPONSE_BYTES,
 } = {}) {
-  if (!origin || !TOKEN.test(token) || !Number.isSafeInteger(deadlineMs) || deadlineMs < 1) {
+  if (!origin || !TOKEN.test(token) || !Number.isSafeInteger(deadlineMs) || deadlineMs < 1
+    || !Number.isSafeInteger(maxResponseBytes) || maxResponseBytes < 1
+    || maxResponseBytes > MAX_RESPONSE_BYTES) {
     throw new Error("diagnostic_collector_configuration_invalid");
   }
   const base = new URL(origin).origin;
@@ -159,7 +162,7 @@ export function createDiagnosticCollectorClient({
         headers: { authorization: `Bearer ${token}`,"content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      const value = parsed(await responseBytes(response));
+      const value = parsed(await responseBytes(response,maxResponseBytes));
       if (!response.ok) {
         const code = FAILURE_CODES.has(value.code) ? value.code : "collector_unavailable";
         throw new DiagnosticCollectorGatewayError(response.status,code);

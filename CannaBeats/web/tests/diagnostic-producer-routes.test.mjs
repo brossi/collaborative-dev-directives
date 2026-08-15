@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { DiagnosticMediationError } from "../lib/server/diagnostic-mediation.mjs";
 import { createDiagnosticProducerRouteHandlers } from "../lib/server/diagnostic-producer-routes.mjs";
+import { createDiagnosticSourceStateClient } from "../lib/server/diagnostic-source-state-client.mjs";
 
 function request(body,{ authorization = "Bearer producer-token",stream = false } = {}) {
   return new Request("https://poc.example/game/api/diagnostics/source-report",{
@@ -81,4 +82,13 @@ test("producer route failures use the finite browser boundary", async () => {
   assert.deepEqual(await response.json(),{
     error: "Diagnostics are temporarily unavailable.",code: "diagnostic_unavailable",
   });
+});
+
+test("source authority dependency output is capped at 8 KiB", async () => {
+  const client = createDiagnosticSourceStateClient({
+    origin: "http://state:3010",fetchImpl: async () => new Response("x".repeat(8193)),
+  });
+  await assert.rejects(() => client.authority({
+    authorization: "Bearer source-token",signal: new AbortController().signal,
+  }),(error) => error.code === "state_unavailable");
 });

@@ -179,6 +179,7 @@ export function createSourceGrantStore({ clock = Date.now,maxGrants = 8 } = {}) 
     return record;
   }
   function find(sourceGrantId,credentialFingerprint,{ allowExpired = false } = {}) {
+    purge();
     const record = records.get(sourceGrantId);
     if (!record) fail(409,"source_session_lost");
     if (record.credentialFingerprint !== credentialFingerprint) {
@@ -400,7 +401,7 @@ export function createDiagnosticProducerMediation({
     return relayProjection(receipt.result,result.status);
   }
 
-  async function issueSample({ requestId,instanceId,binding }) {
+  async function issueSample({ requestId,instanceId,binding,beforeCreate = null }) {
     exactUuid(requestId); exactUuid(instanceId);
     const sampleId = deriveDiagnosticUuid("synchronization-sample",requestId);
     const retained = exactContext(await collector.issuanceContext(sampleId),"issuance");
@@ -412,6 +413,7 @@ export function createDiagnosticProducerMediation({
       }
       return Object.freeze({ status: "replayed",...issuance });
     }
+    if (beforeCreate) await beforeCreate();
     const serverReceiveMs = clock();
     const serverSendMs = clock();
     let issuance;
@@ -437,14 +439,17 @@ export function createDiagnosticProducerMediation({
 
   async function synchronizeRelay({ requestId,relayGenerationId }) {
     const binding = await relayBinding(relayGenerationId);
-    const trace = await traceById(binding.traceId);
-    if (trace.status !== "active") fail(409,"trace_inactive");
     return Object.freeze({ relayGenerationId,...await issueSample({
-      requestId,instanceId: relayGenerationId,binding,
+      requestId,instanceId: relayGenerationId,binding,beforeCreate: async () => {
+        const trace = await traceById(binding.traceId);
+        if (trace.status !== "active") fail(409,"trace_inactive");
+      },
     }) });
   }
 
-  async function producerReport({ kind,binding,measurementCore,sampleObservation }) {
+  async function producerReport({
+    kind,binding,measurementCore,sampleObservation,retainedContext = null,
+  }) {
     let core;
     try { core = validateMeasurementJson(bytes(measurementCore)); }
     catch { fail(400,"report_invalid"); }
@@ -453,18 +458,20 @@ export function createDiagnosticProducerMediation({
       fail(400,"report_invalid");
     }
     if (core.instanceId !== instanceId) fail(400,"report_invalid");
-    const retained = exactContext(await collector.reportIdentityContext({
-      traceId: binding.traceId,instanceId,sequence: core.sequence,
-    }),"report");
+    const retained = retainedContext ?? exactContext(await collector.reportIdentityContext({
+        traceId: binding.traceId,instanceId,sequence: core.sequence,
+      }),"report");
     if (retained.status === "found") {
       let envelope;
       try { envelope = restoreUploadedEnvelopeFromTrustedStore(bytes(retained.envelope)); }
       catch { fail(502,"collector_response_invalid"); }
       const context = envelope.serverContext;
       if (context.traceId !== binding.traceId || context.authorityKind !== kind
+        || context.runId !== binding.runId || context.runGeneration !== binding.runGeneration
         || context.correlationSegmentId !== binding.correlationSegmentId
         || context.leaseId !== binding.leaseId
         || (kind === "source" ? context.sourceId !== binding.sourceId
+          || context.sourceInstanceId !== binding.sourceInstanceId
           : context.relayGenerationId !== binding.relayGenerationId)
         || !sameBytes(canonicalMeasurementBytes(envelope.measurementCore),
           canonicalMeasurementBytes(core))) fail(409,"report_conflict");
@@ -529,7 +536,10 @@ export function createDiagnosticProducerMediation({
         traceId: record.traceId,instanceId: identity.instanceId,sequence: identity.sequence,
       }),"report");
       if (retained.status !== "found") await currentSourceRecord(auth,sourceGrantId);
-      return producerReport({ kind: "source",binding: record,measurementCore,sampleObservation });
+      return producerReport({
+        kind: "source",binding: record,measurementCore,sampleObservation,
+        retainedContext: retained,
+      });
     });
   }
 

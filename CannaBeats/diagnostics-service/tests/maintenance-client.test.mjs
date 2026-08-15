@@ -50,6 +50,13 @@ test('maintenance client rejects malformed oversized and caller-authored failure
   });
   await assert.rejects(() => hostile.status(),
     (error) => error.code === 'maintenance_unavailable');
+  const leakedReason = createDiagnosticMaintenanceClient({
+    origin: 'http://diagnostics:3020',token: TOKEN,
+    fetchImpl: async () => Response.json({ ...status,status: 'degraded',reason: TOKEN }),
+  });
+  await assert.rejects(() => leakedReason.status(),
+    (error) => error.code === 'maintenance_response_invalid'
+      && !error.message.includes(TOKEN));
 });
 
 test('maintenance deadlines and environment credentials fail closed', async () => {

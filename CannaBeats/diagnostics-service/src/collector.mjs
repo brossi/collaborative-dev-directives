@@ -441,7 +441,9 @@ function validateTraceProjection(db, trace) {
     const context = envelope.serverContext;
     const canonical = canonicalUploadedEnvelopeBytes(envelope);
     const segment = segmentById.get(row.segment_id);
-    if (context.traceId !== trace.trace_id || core.instanceId !== row.instance_id
+    if (context.traceId !== trace.trace_id || context.runId !== trace.run_id
+      || context.runGeneration !== trace.run_generation
+      || core.instanceId !== row.instance_id
       || core.sequence !== row.sequence || core.kind !== row.kind
       || context.correlationSegmentId !== row.segment_id
       || row.bucket !== (core.kind.endsWith('_window') ? 'periodic' : 'transition')
@@ -651,7 +653,10 @@ export class DiagnosticCollector {
       const envelope = retained(() => restoreUploadedEnvelopeFromTrustedStore(
         row.canonical_envelope,
       ));
+      const trace = traceRow(this.db,traceId);
       if (envelope.serverContext.traceId !== traceId
+        || !trace || envelope.serverContext.runId !== trace.run_id
+        || envelope.serverContext.runGeneration !== trace.run_generation
         || envelope.measurementCore.instanceId !== instanceId
         || envelope.measurementCore.sequence !== sequence
         || !sameBytes(row.canonical_envelope,
@@ -1155,6 +1160,9 @@ export class DiagnosticCollector {
         issuanceBytes += projection.issuanceBytes;
       }
       let requestBytes = 0;
+      const relayRows = new Map(db.prepare('SELECT * FROM diagnostic_relay_bindings').all()
+        .map((row) => [row.relay_generation_id,row]));
+      const relayReceiptGenerations = new Set();
       for (const row of db.prepare('SELECT * FROM diagnostic_requests').all()) {
         const receipt = restoreReceipt(row);
         const resultTraceId = receipt.result.traceId;
@@ -1170,15 +1178,31 @@ export class DiagnosticCollector {
           : retainedTrace?.status === 'ended'
             ? retainedTrace.purge_after
             : retainedTrace?.active_expires_at + 172_800_000;
+        let relayBindingValid = true;
+        if (row.operation === 'relay_bind') {
+          const relayRow = relayRows.get(receipt.result.relayGenerationId);
+          relayBindingValid = Boolean(relayRow)
+            && receipt.result.traceId === relayRow.trace_id
+            && receipt.result.segmentId === relayRow.segment_id
+            && receipt.result.leaseId === relayRow.lease_id
+            && sameBytes(relayRow.canonical_state,
+              canonicalRelayBindingBytes(receipt.result));
+          if (relayBindingValid) relayReceiptGenerations.add(receipt.result.relayGenerationId);
+        }
         if (receipt.requestId !== row.request_id || receipt.operation !== row.operation
           || resultTraceId !== row.trace_id
           || fingerprint !== row.fingerprint
           || !sameBytes(row.canonical_receipt, canonicalReceipt)
           || row.expires_at !== expectedExpiry
+          || !relayBindingValid
           || (row.operation === 'trace_purge' ? retainedTrace !== undefined : !retainedTrace)) {
           dataFail();
         }
         requestBytes += row.canonical_receipt.byteLength;
+      }
+      if (relayReceiptGenerations.size !== relayRows.size
+        || [...relayRows.keys()].some((generation) => !relayReceiptGenerations.has(generation))) {
+        dataFail();
       }
       const tombstoneCount = db.prepare(`SELECT COUNT(*) AS n
         FROM diagnostic_request_tombstones`).get().n;

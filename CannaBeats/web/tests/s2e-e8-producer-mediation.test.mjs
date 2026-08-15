@@ -86,7 +86,8 @@ async function fixture() {
     clock: () => now,
   });
   return {
-    adapter,authority,collector,createProducer,runId,sourceInstanceId,started,
+    adapter,authority,collector,createProducer,host,runId,sourceInstanceId,started,
+    headers: { cookie: "cb_session=test" },
     setNow: (value) => { now = value; },
   };
 }
@@ -149,16 +150,48 @@ test("source synchronization and report bind exact instance trace and retained r
     measurementCore: sourceTransition(f.sourceInstanceId),sampleObservation: observation,
   });
   assert.equal(accepted.status,"accepted");
+  const originalReportContext = f.adapter.reportIdentityContext;
+  f.adapter.reportIdentityContext = async (locator) => {
+    const retained = await originalReportContext(locator);
+    if (retained.status !== "found") return retained;
+    return {
+      ...retained,envelope: {
+        ...retained.envelope,serverContext: {
+          ...retained.envelope.serverContext,runId: randomUUID(),
+        },
+      },
+    };
+  };
+  await assert.rejects(() => producer.reportSource({
+    auth,sourceGrantId: grant.sourceGrantId,
+    measurementCore: sourceTransition(f.sourceInstanceId),sampleObservation: {},
+  }),(error) => error.code === "report_conflict");
+  f.adapter.reportIdentityContext = originalReportContext;
   assert.equal((await producer.reportSource({
     auth,sourceGrantId: grant.sourceGrantId,
     measurementCore: sourceTransition(f.sourceInstanceId),sampleObservation: {},
   })).status,"replayed");
+  let lookupCount = 0;
+  f.authority.leaseId = randomUUID();
+  f.adapter.reportIdentityContext = async (locator) => {
+    lookupCount += 1;
+    return lookupCount === 1
+      ? originalReportContext({
+        traceId: locator.traceId,instanceId: locator.instanceId,sequence: 0,
+      })
+      : originalReportContext(locator);
+  };
+  await assert.rejects(() => producer.reportSource({
+    auth,sourceGrantId: grant.sourceGrantId,
+    measurementCore: sourceTransition(f.sourceInstanceId,1),sampleObservation: observation,
+  }),(error) => error.code === "report_conflict");
+  assert.equal(lookupCount,1);
+  f.adapter.reportIdentityContext = originalReportContext;
   await assert.rejects(() => producer.reportSource({
     auth,sourceGrantId: grant.sourceGrantId,
     measurementCore: { ...sourceTransition(f.sourceInstanceId),monotonicStartMs: 121 },
     sampleObservation: observation,
   }),(error) => error.code === "report_conflict");
-  f.authority.leaseId = randomUUID();
   await assert.rejects(() => producer.reportSource({
     auth,sourceGrantId: grant.sourceGrantId,
     measurementCore: sourceTransition(f.sourceInstanceId,1),sampleObservation: observation,
@@ -172,10 +205,24 @@ test("relay binding survives mediation restart and never rebinds after handoff",
   producer.authenticateRelay(`Bearer ${RELAY_TOKEN}`);
   const requestId = randomUUID();
   const relayGenerationId = randomUUID();
+  const originalBind = f.adapter.bindRelay;
+  let loseResponse = true;
+  f.adapter.bindRelay = async (value) => {
+    const result = await originalBind(value);
+    if (loseResponse) {
+      loseResponse = false;
+      throw new Error("simulated response loss");
+    }
+    return result;
+  };
+  await assert.rejects(() => producer.bindRelay({ requestId,relayGenerationId }),
+    /simulated response loss/);
   const accepted = await producer.bindRelay({ requestId,relayGenerationId });
-  assert.equal(accepted.status,"accepted");
+  assert.equal(accepted.status,"replayed");
+  f.adapter.bindRelay = originalBind;
+  const synchronizeRequestId = randomUUID();
   const issuance = await producer.synchronizeRelay({
-    requestId: randomUUID(),relayGenerationId,
+    requestId: synchronizeRequestId,relayGenerationId,
   });
   const report = await producer.reportRelay({
     relayGenerationId,measurementCore: relayTransition(relayGenerationId),
@@ -185,6 +232,12 @@ test("relay binding survives mediation restart and never rebinds after handoff",
     },
   });
   assert.equal(report.status,"accepted");
+  await f.host.stop({
+    headers: f.headers,requestId: randomUUID(),traceId: f.started.traceId,
+  });
+  assert.equal((await producer.synchronizeRelay({
+    requestId: synchronizeRequestId,relayGenerationId,
+  })).status,"replayed");
   producer = f.createProducer();
   assert.deepEqual(await producer.bindRelay({ requestId,relayGenerationId }),{
     ...accepted,status: "replayed",
@@ -239,4 +292,8 @@ test("source grant expiry equality is deterministic", () => {
   now = 10;
   assert.throws(() => store.find(sourceGrantId,"credential"),
     (error) => error.code === "stale_correlation");
+  now = 20;
+  assert.throws(() => store.find(sourceGrantId,"credential",{ allowExpired: true }),
+    (error) => error.code === "source_session_lost");
+  assert.equal(store.size(),0);
 });

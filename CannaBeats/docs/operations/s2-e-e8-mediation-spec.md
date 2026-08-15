@@ -1002,6 +1002,15 @@ cannot read or ingest reports. Game and the relay never receive the maintenance
 token. The service has no `depends_on` edge; collector absence is a finite
 operations failure, not an application startup failure.
 
+Before any deployed diagnostics enablement, the host runs
+`node deploy/validate-diagnostic-credentials.mjs` from the Compose directory.
+The preflight reads the three configured host files, validates their bounded
+token form, compares SHA-256 digests pairwise, and returns only `valid`,
+`diagnostic_credential_configuration_invalid`, or
+`diagnostic_credential_collision`. It never prints a token and does not widen
+any container mount. E12 must record this successful preflight in its deployed
+evidence.
+
 ### E8.3c closure matrix
 
 | Dimension | Disposition and enforcement |
@@ -1016,28 +1025,30 @@ operations failure, not an application startup failure.
 | Conflict | `runtime`: changed request/core/generation/instance reuse fails before current-state evaluation. |
 | Concurrency | `runtime`: source grants permit one active plus one queued operation per key; a third is `collector_busy`. Collector transactions serialize relay/report/purge effects. |
 | Expiry | `runtime`: source grant, lease, trace, and issuance equality are expired; relay reports retain E7's trace/issuance equality. |
-| Restart | `structural`: source grants are intentionally lost and reopen; relay binding/request/report/purge truth restores from E7 canonical state. |
+| Restart | `runtime`: missing memory grants return `source_session_lost`; relay binding/request/report/purge truth is restored and cross-validated from E7 canonical state. |
 | Dependency failure | `structural`: producer routes and maintenance client are disjoint from source work, relay audio, gameplay, and readiness; bounded calls return finite failure only. |
 | Corruption | `runtime`: all retained E2 bindings/receipts/envelopes use the shared E7 restoration boundary; no partial producer projection is returned. |
 | Capacity | `runtime`: eight source grants, one active plus one queued operation per grant, 8-KiB bodies/responses, two-second deadlines, and existing E7 report/physical caps. |
 
 ### Derived schedules and authorization
 
-Before closure, focused tests cover:
+The closure evidence is deliberately layered rather than duplicating every
+verified owner test at the Game seam. Existing E1/E2/E7 and State suites retain
+ownership of canonical kind/instance relations, issuance physics, collector
+transaction/replay/corruption, whole-trace purge, and source/relay State
+authority. E8.3c-focused tests add:
 
-- source wrong/unknown/other bearer, active/absent/replaced lease, exact open,
-  changed request, response loss, restart loss, expiry equality, and `7/8/9`;
-- source synchronization response loss with a fresh sample request, retained
-  issuance substitution, accepted/replayed/conflicting report, delayed
-  committed replay, unseen old-lease report, and same-key queue depth;
-- relay missing/wrong/equal credential, bind accepted/replayed/conflict,
-  response loss, State absence/ambiguity, restart restoration, generation
-  substitution, lease handoff, delayed old-generation report, and expiry;
-- source-kind/relay-kind crossover, instance mismatch, malformed/oversized
-  bodies and dependency output, deadline, native-error suppression, and no
-  credential or caller label in any response;
-- maintenance wrong scope, status, exact purge/replay/conflict, unavailable or
-  malformed collector, bounded output/deadline, and no read/ingest route; and
+- source wrong-scope authentication, exact open replay/conflict, restart-lost
+  grant use, replaced lease, accepted/replayed/conflicting report, retained run
+  substitution, expiry/retention equality, `7/8/9`, and same-key queue depth;
+- relay bind accepted/replayed/conflict, restart restoration, lease handoff,
+  synchronization replay after trace end, and delayed original-generation
+  report replay;
+- malformed route families, authentication before a held body, finite native
+  failure suppression, maintenance status/purge shape, malformed/oversized
+  dependency output, deadline, and all three pairwise secret collisions;
+- collector restart rejection when either a relay binding or its exact bind
+  receipt is missing while the other retained relationships remain valid; and
 - one representative source path through real State and collector HTTP
   services plus the production Game mediation handler; bounded dependency
   failures at the producer/maintenance boundary; and structural assertions
@@ -1077,9 +1088,11 @@ equality without deleting the retained grant; bounded purge owns final removal.
 
 Verification at this checkpoint:
 
-- Diagnostics service: `npm test` -> `51/51` pass.
+- Diagnostics service: `npm test` -> `52/52` pass.
 - State authority regression: `npm test` -> `67/67` pass.
-- Web production build and complete suite: `npm test` -> `309/309` pass.
+- Web production build and complete suite: `npm test` -> `311/311` pass.
+- Diagnostic credential preflight: `node --test
+  test/diagnostic-credential-preflight.test.mjs` -> `3/3` pass.
 - Web lint: zero errors; one pre-existing E5 unused-parameter warning.
 - `git diff --check`: pass.
 

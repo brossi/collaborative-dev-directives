@@ -20,7 +20,7 @@ function secret(valueName,fileName) {
 let productionService = null;
 
 function createProductionService() {
-  const collector = () => createDiagnosticCollectorClient();
+  const collector = () => createDiagnosticCollectorClient({ maxResponseBytes: 8_192 });
   const collectorBoundary = {
     traceContext: (value) => collector().traceContext(value),
     relayReceiptContext: (value) => collector().relayReceiptContext(value),

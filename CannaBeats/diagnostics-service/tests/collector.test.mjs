@@ -417,6 +417,39 @@ test('trace, segment, consent, relay, and receipts survive restart exactly', () 
   collector.close();
 });
 
+test('startup requires a one-to-one relay binding and bind receipt relationship', () => {
+  for (const missing of ['binding','receipt']) {
+    const dir = workspace();
+    const path = join(dir,`relay-${missing}.sqlite`);
+    const lockDirectory = join(dir,'locks');
+    let collector = new DiagnosticCollector(path,{ lockDirectory,now: 0,clock: () => 2200 });
+    collector.startTrace(command('trace_start'),startAuthority());
+    collector.bindRelay(command('relay_bind',{ relayGenerationId: INSTANCE },REQUESTS[2]),
+      authority({
+        operation: 'relay_bind',traceId: TRACE,segmentId: SEGMENT,
+        leaseId: LEASE,relayGenerationId: INSTANCE,
+    }));
+    if (missing === 'binding') {
+      const trigger = collector.db.prepare(`SELECT sql FROM sqlite_master
+        WHERE type='trigger' AND name='diagnostic_relay_bindings_immutable_delete'`).get().sql;
+      collector.db.exec('DROP TRIGGER diagnostic_relay_bindings_immutable_delete');
+      collector.db.prepare('DELETE FROM diagnostic_relay_bindings WHERE relay_generation_id=?')
+        .run(INSTANCE);
+      collector.db.exec(trigger);
+    } else {
+      const row = collector.db.prepare(`SELECT length(canonical_receipt) AS bytes
+        FROM diagnostic_requests WHERE request_id=?`).get(REQUESTS[2]);
+      collector.db.prepare('DELETE FROM diagnostic_requests WHERE request_id=?').run(REQUESTS[2]);
+      collector.db.prepare(`UPDATE diagnostic_store SET request_count=request_count-1,
+        canonical_bytes=canonical_bytes-? WHERE singleton='diagnostics'`).run(row.bytes);
+    }
+    collector.close();
+    expectCode('collector_degraded',() => {
+      collector = new DiagnosticCollector(path,{ lockDirectory,now: 2200,clock: () => 2200 });
+    });
+  }
+});
+
 test('trace context recovers exact current authority by trace or active run', () => {
   const dir = workspace();
   const path = join(dir,'trace-context.sqlite');

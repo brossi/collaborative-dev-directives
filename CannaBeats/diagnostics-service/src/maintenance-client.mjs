@@ -11,6 +11,10 @@ const FAILURE_CODES = new Set([
   'trace_inactive','trace_absent','collector_busy','collector_degraded',
   'quota_exhausted','schema_incompatible','maintenance_unavailable',
 ]);
+const STATUS_REASONS = new Set([
+  'retained_data_invalid','counter_mismatch','measurement_unavailable',
+  'physical_limit','host_reserve','temp_limit','log_limit',
+]);
 
 export class DiagnosticMaintenanceError extends Error {
   constructor(code) {
@@ -94,7 +98,7 @@ export function createDiagnosticMaintenanceClient({
         || keys.some((key) => !Object.hasOwn(value,key))
         || !['healthy','degraded'].includes(value.status)
         || (value.status === 'healthy' ? value.reason !== null
-          : typeof value.reason !== 'string' || value.reason.length > 64)
+          : !STATUS_REASONS.has(value.reason))
         || !Number.isSafeInteger(value.schemaGeneration) || value.schemaGeneration !== 1
         || ['traceCount','reportCount','requestCount','canonicalBytes'].some(
           (key) => !Number.isSafeInteger(value[key]) || value[key] < 0,
