@@ -60,6 +60,21 @@ test("state server rejects retained source credentials that collide with service
   });
   owner.close();
   assert.throws(() => createStateServer({ databasePath: path, credentials }), /collides/i);
+
+  const uppercasePath = join(root,"retained-uppercase-source-collision.sqlite");
+  const uppercaseOwner = developmentOwner(uppercasePath);
+  uppercaseOwner.activate({ now: 1 });
+  uppercaseOwner.registerManagedSource({
+    sourceId: randomUUID(),displayName: "Uppercase retained source",
+    tokenHash: "a".repeat(64),now: 2,
+  });
+  uppercaseOwner.close();
+  const changed = new DatabaseSync(uppercasePath);
+  changed.prepare("UPDATE managed_sources SET token_hash=?")
+    .run(createHash("sha256").update(credentials.gameToken).digest("hex").toUpperCase());
+  changed.close();
+  assert.throws(() => createStateServer({ databasePath: uppercasePath,credentials }),
+    /canonical lowercase SHA-256/i);
 });
 
 test("every HTTP mutation and read route rejects credentials outside its explicit scope matrix", async () => {

@@ -80,8 +80,8 @@ function legacyFixture(name, { status = "ended" } = {}) {
   )`).run(run,now);
   db.prepare(`INSERT INTO managed_audio_sources
     (id,display_name,token_hash,enabled,created_at,last_seen_at,last_error)
-    VALUES (?,'Source','hash',1,?,NULL,NULL)`)
-    .run(source,now);
+    VALUES (?,'Source',?,1,?,NULL,NULL)`)
+    .run(source,"a".repeat(64),now);
   db.prepare(`INSERT INTO managed_audio_commands
     (id,source_id,session_code,kind,track_uri,requested_by,created_at)
     VALUES (?,?,'ABC234','pause',NULL,?,?
@@ -352,7 +352,7 @@ test("migration replay attests private source authority and command payloads", (
   const destination = join(root, "private-replay-validation-state.sqlite");
   migrateMonolith({ sourcePath: legacy.path, destinationPath: destination, now: legacy.now + 1 });
   const changed = new DatabaseSync(destination);
-  changed.prepare("UPDATE managed_sources SET token_hash='attacker-controlled-hash'").run();
+  changed.prepare("UPDATE managed_sources SET token_hash=?").run("b".repeat(64));
   changed.close();
   assert.throws(() => migrateMonolith({
     sourcePath: legacy.path, destinationPath: destination,

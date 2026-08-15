@@ -407,7 +407,7 @@ test('trace context recovers exact current authority by trace or active run', ()
   let collector = new DiagnosticCollector(path,{
     lockDirectory,now: 0,clock: () => now,
   });
-  collector.startTrace(command('trace_start'),startAuthority());
+  const originalStart = collector.startTrace(command('trace_start'),startAuthority());
   collector.putIssuance(TRACE,issuance());
   const expected = {
     status: 'found',
@@ -447,6 +447,10 @@ test('trace context recovers exact current authority by trace or active run', ()
   assert.equal(ended.status,'found');
   assert.equal(ended.state.status,'ended');
   assert.equal(ended.state.ended.reason,'expired');
+  const startReceipt = collector.traceStartReceiptContext(REQUESTS[0]);
+  assert.equal(startReceipt.status,'found');
+  assert.deepEqual(startReceipt.receipt,originalStart.receipt);
+  assert.equal(startReceipt.receipt.result.status,'active');
   collector.close();
 });
 
@@ -468,7 +472,16 @@ test('authority context validates retained selectors and binds issuance replay t
     issuedSegmentId: SEGMENT_2,
   }));
   expectCode('report_conflict',() => collector.putIssuance(secondTrace,issuance()));
+  const moveTrigger = collector.db.prepare(`SELECT sql FROM sqlite_schema
+    WHERE type='trigger' AND name='diagnostic_issuances_immutable_update'`).get().sql;
+  collector.db.exec('DROP TRIGGER diagnostic_issuances_immutable_update');
+  collector.db.prepare(`UPDATE diagnostic_issuances SET trace_id=? WHERE sample_id=?`)
+    .run(secondTrace,SAMPLE);
+  collector.db.exec(moveTrigger);
   collector.close();
+  expectCode('collector_degraded',() => new DiagnosticCollector(path,{
+    lockDirectory,now: 3500,clock: () => 3500,
+  }));
 
   collector = new DiagnosticCollector(join(dir,'trace-corruption.sqlite'),{
     lockDirectory: join(dir,'trace-locks'),now: 0,clock: () => 1200,

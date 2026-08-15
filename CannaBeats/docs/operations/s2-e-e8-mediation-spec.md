@@ -1,7 +1,8 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1 and E8.2 implemented; independent closure review pending`. E8.3
-remains unimplemented and unauthorized until the preceding increments close.
+Status: `E8.1 and E8.2 locally verified`. Their independent closure review found
+no open P0/P1. E8.3a is implementation-authorized; E8.3b and E8.3c remain
+unimplemented and unauthorized until their preceding increments close.
 
 This packet applies the repository scale filter: one private collector, one
 Game gateway, one State authority service, and two collector credentials. It
@@ -52,6 +53,7 @@ requires one exact bearer credential:
 | Route | Method | Credential | Exact request | Delegated operation |
 | --- | --- | --- | --- | --- |
 | `/v1/game/trace/context` | POST | Game | exactly `{traceId}`, `{activeRunId}`, or `{active:true}` | `traceContext` |
+| `/v1/game/trace/start-context` | POST | Game | exactly `{requestId}` | `traceStartReceiptContext` |
 | `/v1/game/trace/start` | POST | Game | `{command,authority}` | `startTrace` |
 | `/v1/game/trace/end` | POST | Game | `{command,authority}` | `endTrace` |
 | `/v1/game/segment/rotate` | POST | Game | `{authority}` | `rotateSegment` |
@@ -93,7 +95,7 @@ synchronous transactions, aborting the HTTP response after delegation cannot
 cancel or duplicate an effect; retry uses the existing request or report
 identity and returns the retained result.
 
-The two context routes are the only Game restoration seams. A trace lookup returns the
+The three context routes are the only Game restoration seams. A trace lookup returns the
 exact retained E2 trace state; an active-run lookup returns that state only when
 the deployment's sole active trace belongs to the requested run; and
 `{active:true}` returns the deployment's sole active trace without accepting a
@@ -101,9 +103,12 @@ caller-authored run locator. Missing, ended-by-run lookup, or mismatched context
 returns `trace_absent`. The collector applies deterministic lazy expiry before
 the lookup. This route prevents Game
 from trusting a caller-returned trace, segment, or lease label after Game or a
-producer restarts; it returns no reports, consent rows, receipts, or principal
-data. A synchronization lookup returns the exact retained E2 issuance and its
-stored `traceId` only before its retention boundary; equality returns
+producer restarts; it returns no reports, consent rows, or principal data. A
+start-context lookup returns only the canonical retained `trace_start` receipt
+for that request ID, or `trace_absent`. It is the source of the original
+accepted result after response loss; current trace state is never substituted
+for that receipt. A synchronization lookup returns the exact retained E2
+issuance and its canonically bound stored `traceId` only before its retention boundary; equality returns
 `sample_absent`. It lets Game
 validate the producer's local send/receive sample without trusting returned
 server timestamps or substituting a sample from another trace after either side
@@ -115,7 +120,7 @@ restarts.
 | 401 | `authentication_required` |
 | 403 | `not_authorized` |
 | 408 | `request_timeout` |
-| 409 | `request_conflict`, `report_conflict`, `stale_correlation`, `sample_expired`, `read_expired`, `trace_inactive` |
+| 409 | `request_conflict`, `report_conflict`, `stale_correlation`, `sample_expired`, `read_expired`, `trace_inactive`, `sharing_disabled` |
 | 503 | `collector_busy`, `collector_degraded`, `quota_exhausted`, `schema_incompatible`, `collector_unavailable` |
 
 ## E8.1 closure matrix
@@ -191,15 +196,20 @@ restart. The local counterexample pass found no open P0/P1.
 
 Verification at the implementation worktree:
 
-- E1/E2/E7/E8.1 focused suite: `77/77`;
+- E1/E2/E7/E8.1 focused suite: `78/78`;
 - full Web production build and suite: `248/248`;
 - Web lint: zero errors; and
 - syntax and `git diff --check`: pass.
 
 This record claims no deployed secret, State authority response, public Game
 route, producer caller, host authorization, or failure isolation across a Game
-transaction. Permitted status remains `E8.1 implemented; independent closure
-review pending`.
+transaction. Because authenticated diagnostic ingress has never been
+production-enabled, the trace-bound issuance encoding establishes a pre-enable
+disposable-format cutoff rather than a live data migration. Any earlier local
+diagnostic volume must be removed with the checked E7.3 disposal operation
+before E8.3 enables the adapter; Access and State data are unaffected.
+
+Permitted status is `E8.1 locally verified`.
 
 ## E8.2 State diagnostic authority
 
@@ -280,6 +290,20 @@ Both methods are read-only at the owner boundary. They do not update source
 `last_seen_at`, reap leases, create commands, resolve handoffs, touch history,
 or consume a request identity.
 
+The authority-bearing identity fields they read are checked at every State
+startup against existing durable provenance: a runtime lobby host must match
+its canonical `create_lobby` request fingerprint (a migrated lobby has exactly
+one founding member), and every live lease must match its exact
+acquisition event plus an exact lease/source command result. Gameplay selection
+persists that binding in the same room transaction. A pre-remediation gameplay
+lease without the new binding remains valid for ordinary State compatibility
+but projects no diagnostic stream authority; its normal expiry/release clears
+the temporary legacy row.
+Managed-source credential digests use one canonical lowercase SHA-256 form at
+registration, rotation, lookup, service-scope collision checks, and startup
+validation. Mixed-case or malformed retained values fail closed before State
+serves either projection.
+
 ### E8.2 closure matrix
 
 | Dimension | Disposition and enforcement |
@@ -296,7 +320,7 @@ or consume a request identity.
 | Expiry | `runtime`: `expires_at <= State now` is absent; no caller time is accepted. |
 | Restart | `runtime`: projections derive again from the durable State rows and require no diagnostic sidecar. |
 | Dependency failure | `structural`: State does not call Game or the collector; collector availability cannot affect either projection or State readiness. |
-| Corruption | `runtime`: State startup validation remains the primary retained-data gate and impossible projection cardinality/relationships fail closed. |
+| Corruption | `runtime`: host/lease provenance and canonical source-digest startup validation reject authority reassignment or scope collapse; impossible projection cardinality/relationships fail closed. |
 | Capacity | `structural`: one indexed run lookup or at most two bounded current-stream rows; no scan or retained output growth. |
 
 ### E8.2 derived schedules and exit
@@ -308,7 +332,8 @@ or consume a request identity.
   duplicate authority;
 - malformed/extra request fields, Access/operator/cross-scope denial, unknown
   source credential, forged principal assertion, repeated read, restart, and unchanged State
-  validation/report rows before and after reads; and
+  validation/report rows before and after reads; host/lease identity rewrite,
+  uppercase source-digest rotation, and retained mixed-case digest restart; and
 - collector unavailable is structurally irrelevant because State has no
   collector import, credential, mount, request, or readiness dependency.
 
@@ -336,14 +361,13 @@ checked durable relationships; an ambiguous unscoped stream fails closed.
 
 Verification at the implementation worktree:
 
-- complete State service suite: `64/64`;
+- complete State service suite: `67/67`;
 - E1/E2 authority regression suite: `32/32`;
 - syntax and `git diff --check`: pass.
 
 This record claims no Game caller route, trace composition, consent routing,
 collector call, mounted diagnostic credential, or source/relay reporter. Those
-remain E8.3 or later work. Permitted status is `E8.2 implemented; independent
-closure review pending`.
+remain E8.3 or later work. Permitted status is `E8.2 locally verified`.
 
 ## E8.3 contained implementation sequence
 
@@ -361,8 +385,8 @@ increment does not make the later increments production-ready:
    generation, add the bounded maintenance caller, and prove diagnostic
    dependency failure is isolated from gameplay and audio.
 
-E8.3a may be designed while E8.1/E8.2 closure review is pending, but no E8.3
-implementation is authorized until that review closes. E8.3a does not add a
+E8.3a implementation is authorized by the completed E8.1/E8.2 closure review.
+That authorization does not extend to E8.3b or E8.3c. E8.3a does not add a
 listener grant, producer route, relay credential, reporter, or generalized
 authorization layer.
 
@@ -414,10 +438,11 @@ mutation handler:
 1. Access returns the authenticated principal.
 2. State `run-host-authority` proves that principal is the durable host of the
    requested run.
-3. Game derives the trace ID from the request ID and queries that exact retained
-   trace. If it exists and matches the requested run and derived trace ID, Game
-   returns the committed projection as an exact replay without requiring the
-   run or stream still to be active. A mismatch is `request_conflict`.
+3. Game derives the trace ID from the request ID and queries the exact retained
+   start receipt by request ID. If it exists, Game verifies the receipt's
+   canonical command, requested run, derived trace ID, and derived initial
+   segment before returning its original accepted projection. A mismatch is
+   `request_conflict`. Current ended or rotated trace state is not replay evidence.
 4. Only when the deterministic trace is absent must State project the host run
    as active and the Game-scoped `managed-stream-authority` return the sole
    current stream for the same run and run generation.
@@ -524,7 +549,7 @@ readiness.
 | Omit | `runtime`: exact request/response validators reject missing authority facts, fields, and incomplete pages before projection. |
 | Duplicate | `structural`: the collector retains one active trace and one current segment; deterministic IDs cannot create a second equivalent edge. |
 | Reorder | `runtime`: reconciliation completes before start/status/read projection, and an E7 cursor must be the immediately preceding cursor. |
-| Replay | `runtime`: start checks its deterministic retained trace after durable-host authorization but before current-stream authority; stop reconstructs the exact collector command and an ended-stop retry reaches its retained receipt. |
+| Replay | `runtime`: start checks its retained canonical start receipt after durable-host authorization but before current-stream authority; stop reconstructs the exact collector command and an ended-stop retry reaches its retained receipt. |
 | Conflict | `runtime`: Game checks retained/result trace relationships against the public request; operation reuse reaches the existing collector fingerprint conflict before mutation. |
 | Concurrency | `runtime`: the collector's single transaction owner chooses one active trace/segment edge; the losing Game request receives the finite conflict/busy result. |
 | Expiry | `runtime`: State decides lease expiry; collector lazy-expiry decides trace expiry; equality is never evaluated from browser time. |
@@ -550,8 +575,8 @@ readiness.
 - static dependency assertions showing gameplay/audio/readiness modules cannot
   reach the collector client and the browser cannot receive collector secrets.
 
-E8.3a implementation may begin only after E8.1/E8.2 independently close and a
-local counterexample pass finds no missing P0/P1 in this matrix. Its closure
+E8.1/E8.2 independently closed and their local counterexample pass found no
+missing P0/P1 that blocks this matrix, so E8.3a implementation may begin. Its closure
 requires the real composed Game→Access→State→collector schedules above, not
 only mocked clients. E8.3b owns listener grants, consent, synchronization, and
 listener ingestion. E8.3c owns source/relay routes, the relay and maintenance

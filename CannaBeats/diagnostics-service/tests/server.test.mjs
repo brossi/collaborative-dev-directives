@@ -171,7 +171,7 @@ test('finite HTTP failures cover every documented status family without native t
     [403, ['not_authorized']],
     [408, ['request_timeout']],
     [409, ['request_conflict', 'report_conflict', 'stale_correlation', 'sample_expired',
-      'read_expired', 'trace_inactive']],
+      'read_expired', 'trace_inactive', 'sharing_disabled']],
     [503, ['collector_busy', 'collector_degraded', 'quota_exhausted',
       'schema_incompatible']],
   ];
@@ -189,7 +189,7 @@ test('every normalized Game operation delegates once to only its named collector
   const calls = [];
   const collector = {};
   for (const method of [
-    'traceContext', 'issuanceContext', 'startTrace', 'endTrace', 'rotateSegment',
+    'traceContext', 'traceStartReceiptContext', 'issuanceContext', 'startTrace', 'endTrace', 'rotateSegment',
     'putIssuance', 'optIn',
     'stopSharing', 'bindRelay', 'ingestReport', 'readTrace',
   ]) {
@@ -201,6 +201,7 @@ test('every normalized Game operation delegates once to only its named collector
   const marker = Object.freeze({ marker: true });
   const operations = [
     { operation: 'traceContext', locator: marker },
+    { operation: 'traceStartReceiptContext', requestId: REQUEST },
     { operation: 'issuanceContext', sampleId: TRACE },
     { operation: 'startTrace', command: marker, authority: marker },
     { operation: 'endTrace', command: marker, authority: marker },
@@ -217,10 +218,11 @@ test('every normalized Game operation delegates once to only its named collector
   }
   assert.deepEqual(calls.map(([method]) => method),
     operations.map(({ operation }) => operation));
-  assert.deepEqual(calls[9], [
+  assert.deepEqual(calls[10], [
     'ingestReport', marker, { receivedAt: 4321, grantGeneration: 2 },
   ]);
-  assert.deepEqual(calls[1],['issuanceContext',TRACE,4321]);
+  assert.deepEqual(calls[1],['traceStartReceiptContext',REQUEST]);
+  assert.deepEqual(calls[2],['issuanceContext',TRACE,4321]);
   assert.throws(() => delegateGameCollectorOperation(collector,
     { operation: 'unknown' }, 4321), (error) => error.code === 'request_invalid');
 });
@@ -319,6 +321,12 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
       authenticatedOptions(GAME_TOKEN, startBody()));
     assert.equal(replayed.status, 200);
     assert.equal(replayed.body.status, 'replayed');
+    const startContext = await request(address,'/v1/game/trace/start-context',
+      authenticatedOptions(GAME_TOKEN,{ requestId: REQUEST }));
+    assert.equal(startContext.status,200);
+    assert.equal(startContext.body.status,'found');
+    assert.equal(startContext.body.receipt.requestId,REQUEST);
+    assert.equal(startContext.body.receipt.result.status,'active');
     const restoredContext = await request(address,'/v1/game/trace/context',
       authenticatedOptions(GAME_TOKEN,{ traceId: TRACE }));
     assert.equal(restoredContext.body.state.traceId,TRACE);
@@ -340,6 +348,59 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
     assert.deepEqual(conflict, {
       status: 409, body: { status: 'error', code: 'request_conflict' },
     });
+  } finally {
+    await service.close();
+    fixture.remove();
+  }
+});
+
+test('client abort after a committed start loses only the response and exact retry replays', async () => {
+  const fixture = temporaryDirectory();
+  let committed;
+  const committedPromise = new Promise((resolve) => { committed = resolve; });
+  const service = createDiagnosticService({
+    databasePath: fixture.databasePath,host: '127.0.0.1',port: 0,
+    authenticatedApi,clock: () => 1500,collectorOptions: { now: 0 },
+    createCollector(path,options) {
+      const actual = new DiagnosticCollector(path,options);
+      return {
+        status: actual.status.bind(actual),
+        retentionSweep: actual.retentionSweep.bind(actual),
+        close: actual.close.bind(actual),
+        startTrace(command,authority) {
+          const result = actual.startTrace(command,authority);
+          committed();
+          return result;
+        },
+      };
+    },
+  });
+  try {
+    const address = await service.start();
+    let receivedResponse = false;
+    const lost = new Promise((resolve) => {
+      const pending = httpRequest({
+        hostname: '127.0.0.1',port: address.port,path: '/v1/game/trace/start',method: 'POST',
+        headers: {
+          authorization: `Bearer ${GAME_TOKEN}`,
+          'content-type': 'application/json',
+        },
+      }, (response) => {
+        receivedResponse = true;
+        response.resume();
+        response.once('end',resolve);
+      });
+      pending.once('error',resolve);
+      pending.end(JSON.stringify(startBody()));
+      committedPromise.then(() => pending.destroy());
+    });
+    await committedPromise;
+    await lost;
+    assert.equal(receivedResponse,false);
+    const replayed = await request(address,'/v1/game/trace/start',
+      authenticatedOptions(GAME_TOKEN,startBody()));
+    assert.equal(replayed.status,200);
+    assert.equal(replayed.body.status,'replayed');
   } finally {
     await service.close();
     fixture.remove();

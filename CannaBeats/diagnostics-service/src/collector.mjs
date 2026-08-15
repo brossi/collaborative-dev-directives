@@ -88,6 +88,28 @@ function validUuid(value) {
     && value !== '00000000-0000-0000-0000-000000000000';
 }
 
+function canonicalStoredIssuanceBytes(traceId, issuance) {
+  if (!validUuid(traceId)) fail('report_invalid');
+  const canonical = bytes(canonicalSynchronizationIssuanceBytes(issuance));
+  return Buffer.from(JSON.stringify({
+    traceId,
+    issuance: JSON.parse(canonical.toString('utf8')),
+  }));
+}
+
+function restoreStoredIssuance(input) {
+  const parsed = JSON.parse(bytes(input).toString('utf8'));
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)
+    || Object.keys(parsed).length !== 2 || !Object.hasOwn(parsed, 'traceId')
+    || !Object.hasOwn(parsed, 'issuance') || !validUuid(parsed.traceId)) {
+    throw new Error('stored issuance is invalid');
+  }
+  const issuance = restoreSynchronizationIssuanceFromTrustedStore(
+    Buffer.from(JSON.stringify(parsed.issuance)),
+  );
+  return { traceId: parsed.traceId, issuance };
+}
+
 function transaction(db, action) {
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -363,15 +385,15 @@ function validateTraceProjection(db, trace) {
   let issuanceBytes = 0;
   for (const row of db.prepare(`SELECT * FROM diagnostic_issuances
     WHERE trace_id=?`).all(trace.trace_id)) {
-    const value = retained(() => restoreSynchronizationIssuanceFromTrustedStore(
-      row.canonical_issuance,
-    ));
+    const stored = retained(() => restoreStoredIssuance(row.canonical_issuance));
+    const value = stored.issuance;
     if (value.sampleId !== row.sample_id || value.instanceId !== row.instance_id
+      || stored.traceId !== row.trace_id
       || value.timebaseId !== row.timebase_id || value.serverReceiveMs !== row.server_receive_ms
       || value.serverSendMs !== row.server_send_ms
       || row.expires_at !== value.serverSendMs + 120_000
       || !sameBytes(row.canonical_issuance,
-        retained(() => canonicalSynchronizationIssuanceBytes(value)))) {
+        retained(() => canonicalStoredIssuanceBytes(row.trace_id,value)))) {
       dataFail();
     }
     issuanceBytes += row.canonical_issuance.byteLength;
@@ -535,22 +557,37 @@ export class DiagnosticCollector {
       const row = this.db.prepare(`SELECT * FROM diagnostic_issuances
         WHERE sample_id=?`).get(sampleId);
       if (!row) return { status: 'sample_absent' };
-      const issuance = retained(() => restoreSynchronizationIssuanceFromTrustedStore(
-        row.canonical_issuance,
-      ));
+      const stored = retained(() => restoreStoredIssuance(row.canonical_issuance));
+      const issuance = stored.issuance;
       if (issuance.sampleId !== row.sample_id || issuance.instanceId !== row.instance_id
+        || stored.traceId !== row.trace_id
         || issuance.timebaseId !== row.timebase_id
         || issuance.serverReceiveMs !== row.server_receive_ms
         || issuance.serverSendMs !== row.server_send_ms
         || row.expires_at !== issuance.serverSendMs + 120_000
         || !sameBytes(row.canonical_issuance,
-          retained(() => canonicalSynchronizationIssuanceBytes(issuance)))) dataFail();
+          retained(() => canonicalStoredIssuanceBytes(row.trace_id,issuance)))) dataFail();
       if (now >= row.expires_at) return { status: 'sample_absent' };
       return {
         status: 'found',
         traceId: row.trace_id,
         issuance,
       };
+    });
+  }
+
+  traceStartReceiptContext(requestId) {
+    if (!validUuid(requestId)) fail('request_invalid');
+    return transaction(this.db, () => {
+      const row = this.db.prepare(`SELECT * FROM diagnostic_requests
+        WHERE request_id=? AND operation='trace_start'`).get(requestId);
+      if (!row) return { status: 'trace_absent' };
+      const receipt = retained(() => restoreReceipt(row));
+      if (receipt.requestId !== row.request_id || receipt.operation !== 'trace_start'
+        || receipt.result.traceId !== row.trace_id
+        || !sameBytes(row.canonical_receipt,
+          retained(() => canonicalE2OperationReceiptBytes(receipt)))) dataFail();
+      return { status: 'found',receipt };
     });
   }
 
@@ -621,8 +658,8 @@ export class DiagnosticCollector {
 
   putIssuance(traceId, issuance) {
     return transaction(this.db, () => {
-      const canonical = bytes(canonicalSynchronizationIssuanceBytes(issuance));
-      const restored = restoreSynchronizationIssuanceFromTrustedStore(canonical);
+      const canonical = canonicalStoredIssuanceBytes(traceId,issuance);
+      const restored = restoreStoredIssuance(canonical).issuance;
       if (restored.sampleId !== issuance.sampleId) fail('report_invalid');
       const existing = this.db.prepare(`SELECT trace_id,canonical_issuance
         FROM diagnostic_issuances
@@ -765,9 +802,15 @@ export class DiagnosticCollector {
       if (!issuanceRow || receivedAt >= issuanceRow.expires_at) {
         return { status: 'stale_correlation' };
       }
-      const issuance = restoreSynchronizationIssuanceFromTrustedStore(
+      const storedIssuance = retained(() => restoreStoredIssuance(
         issuanceRow.canonical_issuance,
-      );
+      ));
+      const issuance = storedIssuance.issuance;
+      if (storedIssuance.traceId !== issuanceRow.trace_id
+        || !sameBytes(issuanceRow.canonical_issuance,
+          retained(() => canonicalStoredIssuanceBytes(issuanceRow.trace_id,issuance)))) {
+        dataFail();
+      }
       if (!exactIssuanceMatchesSample(issuance, alignment.sample)) {
         return { status: 'stale_correlation' };
       }

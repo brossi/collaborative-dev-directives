@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { redactRoomStateForRetention, validateRoomState } from "./game-domain.mjs";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -6,6 +7,61 @@ const PLAYBACK_ERROR_CATEGORIES = new Set([
   "managed_playback_failed", "relay_unavailable", "spotify_unavailable",
   "unrecognized_reason",
 ]);
+
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).sort(([left], [right]) =>
+      left.localeCompare(right)).map(([key, entry]) => [key, canonical(entry)]));
+  }
+  return value;
+}
+
+function commandFingerprint(value) {
+  return createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
+}
+
+export function hasDurableLeaseAcquisitionEvidence(db, lease) {
+  const evidence = db.prepare(`SELECT event.action_id,event.command_ref,command.command_id,
+      command.request_fingerprint,command.result,command.accepted_at,
+      EXISTS(SELECT 1 FROM action_receipts receipt
+        WHERE receipt.run_id=event.run_id AND receipt.action_id=event.action_id
+          AND receipt.action='select_audio'
+          AND receipt.actor_principal_id=event.actor_ref) AS gameplay_receipt
+    FROM game_events event
+    JOIN game_runs run ON run.id=event.run_id AND run.lobby_code=?
+    JOIN state_commands command ON command.command_id=COALESCE(event.command_ref,event.action_id)
+      AND command.command_type='acquire_managed_lease'
+    WHERE event.event_type='audio_lease_acquired'
+      AND event.occurred_at=? AND event.actor_ref=?
+    ORDER BY event.run_id,event.sequence`).all(
+    lease.lobby_code,lease.acquired_at,lease.acquired_by_principal_id,
+  );
+  const expectedResult = {
+    leaseId: lease.id,sourceId: lease.source_id,lobbyCode: lease.lobby_code,
+    expiresAt: lease.expires_at,
+  };
+  return evidence.some((row) => {
+    let result;
+    try { result = JSON.parse(row.result); } catch { return false; }
+    if (row.accepted_at !== lease.acquired_at
+      || JSON.stringify(canonical(result)) !== JSON.stringify(canonical(expectedResult))) {
+      return false;
+    }
+    const request = {
+      lobbyCode: lease.lobby_code,sourceId: lease.source_id,
+      actorPrincipalId: lease.acquired_by_principal_id,
+      leaseDurationMs: lease.expires_at - lease.acquired_at,
+      ...(row.command_id === lease.id && row.action_id !== row.command_id
+        && row.gameplay_receipt ? { gameplayActionId: row.action_id } : {}),
+    };
+    const validLink = row.action_id === row.command_id
+      || (row.command_id === lease.id && row.gameplay_receipt);
+    return validLink && row.request_fingerprint === commandFingerprint({
+      commandType: "acquire_managed_lease",request,
+    });
+  });
+}
 
 export function validateStateDatabase(db, { requireCandidate = false } = {}) {
   const violations = [];
@@ -21,6 +77,44 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
   }
   if (db.prepare("PRAGMA foreign_key_check").all().length) {
     violations.push("foreign-key validation failed");
+  }
+  const noncanonicalSourceCredential = db.prepare('SELECT token_hash FROM managed_sources').all()
+    .some((row) => !/^[0-9a-f]{64}$/.test(row.token_hash));
+  if (noncanonicalSourceCredential) {
+    violations.push("managed-source credential digest is not canonical lowercase SHA-256");
+  }
+  for (const lobby of db.prepare(`SELECT code,host_principal_id,created_at
+    FROM lobbies ORDER BY code`).all()) {
+    const commands = db.prepare(`SELECT request_fingerprint,result,accepted_at
+      FROM state_commands WHERE command_type='create_lobby'
+        AND json_extract(result,'$.code')=?`).all(lobby.code);
+    const exactCommand = commands.length === 1
+      && commands[0].accepted_at === lobby.created_at
+      && commands[0].request_fingerprint === commandFingerprint({
+        commandType: "create_lobby",
+        request: { code: lobby.code,hostPrincipalId: lobby.host_principal_id },
+      });
+    const founders = db.prepare(`SELECT principal_id FROM lobby_members
+      WHERE lobby_code=? AND joined_at=? ORDER BY principal_id`)
+      .all(lobby.code,lobby.created_at);
+    const migratedFounder = commands.length === 0 && founders.length === 1
+      && founders[0].principal_id === lobby.host_principal_id;
+    if (!exactCommand && !migratedFounder) {
+      violations.push(`lobby ${lobby.code} host identity lacks durable creation evidence`);
+    }
+  }
+  const leases = db.prepare(`SELECT id,source_id,lobby_code,acquired_by_principal_id,
+      acquired_at,expires_at FROM managed_leases ORDER BY id`).all();
+  const invalidLeaseOrigin = leases.some((lease) => {
+    const hasBindingMarker = db.prepare(`SELECT 1 FROM state_commands
+      WHERE command_type='acquire_managed_lease'
+        AND json_extract(result,'$.leaseId')=? LIMIT 1`).get(lease.id)
+      || db.prepare(`SELECT 1 FROM game_events WHERE event_type='audio_lease_acquired'
+        AND command_ref=? LIMIT 1`).get(lease.id);
+    return hasBindingMarker && !hasDurableLeaseAcquisitionEvidence(db,lease);
+  });
+  if (invalidLeaseOrigin) {
+    violations.push("managed lease identity lacks durable acquisition evidence");
   }
   const streams = db.prepare(`SELECT stream.run_id,stream.baseline_revision,
       stream.last_recorded_revision,stream.lifecycle,stream.purged_at,
@@ -288,7 +382,8 @@ export function validateStateDatabase(db, { requireCandidate = false } = {}) {
   const projectedCount = commandEventRows.filter((row) => row.lifecycle !== "purged").length;
   const actualCommandEvents = db.prepare(`SELECT COUNT(*) AS count FROM game_events event
     JOIN history_streams stream ON stream.run_id=event.run_id
-    WHERE stream.lifecycle<>'purged' AND event.command_ref IS NOT NULL`).get().count;
+    JOIN managed_command_intents command ON command.id=event.command_ref
+    WHERE stream.lifecycle<>'purged'`).get().count;
   if (actualCommandEvents !== projectedCount) {
     violations.push("managed-command event projection contains orphan or duplicate evidence");
   }

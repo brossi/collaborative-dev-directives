@@ -8,7 +8,7 @@ import {
   initialRoomState, projectRoomState, redactRoomStateForRetention,
   reduceGameCommand, validateRoomState,
 } from "./game-domain.mjs";
-import { validateStateDatabase } from "./invariants.mjs";
+import { hasDurableLeaseAcquisitionEvidence,validateStateDatabase } from "./invariants.mjs";
 import { candidateAuthorityDigest } from "./attestation.mjs";
 import { projectStateHistory } from "./history-projection.mjs";
 import {
@@ -508,8 +508,9 @@ export class StateOwner {
       throw new Error("Source ID must be a canonical UUID.");
     }
     safeNonnegative(now,"Diagnostic authority time");
-    const rows = this.#db.prepare(`SELECT r.id AS run_id,l.run_generation,
-        lease.id AS lease_id,lease.source_id,lease.expires_at
+    const candidates = this.#db.prepare(`SELECT r.id AS run_id,l.run_generation,
+        lease.id AS lease_id,lease.id,lease.source_id,lease.lobby_code,
+        lease.acquired_by_principal_id,lease.acquired_at,lease.expires_at
       FROM managed_leases lease
       JOIN managed_sources source ON source.id=lease.source_id AND source.enabled=1
       JOIN lobbies l ON l.code=lease.lobby_code AND l.audio_mode='managed'
@@ -522,6 +523,7 @@ export class StateOwner {
           WHERE handoff.source_id=lease.source_id AND handoff.handoff_state<>'safe'
         )
       ORDER BY lease.id LIMIT 2`).all(now,sourceId,sourceId);
+    const rows = candidates.filter((row) => hasDurableLeaseAcquisitionEvidence(this.#db,row));
     if (rows.length > 1) throw new Error("Diagnostic managed-stream authority is inconsistent.");
     if (!rows.length) return { authorityVersion: 1,status: "absent" };
     const row = rows[0];
@@ -1079,7 +1081,7 @@ export class StateOwner {
         throw new Error("Managed source must confirm safe playback before it can be disabled.");
       }
       if (action === 'rotate') {
-        if (typeof tokenHash !== "string" || !/^[0-9a-f]{64}$/i.test(tokenHash)) {
+        if (typeof tokenHash !== "string" || !/^[0-9a-f]{64}$/.test(tokenHash)) {
           throw new Error("Managed source token hash is invalid.");
         }
         this.#db.prepare(`UPDATE managed_sources SET token_hash=?,enabled=1,
@@ -1096,13 +1098,14 @@ export class StateOwner {
   }
 
   managedSourceForTokenHash(tokenHash) {
+    if (!/^[0-9a-f]{64}$/.test(tokenHash ?? "")) return null;
     const source = this.#db.prepare(`SELECT id FROM managed_sources
       WHERE token_hash=? AND enabled=1`).get(tokenHash);
     return source?.id ?? null;
   }
 
   assertManagedSourceCredentialSeparation(tokenHashes) {
-    if (!Array.isArray(tokenHashes) || tokenHashes.some((value) => !/^[0-9a-f]{64}$/i.test(value))) {
+    if (!Array.isArray(tokenHashes) || tokenHashes.some((value) => !/^[0-9a-f]{64}$/.test(value))) {
       throw new Error("Service credential hashes are invalid.");
     }
     const collision = this.#db.prepare(`SELECT 1 FROM managed_sources
@@ -1284,7 +1287,7 @@ export class StateOwner {
         .run(leaseId,sourceId,lobbyCode,actorPrincipalId,now,now,expiresAt);
       this.#recordLeaseEvent({
         lobbyCode, actionId: commandId, actorPrincipalId, type: "audio_lease_acquired",
-        outcome: "accepted", detailCode: "managed", now,
+        outcome: "accepted", detailCode: "managed", commandRef: commandId, now,
       });
       return { leaseId, sourceId, lobbyCode, expiresAt };
     });
@@ -1584,13 +1587,26 @@ export class StateOwner {
           throw new Error("Managed playback authority is unavailable.");
         }
         const leaseId = randomUUID();
+        const leaseDurationMs = 120_000;
+        const expiresAt = now + leaseDurationMs;
         this.#db.prepare(`INSERT INTO managed_leases
           (id,source_id,lobby_code,acquired_by_principal_id,acquired_at,renewed_at,
            expires_at,playback_status) VALUES (?,?,?,?,?,?,?,'ready')`)
-          .run(leaseId,source.id,lobbyCode,requestedByPrincipalId,now,now,now + 120_000);
+          .run(leaseId,source.id,lobbyCode,requestedByPrincipalId,now,now,expiresAt);
+        const leaseRequest = {
+          lobbyCode,sourceId: source.id,actorPrincipalId: requestedByPrincipalId,
+          leaseDurationMs,gameplayActionId: actionId,
+        };
+        const leaseResult = { leaseId,sourceId: source.id,lobbyCode,expiresAt };
+        this.#db.prepare(`INSERT INTO state_commands
+          (command_id,command_type,request_fingerprint,result,accepted_at)
+          VALUES (?,'acquire_managed_lease',?,?,?)`)
+          .run(leaseId,fingerprint({ commandType: "acquire_managed_lease",request: leaseRequest }),
+            JSON.stringify(leaseResult),now);
         this.#recordLeaseEvent({
           lobbyCode,actionId,actorPrincipalId: requestedByPrincipalId,
-          type: "audio_lease_acquired",outcome: "accepted",detailCode: "managed",now,
+          type: "audio_lease_acquired",outcome: "accepted",detailCode: "managed",
+          commandRef: leaseId,now,
         });
         continue;
       }
@@ -1847,14 +1863,15 @@ export class StateOwner {
   }
 
   #recordLeaseEvent({
-    lobbyCode, actionId, actorPrincipalId, type, outcome, detailCode, reasonCode = null, now,
+    lobbyCode, actionId, actorPrincipalId, type, outcome, detailCode, reasonCode = null,
+    commandRef = null, now,
   }) {
     const run = this.#db.prepare(`SELECT run.id,run.revision FROM lobbies lobby
       JOIN game_runs run ON run.id=lobby.active_run_id WHERE lobby.code=?`).get(lobbyCode);
     if (!run) throw new Error("Managed lease is not bound to an active run.");
     this.#recordGameEvent(run.id,run.revision,actionId,actorPrincipalId,{
       type,outcome,actorType: actorPrincipalId ? "host" : "system",
-      actorRef: actorPrincipalId,detailCode,reasonCode,
+      actorRef: actorPrincipalId,commandRef,detailCode,reasonCode,
     },now);
   }
 }

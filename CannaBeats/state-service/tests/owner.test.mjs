@@ -235,6 +235,150 @@ test("diagnostic host authority survives terminal history sealing and purge", ()
   owner.close();
 });
 
+test("diagnostic authority rejects retained host and lease relationship substitution", () => {
+  const build = (path) => {
+    const owner = developmentOwner(path);
+    owner.activate({ now: 1 });
+    const host = randomUUID();
+    const member = randomUUID();
+    const secondHost = randomUUID();
+    const sourceId = randomUUID();
+    owner.createLobby({ commandId: randomUUID(),code: "DRA234",hostPrincipalId: host,now: 2 });
+    owner.addLobbyMember({
+      commandId: randomUUID(),lobbyCode: "DRA234",principalId: member,
+      admittedByPrincipalId: member,now: 2,
+    });
+    owner.createRun({
+      commandId: randomUUID(),lobbyCode: "DRA234",runId: randomUUID(),
+      actorPrincipalId: host,now: 4,
+    });
+    owner.createLobby({
+      commandId: randomUUID(),code: "DRB234",hostPrincipalId: secondHost,now: 5,
+    });
+    owner.createRun({
+      commandId: randomUUID(),lobbyCode: "DRB234",runId: randomUUID(),
+      actorPrincipalId: secondHost,now: 6,
+    });
+    owner.registerManagedSource({
+      commandId: randomUUID(),sourceId,displayName: "Relationship Source",
+      tokenHash: "c".repeat(64),now: 7,
+    });
+    const lease = owner.acquireManagedLease({
+      commandId: randomUUID(),lobbyCode: "DRA234",sourceId,
+      actorPrincipalId: host,leaseDurationMs: 100,now: 8,
+    });
+    owner.close();
+    return { host,member,leaseId: lease.leaseId };
+  };
+
+  const hostPath = join(root,"diagnostic-host-substitution.sqlite");
+  const hostFixture = build(hostPath);
+  const hostDb = new DatabaseSync(hostPath);
+  hostDb.prepare("UPDATE lobbies SET host_principal_id=? WHERE code='DRA234'")
+    .run(hostFixture.member);
+  hostDb.close();
+  assert.throws(() => developmentOwner(hostPath),/creation evidence/i);
+
+  const leasePath = join(root,"diagnostic-lease-substitution.sqlite");
+  const leaseFixture = build(leasePath);
+  const leaseDb = new DatabaseSync(leasePath);
+  const leaseRow = leaseDb.prepare("SELECT * FROM managed_leases WHERE id=?")
+    .get(leaseFixture.leaseId);
+  leaseDb.prepare("DELETE FROM managed_leases WHERE id=?").run(leaseFixture.leaseId);
+  leaseDb.prepare(`INSERT INTO managed_leases
+    (id,source_id,lobby_code,acquired_by_principal_id,acquired_at,renewed_at,
+     expires_at,playback_status,last_error_category) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    leaseRow.id,leaseRow.source_id,"DRB234",leaseRow.acquired_by_principal_id,
+    leaseRow.acquired_at,leaseRow.renewed_at,leaseRow.expires_at,
+    leaseRow.playback_status,leaseRow.last_error_category,
+  );
+  leaseDb.close();
+  assert.throws(() => developmentOwner(leasePath),/acquisition evidence/i);
+});
+
+test("gameplay lease evidence binds same-time acquisitions to their exact lobby and source", () => {
+  const path = join(root,"diagnostic-gameplay-lease-substitution.sqlite");
+  const owner = developmentOwner(path);
+  const host = randomUUID();
+  const runs = [randomUUID(),randomUUID()];
+  const sources = [randomUUID(),randomUUID()].sort();
+  owner.activate({ now: 1 });
+  for (const [index,code] of ["DGC234","DGD234"].entries()) {
+    owner.createLobby({ commandId: randomUUID(),code,hostPrincipalId: host,now: 2 + index });
+    owner.createRun({
+      commandId: randomUUID(),lobbyCode: code,runId: runs[index],actorPrincipalId: host,
+      now: 4 + index,
+    });
+  }
+  for (const [index,sourceId] of sources.entries()) owner.registerManagedSource({
+    commandId: randomUUID(),sourceId,displayName: `Source ${index}`,
+    tokenHash: String(index + 4).repeat(64),now: 6,
+  });
+  for (const sourceId of sources) owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 6 });
+  for (const [index,code] of ["DGC234","DGD234"].entries()) owner.applyGameCommand({
+    lobbyCode: code,actorPrincipalId: host,actionId: randomUUID(),
+    expectedRunId: runs[index],expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "select_audio",mode: "managed" },now: 7,
+  });
+  assert.doesNotThrow(() => owner.validate());
+  owner.close();
+
+  const changed = new DatabaseSync(path);
+  const leases = changed.prepare("SELECT * FROM managed_leases ORDER BY lobby_code").all();
+  changed.prepare("DELETE FROM managed_leases").run();
+  const first = leases[0];
+  changed.prepare(`INSERT INTO managed_leases
+    (id,source_id,lobby_code,acquired_by_principal_id,acquired_at,renewed_at,
+     expires_at,playback_status,last_error_category) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    first.id,first.source_id,"DGD234",first.acquired_by_principal_id,first.acquired_at,
+    first.renewed_at,first.expires_at,first.playback_status,first.last_error_category,
+  );
+  changed.close();
+  assert.throws(() => developmentOwner(path),/acquisition evidence/i);
+});
+
+test("a pre-binding gameplay lease starts compatibly but grants no diagnostic authority", () => {
+  const path = join(root,"diagnostic-legacy-gameplay-lease.sqlite");
+  const owner = developmentOwner(path);
+  const host = randomUUID();
+  const runId = randomUUID();
+  const sourceId = randomUUID();
+  owner.activate({ now: 1 });
+  owner.createLobby({ commandId: randomUUID(),code: "DGE234",hostPrincipalId: host,now: 2 });
+  owner.createRun({
+    commandId: randomUUID(),lobbyCode: "DGE234",runId,actorPrincipalId: host,now: 3,
+  });
+  owner.registerManagedSource({
+    commandId: randomUUID(),sourceId,displayName: "Legacy Source",
+    tokenHash: "6".repeat(64),now: 4,
+  });
+  owner.managedSourceWork({ authenticatedSourceId: sourceId,now: 5 });
+  owner.applyGameCommand({
+    lobbyCode: "DGE234",actorPrincipalId: host,actionId: randomUUID(),
+    expectedRunId: runId,expectedRunGeneration: 1,expectedRevision: 0,
+    command: { type: "select_audio",mode: "managed" },now: 6,
+  });
+  owner.close();
+
+  const changed = new DatabaseSync(path);
+  const leaseId = changed.prepare("SELECT id FROM managed_leases").get().id;
+  const triggerSql = changed.prepare(`SELECT sql FROM sqlite_master
+    WHERE type='trigger' AND name='game_events_update_guard'`).get().sql;
+  changed.exec("DROP TRIGGER game_events_update_guard");
+  changed.prepare(`UPDATE game_events SET command_ref=NULL
+    WHERE event_type='audio_lease_acquired' AND command_ref=?`).run(leaseId);
+  changed.prepare("DELETE FROM state_commands WHERE command_id=?").run(leaseId);
+  changed.exec(triggerSql);
+  changed.close();
+
+  const reopened = developmentOwner(path);
+  assert.doesNotThrow(() => reopened.validate());
+  assert.deepEqual(reopened.diagnosticManagedStreamAuthority({ now: 7 }),{
+    authorityVersion: 1,status: "absent",
+  });
+  reopened.close();
+});
+
 test("diagnostic managed-stream lookup fails closed on ambiguous current authority", () => {
   const owner = developmentOwner(join(root,"diagnostic-ambiguous-stream.sqlite"));
   owner.activate({ now: 1 });
@@ -693,6 +837,14 @@ test("managed-source authority records are canonical and bounded", () => {
     commandId: randomUUID(),sourceId: randomUUID(),displayName: "Source",
     tokenHash: "not-a-digest",now: 4,
   }),/SHA-256/i);
+  const sourceId = randomUUID();
+  owner.registerManagedSource({
+    commandId: randomUUID(),sourceId,displayName: "Canonical Source",
+    tokenHash: "b".repeat(64),now: 5,
+  });
+  assert.throws(() => owner.updateManagedSource({
+    commandId: randomUUID(),sourceId,action: "rotate",tokenHash: "A".repeat(64),now: 6,
+  }),/token hash is invalid/i);
   owner.close();
 });
 

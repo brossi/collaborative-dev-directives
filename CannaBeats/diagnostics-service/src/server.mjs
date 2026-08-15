@@ -25,6 +25,7 @@ const FINITE_FAILURES = new Set([
 ]);
 const GAME_PATHS = new Set([
   '/v1/game/trace/context',
+  '/v1/game/trace/start-context',
   '/v1/game/synchronization/context',
   '/v1/game/trace/start',
   '/v1/game/trace/end',
@@ -54,6 +55,7 @@ const HTTP_FAILURES = new Map([
   ['sample_expired', 409],
   ['read_expired', 409],
   ['trace_inactive', 409],
+  ['sharing_disabled', 409],
   ['collector_busy', 503],
   ['collector_degraded', 503],
   ['quota_exhausted', 503],
@@ -95,6 +97,9 @@ function noRequestBody(request) {
 export function delegateGameCollectorOperation(collector, operation, receivedAt) {
   if (operation.operation === 'traceContext') {
     return collector.traceContext(operation.locator);
+  }
+  if (operation.operation === 'traceStartReceiptContext') {
+    return collector.traceStartReceiptContext(operation.requestId);
   }
   if (operation.operation === 'issuanceContext') {
     return collector.issuanceContext(operation.sampleId,receivedAt);

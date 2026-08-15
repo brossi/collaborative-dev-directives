@@ -153,6 +153,13 @@ export function validateGameCollectorRequest(path, bytes) {
       locator: Object.freeze({ [key]: value[key] }),
     });
   }
+  if (path === '/v1/game/trace/start-context') {
+    const value = exact(parse(bytes), ['requestId']);
+    if (typeof value.requestId !== 'string' || !UUID.test(value.requestId)) {
+      fail('request_invalid');
+    }
+    return Object.freeze({ operation: 'traceStartReceiptContext',requestId: value.requestId });
+  }
   if (path === '/v1/game/synchronization/context') {
     const value = exact(parse(bytes), ['sampleId']);
     if (typeof value.sampleId !== 'string' || !UUID.test(value.sampleId)) {

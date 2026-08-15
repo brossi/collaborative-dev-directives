@@ -128,6 +128,7 @@ test('every Game route has one exact request family', () => {
   const cases = [
     ['/v1/game/trace/context', { traceId: TRACE }, 'traceContext'],
     ['/v1/game/trace/context', { active: true }, 'traceContext'],
+    ['/v1/game/trace/start-context', { requestId: REQUEST }, 'traceStartReceiptContext'],
     ['/v1/game/synchronization/context', { sampleId: SAMPLE }, 'issuanceContext'],
     ['/v1/game/trace/start', startBody(), 'startTrace'],
     ['/v1/game/trace/end', {
