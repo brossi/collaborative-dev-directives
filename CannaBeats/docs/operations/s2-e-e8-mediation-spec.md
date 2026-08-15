@@ -716,7 +716,7 @@ Game keeps at most 32 grant records in one process-local `Map`. A grant ID is a
 deterministic version-5 UUID derived from `{traceId,listenerInstanceId,
 consentGeneration}` with the new fixed `listener-grant` label. Each record contains only `{grantId,principalId,
 runId,runGeneration,traceId,correlationSegmentId,leaseId,listenerInstanceId,
-role,generation,status,expiresAtMs,lastStopRequestId}`. Expiry is exactly the
+role,generation,status,expiresAtMs,lastStopRequestId,optInRequestId}`. Expiry is exactly the
 earlier of `consent.changedAtMs + 15 minutes` and trace expiry, so replay
 reconstructs the identical value. Lazy
 cleanup runs before grant lookup or insertion. At the fixed cap, a new opt-in
@@ -724,13 +724,19 @@ returns `quota_exhausted`; no eviction can transfer or revive authority.
 
 The grant is returned only to that browser response and remains in memory; it
 is not placed in a cookie, URL, log, collector row, State row, or local browser
-storage. Page or Game restart loses it. A same-process exact opt-in retry derives
+storage. Before collector dispatch, Game retains one bounded memory-only
+pending opt-in binding `{requestId,principalId,runId,listenerInstanceId,
+expiresAtMs}`. It counts within the same 32-record cap and permits response-loss
+reconciliation only for the same authenticated principal in the same Game
+process. Page or Game restart loses both pending and accepted grants. A
+same-process exact opt-in retry derives
 the same grant ID and returns the same binding. E8.1 adds one Game-scoped exact
 operation-receipt lookup for `consent_opt_in|consent_stop`; it returns only the
 validated retained E2 receipt for that request ID or `receipt_absent`. After a
-Game restart, opt-in retry authenticates the principal, restores that receipt,
-binds its trace and instance to the request and State membership, and
-reconstructs the identical grant without backfilling an earlier local report.
+Game restart, opt-in retry may authenticate and validate the retained receipt
+but returns finite `grant_lost`; the browser starts a fresh opt-in request and
+consent generation. A receipt contains no principal identity, so it cannot
+safely reconstruct member authority after the memory-only binding is gone.
 Stop retry likewise derives the original grant generation from its retained
 command/result. Conflicting request-ID reuse fails before a new grant is
 installed. The receipt lookup is not a report, host-read, or arbitrary request
@@ -792,7 +798,7 @@ gameplay, and readiness continue unchanged.
 | Conflict | `runtime`: changed reuse of request, sample, grant, instance, or report identity fails before current authority can create another effect. |
 | Concurrency | `runtime`: one tail keyed by opt-in request until grant creation and then by grant ID serializes synchronization, stop, and report dispatch; collector transactions remain final consent/report authority. |
 | Expiry | `runtime`: grant lookup rejects at `now >= expiresAtMs`; issuance and trace equality retain their verified E7 boundaries. |
-| Restart | `structural`: Game grants vanish; exact opt-in may reconstruct from the collector receipt, while reports cannot proceed until a fresh in-memory grant exists. |
+| Restart | `structural`: pending and accepted Game grants vanish; a retained receipt cannot recreate member authority and exact opt-in returns `grant_lost`, after which a fresh request/generation is required. |
 | Dependency failure | `runtime`: bounded Access/State/collector calls return finite diagnostic failure and cannot mutate playback, room state, or local E5/E6 records. |
 | Corruption | `runtime`: grants are closed module records; every collector/State response is exact and rebound to the grant and request before projection. |
 | Capacity | `runtime`: 32 grants, one pending operation per grant, 15-minute lifetime, 8 KiB browser body, and existing E1/E2/E7 byte/report limits. |
@@ -802,7 +808,7 @@ gameplay, and readiness continue unchanged.
 Before closure, tests derive these schedules from the matrix:
 
 - opt-in exact replay, changed-request conflict, response loss after collector
-  commit, Game restart reconstruction, cap `31/32/33`, and trace/run/lease
+  commit, Game restart `grant_lost` plus fresh generation, cap `31/32/33`, and trace/run/lease
   replacement before grant installation;
 - synchronization exact retry, changed instance/trace substitution, expiry
   equality, and delayed old-grant response after restart;

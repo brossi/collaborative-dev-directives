@@ -183,6 +183,21 @@ export function createDiagnosticCollectorClient({
     reportIdentityContext: ({ traceId,instanceId,sequence }) => request(
       "/v1/game/report/context",{ traceId,instanceId,sequence },
     ),
+    issuanceContext: (sampleId) => request(
+      "/v1/game/synchronization/context",{ sampleId },
+    ),
+    putIssuance: ({ traceId,issuance }) => request(
+      "/v1/game/synchronization/issue",{ traceId,issuance },
+    ),
+    optIn: ({ command,authority }) => request(
+      "/v1/game/consent/opt-in",{ command,authority },
+    ),
+    stopSharing: ({ command,authority }) => request(
+      "/v1/game/consent/stop",{ command,authority },
+    ),
+    ingestReport: ({ envelope,grantGeneration }) => request(
+      "/v1/game/report/ingest",{ envelope,grantGeneration },
+    ),
     startTrace: ({ command,authority }) => request(
       "/v1/game/trace/start",{ command,authority },
     ),
