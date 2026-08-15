@@ -56,6 +56,7 @@ requires one exact bearer credential:
 | `/v1/game/trace/context` | POST | Game | exactly `{traceId}`, `{activeRunId}`, or `{active:true}` | `traceContext` |
 | `/v1/game/trace/start-context` | POST | Game | exactly `{requestId}` | `traceStartReceiptContext` |
 | `/v1/game/consent/receipt-context` | POST | Game | exactly `{requestId,operation}` for `consent_opt_in|consent_stop` | `consentReceiptContext` |
+| `/v1/game/report/context` | POST | Game | exactly `{traceId,instanceId,sequence}` | `reportIdentityContext` |
 | `/v1/game/trace/start` | POST | Game | `{command,authority}` | `startTrace` |
 | `/v1/game/trace/end` | POST | Game | `{command,authority}` | `endTrace` |
 | `/v1/game/segment/rotate` | POST | Game | `{authority}` | `rotateSegment` |
@@ -752,8 +753,11 @@ bounded collector call, and persists it through the existing Game-scoped
 issuance endpoint. Exact retry first asks for the retained issuance by sample
 ID and returns it only when trace, timebase, and instance match the grant.
 
-For upload, Game authenticates the principal, resolves the exact grant, repeats
-State membership, reconciles the active trace/current managed stream, and
+For upload, Game authenticates the principal, resolves the exact grant, and
+first asks the collector for that grant-bound E1 report identity. A matching
+retained core returns its original `replayed` result and changed reuse returns
+`report_conflict` before current authority; no report returns `report_absent`.
+Only the absent case repeats State membership, reconciles the active trace/current managed stream, and
 requires the grant's run generation, trace, segment, and lease still match.
 Game restores the retained issuance by caller-supplied `sampleId`, requires its
 trace/timebase/instance match the grant, accepts the four-field local timing

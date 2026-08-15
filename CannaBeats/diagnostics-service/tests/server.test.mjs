@@ -211,7 +211,8 @@ test('every normalized Game operation delegates once to only its named collector
   const calls = [];
   const collector = {};
   for (const method of [
-    'traceContext', 'traceStartReceiptContext', 'consentReceiptContext', 'issuanceContext',
+    'traceContext', 'traceStartReceiptContext', 'consentReceiptContext',
+    'reportIdentityContext', 'issuanceContext',
     'startTrace', 'endTrace', 'rotateSegment',
     'putIssuance', 'optIn',
     'stopSharing', 'bindRelay', 'ingestReport', 'readTrace',
@@ -227,6 +228,8 @@ test('every normalized Game operation delegates once to only its named collector
     { operation: 'traceStartReceiptContext', requestId: REQUEST },
     { operation: 'consentReceiptContext', requestId: REQUEST,
       consentOperation: 'consent_opt_in' },
+    { operation: 'reportIdentityContext', traceId: TRACE,
+      instanceId: TRACE,sequence: 0 },
     { operation: 'issuanceContext', sampleId: TRACE },
     { operation: 'startTrace', command: marker, authority: marker },
     { operation: 'endTrace', command: marker, authority: marker },
@@ -243,12 +246,13 @@ test('every normalized Game operation delegates once to only its named collector
   }
   assert.deepEqual(calls.map(([method]) => method),
     operations.map(({ operation }) => operation));
-  assert.deepEqual(calls[11], [
+  assert.deepEqual(calls[12], [
     'ingestReport', marker, { receivedAt: 4321, grantGeneration: 2 },
   ]);
   assert.deepEqual(calls[1],['traceStartReceiptContext',REQUEST]);
   assert.deepEqual(calls[2],['consentReceiptContext',REQUEST,'consent_opt_in']);
-  assert.deepEqual(calls[3],['issuanceContext',TRACE,4321]);
+  assert.deepEqual(calls[3],['reportIdentityContext',TRACE,TRACE,0]);
+  assert.deepEqual(calls[4],['issuanceContext',TRACE,4321]);
   assert.throws(() => delegateGameCollectorOperation(collector,
     { operation: 'unknown' }, 4321), (error) => error.code === 'request_invalid');
 });

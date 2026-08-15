@@ -28,6 +28,7 @@ const GAME_PATHS = new Set([
   '/v1/game/trace/context',
   '/v1/game/trace/start-context',
   '/v1/game/consent/receipt-context',
+  '/v1/game/report/context',
   '/v1/game/synchronization/context',
   '/v1/game/trace/start',
   '/v1/game/trace/end',
@@ -105,6 +106,11 @@ export function delegateGameCollectorOperation(collector, operation, receivedAt)
   }
   if (operation.operation === 'consentReceiptContext') {
     return collector.consentReceiptContext(operation.requestId,operation.consentOperation);
+  }
+  if (operation.operation === 'reportIdentityContext') {
+    return collector.reportIdentityContext(
+      operation.traceId,operation.instanceId,operation.sequence,
+    );
   }
   if (operation.operation === 'issuanceContext') {
     return collector.issuanceContext(operation.sampleId,receivedAt);

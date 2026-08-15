@@ -180,6 +180,9 @@ export function createDiagnosticCollectorClient({
     consentReceiptContext: (requestId,operation) => request(
       "/v1/game/consent/receipt-context",{ requestId,operation },
     ),
+    reportIdentityContext: ({ traceId,instanceId,sequence }) => request(
+      "/v1/game/report/context",{ traceId,instanceId,sequence },
+    ),
     startTrace: ({ command,authority }) => request(
       "/v1/game/trace/start",{ command,authority },
     ),

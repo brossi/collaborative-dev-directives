@@ -365,6 +365,11 @@ function normalizeContext(parsed) {
 
 /** Test-only authority seam. E8 replaces this with authenticated State facts. */
 export function createServerContextFixtureForTest(input) {
+  return validateServerContextJson(input);
+}
+
+/** Exact E8 boundary for a server context derived only by Game and State. */
+export function validateServerContextJson(input) {
   const context = deepFreeze(normalizeContext(parseBytes(input, 'authority_invalid')));
   contextFixtures.add(context);
   return context;

@@ -607,6 +607,25 @@ export class DiagnosticCollector {
     });
   }
 
+  reportIdentityContext(traceId, instanceId, sequence) {
+    if (!validUuid(traceId) || !validUuid(instanceId)
+      || !Number.isSafeInteger(sequence) || sequence < 0) fail('request_invalid');
+    return transaction(this.db, () => {
+      const row = this.db.prepare(`SELECT * FROM diagnostic_reports
+        WHERE trace_id=? AND instance_id=? AND sequence=?`).get(traceId,instanceId,sequence);
+      if (!row) return { status: 'report_absent' };
+      const envelope = retained(() => restoreUploadedEnvelopeFromTrustedStore(
+        row.canonical_envelope,
+      ));
+      if (envelope.serverContext.traceId !== traceId
+        || envelope.measurementCore.instanceId !== instanceId
+        || envelope.measurementCore.sequence !== sequence
+        || !sameBytes(row.canonical_envelope,
+          retained(() => canonicalUploadedEnvelopeBytes(envelope)))) dataFail();
+      return { status: 'found',envelope,receivedAt: row.received_at };
+    });
+  }
+
   startTrace(command, authority) {
     return transaction(this.db, () => {
       expireActiveIfDue(this.db, authority.nowMs);

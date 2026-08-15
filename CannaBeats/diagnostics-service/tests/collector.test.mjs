@@ -560,6 +560,13 @@ test('all six report kinds ingest atomically and replay by E1 identity', () => {
     assert.equal(replayed.status, 'replayed');
     assert.equal(replayed.receivedAt, 2000 + index * 1100);
   }
+  const retainedListener = collector.reportIdentityContext(TRACE,INSTANCE,0);
+  assert.equal(retainedListener.status,'found');
+  assert.equal(retainedListener.envelope.measurementCore.kind,'listener_window');
+  assert.equal(retainedListener.receivedAt,2000);
+  assert.deepEqual(collector.reportIdentityContext(TRACE,INSTANCE,99),{
+    status: 'report_absent',
+  });
   const changed = fixture('source_window', 2);
   changed.measurements.capturedFrames = 47_999;
   changed.measurements.enqueuedFrames = 47_999;
