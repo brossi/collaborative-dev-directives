@@ -857,9 +857,10 @@ caller; E8 owns real Game/maintenance credentials and State-derived authority.
 Game/State/audio readiness, backup, and rollback do not depend on diagnostics.
 
 Exit gate: process/SQLite/Compose tests prove caps, retention/purge, restore
-exclusion, disposable-schema recreation, and unchanged S2-D behavior under
- collector loss or corruption. The real two-credential caller matrix remains an
- E8 gate.
+exclusion, disposable-schema recreation, separate mounts/resources, and no
+collector dependency in authority readiness. The real two-credential caller
+matrix, bounded Game proxy behavior, collector hang/loss effects on Game/audio,
+and unchanged S2-D behavior remain E8 gates.
 
 The E7.3 HTTP adapter is a loopback/private-topology test seam and is not
 deployable by itself. Production enablement requires E8's distinct Game and

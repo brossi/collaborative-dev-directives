@@ -81,7 +81,7 @@ Schema generation 1 contains only these durable domains:
   canonical_bytes, mode, degraded_reason)`;
 - `diagnostic_traces(trace_id, run_id, run_generation, status, started_at,
   active_expires_at, ended_at, end_reason, purge_after, current_segment_id,
-  periodic_count, transition_count, canonical_bytes)`;
+  report_revision, periodic_count, transition_count, canonical_bytes)`;
 - `diagnostic_segments(segment_id, trace_id, lease_id, started_at)` with an
   immutable trace foreign key;
 - `diagnostic_issuances(sample_id, trace_id, instance_id, timebase_id,
@@ -92,7 +92,7 @@ Schema generation 1 contains only these durable domains:
   first_allowed_sequence, local_consent_started_ms, changed_at)`;
 - `diagnostic_relay_bindings(relay_generation_id, trace_id, segment_id,
   lease_id)`; a generation is inserted once and never updated;
-- `diagnostic_reports(trace_id, instance_id, sequence, kind, bucket,
+- `diagnostic_reports(trace_id, instance_id, sequence, row_ordinal, kind, bucket,
   received_at, mapped_start_earliest, mapped_end_latest, core_digest,
   envelope_digest, canonical_envelope)` with primary key
   `(trace_id, instance_id, sequence)` and trace cascade deletion; and
@@ -115,10 +115,11 @@ active status enforces one active trace in addition to the writer transaction.
 
 Trace relations are exact: `active_expires_at = started_at + 21600000` using
 checked arithmetic; active rows have null `ended_at`, `end_reason`, and
-`purge_after`; ended rows have a finite E2 end reason, `started_at <= ended_at <=
-active_expires_at`, and `purge_after = ended_at + 172800000`. At exact active
-expiry, E7's collector-clock edge stores the E2-compatible terminal state with
-reason `expired` before evaluating another operation. Every segment starts
+`purge_after`; an `expired` row has `ended_at = active_expires_at`, while other
+ended rows have `started_at <= ended_at < active_expires_at`.
+`purge_after = ended_at + 172800000`. At or after active expiry, E7's
+collector-clock edge invokes the E2 authority-free expiry transition and stores
+that exact logical terminal state before evaluating another operation. Every segment starts
 within its trace and strictly before active expiry. End and purge are monotonic;
 no retained trace identity can become active again.
 
@@ -144,6 +145,10 @@ a new disposable volume, but it cannot do so to Access or State files.
   for the same trace/instance has collector `received_at` less than 1,000 ms
   earlier. Exact replay/conflict is decided first and is never rate-limited.
   Source and relay reporters retain their own later E9/E10 bounded queues.
+- On first acceptance, `row_ordinal = trace.report_revision + 1` and the trace
+  revision advances to that value in the same transaction. Exact replay and
+  conflict do not advance it. `(trace_id,row_ordinal)` is unique, so the
+  read-snapshot watermark is independent of mapped-time ordering.
 - After complete incoming-envelope validation, exact replay looks up
   `(traceId,instanceId,sequence)` before current consent/trace decisions. The
   same canonical E1 core returns `replayed` with the originally stored envelope,
@@ -181,14 +186,15 @@ E7 exposes only these internal operations to its later adapter:
 | Operation | Durable inputs and result |
 | --- | --- |
 | `trace_start` | Verified E2 command, authority fixture, current active lookup, and issued IDs; commits active trace, first segment, and E2 receipt or returns `trace_busy`/replay. |
-| `trace_end` | Verified E2 command/authority/current trace; commits terminal E2 state, `purge_after=ended_at+172800000`, and receipt. At `now >= active_expires_at`, lazy/startup expiry uses reason `expired`. |
-| `issuance_put` | Exact server issuance derived by E8; commits one sample lookup expiring at `server_send_ms+60000`. It has no replay receipt and duplicate sample identity must be byte-identical. |
+| `trace_end` | Verified E2 command/authority/current trace; commits terminal E2 state, `purge_after=ended_at+172800000`, and receipt. At `now >= active_expires_at`, the authority-free expiry edge first stores `ended_at=active_expires_at` with no request receipt. |
+| `segment_rotate` | Verified current trace plus E2 authority fixture. Same current lease returns the retained segment; a changed lease atomically inserts the distinct issued segment and advances `current_segment_id`. It has no request receipt. |
+| `issuance_put` | Exact server issuance derived by E8; commits one sample lookup retained until `server_send_ms+120000`. E2 still enforces the 60-second local measurement interval. It has no replay receipt and duplicate sample identity must be byte-identical. |
 | `consent_opt_in|consent_stop` | Verified E2 command/authority/current consent; commits forward-only consent and E2 receipt atomically. |
 | `relay_bind` | Verified E2 command/authority plus atomically loaded generation binding; commits one immutable binding and E2 receipt. |
 | `report_ingest` | Complete validated E2 envelope plus listener grant generation when applicable; performs report-identity replay first, then trace/sample/consent/binding/rate/quota decisions, then row and counters. No request receipt. |
 | `trace_read` | Exact trace UUID plus optional opaque page cursor; returns metadata and at most 256 restored envelopes. E8 owns authorization. |
-| `trace_purge` | Exact `{requestId,operation:'trace_purge',parameters:{traceId}}`; removes the complete trace projection, converts its E2 request identities to hash-only tombstones, and retains only its exact purge receipt for 48 hours. |
-| `retention_sweep` | Collector-clock cutoff only; expires the active trace if needed, then removes at most one trace with `purge_after <= now`. No caller-supplied cutoff and no receipt. |
+| `trace_purge` | Exact `{requestId,operation:'trace_purge',parameters:{traceId}}`; requires an ended trace, removes its complete projection, converts its E2 request identities to hash-only tombstones, and retains only its exact purge receipt for 48 hours. |
+| `retention_sweep` | Collector clock only; deletes expired issuances/receipts/tombstones, expires the active trace if needed, then removes at most one trace with `purge_after <= now`. No caller-supplied cutoff and no receipt. |
 | `status` | Counts, physical mode, schema generation, and one finite reason only. |
 
 All operation commands are exact plain parsed-JSON objects, at most 8 KiB,
@@ -198,19 +204,32 @@ shapes:
 
 ```text
 purge result: {status:"purged"|"trace_absent", traceId:uuid}
-read cursor: null | {
-  mappedStartEarliestMs:serverTimeMs,
-  mappedEndLatestMs:serverTimeMs,
-  kind:E1 kind,
-  instanceId:uuid,
-  sequence:uint
+first read request: {traceId:uuid, cursor:null}
+later read cursor: {
+  readSessionId:uuid,
+  last:{mappedStartEarliestMs:serverTimeMs,
+        mappedEndLatestMs:serverTimeMs,
+        kind:E1 kind, instanceId:uuid, sequence:uint}
 }
 ```
 
-The next page uses strict tuple comparison after the cursor. Cursor fields must
-exactly match a retained row or the read returns `report_invalid`; this prevents
-caller-selected gaps or alternate ordering. Empty reads return `trace_absent`
-for no trace and `found` with an empty final page for a retained trace.
+The first page fully validates every envelope, digest, and denormalized column
+for the bounded trace inside one read transaction, then creates one random
+in-memory `readSessionId` holding `{traceId,maxRowOrdinal,reportCount,digest}`.
+At most 16 sessions exist and each expires after five minutes or process
+restart. Its first page returns that ID plus a cursor. Subsequent cursors are
+exact `{readSessionId,last:{mappedStartEarliestMs,mappedEndLatestMs,kind,
+instanceId,sequence}}`; the last tuple must match a row in that snapshot.
+
+Every page revalidates all snapshot rows with `row_ordinal <= maxRowOrdinal`,
+their derived columns, count, and digest before selecting at most 256 rows in
+the fixed tuple order. New reports have larger ordinals and are excluded. Purge,
+restart, expiry, corruption, or mismatch returns `read_expired`; all pages are
+provisional and E11 must discard them unless a final page with `complete:true`
+arrives. Empty reads return `trace_absent` for no trace and `found` with an empty
+complete page for a retained trace. A seventeenth concurrent session returns
+`collector_busy`; no durable read-session table or general cursor framework is
+introduced.
 
 ## Invariants
 
@@ -223,11 +242,11 @@ for no trace and `found` with an empty final page for a retained trace.
 | E7-QUOTA-001 | Periodic, transition, trace, receipt/tombstone, trace-byte, global-row, and global-byte limits are checked inside the writer transaction and reconciled on delete. | `quota_exhausted`; no eviction | boundary/concurrent tests |
 | E7-TRACE-001 | Reports are accepted only before `active_expires_at` for the single active trace and their validated stored context names that trace/segment. At equality the trace first ends as `expired`. | `trace_inactive` | status/expiry/context table |
 | E7-E2STATE-001 | Trace/segment, issuance, consent, relay binding, and E2 receipts are stored/restored exactly; delayed or restarted work cannot be rebound from current authority. | finite fail-closed result | restart and stale-generation matrix |
-| E7-READ-001 | Reads return pages of at most 256 envelopes in stable `(mapped_start_earliest,mapped_end_latest,kind,instance_id,sequence)` order or one finite degraded result. | no partial/corrupt projection | malformed-retained/read/cursor tests |
+| E7-READ-001 | Reads fully preflight one bounded trace, then return provisional pages of at most 256 envelopes from one immutable in-memory ordinal watermark in stable `(mapped_start_earliest,mapped_end_latest,kind,instance_id,sequence)` order. Only a final complete page may be published. | `read_expired` or no partial/corrupt projection | malformed-retained/read/cursor/purge tests |
 | E7-PURGE-001 | Purge atomically removes the trace, reports, segments, issuances, consents, relay bindings, and E2 receipts; only hash-only prior-request tombstones and its bounded exact purge receipt remain. Global counters reconcile in that transaction. | no partially readable trace | failure/retry/restart tests |
 | E7-RET-001 | `purge_after = ended_at + 48h`; equality is eligible. Retention removes one complete eligible trace, replaces its request identities with bounded hash-only tombstones, and never touches another store. | finite failure; no cross-trace delete | cutoff and isolation tests |
 | E7-PHYS-001 | New mutation admission stops at 256 MiB observed physical use or host free space below 1 GiB. The threshold permits only the explicitly bounded current transaction/maintenance overshoot and recovers after a successful fresh observation below both limits. | `collector_degraded` | injected-usage/recovery tests |
-| E7-ISOLATE-001 | Collector absence, hang, full store, incompatible schema, or deletion cannot change Game/State/audio readiness, backup, or rollback. | diagnostics unavailable only | E7.3 topology/rehearsal tests |
+| E7-ISOLATE-001 | Collector files and service have a separate volume/runtime, are excluded from authority backup/restore/rollback, and are not a Compose readiness dependency of Game, State, Access, or audio. | collector-local failure only | E7.3 topology/configuration tests |
 | E7-PRIV-001 | Store, projections, finite errors, and logs contain only the enumerated fields and never free-form input. | whole request/report rejected | recursive schema/log tests |
 
 ## Lifecycle, concurrency, and interruption matrix
@@ -248,15 +267,17 @@ serializes different requests; callers do not coordinate in memory.
 | Trace end versus ingest | transaction order decides | ingest accepted before end or `trace_inactive` after | report committed to ended trace |
 | Stop-sharing versus unseen report | transaction order decides | accepted before stop or `sharing_disabled` after | unseen old-generation row after stop |
 | Relay bind versus lease rotation | immutable binding uses the segment observed by the winning transaction | original binding or `stale_correlation` | rebind to current lease |
+| Segment rotation response loss/restart | one inserted segment and advanced current pointer | same-lease retry returns the retained segment | second segment for one lease or lost prior binding |
 | Issuance response loss/expiry | unused issuance remains bounded until expiry | new attempt uses a new issuance | pairing old server times with new local observation |
-| Purge versus read/ingest | transaction order decides | complete old projection or finite absent/inactive | partial trace |
+| Purge versus read/ingest | transaction order decides; purge invalidates read sessions | complete finalized old projection or `read_expired`/inactive | publishing provisional partial pages |
 | Process exit after commit | committed transaction survives | replay after restart | reconstructed caller result differs |
 | Process exit before commit | SQLite rollback | retry may accept | orphan counter/row |
 | Busy reader/WAL checkpoint | logical data remains correct | bounded deferred checkpoint; reads remain finite | false physical-erasure claim |
 | Incompatible restart | original file unchanged | `schema_incompatible` | in-place repair or authority impact |
 
 Startup validates the complete schema and retained aggregate counters before
-serving. It deletes expired unused issuances and purge receipts, lazily ends an
+serving. It deletes expired unused issuances, purge receipts, and request
+tombstones, lazily ends an
 active trace whose `active_expires_at <= now`, and removes at most one
 retention-eligible trace per bounded sweep. Normal operations repeat the active
 expiry check inside their writer transaction, so a missed timer cannot extend
@@ -275,7 +296,8 @@ Finite mutation outcomes are `accepted`, `replayed`, `ended`, `purged`,
 `stale_correlation`, `report_invalid`, `report_too_large`, `report_conflict`,
 `request_conflict`, `rate_limited`, `quota_exhausted`, `collector_degraded`,
 `collector_busy`, and `schema_incompatible`. Reads return `found`,
-`trace_absent`, or `collector_degraded`; status returns `healthy` or `degraded`
+`trace_absent`, `read_expired`, `collector_busy`, or `collector_degraded`;
+status returns `healthy` or `degraded`
 with one finite reason. Internal logs contain only outcome, operation, schema
 generation, and a freshly generated correlation reference; they never echo
 request bodies or persistent identifiers.
@@ -288,11 +310,17 @@ and 256 rows per read page. Envelopes, issuance records, and receipts are
 byte-counted once in the global counter; trace-scoped values are also charged to
 their trace. Counters do not pretend to estimate SQLite overhead.
 
-The 4,096 request-record limit counts live receipts and tombstones together. Of
-those rows, 128 are reserved for `trace_end`, `consent_stop`, and `trace_purge`;
-ordinary trace start, opt-in, and relay binding stop at 3,968.
-This keeps authority-reducing cleanup available after optional diagnostic
-admission is otherwise full. The capacity worksheet uses the measured maximal
+The 4,096 request-record limit counts live receipts and tombstones together.
+The store computes `cleanupObligations` as two slots for each active trace
+(future end and purge), one for each ended retained trace (future purge), and one
+for each enabled consent (future stop). A non-reducing request is accepted only
+when `requestRecords + 1 + cleanupObligationsAfter <= 4096`. End, stop, and purge
+consume a reserved obligation as they add their receipt, so an existing trace
+or enabled consent can always move toward less authority even when ordinary
+admission is full. Purging a trace replaces its request receipts with the same
+number of tombstones and exchanges its purge obligation for the purge receipt.
+An absent purge may return `quota_exhausted` when no unreserved slot remains;
+it cannot block cleanup of a retained trace. The capacity worksheet uses the measured maximal
 valid canonical envelope produced by the E2 prerequisite and proves the normal
 21,600-window workload fits the 64-MiB trace budget; if it does not, the schema
 does not ship by silently weakening a limit.
@@ -323,7 +351,12 @@ when usage is below 256 MiB and free space is at least 1 GiB, ordinary admission
 resumes. Schema or retained-data corruption remains degraded until the volume
 is replaced; it never self-repairs authoritative-looking rows.
 
-There is no retry queue. SQLite busy waits are bounded. A failed request returns
+There is no retry queue. SQLite busy waits are bounded. Once per minute and at
+startup, one bounded maintenance pass deletes all expired issuances, request
+tombstones, and purge receipts with counter reconciliation, applies automatic
+expiry, and removes at most one retention-eligible trace. With at most 32 trace
+rows, retention cleanup lag is at most 32 minutes after eligibility while the
+process is running. A failed request returns
 one finite result and the future E8 gateway decides whether to retry. Retention
 runs one bounded trace at a time and records no general job history.
 
@@ -361,7 +394,7 @@ isolation checks.
 | --- | --- | --- | --- |
 | E7.1 core | SCHEMA, OWN, INGEST, REPLAY, QUOTA, TRACE, E2STATE, PRIV | schema tamper, second writer, rollback injection, lost response, consent/relay/restart races, exact/conflicting concurrency, cap ±1 | `transactional core locally verified`; no service/integration claim |
 | E7.2 retention/read | READ, PURGE, RET, PHYS | corrupt row, max read, cutoff equality, purge/read race, busy checkpoint, restart | `bounded disposable store locally verified`; no auth claim |
-| E7.3 isolation | ISOLATE plus prior invariants | absent/hung/full/incompatible/deleted collector, backup/restore/rollback | `optional collector locally verified`; no real caller-authority claim |
+| E7.3 isolation | ISOLATE plus prior invariants | absent/full/incompatible/deleted collector process and volume, backup/restore/rollback topology | `optional collector topology locally verified`; no Game/audio failure-isolation or caller-authority claim |
 
 ## Design-review decision
 

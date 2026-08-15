@@ -124,7 +124,9 @@ The authenticated producer submits only this exact observation:
 
 The future Game/collector issuance store supplies a separately branded exact
 record `{sampleId, timebaseId, instanceId, serverReceiveMs, serverSendMs}`.
-E2 requires both IDs to match and composes them into the exact accepted sample:
+E2 requires both IDs to match and composes them into the exact accepted sample.
+E7 retains the unused issuance for a 120-second transport grace while E2 keeps
+the report-mapping validity below at exactly 60 seconds:
 
 ```text
 {
@@ -142,7 +144,7 @@ E2 requires both IDs to match and composes them into the exact accepted sample:
 No public E2 input accepts `timebaseId`, `serverReceiveMs`, or `serverSendMs`.
 If a producer includes a copy, the unknown fields are rejected rather than used
 or corrected. E8 owns authenticated issuance/lookup and E7 owns its bounded
-60-second persistence; the pure E2 fixture supplies only the same private
+120-second transport-grace persistence; the pure E2 fixture supplies only the same private
 provenance brand.
 
 No additional synchronization route is introduced. The listener-instance,
@@ -277,6 +279,18 @@ boundary. All-six-kind maximal-shape and 4,096/4,097-byte tests are a required
 E7.1 prerequisite. E7 owns transactions and storage, not a second envelope
 schema.
 
+E2 also exposes narrow trusted-store restoration functions for the exact trace,
+consent, relay-binding, and synchronization-issuance projections. Each reruns
+the complete shape and relational invariants before restoring private
+provenance; none accepts authority overrides or derives a new decision. A
+receipt-free `expireDiagnosticTrace(currentTrace)` transition is defined only
+for an active trace at its logical boundary. It sets reason `expired` and
+`endedAtMs = expiresAtMs` exactly, regardless of when a collector restart first
+observes the boundary. The existing trace-end reducer uses that same rule when
+its observed clock is at or after expiry. These additive restoration/expiry
+surfaces and their restart tests are part of the E7.1 prerequisite, not the
+earlier `df41d2c` claim.
+
 ### Trace and segment state
 
 Absence of an active trace is represented only by exact `null`. It is not an
@@ -304,7 +318,9 @@ The pure current-state projection is exact:
 }
 ```
 
-`expiresAtMs = startedAtMs + 21600000` with checked arithmetic. An ended trace
+`expiresAtMs = startedAtMs + 21600000` with checked arithmetic. For
+`reason:"expired"`, `endedAtMs` is exactly `expiresAtMs`; other end reasons must
+commit before expiry and use the observed server time. An ended trace
 retains its final segment only as diagnostic correlation. It authorizes no new
 sample, consent, report, or read. E7 stores the current trace and prior segment bindings needed
 for already accepted reports; the E2 current projection deliberately is not an
@@ -373,10 +389,16 @@ Synchronization acquisition is not in this list. It is a side-effect-free
 timing attempt: each network attempt uses a new request UUID, and only a response
 actually received by the producer supplies the matching local receive time.
 A lost response creates no usable sample and retry starts a new attempt. The
-issuance becomes durable before its response is returned and expires after 60
+issuance becomes durable before its response is returned and expires after 120
 seconds. A response-loss issuance is harmless and expires unused. The complete
 accepted sample first becomes durable inside a report envelope when that report
 and its physically valid mapping commit together in E7.
+
+Automatic six-hour expiry is not a sixth request operation. It is an
+authority-reducing deterministic transition of the retained trace at its
+already-committed `expiresAtMs`; it has no caller request ID or receipt. A later
+explicit trace-end request observes the ended trace and returns the finite
+inactive result rather than creating another terminal effect.
 
 ### Listener consent state and ingest decision
 
