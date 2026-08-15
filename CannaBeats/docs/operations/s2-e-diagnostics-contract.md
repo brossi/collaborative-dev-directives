@@ -1,13 +1,13 @@
 # S2-E listener, source, and relay diagnostics contract
 
 Status: the S2-E architecture and checkpoint framework use the small-deployment
-scale filter and each detailed checkpoint must pass its own closure gate. E1 is
-locally verified at its recorded exact implementation target. E2's isolated
-pure model is also locally verified at `df41d2c`; persistence, routing, and
-authenticated integration remain owned by E7/E8.
-E3's isolated comparison reducer is locally verified at `9075294`.
-The earlier broad executable-contract and listener prototypes remain archived
-outside the active branch and supply no evidence.
+scale filter and each detailed checkpoint must pass its own closure gate.
+E1-E6 are locally verified at their recorded exact targets. E7.1 and E7.2
+implement the unwired collector store, and E7.2 has passed its targeted
+transaction, retained-read, corruption, lifetime, and physical-boundary closure
+reviews with no open P0/P1; checkpoint bookkeeping is pending. E7.3-E12 remain
+open. The earlier broad executable-contract and listener prototypes remain
+archived outside the active branch and supply no evidence.
 
 This contract defines a bounded diagnostic plane for locating managed-audio
 quality failures. It consumes the S2-D stream, lease, handoff, and recovery
@@ -845,8 +845,11 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Status: `implementation-candidate` at `1311f37`. The independently reviewed
-bounded storage design is maintained in
+Status: `E7.2 closure review passed; checkpoint bookkeeping pending`. The
+unwired transactional and bounded retention/read increments are implemented
+and their targeted independent reviews found no open P0/P1. E7.3
+service/Compose isolation remains open. The independently reviewed bounded
+storage design is maintained in
 [E7 isolated collector and store](s2-e-e7-collector-store-spec.md).
 
 Add the disposable collector/store and dedicated volume in three increments:

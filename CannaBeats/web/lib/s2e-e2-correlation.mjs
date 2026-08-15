@@ -2,6 +2,7 @@ import {
   E1ContractError,
   canonicalMeasurementBytes,
   measurementIdentity,
+  validateMeasurementJson,
 } from './s2e-e1-contract.mjs';
 
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
@@ -9,6 +10,7 @@ const MAX_INPUT_BYTES = 8192;
 const MAX_RTT_MS = 2000;
 const MAX_SAMPLE_AGE_MS = 60000;
 const MAX_UNCERTAINTY_MS = 1000;
+const MAX_ENVELOPE_BYTES = 4096;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -72,6 +74,12 @@ function finiteTime(value, code) {
   return value;
 }
 
+function signedFinite(value, code) {
+  if (typeof value !== 'number' || !Number.isFinite(value)
+    || Object.is(value, -0) || value < -MAX_SAFE || value > MAX_SAFE) fail(code);
+  return value;
+}
+
 function positiveUint(value, code) {
   if (!Number.isSafeInteger(value) || value < 1) fail(code);
   return value;
@@ -116,17 +124,25 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function parseBytes(input, code) {
+function copyBytes(input, code, maximum = MAX_INPUT_BYTES) {
   try {
     if (!ArrayBuffer.isView(input) || !(input instanceof Uint8Array)) fail(code);
     const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
     const byteLength = Object.getOwnPropertyDescriptor(
       typedArrayPrototype, 'byteLength',
     ).get.call(input);
-    if (byteLength > MAX_INPUT_BYTES) fail(code);
+    if (byteLength > maximum) fail(code);
     const copy = new Uint8Array(byteLength);
     Uint8Array.prototype.set.call(copy, input);
-    return JSON.parse(decoder.decode(copy));
+    return copy;
+  } catch {
+    fail(code);
+  }
+}
+
+function parseBytes(input, code) {
+  try {
+    return JSON.parse(decoder.decode(copyBytes(input, code)));
   } catch {
     fail(code);
   }
@@ -165,8 +181,7 @@ function reportFamily(kind) {
 /** Test-only issuance seam. E8 replaces this with authenticated server facts. */
 export function createSynchronizationIssuanceFixtureForTest(input) {
   const code = 'sample_invalid';
-  const parsed = parseBytes(input, code);
-  const issuance = deepFreeze(exactRecord(parsed, {
+  const issuance = deepFreeze(exactRecord(parseBytes(input, code), {
     sampleId: (value) => uuid(value, code),
     timebaseId: (value) => uuid(value, code),
     instanceId: (value) => uuid(value, code),
@@ -175,6 +190,50 @@ export function createSynchronizationIssuanceFixtureForTest(input) {
   }, code));
   issuanceFixtures.add(issuance);
   return issuance;
+}
+
+export function restoreSynchronizationIssuanceFromTrustedStore(input) {
+  const code = 'sample_invalid';
+  const issuance = deepFreeze(exactRecord(parseBytes(input, code), {
+    sampleId: (value) => uuid(value, code),
+    timebaseId: (value) => uuid(value, code),
+    instanceId: (value) => uuid(value, code),
+    serverReceiveMs: (value) => finiteTime(value, code),
+    serverSendMs: (value) => finiteTime(value, code),
+  }, code));
+  if (issuance.serverSendMs < issuance.serverReceiveMs
+    || issuance.serverSendMs - issuance.serverReceiveMs > MAX_RTT_MS) fail(code);
+  issuanceFixtures.add(issuance);
+  return issuance;
+}
+
+export function canonicalSynchronizationIssuanceBytes(issuance) {
+  if (!issuanceFixtures.has(issuance)) fail('sample_invalid');
+  return encoder.encode(JSON.stringify(issuance));
+}
+
+function restoreAcceptedSample(value) {
+  const code = 'sample_invalid';
+  const sample = deepFreeze(exactRecord(value, {
+    sampleVersion: literal(1, code),
+    sampleId: (field) => uuid(field, code),
+    timebaseId: (field) => uuid(field, code),
+    instanceId: (field) => uuid(field, code),
+    localSendMs: (field) => finiteTime(field, code),
+    localReceiveMs: (field) => finiteTime(field, code),
+    serverReceiveMs: (field) => finiteTime(field, code),
+    serverSendMs: (field) => finiteTime(field, code),
+  }, code));
+  const localRtt = sample.localReceiveMs - sample.localSendMs;
+  const serverWork = sample.serverSendMs - sample.serverReceiveMs;
+  const lower = sample.serverSendMs - sample.localReceiveMs;
+  const upper = sample.serverReceiveMs - sample.localSendMs;
+  const uncertainty = (upper - lower) / 2;
+  if (localRtt < 0 || localRtt > MAX_RTT_MS || serverWork < 0
+    || serverWork > localRtt || lower > upper || !Number.isFinite(uncertainty)
+    || uncertainty < 0 || uncertainty > MAX_UNCERTAINTY_MS) fail(code);
+  acceptedSamples.add(sample);
+  return sample;
 }
 
 export function acceptSynchronizationSample(input, issuance) {
@@ -331,6 +390,61 @@ export function composeUploadedEnvelope(report, alignment, serverContext) {
   }));
   uploadedEnvelopes.add(envelope);
   return envelope;
+}
+
+export function canonicalUploadedEnvelopeBytes(envelope) {
+  if (!uploadedEnvelopes.has(envelope)) fail('report_invalid');
+  const encoded = encoder.encode(JSON.stringify(envelope));
+  if (encoded.byteLength > MAX_ENVELOPE_BYTES) fail('report_too_large');
+  return encoded;
+}
+
+export function restoreUploadedEnvelopeFromTrustedStore(input) {
+  let source;
+  let parsed;
+  try {
+    source = copyBytes(input, 'report_invalid');
+    if (source.byteLength > MAX_ENVELOPE_BYTES) fail('report_too_large');
+    parsed = JSON.parse(decoder.decode(source));
+  } catch (error) {
+    if (error instanceof E2ContractError) throw error;
+    fail('report_invalid');
+  }
+  const code = 'report_invalid';
+  if (!isRecord(parsed)) fail(code);
+  let core;
+  try {
+    core = validateMeasurementJson(encoder.encode(JSON.stringify(parsed.measurementCore)));
+  } catch {
+    fail(code);
+  }
+  const alignmentValue = exactRecord(parsed.alignment, {
+    alignmentVersion: literal(1, code),
+    sample: restoreAcceptedSample,
+    offsetLowerMs: (value) => signedFinite(value, code),
+    offsetUpperMs: (value) => signedFinite(value, code),
+    mappedStartEarliestMs: (value) => finiteTime(value, code),
+    mappedStartLatestMs: (value) => finiteTime(value, code),
+    mappedEndEarliestMs: (value) => finiteTime(value, code),
+    mappedEndLatestMs: (value) => finiteTime(value, code),
+    mappingUncertaintyMs: (value) => finiteTime(value, code),
+  }, code);
+  const expectedAlignment = mapMeasurementAlignment(core, alignmentValue.sample);
+  if (JSON.stringify(alignmentValue) !== JSON.stringify(expectedAlignment)) fail(code);
+  const context = deepFreeze(normalizeContext(parsed.serverContext));
+  contextFixtures.add(context);
+  const exactTop = exactRecord(parsed, {
+    uploadVersion: literal(1, code),
+    measurementCore: () => core,
+    alignment: () => expectedAlignment,
+    serverContext: () => context,
+  }, code);
+  const restored = composeUploadedEnvelope(
+    exactTop.measurementCore, exactTop.alignment, exactTop.serverContext,
+  );
+  const canonical = canonicalUploadedEnvelopeBytes(restored);
+  if (!sameBytes(source, canonical)) fail(code);
+  return restored;
 }
 
 export function uploadedEnvelopeIdentity(envelope) {
@@ -516,8 +630,9 @@ function normalizeTraceState(value) {
     || state.segment.startedAtMs >= state.expiresAtMs
     || (state.status === 'ended'
       && (state.ended.endedAtMs < state.segment.startedAtMs
-        || ((state.ended.endedAtMs >= state.expiresAtMs)
-          !== (state.ended.reason === 'expired'))))) fail(code);
+        || (state.ended.reason === 'expired'
+          ? state.ended.endedAtMs !== state.expiresAtMs
+          : state.ended.endedAtMs >= state.expiresAtMs)))) fail(code);
   return state;
 }
 
@@ -544,6 +659,39 @@ function normalizeRelayBinding(value) {
     segmentId: (field) => uuid(field, code),
     leaseId: (field) => uuid(field, code),
   }, code);
+}
+
+export function restoreTraceStateFromTrustedStore(input) {
+  const state = deepFreeze(normalizeTraceState(parseBytes(input, 'request_conflict')));
+  traceStates.add(state);
+  return state;
+}
+
+export function canonicalTraceStateBytes(state) {
+  if (!traceStates.has(state)) fail('request_conflict');
+  return encoder.encode(JSON.stringify(state));
+}
+
+export function restoreConsentStateFromTrustedStore(input) {
+  const state = deepFreeze(normalizeConsentState(parseBytes(input, 'request_conflict')));
+  consentStates.add(state);
+  return state;
+}
+
+export function canonicalConsentStateBytes(state) {
+  if (!consentStates.has(state)) fail('request_conflict');
+  return encoder.encode(JSON.stringify(state));
+}
+
+export function restoreRelayBindingFromTrustedStore(input) {
+  const state = deepFreeze(normalizeRelayBinding(parseBytes(input, 'request_conflict')));
+  relayBindings.add(state);
+  return state;
+}
+
+export function canonicalRelayBindingBytes(state) {
+  if (!relayBindings.has(state)) fail('request_conflict');
+  return encoder.encode(JSON.stringify(state));
 }
 
 export function restoreE2OperationReceiptFromTrustedStore(input) {
@@ -670,11 +818,29 @@ export function endDiagnosticTrace(currentTrace, command, authority, existingRec
     ...currentTrace,
     status: 'ended',
     ended: deepFreeze(Object.assign(Object.create(null), {
-      status: 'ended', endedAtMs: authority.nowMs, reason: authority.reason,
+      status: 'ended',
+      endedAtMs: authority.reason === 'expired'
+        ? currentTrace.expiresAtMs : authority.nowMs,
+      reason: authority.reason,
     })),
   }));
   traceStates.add(state);
   return accepted(command, state);
+}
+
+export function expireDiagnosticTrace(currentTrace) {
+  if (!traceStates.has(currentTrace) || currentTrace.status !== 'active') {
+    fail('stale_correlation');
+  }
+  const state = deepFreeze(Object.assign(Object.create(null), {
+    ...currentTrace,
+    status: 'ended',
+    ended: deepFreeze(Object.assign(Object.create(null), {
+      status: 'ended', endedAtMs: currentTrace.expiresAtMs, reason: 'expired',
+    })),
+  }));
+  traceStates.add(state);
+  return state;
 }
 
 export function rotateCorrelationSegment(currentTrace, authority) {

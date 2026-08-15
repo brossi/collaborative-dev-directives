@@ -4,7 +4,8 @@
 
 - Checkpoint: E7 — isolated collector and physical store
 - Scope revision: `E7-spec-v1`
-- Status: `implementation-candidate`
+- Status: `E7.2 closure review passed; checkpoint bookkeeping pending`; E7.3
+  remains unimplemented
 - Risk class: `B — boundary-bearing` for durable replay, retention, and a
   disposable SQLite schema; whole-trace purge is the only destructive edge
 - Exact independently reviewed design target:
@@ -87,25 +88,29 @@ Schema generation 1 contains only these durable domains:
   active_expires_at, ended_at, end_reason, purge_after, current_segment_id,
   report_revision, periodic_count, transition_count, canonical_bytes)`;
 - `diagnostic_segments(segment_id, trace_id, lease_id, started_at)` with an
-  immutable trace foreign key;
+  immutable trace foreign key and at most 256 retained segments per trace;
 - `diagnostic_issuances(sample_id, trace_id, instance_id, timebase_id,
-  server_receive_ms, server_send_ms, expires_at)`; unused rows expire after 60
+  server_receive_ms, server_send_ms, expires_at)`; unused rows expire after 120
   seconds and an accepted report retains its complete sample only in its E2
   envelope;
 - `diagnostic_consents(trace_id, listener_instance_id, generation, status,
   first_allowed_sequence, local_consent_started_ms, changed_at)`;
 - `diagnostic_relay_bindings(relay_generation_id, trace_id, segment_id,
   lease_id)`; a generation is inserted once and never updated;
-- `diagnostic_reports(trace_id, instance_id, sequence, row_ordinal, kind, bucket,
+- `diagnostic_reports(trace_id, instance_id, sequence, row_ordinal, segment_id, kind, bucket,
   received_at, mapped_start_earliest, mapped_end_latest, core_digest,
   envelope_digest, canonical_envelope)` with primary key
   `(trace_id, instance_id, sequence)` and trace cascade deletion; and
 - `diagnostic_requests(request_id, trace_id, operation, fingerprint,
   canonical_receipt, accepted_at, expires_at)` for the five exact E2 mutations
   plus E7 `trace_purge`; and
-- `diagnostic_request_tombstones(request_id, fingerprint, expires_at)` for
+- `diagnostic_request_tombstones(request_id, fingerprint, created_at, expires_at)` for
   purged/expired E2 requests. Request IDs are globally unique across both
   tables while retained.
+
+`accepted_at` is immutable collector receipt metadata, not authority evidence.
+Replay and expiry derive from canonical receipts, trace lifecycle, and exact
+expiry relationships; authorization never trusts `accepted_at`.
 
 There is no principal, player, room, song, URI, address, user-agent, free-form
 error, or credential column. `canonical_envelope` is the unchanged canonical
@@ -126,6 +131,12 @@ collector-clock edge invokes the E2 authority-free expiry transition and stores
 that exact logical terminal state before evaluating another operation. Every segment starts
 within its trace and strictly before active expiry. End and purge are monotonic;
 no retained trace identity can become active again.
+
+A segment row remains only while it is current or is named by a retained report
+or relay binding. Rotation prunes an unreferenced prior segment after advancing
+the current pointer. Each report row carries the envelope's validated segment
+identity as a denormalized foreign key, so startup and reads can reconcile the
+complete retained segment set without a separate history ledger.
 
 The schema ledger stores the SHA-256 digest of standard JSON encoding of
 `SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE
@@ -196,7 +207,7 @@ E7 exposes only these internal operations to its later adapter:
 | `consent_opt_in|consent_stop` | Verified E2 command/authority/current consent; commits forward-only consent and E2 receipt atomically. |
 | `relay_bind` | Verified E2 command/authority plus atomically loaded generation binding; commits one immutable binding and E2 receipt. |
 | `report_ingest` | Complete validated E2 envelope plus listener grant generation when applicable; performs report-identity replay first, then trace/sample/consent/binding/rate/quota decisions, then row and counters. No request receipt. |
-| `trace_read` | Exact trace UUID plus optional opaque page cursor; returns metadata and at most 256 restored envelopes. E8 owns authorization. |
+| `trace_read` | Exact trace UUID plus optional integrity-bound structured page cursor; returns exact bounded metadata and at most 256 restored envelopes. E8 owns authorization. |
 | `trace_purge` | Exact `{requestId,operation:'trace_purge',parameters:{traceId}}`; requires an ended trace, removes its complete projection, converts its E2 request identities to hash-only tombstones, and retains only its exact purge receipt for 48 hours. |
 | `retention_sweep` | Collector clock only; deletes expired issuances/receipts/tombstones, expires the active trace if needed, then removes at most one trace with `purge_after <= now`. No caller-supplied cutoff and no receipt. |
 | `status` | Counts, physical mode, schema generation, and one finite reason only. |
@@ -215,6 +226,8 @@ later read cursor: {
         mappedEndLatestMs:serverTimeMs,
         kind:E1 kind, instanceId:uuid, sequence:uint}
 }
+read metadata: {traceId:uuid,status:"active"|"ended",startedAtMs:serverTimeMs,
+  endedAtMs:serverTimeMs|null,endReason:E2 end reason|null,reportCount:uint}
 ```
 
 The first page fully validates every envelope, digest, and denormalized column
@@ -314,7 +327,8 @@ request bodies or persistent identifiers.
 
 Logical limits are 24,000 periodic plus 6,000 transition rows and 64 MiB of
 canonical blobs per trace; 90,000 reports, 4,096 retained request records,
-32 trace rows, and 192 MiB of canonical blobs globally; one active trace; 2,048
+32 trace rows, 256 retained segments per trace, and 192 MiB of canonical blobs
+globally; one active trace; 2,048
 bytes per canonical E1 core; 4,096 bytes per canonical E2 envelope or receipt;
 and 256 rows per read page. Envelopes, issuance records, and receipts are
 byte-counted once in the global counter; trace-scoped values are also charged to
@@ -338,7 +352,8 @@ does not ship by silently weakening a limit.
 Physical admission separately sums the main DB, WAL, SHM, dedicated SQLite temp
 directory, and the collector's bounded local log allocation, then observes host
 free space. At 256 MiB or below the 1-GiB reserve the store rejects new traces,
-issuances, consent opt-in, relay bindings, and report ingestion. Trace end,
+effectful segment rotations, issuances, consent opt-in, relay bindings, and
+report ingestion. Trace end,
 automatic expiry, consent stop, logical purge, reads, and status remain
 available through the reserved bounded cleanup allowance when SQLite permits
 them. A report transaction
@@ -349,14 +364,21 @@ stops ordinary mutation admission. The design allowance above the 256-MiB
 threshold is 1 MiB for one already-started ordinary transaction and 128 MiB for
 one whole-trace purge/checkpoint. Whole-trace purge may temporarily write up to
 one trace's bounded pages, so 256 MiB is explicitly an admission threshold, not
-a hard filesystem ceiling. E7.2 must demonstrate both overshoot ceilings with
-a full synthetic trace or lower the admission threshold before shipping; E12
-repeats disk measurements on the real host. `secure_delete` is not required.
+a hard filesystem ceiling. E7.2 demonstrates both ceilings with a schema-level
+physical surrogate or lowers the admission threshold before shipping. The local
+surrogate fills generation-1 report rows with maximal-size zero blobs until the
+64-MiB canonical-payload limit, then uses pinned readers to verify at most 1 MiB
+of WAL growth for one committed maximal row and at most 128 MiB for cascading
+trace deletion. It measures worst-case payload layout and deletion pressure; it
+does not claim to exercise valid E2 envelopes, tombstone creation, the purge
+receipt, or the complete collector purge operation. E12 repeats total physical
+measurements through the deployed collector path and filesystem. `secure_delete`
+is not required.
 Logical deletion, bounded checkpoints, and disposable-volume deletion are the
 only version-1 cleanup claims.
 
 Degraded physical mode is an observed condition rather than an irreversible
-database flag. Before each mutation the collector refreshes the measurement;
+database flag. Before each ordinary mutation the collector refreshes the measurement;
 when usage is below 256 MiB and free space is at least 1 GiB, ordinary admission
 resumes. Schema or retained-data corruption remains degraded until the volume
 is replaced; it never self-repairs authoritative-looking rows.
@@ -413,7 +435,8 @@ isolation checks.
   unproved envelope cap, and overstated physical-limit language. This revision
   resolves them with fixed tables, separate clocks, bounded receipt tombstones,
   an E2-owned 4-KiB envelope boundary, and an honest admission threshold.
-- Open blockers: none for E7.1 design; implementation evidence remains pending.
+- Open blockers: none for E7.1/E7.2 design; independent implementation closure
+  evidence remains pending.
 - Approved implementation scope: E2 complete-envelope encode/restore and
   retained-state restoration/expiry prerequisites, followed by the unwired
   E7.1 transactional SQLite core and focused tests.
@@ -425,4 +448,101 @@ isolation checks.
 - Dependency-firewall review passed: yes
 - Predictable-failure matrix resolved: yes
 - No open P0/P1 design finding: yes
-- Implementation authorized: yes, E7.1 only
+- Implementation authorized: yes, E7.1 and E7.2; E7.3 remains unauthorized
+
+## E7.1 implementation record
+
+The implemented increment is intentionally unwired. It adds the E2-owned
+canonical complete-envelope and trusted-store restoration surfaces, a separate
+`diagnostics-service` generation-1 SQLite schema, canonical schema-graph
+attestation, canonical-path plus inode lifetime ownership, and an internal
+transactional collector. The collector implements trace start/end and automatic
+expiry, receipt-free segment rotation and issuance insertion, consent and relay
+binding receipts, six-kind report ingest, exact report/request replay and
+conflict, fixed logical counters, and complete startup reconciliation.
+
+The focused evidence currently covers all six E1/E2 report families, complete
+envelope tamper and size rejection, exact operation/state restoration,
+same-path/symlink/hard-link/cross-process owner exclusion, schema tamper,
+retained-row corruption, receipt replay/conflict across restart, segment and
+consent/relay restart recovery, deterministic expiry, injected report-write
+rollback, and counter reconciliation. The focused command is:
+
+```sh
+node --test web/tests/s2e-e1-contract.test.mjs \
+  web/tests/s2e-e2-correlation.test.mjs \
+  diagnostics-service/tests/*.test.mjs
+```
+
+This record does not claim an authenticated service, retention/purge/read
+support, physical-pressure behavior, Compose isolation, or real-host capacity.
+Those remain assigned to E7.2, E7.3, E8, and E12 as specified above. The
+permitted status before an independent closure audit is only `E7.1 implemented;
+closure review pending`.
+
+## E7.2 implementation record
+
+### Retained-state closure matrix
+
+Governing invariant:
+
+> Every accepted E7.2 operation and retained mutation leaves a complete,
+> immutable, restart-valid trace projection, or the collector returns and
+> durably records its finite degraded result.
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `runtime`: `startTrace` rejects a trace UUID still named by a retained purge receipt; schema uniqueness rejects live duplicates. |
+| Update | `schema`: report, segment, issuance, relay-binding, request, and tombstone authority rows are immutable; trace lifecycle/revision/counters are monotonic; only named trace/consent transitions update. |
+| Delete | `runtime + schema`: one transaction deletes the whole trace domain; FK cascades and exact counter reconciliation prevent partial deletion. |
+| Omit | `runtime`: `validateTraceProjection` requires the complete child graph and exact report ordinals `1..report_revision`. |
+| Duplicate | `schema`: fixed primary/unique keys cover trace, request, report identity, segment/lease, issuance, consent, and relay generation. |
+| Reorder | `runtime`: immutable row ordinals are contiguous; read sessions bind an ordinal watermark and the exact immediately preceding sort tuple. |
+| Replay | `runtime`: exact report/request identity returns the retained original result before current-state evaluation. |
+| Conflict | `runtime + schema`: changed bytes under a retained identity fail before effects; live/tombstoned request identities cannot overlap. |
+| Concurrency | `runtime`: one `BEGIN IMMEDIATE` writer transaction owns lookup, validation, effect, counters, and receipt. |
+| Expiry | `schema + runtime`: exact timestamp relationships are constrained and revalidated; before/equality/after behavior is deterministic. |
+| Restart | `runtime`: startup runs FK, canonical-byte, denormalized-field, child-graph, ordinal, receipt, lifetime, and counter reconciliation. |
+| Dependency failure | `structural`: E7.2 is unwired and has no external dependency; E8 owns authenticated caller failures. SQLite failures become finite collector results. |
+| Corruption | `runtime`: every trusted-store restoration/canonicalization failure routes through `dataFail`; reads publish nothing until a final complete page. |
+| Capacity | `schema + runtime`: fixed trace/report/request/segment/byte limits and cleanup reservations; physical admission and schema-level WAL surrogate ceilings are tested. |
+
+The matrix is the E7.2 test source. A passing representative fixture does not
+replace deletion, gap, identity-reuse, expiry-equality, response-loss, restart,
+and relationship-preserving corruption schedules.
+
+E7.2 adds exact purge commands and retained purge receipts, whole-trace deletion,
+hash-only request tombstones, startup and explicit retention sweeps, issuance and
+receipt expiry, at-most-one-trace retention, validated provisional reads, and
+bounded in-memory cursor sessions. Every page revalidates both the complete
+current trace and the immutable ordinal-bounded snapshot. Cursor progression is
+exact; jump-ahead, replay, expiry, restart, trace mutation, corruption, and
+purge fail closed without a publishable partial projection.
+
+Ordinary mutation admission now observes the database/WAL/SHM physical total,
+host reserve, and injected bounded temp/log measurements. Exact replay is
+decided before the pressure gate, while end, consent stop, purge, reads, status,
+and passive-checkpoint maintenance remain available. Physical recovery is
+recomputed rather than durably latched. Dedicated temp/log allocation and
+service topology remain E7.3 work.
+
+Current evidence covers non-mutating incompatible-file rejection, foreign-key
+and exact retained-graph reconciliation, mechanically bounded request and
+tombstone lifetimes, the 256-segment ceiling, cutoff equality, two simultaneously
+eligible traces
+with one removal per sweep, startup retention, active-purge refusal,
+failure-before-purge-commit rollback, exact purge replay across restart,
+tombstone and purge-receipt expiry, 257-row paging, late out-of-order inserts,
+cursor jumps/replays, the 16-session bound, session expiry, corruption before
+the first page and between pages, purge invalidation, a pinned WAL reader, exact
+pressure admission including segment rotation, schema-level ordinary/cleanup
+WAL surrogate ceilings, cleanup under pressure, and pressure recovery. The
+implementation remains unwired. Targeted independent transaction/lifetime,
+retained-read/corruption, and physical-boundary reviews found no open P0/P1;
+the permitted status is `E7.2 closure review passed; checkpoint bookkeeping
+pending`. No HTTP, credential, Compose, authority-resolution, or operator-UI
+claim is made.
+
+Post-matrix remediation verification: diagnostics `21/21`; combined E1/E2/E7
+`53/53`; full Web production build and tests `248/248`; lint has zero errors and
+one pre-existing E5 unused-parameter warning. `git diff --check` passes.

@@ -6,7 +6,12 @@ import {
   E2ContractError,
   acceptSynchronizationSample,
   bindRelayGeneration,
+  canonicalConsentStateBytes,
   canonicalE2OperationReceiptBytes,
+  canonicalRelayBindingBytes,
+  canonicalSynchronizationIssuanceBytes,
+  canonicalTraceStateBytes,
+  canonicalUploadedEnvelopeBytes,
   classifyDiagnosticReportIngest,
   classifyTimebaseRelation,
   composeUploadedEnvelope,
@@ -14,9 +19,15 @@ import {
   createServerContextFixtureForTest,
   createSynchronizationIssuanceFixtureForTest,
   endDiagnosticTrace,
+  expireDiagnosticTrace,
   mapMeasurementAlignment,
   optInDiagnosticSharing,
   restoreE2OperationReceiptFromTrustedStore,
+  restoreConsentStateFromTrustedStore,
+  restoreRelayBindingFromTrustedStore,
+  restoreSynchronizationIssuanceFromTrustedStore,
+  restoreTraceStateFromTrustedStore,
+  restoreUploadedEnvelopeFromTrustedStore,
   rotateCorrelationSegment,
   startDiagnosticTrace,
   stopDiagnosticSharing,
@@ -313,6 +324,89 @@ test('all six E1 kinds preserve their core and derive family-specific authority'
     mapMeasurementAlignment(normalized, sample()),
     context('listener', { listenerInstanceId: TRACE_2 }),
   ));
+});
+
+test('complete uploaded envelopes canonically restore all six families', () => {
+  for (const [fixture, family] of [
+    [listenerWindow(), 'listener'], [listenerTransition(), 'listener'],
+    [sourceWindow(), 'source'], [sourceTransition(), 'source'],
+    [relayWindow(), 'relay'], [relayTransition(), 'relay'],
+  ]) {
+    const normalized = report(fixture);
+    const original = composeUploadedEnvelope(
+      normalized, mapMeasurementAlignment(normalized, sample()), context(family),
+    );
+    const canonical = canonicalUploadedEnvelopeBytes(original);
+    assert.ok(canonical.byteLength <= 4096);
+    const restored = restoreUploadedEnvelopeFromTrustedStore(canonical);
+    assert.deepEqual(canonicalUploadedEnvelopeBytes(restored), canonical);
+    assert.equal(uploadedEnvelopeIdentity(restored), uploadedEnvelopeIdentity(original));
+  }
+
+  const valid = canonicalUploadedEnvelopeBytes(envelope());
+  const tampered = JSON.parse(Buffer.from(valid).toString('utf8'));
+  tampered.alignment.mappedStartEarliestMs += 1;
+  expectCode('report_invalid', () => restoreUploadedEnvelopeFromTrustedStore(bytes(tampered)));
+  const reordered = JSON.parse(Buffer.from(valid).toString('utf8'));
+  expectCode('report_invalid', () => restoreUploadedEnvelopeFromTrustedStore(bytes({
+    serverContext: reordered.serverContext,
+    alignment: reordered.alignment,
+    measurementCore: reordered.measurementCore,
+    uploadVersion: 1,
+  })));
+  expectCode('report_too_large', () => restoreUploadedEnvelopeFromTrustedStore(
+    Buffer.alloc(4097, 0x20),
+  ));
+});
+
+test('trusted-store restoration recovers E2 state and deterministic expiry', () => {
+  const issued = issuance();
+  assert.deepEqual(
+    restoreSynchronizationIssuanceFromTrustedStore(
+      canonicalSynchronizationIssuanceBytes(issued),
+    ),
+    issued,
+  );
+
+  const started = startDiagnosticTrace(null, command('trace_start'), startAuthority()).state;
+  const rotated = rotateCorrelationSegment(started, operationAuthority({
+    operation: 'segment_rotate', nowMs: 2000, traceId: TRACE,
+    priorLeaseId: LEASE, leaseId: LEASE_2, issuedSegmentId: SEGMENT_2,
+  }));
+  const restoredTrace = restoreTraceStateFromTrustedStore(canonicalTraceStateBytes(rotated));
+  assert.deepEqual(restoredTrace, rotated);
+  const expired = expireDiagnosticTrace(restoredTrace);
+  assert.equal(expired.ended.endedAtMs, restoredTrace.expiresAtMs);
+  assert.deepEqual(
+    restoreTraceStateFromTrustedStore(canonicalTraceStateBytes(expired)), expired,
+  );
+
+  const consent = optInDiagnosticSharing(
+    null,
+    command('consent_opt_in', {
+      listenerInstanceId: INSTANCE, firstAllowedSequence: 1,
+      localConsentStartedMs: 120,
+    }, REQUEST_2),
+    operationAuthority({
+      operation: 'consent_opt_in', nowMs: 1000, traceId: TRACE,
+      listenerInstanceId: INSTANCE,
+    }),
+  ).state;
+  assert.deepEqual(
+    restoreConsentStateFromTrustedStore(canonicalConsentStateBytes(consent)), consent,
+  );
+
+  const binding = bindRelayGeneration(
+    started, null,
+    command('relay_bind', { relayGenerationId: INSTANCE }, REQUEST_3),
+    operationAuthority({
+      operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT,
+      leaseId: LEASE, relayGenerationId: INSTANCE,
+    }),
+  ).state;
+  assert.deepEqual(
+    restoreRelayBindingFromTrustedStore(canonicalRelayBindingBytes(binding)), binding,
+  );
 });
 
 test('different server timebases remain explicitly unrelated', () => {

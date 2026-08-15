@@ -1,10 +1,9 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E architecture and E1 specification revised through the
-  friends-and-family scale filter and pending fresh design audit; the prior
-  prototypes are archived outside the active branch; implementation,
-  collector/producers, and S2-F host proof remain pending
+  verified; S2-E E1-E6 are locally verified and E7.2 has passed its targeted
+  independent closure review, with checkpoint bookkeeping pending; E7.3-E12
+  and S2-F real-environment proof remain open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1041,16 +1040,16 @@ The normative design and implementation sequence are maintained in the
 
 Current checkpoint status: E1 measurement/privacy is locally verified at its
 recorded exact target; E2 synchronization/correlation is locally verified at
-`df41d2c`. E7 persistence and E8 routing/authenticated authority integration
-remain separate unimplemented boundaries.
-E3 evidence comparison is locally verified at `9075294`; its isolated
-fixed-rule classifier passed targeted independent closure. E7/E8/E11/E12
-integration remains separate and unverified.
+`df41d2c`; and E3 evidence comparison is locally verified at `9075294`.
 E4 worklet instrumentation and its atomic MessagePort protocol are locally
 verified at `bf4d760`. E5 browser attempt, window, and cleanup lifecycle is
 locally verified at `087b8ea` after three independent final reviews. E6's
 local-only panel, canonical copy, reset control, and production E5 attachment
-are locally verified at `b0596f2`; real-device timing remains an E12 gate.
+are locally verified at `b0596f2`. E7.1 and E7.2 implement the unwired collector
+store; the targeted E7.2 transaction, retained-read, corruption, lifetime, and
+physical-boundary reviews found no open P0/P1. E7.3 service isolation, E8
+routing/authenticated authority, E9/E10 producer integration, E11 composition,
+and E12 real-device timing remain open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
@@ -1115,6 +1114,167 @@ underruns. Real-client overhead and real-host measurements remain S2-F gates.
 Gate: every Slice 2 acceptance outcome has local and real-environment evidence,
 the Slice 1 protection gates still pass, and temporary credentials/resources
 are removed.
+
+## Fixed completion roadmap
+
+This sequence controls the remainder of Slice 2. Work stays on one checkpoint
+until its invariant closes and a clean checkpoint is recorded. Later work is
+not pulled forward merely because it would be convenient to prototype.
+
+### 0. Close the E7.2 checkpoint
+
+Governing invariant: every accepted retained mutation leaves a complete,
+restart-valid trace projection or the collector durably fails with its finite
+degraded result.
+
+- Update the E7 and parent status records with the completed targeted reviews.
+- Run the documented E1/E2/E7 focused suite, full Web regression, lint, syntax,
+  and whitespace checks.
+- Commit the E7.2 implementation, `AGENTS.md` discipline, and exact evidence
+  together from a reviewed clean tree.
+- Do not add HTTP, Compose, credentials, producer integration, or UI work.
+
+Exit: no open P0/P1; any remaining P2 is corrected or explicitly judged
+non-gating under the scale filter; and the branch is clean.
+
+### 1. E7.3 — disposable service and Compose isolation
+
+Governing invariant: diagnostics may be unavailable, full, incompatible, or
+deleted without changing gameplay authority, audio delivery, backup, restore,
+or rollback readiness.
+
+Implement only the private service wrapper, dedicated volume/temp/log
+allocation, fixed resource limits, optional status, and disposable-schema
+recreation. The adapter remains non-deployable until E8 supplies credentials
+and caller mediation.
+
+Required evidence:
+
+- separate mounts and no State/Access database access;
+- no diagnostic dependency in Game, State, audio, backup, restore, or rollback
+  readiness;
+- unavailable, hung, full, incompatible, deleted-volume, and cleanup cases;
+- bounded shutdown and no leftover owned resources.
+
+Review depth: one local closure-matrix pass and one targeted independent review
+of topology and isolation. Do not broadly re-audit S2-A-D unless an authority or
+release boundary changes.
+
+### 2. E8 — Game/State mediation and consent
+
+Governing invariant: every diagnostic authority value is derived by Game/State,
+every accepted mutation is replay-safe, and collector failure cannot enter a
+gameplay or playback transaction.
+
+This is the final major authority-bearing local checkpoint. Implement the fixed
+browser, source, relay, host, Game-to-collector, and maintenance routes; the two
+collector credentials; State host/managed-stream lookups; bounded bodies and
+deadlines; and forward-only consent. Do not attach source or relay reporters.
+
+Required evidence:
+
+- exact caller/route/credential matrix, including cross-scope denial;
+- server-derived run, trace, segment, lease, role, and relay binding;
+- exact replay, conflict, revoked unseen work, response loss, timeout, and
+  restart schedules;
+- collector absent, slow, malformed, full, or degraded with unchanged game and
+  audio authority;
+- host-only historical reads and maintenance-only purge.
+
+Review depth: full boundary-bearing matrix before coding, local counterexample
+pass, then targeted independent authority/privacy/failure audit.
+
+### 3. E9 and E10 — bounded source and relay reporters
+
+Governing invariant: producer diagnostics perform constant-time counter updates
+on audio-critical paths and all reporting work is bounded, replaceable, and
+unable to delay authority polling, publishing, or relay delivery.
+
+E9 and E10 remain separate implementation checkpoints because they modify
+different processes, but they share one isolation review. Each gets one finite
+versioned snapshot interface and one low-priority reporter task with strict
+timeouts and at most one replaceable unsent aggregate. There is no retry
+journal, generic agent framework, remote management surface, or free-form log
+scraping.
+
+Required evidence:
+
+- stable allowlisted snapshots with no peer addresses, credentials, paths, or
+  arbitrary errors;
+- malformed response, hung collector, restart, queue-full, and credential
+  failure schedules;
+- unchanged source polling, lease fail-close, and publisher state for E9;
+- unchanged relay ingress, fan-out, fencing, and backpressure for E10;
+- delayed old relay generations never rebind after handoff.
+
+Review depth: focused implementation reviews per producer followed by one
+paired isolation audit. Do not repeat an unrelated collector or browser audit.
+
+### 4. E11 — one host comparison proof
+
+Governing invariant: the host view publishes only reproducible E3 conclusions
+from complete authorized E7 evidence, and otherwise says
+`insufficient_evidence` without exposing member- or producer-private fields.
+
+Implement one advanced host view, not an observability dashboard. Exercise the
+five fixed fault locations and one missing/contradictory case through real local
+interfaces. Include local-only behavior when upload is unavailable, member
+privacy, host authorization, trace purge, and collector deletion.
+
+Exit: the S2-E local acceptance gate passes end to end. Pure-model tests alone
+cannot close this checkpoint.
+
+Review depth: one composed adversarial audit covering authority, privacy,
+classification truth, and failure isolation. Findings return to the owning
+E1-E10 boundary rather than being patched only in the view.
+
+### 5. E12 / S2-F — real-environment proof
+
+Governing invariant: the locally closed Slice 2 contracts remain true on the
+few browsers, phones, source host, relay host, and audio hardware actually used
+for a game night.
+
+Use fresh disposable hosts and the real controller/Spotify path. Measure CPU,
+memory, scheduling, startup, underrun delta, clock uncertainty, listener
+revocation, filesystem reserve behavior, shaped-network classifications,
+restart, installation, cleanup, backup/restore, and exact rollback. Numeric
+budgets may be tuned within the reviewed contract; authority, privacy,
+correlation, routing, and isolation semantics may not be invented or waived in
+rehearsal notes.
+
+Exit: all Slice 2 local and real-environment gates pass, Slice 1 protections
+remain green, retained evidence is sanitized, and temporary resources and
+credentials are removed. A failed measurement returns only to its named owning
+checkpoint.
+
+### 6. Slice 3 handoff
+
+After Slice 2 closes, core game-night UX becomes the primary development track.
+The first Slice 3 planning checkpoint maps the verified recovery and authority
+contracts into the host/player journey: launch or reopen, invite and join,
+configuration and readiness, first-turn guidance, primary actions, reveal,
+completion, replay, and return to lobby. Diagnostics remain behind the advanced
+panel and do not drive the main experience.
+
+Slice 4 waits for Slice 3 shared behavior to stabilize. Slice 5 may proceed in
+parallel after Slice 2 only when it avoids overlapping edits to the shared game
+page, game API, and identity surfaces.
+
+### Execution rules for this roadmap
+
+- One active checkpoint and one governing invariant at a time.
+- Start from the closure matrix and derive tests before requesting audit.
+- Fix P0/P1 before advancing. Fix P2 immediately only when it is small, reduces
+  ambiguity, or prevents a future false claim; otherwise record it explicitly.
+- Use targeted re-audits after local fixes. Repeat a broad audit only when the
+  representation, authority boundary, privacy boundary, or external-effect
+  model changes.
+- Commit at each numbered checkpoint with exact verification results and a
+  clean worktree.
+- Scope expansion requires an explicit roadmap update; incidental implementation
+  convenience is not sufficient.
+- Version 1 remains limited to one host, at most eight listeners, one source,
+  one relay, five fixed diagnoses, and 48-hour disposable diagnostics.
 
 ## Deferred beyond Slice 2
 
