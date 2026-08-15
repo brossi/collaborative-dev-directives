@@ -663,7 +663,7 @@ export CANNABEATS_DATA_VOLUME=cannabeats_poc_data
 export CANNABEATS_STATE_DATA_VOLUME=cannabeats_state_data
 docker compose -f spikes/access-spotify-poc/compose.yaml \
   -p "$CANNABEATS_DIAGNOSTICS_PROJECT" \
-  --profile diagnostics stop diagnostics
+  --profile diagnostics rm -sf diagnostics
 node diagnostics-service/scripts/dispose-volume.mjs \
   --project "$CANNABEATS_DIAGNOSTICS_PROJECT" \
   --volume "$CANNABEATS_DIAGNOSTICS_DATA_VOLUME"
@@ -738,7 +738,20 @@ network, or volume.
 The implementation worktree is based on E7.2 checkpoint `93f1715`. No E8 route,
 credential, authority lookup, or producer caller exists. The first independent
 review passed the process and rendered-topology perspectives but found one
-resolved-volume alias/disposal P1. The contained preflight and checked-disposal
-remediation is implemented; its targeted independent re-review remains pending.
-Permitted status is `E7.3 remediation implemented; targeted closure re-review
-pending`.
+resolved-volume alias/disposal P1. Commit `2b6634b` (tree
+`ce13d159b9ee15cb5384e6a7226cd8e7456a4850`) closes it with the shared preflight
+and checked disposal boundary. Three targeted re-reviews found no open P0/P1.
+
+Remediation evidence passed the 32 diagnostics process/store/disposal/topology
+tests, the combined 64 E1/E2/E7 tests, and the full 105 Access/backup/release
+regressions. Image manifest
+`sha256:5b3fe515a4e34c8130f5c1b65050f104a43123a6f21d63a96de181b153afcf79`
+was built from the exact clean target. A deliberate diagnostics/Access volume
+alias refused startup before adding any file to the authority-labeled test
+volume; its sole seeded file retained SHA-256
+`580962751a3b56e5ead1bf3947a92d98e1adff44be4026eeea90ce008f340c13`.
+A separate normal diagnostics volume was removed by the checked disposal tool,
+and both unique projects finished with zero containers, networks, or volumes.
+The review's sole P2 was the fail-safe runbook ordering: `stop` left an attached
+container, so the tool refused. The command above now uses diagnostics-only
+`rm -sf` before disposal. Permitted status is `E7.3 locally verified`.

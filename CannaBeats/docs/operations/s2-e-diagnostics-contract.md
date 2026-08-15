@@ -5,8 +5,8 @@ scale filter and each detailed checkpoint must pass its own closure gate.
 E1-E6 are locally verified at their recorded exact targets. E7.1 and E7.2
 implement the unwired collector store, and E7.2 has passed and recorded its targeted
 transaction, retained-read, corruption, lifetime, and physical-boundary closure
-reviews with no open P0/P1. E7.3 is implemented with one contained
-volume-identity remediation awaiting targeted re-review; E8-E12 remain open.
+reviews with no open P0/P1. E7.3 has passed its process, topology, disposal,
+and volume-identity closure reviews; E8-E12 remain open.
 The earlier broad executable-contract and listener prototypes remain
 archived outside the active branch and supply no evidence.
 
@@ -846,10 +846,10 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Status: `E7.2 locally verified; E7.3 remediation implemented with targeted
-closure re-review pending`. The transactional and bounded retention/read increments are closed.
+Status: `E7.2 and E7.3 locally verified`. The transactional and bounded
+retention/read increments are closed.
 The optional private process, image, volume, and Compose isolation are
-implemented but not yet closure-verified. The independently reviewed bounded
+implemented and closure-verified. The independently reviewed bounded
 storage design is maintained in
 [E7 isolated collector and store](s2-e-e7-collector-store-spec.md).
 
