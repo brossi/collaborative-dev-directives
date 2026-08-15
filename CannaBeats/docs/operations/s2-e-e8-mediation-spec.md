@@ -806,7 +806,7 @@ gameplay, and readiness continue unchanged.
 | Restart | `structural`: pending and accepted Game grants vanish; a retained receipt cannot recreate member authority and exact opt-in returns `grant_lost`, after which a fresh request/generation is required. |
 | Dependency failure | `runtime`: bounded Access/State/collector calls return finite diagnostic failure and cannot mutate playback, room state, or local E5/E6 records. |
 | Corruption | `runtime`: grants are closed module records; every collector/State response is exact and rebound to the grant and request before projection. |
-| Capacity | `runtime`: 32 grants, one pending operation per grant, 15-minute lifetime, 8 KiB browser body, and existing E1/E2/E7 byte/report limits. |
+| Capacity | `runtime`: 32 grant/request keys, one active plus one queued operation per key (a third returns `collector_busy`), 15-minute lifetime, 8 KiB browser body, and existing E1/E2/E7 byte/report limits. |
 
 ### E8.3b derived schedules and authorization
 
@@ -849,10 +849,17 @@ uncertain.
 
 Local evidence before independent review:
 
-- full production Web build and suite: `npm test` in `web` (`285/285`);
-- focused listener mediation/controller/routes: `11/11` plus route coverage;
+- full production Web build and suite: `npm test` in `web` (`296/296`);
+- focused listener mediation/controller/routes: `28/28`;
 - fixed grant capacity: explicit `31/32/33` rows and expiry equality; and
 - lint: zero errors, with only the pre-existing E5 `_status` warning.
+
+The pre-closure adversarial pass additionally exercises exact opt-in and
+synchronization replay after current correlation changes, post-commit opt-in
+response loss, restart `grant_lost`, retained-result rebinding, same-key queue
+depth, concurrent browser controls, terminal report outcomes, disposed
+completions, bounded dependency JSON, the full pre-opt-in disclosure, and the
+structural non-awaited diagnostics retirement edge in production audio start.
 
 This is an implementation checkpoint, not a closure claim. Independent E8.3b
 review remains required before E8.3c authorization.

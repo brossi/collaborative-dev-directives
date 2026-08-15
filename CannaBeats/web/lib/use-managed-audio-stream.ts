@@ -26,6 +26,32 @@ const STATUS_LABELS: Record<ManagedAudioStatus, string> = {
   error: "Shared audio needs to reconnect",
 };
 
+async function boundedDiagnosticJson(response: Response) {
+  if (!response.body) throw new Error("sharing_response_invalid");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done,value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 8_192) throw new Error("sharing_response_invalid");
+      chunks.push(value);
+    }
+    const joined = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      joined.set(chunk,offset);
+      offset += chunk.byteLength;
+    }
+    return JSON.parse(new TextDecoder("utf-8",{ fatal: true }).decode(joined));
+  } finally {
+    try { void reader.cancel().catch(() => {}); } catch {}
+    reader.releaseLock();
+  }
+}
+
 function browserProfile() {
   const agent = navigator.userAgent;
   const match = agent.match(/(?:Chrome|CriOS)\/(\d+)/)
@@ -100,7 +126,7 @@ export function useManagedAudioStream() {
     setEnabled(true);
     setStatus("connecting");
     if (priorSession) await priorSession.stop("requested");
-    await retireSharing();
+    void retireSharing();
     if (generation !== generationRef.current) return;
     const client = browserProfile();
     const supportsLongTasks = typeof PerformanceObserver !== "undefined"
@@ -186,13 +212,13 @@ export function useManagedAudioStream() {
     const session = sessionRef.current;
     if (!session) throw new Error("reset_failed");
     try {
-      if (sharingRef.current) await sharingRef.current.stop();
+      await retireSharing();
       await session.resetDiagnostics();
     } catch {
       throw new Error("reset_failed");
     }
     return "reset" as const;
-  }, []);
+  }, [retireSharing]);
 
   const sharingController = useCallback(() => {
     if (sharingRef.current) return sharingRef.current;
@@ -218,7 +244,7 @@ export function useManagedAudioStream() {
             method: "POST",cache: "no-store",signal: controller.signal,
             headers: { "content-type": "application/json" },body: JSON.stringify(body),
           });
-          const value = await response.json();
+          const value = await boundedDiagnosticJson(response);
           if (!response.ok) throw Object.assign(new Error("sharing_failed"),{
             code: typeof value?.code === "string" ? value.code : "sharing_failed",
           });

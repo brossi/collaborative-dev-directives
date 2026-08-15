@@ -1,4 +1,4 @@
-const ACTIVE = new Set(['enabled','stopping']);
+const ACTIVE = new Set(['enabling','enabled','stopping']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 export class E8ListenerSharingError extends Error {
@@ -39,6 +39,7 @@ function uuid(value) {
 }
 
 const EMPTY = Object.freeze({ status: 'disabled',notice: '',uploadedCount: 0 });
+export const E8_SHARING_DISCLOSURE = 'Sharing uploads future reports containing a random diagnostic ID, browser and operating-system category, local timing, buffer and stream behavior, and categorical signal state to this game\'s host. Reports are pseudonymous, not anonymous, and the host may recognize a device from its context. Accepted reports remain until the whole diagnostic trace is purged or expires under retention; stopping sharing does not delete reports already accepted.';
 
 export class E8ListenerSharingController {
   constructor({ request,readLifecycle,now,uuid,scheduleInterval,cancelInterval,onChange }) {
@@ -59,11 +60,14 @@ export class E8ListenerSharingController {
     this.lastUploadedSequence = -1;
     this.timer = null;
     this.uploading = false;
+    this.stopInFlight = false;
+    this.operationEpoch = 0;
     this.disposed = false;
   }
 
   async optIn(runId) {
     if (this.disposed || ACTIVE.has(this.state.status)) return false;
+    const operationEpoch = ++this.operationEpoch;
     const lifecycle = this.readLifecycle();
     const reports = summaries(lifecycle);
     if (!this.optInIntent) {
@@ -82,9 +86,12 @@ export class E8ListenerSharingController {
       const result = exactResult(finiteResult(await this.request(
         '/api/diagnostics/listener',this.optInIntent,
       ),['enabled']),['status','grantId','traceId','listenerInstanceId','generation','expiresAtMs']);
+      if (!this.#current(operationEpoch)) return false;
       if (result.listenerInstanceId !== this.optInIntent.listenerInstanceId
         || !Number.isSafeInteger(result.generation) || result.generation < 1
-        || !Number.isFinite(result.expiresAtMs)) fail('sharing_response_invalid');
+        || !Number.isSafeInteger(result.expiresAtMs) || result.expiresAtMs < 0) {
+        fail('sharing_response_invalid');
+      }
       const acknowledgedLifecycle = this.readLifecycle();
       const acknowledgedNextSequence = Number.isSafeInteger(acknowledgedLifecycle.nextSequence)
         ? acknowledgedLifecycle.nextSequence
@@ -105,6 +112,7 @@ export class E8ListenerSharingController {
       void this.flush();
       return true;
     } catch (error) {
+      if (!this.#current(operationEpoch)) return false;
       if (error?.code === 'grant_lost') this.optInIntent = null;
       this.#publish({ ...this.state,status: 'error',notice: error?.code ?? 'sharing_failed' });
       return false;
@@ -112,7 +120,10 @@ export class E8ListenerSharingController {
   }
 
   async stop() {
-    if (this.disposed || !this.grant || this.state.status === 'disabled') return false;
+    if (this.disposed || this.stopInFlight || !this.grant
+      || this.state.status === 'disabled') return false;
+    const operationEpoch = ++this.operationEpoch;
+    this.stopInFlight = true;
     this.#cancelTimer();
     this.stopRequestId ??= this.uuid();
     this.#publish({ ...this.state,status: 'stopping',notice: '' });
@@ -120,6 +131,7 @@ export class E8ListenerSharingController {
       const result = exactResult(finiteResult(await this.request('/api/diagnostics/listener',{
         action: 'stop',requestId: this.stopRequestId,grantId: this.grant.grantId,
       }),['revoked']),['status','grantId','generation']);
+      if (!this.#current(operationEpoch)) return false;
       if (result.grantId !== this.grant.grantId
         || result.generation !== this.grant.generation + 1) fail('sharing_response_invalid');
       this.grant = null;
@@ -128,8 +140,11 @@ export class E8ListenerSharingController {
       this.#publish({ ...this.state,status: 'disabled',notice: 'sharing_stopped' });
       return true;
     } catch (error) {
+      if (!this.#current(operationEpoch)) return false;
       this.#publish({ ...this.state,status: 'stopping',notice: error?.code ?? 'sharing_uncertain' });
       return false;
+    } finally {
+      this.stopInFlight = false;
     }
   }
 
@@ -138,6 +153,7 @@ export class E8ListenerSharingController {
       return false;
     }
     this.uploading = true;
+    const operationEpoch = this.operationEpoch;
     let synchronizing = false;
     try {
       if (!this.pendingReport) {
@@ -160,11 +176,19 @@ export class E8ListenerSharingController {
         }),['accepted','replayed']),[
           'status','grantId','sampleId','timebaseId','instanceId','serverReceiveMs','serverSendMs',
         ]);
+        if (!this.#current(operationEpoch)) return false;
         const localReceiveMs = this.now();
         if (issuance.grantId !== this.grant.grantId
           || issuance.timebaseId !== this.grant.traceId
           || issuance.instanceId !== this.grant.listenerInstanceId) {
           fail('sharing_response_invalid');
+        }
+        if (![issuance.serverReceiveMs,issuance.serverSendMs]
+          .every((value) => Number.isSafeInteger(value) && value >= 0)
+          || issuance.serverSendMs < issuance.serverReceiveMs
+          || !Number.isFinite(localSendMs) || !Number.isFinite(localReceiveMs)
+          || localReceiveMs < localSendMs || localReceiveMs - localSendMs > 2_000) {
+          fail('sample_invalid');
         }
         this.pendingReport.sampleObservation = Object.freeze({
           sampleId: uuid(issuance.sampleId),instanceId: this.grant.listenerInstanceId,
@@ -172,11 +196,18 @@ export class E8ListenerSharingController {
         });
         synchronizing = false;
       }
-      const result = exactResult(finiteResult(await this.request('/api/diagnostics/listener-report',{
+      const reportResult = await this.request('/api/diagnostics/listener-report',{
         grantId: this.grant.grantId,
         measurementCore: this.pendingReport.measurementCore,
         sampleObservation: this.pendingReport.sampleObservation,
-      }),['accepted','replayed']),['status','receivedAt']);
+      });
+      if (!this.#current(operationEpoch)) return false;
+      if (['sharing_disabled','trace_inactive','stale_correlation','report_conflict',
+        'report_invalid','rate_limited','quota_exhausted'].includes(reportResult?.status)) {
+        fail(reportResult.status);
+      }
+      const result = exactResult(finiteResult(reportResult,
+        ['accepted','replayed']),['status','receivedAt']);
       if (!Number.isSafeInteger(result.receivedAt) || result.receivedAt < 0) {
         fail('sharing_response_invalid');
       }
@@ -196,6 +227,14 @@ export class E8ListenerSharingController {
         this.grant = null;
         this.pendingReport = null;
         this.#publish({ ...this.state,status: 'disabled',notice: error.code });
+      } else if (error?.code === 'report_invalid' && this.pendingReport) {
+        this.pendingReport.sampleObservation = null;
+        this.pendingReport.syncRequestId = this.uuid();
+        this.#publish({ ...this.state,notice: error.code });
+      } else if (error?.code === 'report_conflict') {
+        this.#cancelTimer();
+        this.#publish({ ...this.state,notice: error.code });
+        void this.stop();
       } else {
         this.#publish({ ...this.state,notice: error?.code ?? 'upload_failed' });
       }
@@ -208,6 +247,7 @@ export class E8ListenerSharingController {
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    this.operationEpoch += 1;
     this.#cancelTimer();
     this.grant = null;
     this.pendingReport = null;
@@ -221,6 +261,10 @@ export class E8ListenerSharingController {
     if (this.timer === null) return;
     this.cancelInterval(this.timer);
     this.timer = null;
+  }
+
+  #current(operationEpoch) {
+    return !this.disposed && operationEpoch === this.operationEpoch;
   }
 
   #publish(next) {

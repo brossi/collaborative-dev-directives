@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
-  E8ListenerSharingController,
+  E8ListenerSharingController,E8_SHARING_DISCLOSURE,
 } from '../lib/s2e-e8-listener-sharing.mjs';
 
 function report(instanceId,sequence) {
@@ -47,7 +48,10 @@ function fixture() {
       throw new Error('unexpected');
     },
   });
-  return { calls,controller,grantId,instanceId,lifecycle,setFail: (value) => { failReport = value; } };
+  return {
+    calls,controller,grantId,instanceId,lifecycle,
+    setFail: (value) => { failReport = value; },setNow: (value) => { now = value; },
+  };
 }
 
 test('opt-in starts at the next sequence and never backfills retained local reports', async () => {
@@ -124,6 +128,28 @@ test('lost synchronization response uses a fresh sample exchange on retry', asyn
   assert.notEqual(syncs[0][1].requestId,syncs[1][1].requestId);
 });
 
+test('an overlong synchronization exchange is discarded before report upload', async () => {
+  const f = fixture();
+  await f.controller.optIn(randomUUID());
+  f.lifecycle.transitions.push(report(f.instanceId,2));
+  f.lifecycle.nextSequence = 3;
+  const original = f.controller.request;
+  let delayed = false;
+  f.controller.request = async (path,body) => {
+    const result = await original(path,body);
+    if (body.action === 'synchronize' && !delayed) {
+      delayed = true;
+      f.setNow(3_000);
+    }
+    return result;
+  };
+  assert.equal(await f.controller.flush(),false);
+  assert.equal(f.calls.some(([path]) => path.endsWith('listener-report')),false);
+  assert.equal(await f.controller.flush(),true);
+  const syncs = f.calls.filter(([,body]) => body.action === 'synchronize');
+  assert.notEqual(syncs[0][1].requestId,syncs[1][1].requestId);
+});
+
 test('stop becomes sticky while uncertain and exact retry performs no new upload', async () => {
   const f = fixture();
   await f.controller.optIn(randomUUID());
@@ -143,4 +169,121 @@ test('stop becomes sticky while uncertain and exact retry performs no new upload
   const stops = f.calls.filter(([,body]) => body.action === 'stop');
   assert.equal(stops.length,1);
   assert.equal(f.controller.state.status,'disabled');
+});
+
+test('stop fences uploads synchronously without waiting for the diagnostics response', async () => {
+  const f = fixture();
+  await f.controller.optIn(randomUUID());
+  f.lifecycle.transitions.push(report(f.instanceId,2));
+  f.lifecycle.nextSequence = 3;
+  const original = f.controller.request;
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  f.controller.request = async (path,body) => {
+    if (body.action === 'stop') await held;
+    return original(path,body);
+  };
+  const stopping = f.controller.stop();
+  assert.equal(f.controller.state.status,'stopping');
+  assert.equal(await f.controller.flush(),false);
+  release();
+  assert.equal(await stopping,true);
+});
+
+test('opt-in and stop are single-flight while their dependency response is pending', async () => {
+  const f = fixture();
+  const original = f.controller.request;
+  let releaseOptIn;
+  const heldOptIn = new Promise((resolve) => { releaseOptIn = resolve; });
+  f.controller.request = async (path,body) => {
+    if (body.action === 'opt_in') await heldOptIn;
+    return original(path,body);
+  };
+  const firstOptIn = f.controller.optIn(randomUUID());
+  assert.equal(await f.controller.optIn(randomUUID()),false);
+  releaseOptIn();
+  assert.equal(await firstOptIn,true);
+  assert.equal(f.controller.state.status,'enabled');
+
+  let releaseStop;
+  const heldStop = new Promise((resolve) => { releaseStop = resolve; });
+  f.controller.request = async (path,body) => {
+    if (body.action === 'stop') await heldStop;
+    return original(path,body);
+  };
+  const firstStop = f.controller.stop();
+  assert.equal(await f.controller.stop(),false);
+  releaseStop();
+  assert.equal(await firstStop,true);
+  assert.equal(f.controller.state.status,'disabled');
+});
+
+test('terminal report outcomes reduce authority instead of poisoning the pending slot', async () => {
+  const f = fixture();
+  await f.controller.optIn(randomUUID());
+  f.lifecycle.transitions.push(report(f.instanceId,2));
+  f.lifecycle.nextSequence = 3;
+  const original = f.controller.request;
+  f.controller.request = async (path,body) => path.endsWith('listener-report')
+    ? { status: 'sharing_disabled' } : original(path,body);
+  assert.equal(await f.controller.flush(),false);
+  assert.equal(f.controller.state.status,'disabled');
+  assert.equal(f.controller.pendingReport,null);
+});
+
+test('disposed opt-in completion cannot install a grant or schedule uploads', async () => {
+  const f = fixture();
+  const original = f.controller.request;
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  f.controller.request = async (path,body) => {
+    if (body.action === 'opt_in') await held;
+    return original(path,body);
+  };
+  const pending = f.controller.optIn(randomUUID());
+  f.controller.dispose();
+  release();
+  assert.equal(await pending,false);
+  assert.equal(f.controller.grant,null);
+  assert.equal(f.controller.timer,null);
+});
+
+test('grant-lost clears the old intent so a fresh opt-in uses a new request', async () => {
+  const f = fixture();
+  const original = f.controller.request;
+  let first = true;
+  f.controller.request = async (path,body) => {
+    if (body.action === 'opt_in' && first) {
+      first = false;
+      f.calls.push([path,structuredClone(body)]);
+      throw Object.assign(new Error('lost'),{ code: 'grant_lost' });
+    }
+    return original(path,body);
+  };
+  const runId = randomUUID();
+  assert.equal(await f.controller.optIn(runId),false);
+  assert.equal(await f.controller.optIn(runId),true);
+  const optIns = f.calls.filter(([,body]) => body.action === 'opt_in');
+  assert.notEqual(optIns[0][1].requestId,optIns[1][1].requestId);
+});
+
+test('pre-opt-in disclosure names uploaded categories attribution retention and stop semantics', () => {
+  for (const phrase of [
+    'random diagnostic ID','browser and operating-system category','local timing',
+    'buffer and stream behavior','categorical signal state','pseudonymous, not anonymous',
+    'host may recognize','purged or expires under retention',
+    'stopping sharing does not delete',
+  ]) assert.match(E8_SHARING_DISCLOSURE,new RegExp(phrase));
+});
+
+test('production audio start detaches optional diagnostic retirement before initialization', async () => {
+  const source = await readFile(
+    new URL('../lib/use-managed-audio-stream.ts',import.meta.url),'utf8',
+  );
+  const start = source.slice(
+    source.indexOf('const start = useCallback'),source.indexOf('const diagnostics = useCallback'),
+  );
+  assert.match(start,/void retireSharing\(\);/);
+  assert.doesNotMatch(start,/await retireSharing\(\);/);
+  assert.ok(start.indexOf('void retireSharing();') < start.indexOf('new E5BrowserSession'));
 });

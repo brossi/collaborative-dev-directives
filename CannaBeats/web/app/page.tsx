@@ -21,6 +21,7 @@ import {
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
 import { useManagedAudioStream, type ManagedAudioDiagnostics, type ManagedAudioSharing, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { E6_EMPTY_PANEL_STATE, E6PanelController } from "../lib/s2e-e6-local-panel.mjs";
+import { E8_SHARING_DISCLOSURE } from "../lib/s2e-e8-listener-sharing.mjs";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../lib/game-client-contract.ts";
 
@@ -236,6 +237,7 @@ function SharedAudioPanel({
               </dl>
             ) : <p className="helper">Diagnostics will appear after audio initialization.</p>}
             <p className="audio-copy-disclosure">{diagnostics?.disclosure ?? "A local report will be available after audio initialization."}</p>
+            <p className="audio-copy-disclosure">{E8_SHARING_DISCLOSURE}</p>
             <div className="audio-diagnostics-actions">
               <button className="text-button" disabled={panelState.busy || !diagnostics?.copyAvailable} onClick={() => void panelController.copy()} type="button">Copy local report</button>
               <button className="text-button" disabled={panelState.busy || !diagnostics} onClick={() => void panelController.reset()} type="button">Reset diagnostics</button>

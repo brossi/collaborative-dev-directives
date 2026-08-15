@@ -110,12 +110,6 @@ function sameGrant(left,right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function sameGrantBinding(left,right) {
-  return ["grantId","principalId","runId","runGeneration","traceId",
-    "correlationSegmentId","leaseId","listenerInstanceId","role","generation",
-    "expiresAtMs","optInRequestId"].every((key) => left[key] === right[key]);
-}
-
 export function createListenerGrantStore({ clock = Date.now,maxGrants = MAX_GRANTS } = {}) {
   if (typeof clock !== "function" || !Number.isSafeInteger(maxGrants) || maxGrants < 1) {
     throw new Error("listener_grant_store_configuration_invalid");
@@ -123,6 +117,7 @@ export function createListenerGrantStore({ clock = Date.now,maxGrants = MAX_GRAN
   const records = new Map();
   const pendingOptIns = new Map();
   const tails = new Map();
+  const tailDepths = new Map();
 
   function purge(now = clock()) {
     for (const [id,record] of records) {
@@ -190,6 +185,9 @@ export function createListenerGrantStore({ clock = Date.now,maxGrants = MAX_GRAN
 
   async function serial(key,operation) {
     if (!tails.has(key) && tails.size >= maxGrants) fail(503,"quota_exhausted");
+    const depth = tailDepths.get(key) ?? 0;
+    if (depth >= 2) fail(503,"collector_busy");
+    tailDepths.set(key,depth + 1);
     const prior = tails.get(key) ?? Promise.resolve();
     let release;
     const current = new Promise((resolve) => { release = resolve; });
@@ -199,6 +197,9 @@ export function createListenerGrantStore({ clock = Date.now,maxGrants = MAX_GRAN
     finally {
       release();
       if (tails.get(key) === current) tails.delete(key);
+      const remaining = (tailDepths.get(key) ?? 1) - 1;
+      if (remaining === 0) tailDepths.delete(key);
+      else tailDepths.set(key,remaining);
     }
   }
 
@@ -253,13 +254,17 @@ export function createDiagnosticListenerMediation({
   async function traceForRun(runId) {
     const found = context(await collector.traceContext({ activeRunId: runId }),"state");
     if (found.status !== "found") fail(404,"diagnostic_not_found");
-    return restoreTrace(found.state);
+    const trace = restoreTrace(found.state);
+    if (trace.runId !== runId) fail(502,"collector_response_invalid");
+    return trace;
   }
 
   async function traceById(traceId) {
     const found = context(await collector.traceContext({ traceId }),"state");
     if (found.status !== "found") fail(404,"diagnostic_not_found");
-    return restoreTrace(found.state);
+    const trace = restoreTrace(found.state);
+    if (trace.traceId !== traceId) fail(502,"collector_response_invalid");
+    return trace;
   }
 
   function grantRecord({ consent,trace,principalId,role,optInRequestId }) {
@@ -305,19 +310,17 @@ export function createDiagnosticListenerMediation({
         if (receipt.result.listenerInstanceId !== listenerInstanceId) {
           fail(409,"request_conflict");
         }
-        let trace = await traceById(receipt.result.traceId);
-        if (trace.runId !== runId) fail(409,"request_conflict");
         const membership = await member(principalValue.id,runId);
-        trace = await reconcile(trace);
-        if (trace.status !== "active" || trace.runId !== runId
-          || trace.runGeneration !== membership.runGeneration) fail(409,"stale_correlation");
-        const record = grantRecord({
-          consent: receipt.result,trace,principalId: principalValue.id,role: membership.role,
-          optInRequestId: requestId,
-        });
+        const expectedGrantId = deriveDiagnosticUuid(
+          "listener-grant",receipt.result.traceId,listenerInstanceId,
+          String(receipt.result.generation),
+        );
         try {
-          const existing = grantStore.find(record.grantId,principalValue.id,{ allowRevoked: true });
-          if (!sameGrantBinding(existing,record)) fail(409,"request_conflict");
+          const existing = grantStore.find(expectedGrantId,principalValue.id,{ allowRevoked: true });
+          if (existing.runId !== runId || existing.traceId !== receipt.result.traceId
+            || existing.listenerInstanceId !== listenerInstanceId
+            || existing.generation !== receipt.result.generation
+            || existing.optInRequestId !== requestId) fail(409,"request_conflict");
           if (existing.status !== "enabled") fail(409,"sharing_disabled");
           return grantProjection(existing);
         } catch (error) {
@@ -329,6 +332,15 @@ export function createDiagnosticListenerMediation({
           || pending.runId !== runId || pending.listenerInstanceId !== listenerInstanceId) {
           fail(409,"grant_lost");
         }
+        let trace = await traceById(receipt.result.traceId);
+        if (trace.runId !== runId) fail(409,"request_conflict");
+        trace = await reconcile(trace);
+        if (trace.status !== "active" || trace.runId !== runId
+          || trace.runGeneration !== membership.runGeneration) fail(409,"stale_correlation");
+        const record = grantRecord({
+          consent: receipt.result,trace,principalId: principalValue.id,role: membership.role,
+          optInRequestId: requestId,
+        });
         if (clock() < record.expiresAtMs) grantStore.install(record);
         return grantProjection(record);
       }
@@ -377,15 +389,6 @@ export function createDiagnosticListenerMediation({
     return grantStore.serial(`grant:${grantId}`,async () => {
       const principalValue = await principal(headers);
       const grant = grantStore.find(grantId,principalValue.id);
-      const membership = await member(principalValue.id,grant.runId);
-      if (membership.status !== "active" || membership.runGeneration !== grant.runGeneration
-        || membership.role !== grant.role) fail(409,"stale_correlation");
-      let trace = await traceById(grant.traceId);
-      trace = await reconcile(trace);
-      if (trace.status !== "active" || trace.runId !== grant.runId
-        || trace.runGeneration !== grant.runGeneration
-        || trace.segment.segmentId !== grant.correlationSegmentId
-        || trace.segment.leaseId !== grant.leaseId) fail(409,"stale_correlation");
       const sampleId = deriveDiagnosticUuid("synchronization-sample",requestId);
       const retained = context(await collector.issuanceContext(sampleId),"issuance");
       if (retained.status === "found") {
@@ -397,6 +400,15 @@ export function createDiagnosticListenerMediation({
         return Object.freeze({ status: "replayed",grantId,...issuance });
       }
       if (retained.status !== "sample_absent") fail(502,"collector_response_invalid");
+      const membership = await member(principalValue.id,grant.runId);
+      if (membership.status !== "active" || membership.runGeneration !== grant.runGeneration
+        || membership.role !== grant.role) fail(409,"stale_correlation");
+      let trace = await traceById(grant.traceId);
+      trace = await reconcile(trace);
+      if (trace.status !== "active" || trace.runId !== grant.runId
+        || trace.runGeneration !== grant.runGeneration
+        || trace.segment.segmentId !== grant.correlationSegmentId
+        || trace.segment.leaseId !== grant.leaseId) fail(409,"stale_correlation");
       const serverReceiveMs = clock();
       const serverSendMs = clock();
       let issuance;
@@ -498,6 +510,9 @@ export function createDiagnosticListenerMediation({
         }
         if (!sameBytes(canonicalMeasurementBytes(envelope.measurementCore),
           canonicalMeasurementBytes(core))) fail(409,"report_conflict");
+        if (!Number.isSafeInteger(retained.receivedAt) || retained.receivedAt < 0) {
+          fail(502,"collector_response_invalid");
+        }
         return Object.freeze({ status: "replayed",receivedAt: retained.receivedAt });
       }
       if (retained.status !== "report_absent") fail(502,"collector_response_invalid");

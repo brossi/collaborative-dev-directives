@@ -122,14 +122,38 @@ test("opt-in installs only the correlation reconciled after collector commit", a
     f.authority.leaseId = randomUUID();
     return result;
   };
-  const grant = await f.listener.optIn({
+  const input = {
     headers: f.headers,requestId: randomUUID(),runId: f.runId,
     listenerInstanceId: f.listenerInstanceId,firstAllowedSequence: 0,
     localConsentStartedMs: 100,
-  });
+  };
+  const grant = await f.listener.optIn(input);
+  assert.deepEqual(await f.listener.optIn(input),grant);
   assert.equal((await f.listener.synchronize({
     headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
   })).status,"accepted");
+  f.collector.close();
+});
+
+test("opt-in commit with lost response reconciles from its same-process pending binding", async () => {
+  const f = await fixture();
+  const original = f.adapter.optIn;
+  let lose = true;
+  f.adapter.optIn = async (value) => {
+    const result = original(value);
+    if (lose) {
+      lose = false;
+      throw Object.assign(new Error("response lost"),{ status: 503 });
+    }
+    return result;
+  };
+  const input = {
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+    listenerInstanceId: f.listenerInstanceId,firstAllowedSequence: 0,
+    localConsentStartedMs: 100,
+  };
+  await assert.rejects(() => f.listener.optIn(input));
+  assert.equal((await f.listener.optIn(input)).status,"enabled");
   f.collector.close();
 });
 
@@ -148,11 +172,13 @@ test("retained consent without the memory principal binding fails closed after r
         authorityVersion: 1,status: "active",runId: f.runId,runGeneration: 1,role: "member",
       }),
     },
-    collector: f.adapter,reconcile: async (trace) => trace,
+    collector: f.adapter,reconcile: async (trace) => trace,clock: () => 1_000,
   });
   await assert.rejects(() => restarted.optIn(input),(error) => (
     error instanceof DiagnosticMediationError && error.code === "grant_lost"
   ));
+  const fresh = await restarted.optIn({ ...input,requestId: randomUUID() });
+  assert.equal(fresh.generation,2);
   f.collector.close();
 });
 
@@ -168,6 +194,7 @@ test("synchronization replay is bound to the grant's current trace segment", asy
   assert.equal(issued.status,"accepted");
   assert.equal((await f.listener.synchronize(request)).status,"replayed");
   f.authority.leaseId = randomUUID();
+  assert.equal((await f.listener.synchronize(request)).status,"replayed");
   await assert.rejects(() => f.listener.synchronize({
     headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
   }),(error) => error.code === "stale_correlation");
@@ -204,6 +231,16 @@ test("grant store bounds records and concurrent tails at 31/32/33", async () => 
     (error) => error.code === "quota_exhausted");
   release();
   await Promise.all(operations);
+
+  let releaseSame;
+  const sameHeld = new Promise((resolve) => { releaseSame = resolve; });
+  const sameKey = randomUUID();
+  const first = store.serial(sameKey,async () => sameHeld);
+  const second = store.serial(sameKey,async () => "second");
+  await assert.rejects(() => store.serial(sameKey,async () => "third"),
+    (error) => error.code === "collector_busy");
+  releaseSame();
+  await Promise.all([first,second]);
 });
 
 test("accepted report replays after stop while unseen revoked work is rejected", async () => {
@@ -226,6 +263,9 @@ test("accepted report replays after stop while unseen revoked work is rejected",
     sampleObservation: observation,
   };
   assert.equal((await f.listener.report(report)).status,"accepted");
+  await assert.rejects(() => f.listener.report({
+    ...report,measurementCore: { ...report.measurementCore,monotonicStartMs: 121 },
+  }),(error) => error.code === "report_conflict");
   f.authority.memberStatus = "ended";
   await assert.rejects(() => f.listener.report({
     ...report,measurementCore: listenerTransition(f.listenerInstanceId,1),
@@ -239,5 +279,37 @@ test("accepted report replays after stop while unseen revoked work is rejected",
   await assert.rejects(() => f.listener.report({
     ...report,measurementCore: listenerTransition(f.listenerInstanceId,1),
   }),(error) => error.code === "sharing_disabled");
+  f.collector.close();
+});
+
+test("grant expiry equality and malformed retained receipt time fail finitely", async () => {
+  const f = await fixture();
+  const grant = await f.listener.optIn({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+    listenerInstanceId: f.listenerInstanceId,firstAllowedSequence: 0,
+    localConsentStartedMs: 100,
+  });
+  const issued = await f.listener.synchronize({
+    headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
+  });
+  const report = {
+    headers: f.headers,grantId: grant.grantId,
+    measurementCore: listenerTransition(f.listenerInstanceId),
+    sampleObservation: {
+      sampleId: issued.sampleId,instanceId: f.listenerInstanceId,
+      localSendMs: 100,localReceiveMs: 120,
+    },
+  };
+  await f.listener.report(report);
+  const original = f.adapter.reportIdentityContext;
+  f.adapter.reportIdentityContext = (value) => ({
+    ...original(value),receivedAt: "private_database_path",
+  });
+  await assert.rejects(() => f.listener.report(report),
+    (error) => error.code === "collector_response_invalid");
+  f.setNow(901_000);
+  await assert.rejects(() => f.listener.synchronize({
+    headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
+  }),(error) => error.code === "diagnostic_not_found");
   f.collector.close();
 });
