@@ -342,3 +342,197 @@ This record claims no Game caller route, trace composition, consent routing,
 collector call, mounted diagnostic credential, or source/relay reporter. Those
 remain E8.3 or later work. Permitted status is `E8.2 implemented; independent
 closure review pending`.
+
+## E8.3 contained implementation sequence
+
+E8.3 is intentionally split at three authority boundaries. Passing one
+increment does not make the later increments production-ready:
+
+1. **E8.3a host trace lifecycle and read:** authenticate one browser principal,
+   derive durable host and current managed-stream authority from State, reconcile
+   one active collector trace, and expose host-only trace status/read.
+2. **E8.3b listener consent and report:** authenticate one current member, issue
+   one memory-only listener grant and synchronization sample, and enforce the
+   forward-only opt-in/stop/report generation boundary.
+3. **E8.3c source and relay mediation:** authenticate the existing source bearer
+   through State, add one fixed relay-to-Game credential, bind one relay
+   generation, add the bounded maintenance caller, and prove diagnostic
+   dependency failure is isolated from gameplay and audio.
+
+E8.3a may be designed while E8.1/E8.2 closure review is pending, but no E8.3
+implementation is authorized until that review closes. E8.3a does not add a
+listener grant, producer route, relay credential, reporter, or generalized
+authorization layer.
+
+## E8.3a host trace lifecycle and read
+
+### Governing invariant
+
+> A host diagnostic trace is created, reconciled, stopped, or read only after
+> Access authenticates the browser and State derives the exact durable host and
+> current managed-stream facts; retry is deterministic, caller authority labels
+> are absent, and collector failure cannot enter a gameplay transaction.
+
+### Exact browser boundary
+
+The existing Game deployment owns two same-origin routes. Both authenticate the
+ordinary browser credentials through the existing Access principal endpoint.
+They accept at most 8 KiB of exact JSON and use a two-second deadline for each
+State or collector request. They never accept `segmentId`, `leaseId`,
+`runGeneration`, role, source, server time, or an authority object.
+
+| Route | Exact request | Result |
+| --- | --- | --- |
+| `POST /api/diagnostics/trace` | `{action:"start",requestId,runId}` | start or exact replay of one active trace |
+| `POST /api/diagnostics/trace` | `{action:"stop",requestId,traceId}` | stop or project the already-ended trace |
+| `POST /api/diagnostics/trace` | `{action:"status",traceId}` | bounded host-visible active/ended status |
+| `POST /api/diagnostics/report` | `{traceId,cursor}` | one E7 snapshot page after durable-host authorization |
+
+`requestId`, `runId`, and `traceId` are canonical lowercase UUIDs. `cursor` is
+`null` on the first page and otherwise the exact E7 structured cursor returned
+by the immediately preceding page. The host-visible trace projection is exactly
+`{traceId,runId,status,startedAtMs,expiresAtMs,ended}`. It deliberately omits
+run generation, segment, lease, source, and request receipts. Read pages retain
+the verified E7 metadata and E2 report envelopes because E1 privacy already
+classifies source/relay evidence as host/operator-visible; they contain no
+principal or display-name mapping.
+
+Unauthenticated calls return finite `401 authentication_required`. Missing,
+non-host, mismatched, purged, and caller-inaccessible trace/run locators all
+return the same `404 diagnostic_not_found`. Active-trace conflict returns
+`409 trace_busy`. Malformed input, identity conflict, expired cursor, and
+unavailable/degraded/full dependencies use only the existing finite E1/E2/E7
+codes; lower-layer text is never forwarded.
+
+### Server-derived transaction flow
+
+Start performs these bounded operations in order and outside every gameplay
+mutation handler:
+
+1. Access returns the authenticated principal.
+2. State `run-host-authority` proves that principal is the durable host of the
+   requested run.
+3. Game derives the trace ID from the request ID and queries that exact retained
+   trace. If it exists and matches the requested run and derived trace ID, Game
+   returns the committed projection as an exact replay without requiring the
+   run or stream still to be active. A mismatch is `request_conflict`.
+4. Only when the deterministic trace is absent must State project the host run
+   as active and the Game-scoped `managed-stream-authority` return the sole
+   current stream for the same run and run generation.
+5. Game reconciles the collector's sole active trace, then submits the new start
+   command with authority derived only from those State results and Game time.
+
+The State response is a bounded authority snapshot, not a distributed lease on
+State. A concurrent gameplay transition may make a just-written diagnostic
+trace stale, but the trace grants no gameplay or audio authority, and the next
+diagnostic status, read, or ingest reconciles it before use. E8.3 does not add a
+cross-service lock or hold a State transaction open while calling the optional
+collector.
+
+Game uses one fixed deterministic UUID derivation helper over a versioned label
+and canonical UUID inputs. For a start request, `issuedTraceId` and
+`issuedSegmentId` derive from the browser `requestId`; the collector command
+uses that request ID unchanged. A response-loss retry therefore reconstructs
+the identical command and authority rather than generating new random IDs.
+After every collector result, Game verifies that the returned `traceId` and
+`runId` match this public request before projecting it; a newly accepted start
+must also contain its derived initial segment. A retained trace may legitimately
+have a later current segment, so replay preflight does not require the initial
+segment still to be current.
+This relation check is essential because the verified E2 command deliberately
+keeps server-derived run authority outside caller command parameters: reuse of
+one browser request ID with another run therefore becomes `request_conflict`
+rather than replaying the first run to the caller.
+The trace's version-1 synchronization `timebaseId` is its `traceId`, giving all
+samples in that retained trace one stable collector clock identity without a
+new key or sidecar.
+
+The shared active-trace reconciler obtains `{active:true}` from the collector
+and the current unscoped stream from State. It has one finite transition table:
+
+| Collector trace | State stream | Result before requested operation |
+| --- | --- | --- |
+| absent | absent | no reconciliation effect |
+| absent | active | no reconciliation effect |
+| active | absent | deterministic `authority_lost` end |
+| active run or generation differs | active | deterministic `run_replaced` end |
+| same run/generation and lease | active | unchanged |
+| same run/generation, new lease | active | deterministic segment rotation |
+
+Automatic end request IDs derive from `{traceId,reason}`. A replacement segment
+ID derives from `{traceId,priorLeaseId,newLeaseId}`. Segment rotation remains the
+verified receipt-free exact prior/current lease edge. If reconciliation loses a
+response, retry reconstructs the same end command or segment ID. A stale edge,
+ambiguous State stream, or mismatched retained trace fails closed; Game never
+guesses which authority is current.
+
+Stop first retrieves the exact retained trace, proves durable host authority for
+its retained `runId`, and then always submits the browser request ID for
+`trace_end`. It does not require a current stream, so authority loss cannot
+prevent a host from ending stale diagnostics. An exact retry after response loss
+therefore reaches the retained collector receipt before current-state
+evaluation. A fresh request against an already-ended trace returns the current
+ended projection without a new effect. Status and each read page repeat exact
+trace lookup plus durable-host authorization. If the trace is active, they run
+the shared reconciler before projection; historical ended reads require
+durable-host authority only.
+
+The Game collector client owns the only collector bearer and permits only the
+fixed E8.1 methods. The browser never receives that bearer. Calls use an abort
+deadline and exact JSON response validator. Timeout, malformed response,
+connection failure, collector pressure, or response loss changes only the
+diagnostic result. The diagnostic modules are imported only by the two
+diagnostic routes; gameplay mutation, State, Access, audio-stream, audio-source,
+and readiness code have no collector client import or readiness dependency.
+
+E8.3a activates the authenticated collector adapter by mounting both fixed
+collector credentials into the diagnostics service and only the Game credential
+into the Game service. No browser-visible environment or response contains
+either value. The maintenance credential has no caller yet and is not mounted
+into Game, Access, State, or an ordinary app process; E8.3c adds its bounded
+operations caller. This is the minimum deployable secret topology for the host
+routes and does not wait for source/relay work.
+
+### E8.3a closure matrix
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `runtime`: start requires Access principal, State durable-host/current-stream equality, no unreconciled active trace, and deterministic issued IDs. |
+| Update | `runtime`: only the shared reconciler may rotate the current segment, using the exact retained prior lease and State's current lease. |
+| Delete | `not_applicable`: host stop ends a trace but does not purge reports; maintenance-only purge remains E8.3c. |
+| Omit | `runtime`: exact request/response validators reject missing authority facts, fields, and incomplete pages before projection. |
+| Duplicate | `structural`: the collector retains one active trace and one current segment; deterministic IDs cannot create a second equivalent edge. |
+| Reorder | `runtime`: reconciliation completes before start/status/read projection, and an E7 cursor must be the immediately preceding cursor. |
+| Replay | `runtime`: start checks its deterministic retained trace after durable-host authorization but before current-stream authority; stop reconstructs the exact collector command and an ended-stop retry reaches its retained receipt. |
+| Conflict | `runtime`: Game checks retained/result trace relationships against the public request; operation reuse reaches the existing collector fingerprint conflict before mutation. |
+| Concurrency | `runtime`: the collector's single transaction owner chooses one active trace/segment edge; the losing Game request receives the finite conflict/busy result. |
+| Expiry | `runtime`: State decides lease expiry; collector lazy-expiry decides trace expiry; equality is never evaluated from browser time. |
+| Restart | `structural`: Game retains no diagnostic authority state; it reconstructs IDs from request/edge inputs and restores trace context from State and collector. |
+| Dependency failure | `runtime`: one diagnostic error boundary normalizes bounded client failures; static dependency checks prove those clients have no gameplay/audio transaction or readiness edge. |
+| Corruption | `runtime`: exact State response and collector response restoration fails closed; E7 performs whole-trace validation before every page. |
+| Capacity | `runtime`: 8-KiB browser body, two-second dependency deadlines, one page per request, and existing E7 fixed trace/page quotas bound work. |
+
+### E8.3a derived schedules and exit
+
+- start success, exact response-loss replay, changed-run conflict, simultaneous
+  starts, another active trace, absent stream, wrong run, non-host, and expired
+  lease at State equality;
+- active reconciliation for absent authority, run replacement, unchanged lease,
+  lease rotation, stale rotation response loss, and collector restart;
+- stop success/replay, fresh stop of an already-ended trace, authority loss, another principal, and
+  delayed stop after automatic expiry;
+- host status/read for active, ended, sealed-history, and purged-history runs;
+  non-host concealment, malformed/jumped/replayed cursor, and between-page purge;
+- Access/State/collector timeout, malformed response, response loss, unavailable,
+  degraded, full, and conflict outcomes with unchanged room revision, State
+  validation report, audio lease/command/handoff, and Game readiness; and
+- static dependency assertions showing gameplay/audio/readiness modules cannot
+  reach the collector client and the browser cannot receive collector secrets.
+
+E8.3a implementation may begin only after E8.1/E8.2 independently close and a
+local counterexample pass finds no missing P0/P1 in this matrix. Its closure
+requires the real composed Game→Access→State→collector schedules above, not
+only mocked clients. E8.3b owns listener grants, consent, synchronization, and
+listener ingestion. E8.3c owns source/relay routes, the relay and maintenance
+caller credentials, maintenance purge, and the final cross-route
+failure-isolation rehearsal.
