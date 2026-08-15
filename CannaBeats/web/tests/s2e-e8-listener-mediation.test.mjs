@@ -174,7 +174,7 @@ test("synchronization replay is bound to the grant's current trace segment", asy
   f.collector.close();
 });
 
-test("grant store counts pending bindings in the fixed cap and expires at equality", () => {
+test("grant store bounds records and concurrent tails at 31/32/33", async () => {
   let now = 100;
   const store = createListenerGrantStore({ clock: () => now });
   for (let index = 0; index < 31; index += 1) {
@@ -195,6 +195,15 @@ test("grant store counts pending bindings in the fixed cap and expires at equali
   }),(error) => error.code === "quota_exhausted");
   now = 200;
   assert.equal(store.size(),0);
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  const operations = Array.from({ length: 32 },() => (
+    store.serial(randomUUID(),async () => held)
+  ));
+  await assert.rejects(() => store.serial(randomUUID(),async () => {}),
+    (error) => error.code === "quota_exhausted");
+  release();
+  await Promise.all(operations);
 });
 
 test("accepted report replays after stop while unseen revoked work is rejected", async () => {

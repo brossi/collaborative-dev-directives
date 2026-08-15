@@ -67,35 +67,40 @@ export function useManagedAudioStream() {
   const sessionRef = useRef<InstanceType<typeof E5BrowserSession> | null>(null);
   const sharingRef = useRef<InstanceType<typeof E8ListenerSharingController> | null>(null);
   const generationRef = useRef(0);
+  const sharingGenerationRef = useRef(0);
+
+  const retireSharing = useCallback(async () => {
+    sharingGenerationRef.current += 1;
+    const controller = sharingRef.current;
+    sharingRef.current = null;
+    setSharing(E8_EMPTY_SHARING_STATE);
+    if (controller) {
+      await controller.stop();
+      controller.dispose();
+    }
+  }, []);
 
   const stop = useCallback(() => {
     generationRef.current += 1;
     setDiagnosticGeneration(generationRef.current);
     const session = sessionRef.current;
-    const sharingController = sharingRef.current;
-    sharingRef.current = null;
     sessionRef.current = null;
     setEnabled(false);
     setStatus("idle");
     if (session) void session.stop("requested");
-    if (sharingController) void sharingController.stop().finally(() => sharingController.dispose());
-  }, []);
+    void retireSharing();
+  }, [retireSharing]);
 
   const start = useCallback(async (code: string) => {
     generationRef.current += 1;
     setDiagnosticGeneration(generationRef.current);
     const generation = generationRef.current;
     const priorSession = sessionRef.current;
-    const priorSharing = sharingRef.current;
     sessionRef.current = null;
-    sharingRef.current = null;
     setEnabled(true);
     setStatus("connecting");
     if (priorSession) await priorSession.stop("requested");
-    if (priorSharing) {
-      await priorSharing.stop();
-      priorSharing.dispose();
-    }
+    await retireSharing();
     if (generation !== generationRef.current) return;
     const client = browserProfile();
     const supportsLongTasks = typeof PerformanceObserver !== "undefined"
@@ -135,6 +140,7 @@ export function useManagedAudioStream() {
         } else if (next === "stopped") {
           setStatus("idle");
           setEnabled(false);
+          void retireSharing();
         }
       },
     });
@@ -149,7 +155,7 @@ export function useManagedAudioStream() {
         setStatus("error");
       }
     }
-  }, []);
+  }, [retireSharing]);
 
   const diagnostics = useCallback((): ManagedAudioDiagnostics | null => {
     const session = sessionRef.current;
@@ -190,6 +196,7 @@ export function useManagedAudioStream() {
 
   const sharingController = useCallback(() => {
     if (sharingRef.current) return sharingRef.current;
+    const sharingGeneration = ++sharingGenerationRef.current;
     const controller = new E8ListenerSharingController({
       readLifecycle: () => {
         const lifecycle = sessionRef.current?.lifecycle;
@@ -200,7 +207,9 @@ export function useManagedAudioStream() {
       uuid: () => actionUuid(),
       scheduleInterval: (callback: () => void,delay: number) => window.setInterval(callback,delay),
       cancelInterval: (timer: number) => window.clearInterval(timer),
-      onChange: (next: ManagedAudioSharing) => setSharing(next),
+      onChange: (next: ManagedAudioSharing) => {
+        if (sharingGeneration === sharingGenerationRef.current) setSharing(next);
+      },
       request: async (path: string,body: Record<string,unknown>) => {
         const controller = new AbortController();
         const timer = window.setTimeout(() => controller.abort(),5_000);
@@ -236,12 +245,10 @@ export function useManagedAudioStream() {
   useEffect(() => () => {
     generationRef.current += 1;
     const session = sessionRef.current;
-    const sharingController = sharingRef.current;
     sessionRef.current = null;
-    sharingRef.current = null;
     if (session) void session.stop("page_teardown");
-    if (sharingController) void sharingController.stop().finally(() => sharingController.dispose());
-  }, []);
+    void retireSharing();
+  }, [retireSharing]);
 
   const ready = status === "buffering" || status === "playing";
   return {

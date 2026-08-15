@@ -189,6 +189,7 @@ export function createListenerGrantStore({ clock = Date.now,maxGrants = MAX_GRAN
   }
 
   async function serial(key,operation) {
+    if (!tails.has(key) && tails.size >= maxGrants) fail(503,"quota_exhausted");
     const prior = tails.get(key) ?? Promise.resolve();
     let release;
     const current = new Promise((resolve) => { release = resolve; });
