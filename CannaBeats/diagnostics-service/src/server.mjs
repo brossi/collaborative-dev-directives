@@ -2,6 +2,10 @@ import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 
 import { DiagnosticCollector } from './collector.mjs';
+import {
+  validateDiagnosticVolumeTopology,
+  volumeTopologyFromEnvironment,
+} from './topology.mjs';
 
 const DEFAULT_PORT = 3020;
 const DEFAULT_MAINTENANCE_INTERVAL_MS = 60_000;
@@ -62,6 +66,7 @@ export function createDiagnosticService({
   port = DEFAULT_PORT,
   maintenanceIntervalMs = DEFAULT_MAINTENANCE_INTERVAL_MS,
   collectorOptions,
+  volumeTopology = volumeTopologyFromEnvironment(),
   createCollector = (path, options) => new DiagnosticCollector(path, options),
   onLifecycle = () => {},
 } = {}) {
@@ -70,6 +75,7 @@ export function createDiagnosticService({
     throw new Error('diagnostic_configuration_invalid');
   }
 
+  validateDiagnosticVolumeTopology(volumeTopology);
   const collector = createCollector(databasePath, collectorOptions);
   const lifecycle = (event) => {
     try {
@@ -174,6 +180,7 @@ export async function runDiagnosticServiceFromEnvironment() {
       lockDirectory: process.env.CANNABEATS_DIAGNOSTIC_LOCK_DIRECTORY
         || '/diagnostics/.locks',
     },
+    volumeTopology: volumeTopologyFromEnvironment(process.env),
     onLifecycle(event) {
       process.stdout.write(`${JSON.stringify(event)}\n`);
     },

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const composeDirectory = resolve(repositoryRoot, 'spikes/access-spotify-poc');
 
-function renderedCompose() {
+function renderedCompose(environment = {}) {
   const result = spawnSync('docker', [
     'compose', '-f', 'compose.yaml', '-f', 'compose.state-cutover.yaml',
     '--profile', 'diagnostics', '--profile', 'state-cutover', '--profile', 'operations',
@@ -16,7 +16,11 @@ function renderedCompose() {
   ], {
     cwd: composeDirectory,
     encoding: 'utf8',
-    env: { ...process.env, CANNABEATS_RELEASE_EPOCH: 'e73-topology-test' },
+    env: {
+      ...process.env,
+      CANNABEATS_RELEASE_EPOCH: 'e73-topology-test',
+      ...environment,
+    },
   });
   if (result.error?.code === 'ENOENT') return null;
   assert.equal(result.status, 0, result.stderr);
@@ -45,10 +49,32 @@ test('diagnostics is one private optional service with one disposable volume', (
   assert.deepEqual(diagnostics.volumes, [{
     type: 'volume', source: 'cannabeats_diagnostics_data', target: '/diagnostics', volume: {},
   }]);
+  assert.equal(diagnostics.environment.CANNABEATS_DIAGNOSTICS_DATA_VOLUME,
+    'cannabeats_diagnostics_data');
+  assert.equal(diagnostics.environment.CANNABEATS_DATA_VOLUME, 'cannabeats_poc_data');
+  assert.equal(diagnostics.environment.CANNABEATS_STATE_DATA_VOLUME, 'cannabeats_state_data');
   assert.ok(compose.volumes.cannabeats_diagnostics_data);
   assert.equal(diagnostics.logging.driver, 'json-file');
   assert.equal(diagnostics.logging.options['max-size'], '1m');
   assert.equal(diagnostics.logging.options['max-file'], '4');
+});
+
+test('rendered volume identities are passed to the runtime collision preflight', (context) => {
+  const compose = renderedCompose({
+    CANNABEATS_DIAGNOSTICS_DATA_VOLUME: 'collision_demo',
+    CANNABEATS_DATA_VOLUME: 'collision_demo',
+    CANNABEATS_STATE_DATA_VOLUME: 'distinct_state',
+  });
+  if (!compose) {
+    context.skip('Docker Compose is unavailable');
+    return;
+  }
+  assert.equal(compose.services.diagnostics.environment.CANNABEATS_DIAGNOSTICS_DATA_VOLUME,
+    'collision_demo');
+  assert.equal(compose.services.diagnostics.environment.CANNABEATS_DATA_VOLUME,
+    'collision_demo');
+  assert.equal(compose.volumes.cannabeats_diagnostics_data.name, 'collision_demo');
+  assert.equal(compose.volumes.cannabeats_poc_data.name, 'collision_demo');
 });
 
 test('authority operations and audio topology have no diagnostics dependency or mount', (context) => {

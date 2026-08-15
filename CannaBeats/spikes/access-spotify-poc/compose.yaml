@@ -214,6 +214,9 @@ services:
       PORT: "3020"
       CANNABEATS_DIAGNOSTIC_DATABASE_PATH: /diagnostics/cannabeats-diagnostics.sqlite
       CANNABEATS_DIAGNOSTIC_LOCK_DIRECTORY: /diagnostics/.locks
+      CANNABEATS_DIAGNOSTICS_DATA_VOLUME: ${CANNABEATS_DIAGNOSTICS_DATA_VOLUME:-cannabeats_diagnostics_data}
+      CANNABEATS_DATA_VOLUME: ${CANNABEATS_DATA_VOLUME:-cannabeats_poc_data}
+      CANNABEATS_STATE_DATA_VOLUME: ${CANNABEATS_STATE_DATA_VOLUME:-cannabeats_state_data}
     volumes:
       - cannabeats_diagnostics_data:/diagnostics
     mem_limit: 256m

@@ -84,6 +84,32 @@ test('startup validates the real store and refuses incompatible or second-owner 
   }
 });
 
+test('startup rejects a diagnostics volume alias before opening the store', () => {
+  let collectorCreates = 0;
+  const createCollector = () => {
+    collectorCreates += 1;
+    throw new Error('collector must not be opened');
+  };
+  const base = {
+    databasePath: '/diagnostics/cannabeats-diagnostics.sqlite',
+    createCollector,
+  };
+
+  for (const volumeTopology of [
+    { diagnostics: 'shared', access: 'shared', state: 'state' },
+    { diagnostics: 'shared', access: 'access', state: 'shared' },
+    { diagnostics: 'diagnostics', access: 'shared', state: 'shared' },
+  ]) {
+    assert.throws(() => createDiagnosticService({ ...base, volumeTopology }),
+      (error) => error.code === 'volume_identity_conflict');
+  }
+  assert.throws(() => createDiagnosticService({
+    ...base,
+    volumeTopology: { diagnostics: '../diagnostics', access: 'access', state: 'state' },
+  }), (error) => error.code === 'volume_identity_invalid');
+  assert.equal(collectorCreates, 0);
+});
+
 test('a listen failure releases the store owner before returning', async () => {
   const fixture = temporaryDirectory();
   const blocker = createServer();

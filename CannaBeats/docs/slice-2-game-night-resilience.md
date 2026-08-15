@@ -1,9 +1,9 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E E1-E6 are locally verified and E7.2 has passed its targeted
-  independent closure review, with checkpoint bookkeeping pending; E7.3-E12
-  and S2-F real-environment proof remain open
+  verified; S2-E E1-E6 and E7.2 are locally verified; E7.3 has one contained
+  volume-identity remediation awaiting targeted closure re-review; E8-E12 and
+  S2-F real-environment proof remain open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1048,7 +1048,8 @@ local-only panel, canonical copy, reset control, and production E5 attachment
 are locally verified at `b0596f2`. E7.1 and E7.2 implement the unwired collector
 store; the targeted E7.2 transaction, retained-read, corruption, lifetime, and
 physical-boundary reviews found no open P0/P1. E7.3 service isolation is
-implemented with independent closure review pending. E8 routing/authenticated
+implemented with its volume-identity remediation awaiting targeted closure
+re-review. E8 routing/authenticated
 authority, E9/E10 producer integration, E11 composition, and E12 real-device
 timing remain open.
 

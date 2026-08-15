@@ -6,6 +6,7 @@ WORKDIR /app/diagnostics-service
 
 COPY --chown=node:node diagnostics-service/package.json ./package.json
 COPY --chown=node:node diagnostics-service/src ./src
+COPY --chown=node:node diagnostics-service/scripts ./scripts
 COPY --chown=node:node web/lib/s2e-e1-contract.mjs /app/web/lib/s2e-e1-contract.mjs
 COPY --chown=node:node web/lib/s2e-e2-correlation.mjs /app/web/lib/s2e-e2-correlation.mjs
 RUN mkdir -p /diagnostics /diagnostics-temp \

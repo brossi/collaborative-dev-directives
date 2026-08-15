@@ -426,7 +426,7 @@ isolation checks.
 | --- | --- | --- | --- |
 | E7.1 core | SCHEMA, OWN, INGEST, REPLAY, QUOTA, TRACE, E2STATE, PRIV | schema tamper, second writer, rollback injection, lost response, consent/relay/restart races, exact/conflicting concurrency, cap ±1 | `transactional core locally verified`; no service/integration claim |
 | E7.2 retention/read | READ, PURGE, RET, PHYS | corrupt row, max read, cutoff equality, purge/read race, busy checkpoint, restart | `bounded disposable store locally verified`; no auth claim |
-| E7.3 isolation | ISOLATE plus prior invariants | absent/full/incompatible/deleted collector process and volume, backup/restore/rollback topology | `optional collector topology locally verified`; no Game/audio failure-isolation or caller-authority claim |
+| E7.3 isolation | ISOLATE plus prior invariants | absent/full/incompatible/deleted collector process and volume, resolved-volume collision, label/refusal disposal, backup/restore/rollback topology | `optional collector topology locally verified`; no E8 integrated caller/failure-injection or caller-authority claim |
 
 ## Design-review decision
 
@@ -448,7 +448,8 @@ isolation checks.
 - Dependency-firewall review passed: yes
 - Predictable-failure matrix resolved: yes
 - No open P0/P1 design finding: yes
-- Implementation authorized: yes, E7.1 and E7.2; E7.3 remains unauthorized
+- Implementation authorized at this E7.1/E7.2 design checkpoint: yes, E7.1
+  and E7.2; the later E7.3 section records its separate authorization
 
 ## E7.1 implementation record
 
@@ -600,8 +601,12 @@ Compose fixes the deployment shape:
   or audio service mount or dependency.
 
 The service never deletes an incompatible store. Disposal is an explicit
-operator/Compose volume removal affecting only the diagnostics volume. Starting
-with a missing or newly recreated volume creates a fresh generation-1 store.
+operator action affecting only the diagnostics volume. Before SQLite opens,
+one shared runtime preflight validates that the resolved diagnostics, Access,
+and State volume names are all distinct. The same validator is used by the
+targeted disposal command, which additionally requires the exact Compose
+project and logical-volume labels and refuses an attached volume. Starting with
+a missing or newly recreated volume creates a fresh generation-1 store.
 Coordinated backup and restore continue to name exactly Access and State; the
 diagnostics volume is neither an input nor an output.
 
@@ -611,18 +616,18 @@ diagnostics volume is neither an input nor an output.
 | --- | --- |
 | Create | `runtime`: startup creates only a missing/empty generation-1 database in the dedicated volume; an incompatible nonempty file fails before listen. |
 | Update | `structural`: E7.3 exposes status only; maintenance delegates to the verified E7.2 transaction boundary. |
-| Delete | `structural + operations`: the process deletes no store; explicit disposal targets only the named diagnostics volume. |
+| Delete | `runtime`: the process deletes no store; `dispose-volume.mjs` revalidates distinct resolved names, exact project/logical-volume labels, and zero attachments before deleting only the named diagnostics volume. |
 | Omit | `runtime`: readiness is available only after `DiagnosticCollector` startup validation; status never substitutes for a complete trace read. |
 | Duplicate | `runtime`: the E7 ownership lock prevents a second owner of the same database; Compose defines one service instance. |
 | Reorder | `not_applicable`: E7.3 introduces no externally accepted mutation or paged read. |
 | Replay | `not_applicable`: all three GETs are read-only; E8 owns mutation replay over HTTP. |
-| Conflict | `runtime`: incompatible schema or a second owner fails before the port binds. |
+| Conflict | `runtime`: resolved diagnostics/Access/State volume-name aliasing, incompatible schema, or a second owner fails before the port binds. |
 | Concurrency | `structural`: one process owns one synchronous collector; status and maintenance do not introduce a second writer. |
 | Expiry | `runtime`: one bounded startup sweep and one 60-second timer call the verified E7.2 retention operation; timer overlap is impossible in the synchronous process. |
 | Restart | `runtime`: every process start reopens and fully validates the retained store before readiness. |
 | Dependency failure | `structural`: there is no upstream dependency; no other service depends on diagnostic health or existence. |
 | Corruption | `runtime`: startup corruption fails before bind; a retained-data failure reached by maintenance latches degraded status; arbitrary out-of-band live-file tampering is detected on restart rather than by turning each health probe into a full-store scan. E7.3 has no report read surface from which to publish partial data. |
-| Capacity | `Compose + runtime`: fixed container/tmpfs/log/volume admission bounds apply; missing/full service remains optional to every authority and audio path. |
+| Capacity | `runtime`: collector admission owns the physical threshold; Compose supplies the named container/tmpfs/log limits, and missing/full service remains optional to every authority and audio path. |
 
 ### Predictable schedules and evidence
 
@@ -634,6 +639,8 @@ The implementation tests must cover:
 - startup sweep, one timer sweep, signal shutdown, and restart with retained
   healthy data;
 - deleted/missing volume recreation without touching Access or State data;
+- diagnostics/Access/State resolved-volume name collisions refusing before the
+  store opens, and disposal refusing wrong labels or an attached volume;
 - rendered Compose profile, private networking, exact mounts, security/resource
   limits, healthcheck, and absence of every forbidden dependency;
 - backup/restore manifests and services continuing to exclude diagnostics; and
@@ -645,6 +652,26 @@ cannot claim container lifecycle closure. The local E7.3 checkpoint requires a
 real container build/start/health/stop/delete-volume rehearsal before it may be
 called `locally verified`. Rehearsals use a unique labeled Compose project and
 volume and remove only resources carrying that exact test ownership label.
+
+The supported disposal path first stops the diagnostics service without broad
+volume deletion, then invokes the checked command with the same resolved names:
+
+```sh
+export CANNABEATS_DIAGNOSTICS_PROJECT=cannabeats
+export CANNABEATS_DIAGNOSTICS_DATA_VOLUME=cannabeats_diagnostics_data
+export CANNABEATS_DATA_VOLUME=cannabeats_poc_data
+export CANNABEATS_STATE_DATA_VOLUME=cannabeats_state_data
+docker compose -f spikes/access-spotify-poc/compose.yaml \
+  -p "$CANNABEATS_DIAGNOSTICS_PROJECT" \
+  --profile diagnostics stop diagnostics
+node diagnostics-service/scripts/dispose-volume.mjs \
+  --project "$CANNABEATS_DIAGNOSTICS_PROJECT" \
+  --volume "$CANNABEATS_DIAGNOSTICS_DATA_VOLUME"
+```
+
+The command refuses a resolved-name alias, a missing or mismatched Compose
+project/logical-volume label, or any attached container. Broad commands such as
+`docker compose down --volumes` are not the diagnostics disposal procedure.
 
 ### Scope and review decision
 
@@ -670,6 +697,9 @@ The implementation adds only the authorized boundary:
 
 - `diagnostics-service/src/server.mjs` owns one real `DiagnosticCollector`, one
   bounded HTTP server, one maintenance timer, and idempotent shutdown;
+- `diagnostics-service/src/topology.mjs` rejects resolved volume-name aliases
+  before the collector opens, and the checked disposal command reuses that
+  boundary plus exact Compose-label and attachment checks;
 - the process exposes only `/live`, `/ready`, and `/v1/status`, returns constant
   not-found results for every other method/path, and normalizes status and
   maintenance failures without echoing lower-layer text;
@@ -682,7 +712,7 @@ The implementation adds only the authorized boundary:
   user, filesystem, capability, tmpfs, CPU, memory, PID, health, and log bounds
   above.
 
-Matrix-derived process and topology tests pass `28/28`. The existing coordinated
+Matrix-derived process, disposal, and topology tests pass `32/32`. The existing coordinated
 backup, release/rollback, scheduler, rendered-state topology, and schema-
 compatibility regressions pass `59/59`, confirming no diagnostics mount or
 readiness dependency entered those paths.
@@ -706,5 +736,9 @@ generation-1 store; final label-scoped cleanup left no project container,
 network, or volume.
 
 The implementation worktree is based on E7.2 checkpoint `93f1715`. No E8 route,
-credential, authority lookup, or producer caller exists. Permitted status is
-`E7.3 implemented; independent closure review pending`.
+credential, authority lookup, or producer caller exists. The first independent
+review passed the process and rendered-topology perspectives but found one
+resolved-volume alias/disposal P1. The contained preflight and checked-disposal
+remediation is implemented; its targeted independent re-review remains pending.
+Permitted status is `E7.3 remediation implemented; targeted closure re-review
+pending`.

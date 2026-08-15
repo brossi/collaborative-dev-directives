@@ -3,10 +3,11 @@
 Status: the S2-E architecture and checkpoint framework use the small-deployment
 scale filter and each detailed checkpoint must pass its own closure gate.
 E1-E6 are locally verified at their recorded exact targets. E7.1 and E7.2
-implement the unwired collector store, and E7.2 has passed its targeted
+implement the unwired collector store, and E7.2 has passed and recorded its targeted
 transaction, retained-read, corruption, lifetime, and physical-boundary closure
-reviews with no open P0/P1; checkpoint bookkeeping is pending. E7.3-E12 remain
-open. The earlier broad executable-contract and listener prototypes remain
+reviews with no open P0/P1. E7.3 is implemented with one contained
+volume-identity remediation awaiting targeted re-review; E8-E12 remain open.
+The earlier broad executable-contract and listener prototypes remain
 archived outside the active branch and supply no evidence.
 
 This contract defines a bounded diagnostic plane for locating managed-audio
@@ -845,8 +846,8 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Status: `E7.2 locally verified; E7.3 implemented with independent closure review
-pending`. The transactional and bounded retention/read increments are closed.
+Status: `E7.2 locally verified; E7.3 remediation implemented with targeted
+closure re-review pending`. The transactional and bounded retention/read increments are closed.
 The optional private process, image, volume, and Compose isolation are
 implemented but not yet closure-verified. The independently reviewed bounded
 storage design is maintained in
@@ -867,7 +868,7 @@ matrix, bounded Game proxy behavior, collector hang/loss effects on Game/audio,
 and unchanged S2-D behavior remain E8 gates.
 
 The E7.3 HTTP adapter is a loopback/private-topology test seam and is not
-deployable by itself. Production enablement requires E8's distinct Game and
+production-enabled or authorized until E8. Production enablement requires E8's distinct Game and
 maintenance credentials, exact caller matrix, request/body deadlines, and
 State-derived authority mediation.
 
