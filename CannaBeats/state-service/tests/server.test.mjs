@@ -199,6 +199,13 @@ test("diagnostic authority HTTP routes expose only State-derived Game facts", as
     });
     assert.equal(memberResponse.status,404);
     assert.deepEqual(await memberResponse.json(),{ code: "not_found" });
+    const forgedHost = await fetch(`${origin}/v1/diagnostics/run-host-authority`,{
+      method: "POST",headers: {
+        ...hostHeaders,"x-cannabeats-principal": member,
+      },body: JSON.stringify({ runId }),
+    });
+    assert.equal(forgedHost.status,403);
+    assert.deepEqual(await forgedHost.json(),{ code: "principal_assertion_invalid" });
     const managedResponse = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
       method: "POST",headers: {
         authorization: `Bearer ${scopedCredentials.gameToken}`,
@@ -216,6 +223,12 @@ test("diagnostic authority HTTP routes expose only State-derived Game facts", as
     });
     assert.equal(extra.status,400);
     assert.deepEqual(await extra.json(),{ code: "invalid_request" });
+    const malformedSource = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
+      method: "POST",headers: hostHeaders,
+      body: JSON.stringify({ sourceId: "not-a-uuid" }),
+    });
+    assert.equal(malformedSource.status,400);
+    assert.deepEqual(await malformedSource.json(),{ code: "invalid_request" });
     const access = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
       method: "POST",headers: {
         authorization: `Bearer ${scopedCredentials.accessToken}`,
