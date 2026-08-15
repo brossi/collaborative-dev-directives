@@ -31,6 +31,7 @@ export function createGameStateClient({
   ),
   fetchImpl = fetch,
   clock = Date.now,
+  maxResponseBytes = 1024 * 1024,
 } = {}) {
   if (!origin || !token || !principalAssertionKey) {
     throw new Error("Game state-service origin and scoped credentials are required.");
@@ -64,7 +65,7 @@ export function createGameStateClient({
     });
     let payload;
     try {
-      payload = await boundedJsonResponse(response);
+      payload = await boundedJsonResponse(response,maxResponseBytes);
     } catch {
       throw new StateGatewayError(502, "state_response_invalid");
     }

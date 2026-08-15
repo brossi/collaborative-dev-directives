@@ -912,8 +912,8 @@ The relay receives one new 32-256-byte visible-ASCII bearer from
 future relay reporter. Game validates it as distinct from the collector Game
 credential before constructing producer mediation. The collector still sees
 only its existing Game credential. Diagnostics already validates collector
-Game versus maintenance; the release credential preflight checks all three
-values pairwise before deployed enablement. E12 owns installation on the real
+Game versus maintenance; the host pre-enable credential check compares all
+three values pairwise before deployed enablement. E12 owns installation on the real
 relay host, not definition of this local boundary.
 
 The exact public operations are:
@@ -1003,7 +1003,8 @@ token. The service has no `depends_on` edge; collector absence is a finite
 operations failure, not an application startup failure.
 
 Before any deployed diagnostics enablement, the host runs
-`node deploy/validate-diagnostic-credentials.mjs` from the Compose directory.
+`node --env-file=.env deploy/validate-diagnostic-credentials.mjs` from the
+Compose directory.
 The preflight reads the three configured host files, validates their bounded
 token form, compares SHA-256 digests pairwise, and returns only `valid`,
 `diagnostic_credential_configuration_invalid`, or
@@ -1090,7 +1091,7 @@ Verification at this checkpoint:
 
 - Diagnostics service: `npm test` -> `52/52` pass.
 - State authority regression: `npm test` -> `67/67` pass.
-- Web production build and complete suite: `npm test` -> `311/311` pass.
+- Web production build and complete suite: `npm test` -> `312/312` pass.
 - Diagnostic credential preflight: `node --test
   test/diagnostic-credential-preflight.test.mjs` -> `3/3` pass.
 - Web lint: zero errors; one pre-existing E5 unused-parameter warning.

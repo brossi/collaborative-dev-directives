@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, linkSync, mkdtempSync, statSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +9,9 @@ import { DatabaseSync } from 'node:sqlite';
 
 import {
   acceptSynchronizationSample,
+  bindRelayGeneration,
+  canonicalE2OperationCommandBytes,
+  canonicalE2OperationReceiptBytes,
   composeUploadedEnvelope,
   createOperationAuthorityFixtureForTest,
   createServerContextFixtureForTest,
@@ -448,6 +452,38 @@ test('startup requires a one-to-one relay binding and bind receipt relationship'
       collector = new DiagnosticCollector(path,{ lockDirectory,now: 2200,clock: () => 2200 });
     });
   }
+
+  const dir = workspace();
+  const path = join(dir,'relay-duplicate-receipt.sqlite');
+  const lockDirectory = join(dir,'locks');
+  let collector = new DiagnosticCollector(path,{ lockDirectory,now: 0,clock: () => 2200 });
+  collector.startTrace(command('trace_start'),startAuthority());
+  const relayAuthority = authority({
+    operation: 'relay_bind',traceId: TRACE,segmentId: SEGMENT,
+    leaseId: LEASE,relayGenerationId: INSTANCE,
+  });
+  collector.bindRelay(command('relay_bind',{ relayGenerationId: INSTANCE },REQUESTS[2]),
+    relayAuthority);
+  const duplicateCommand = command('relay_bind',{ relayGenerationId: INSTANCE },uuidFor(996));
+  const duplicate = bindRelayGeneration(
+    collector.traceContext({ traceId: TRACE }).state,null,duplicateCommand,relayAuthority,
+  );
+  const commandBytes = canonicalE2OperationCommandBytes(duplicateCommand);
+  const receiptBytes = canonicalE2OperationReceiptBytes(duplicate.receipt);
+  const fingerprint = createHash('sha256').update(commandBytes).digest('hex');
+  const trace = collector.traceContext({ traceId: TRACE }).state;
+  collector.db.prepare(`INSERT INTO diagnostic_requests
+    (request_id,trace_id,operation,fingerprint,canonical_receipt,accepted_at,expires_at)
+    VALUES (?,?,?,?,?,?,?)`).run(
+    duplicateCommand.requestId,TRACE,'relay_bind',fingerprint,Buffer.from(receiptBytes),2200,
+    trace.expiresAtMs + 172_800_000,
+  );
+  collector.db.prepare(`UPDATE diagnostic_store SET request_count=request_count+1,
+    canonical_bytes=canonical_bytes+? WHERE singleton='diagnostics'`).run(receiptBytes.byteLength);
+  collector.close();
+  expectCode('collector_degraded',() => {
+    collector = new DiagnosticCollector(path,{ lockDirectory,now: 2200,clock: () => 2200 });
+  });
 });
 
 test('trace context recovers exact current authority by trace or active run', () => {

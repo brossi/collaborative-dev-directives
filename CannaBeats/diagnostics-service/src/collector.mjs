@@ -1187,7 +1187,10 @@ export class DiagnosticCollector {
             && receipt.result.leaseId === relayRow.lease_id
             && sameBytes(relayRow.canonical_state,
               canonicalRelayBindingBytes(receipt.result));
-          if (relayBindingValid) relayReceiptGenerations.add(receipt.result.relayGenerationId);
+          if (relayBindingValid) {
+            if (relayReceiptGenerations.has(receipt.result.relayGenerationId)) dataFail();
+            relayReceiptGenerations.add(receipt.result.relayGenerationId);
+          }
         }
         if (receipt.requestId !== row.request_id || receipt.operation !== row.operation
           || resultTraceId !== row.trace_id

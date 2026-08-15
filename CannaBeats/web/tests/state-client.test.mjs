@@ -41,6 +41,17 @@ test("game state client returns only stable gateway failures", async () => {
       && error.code === "state_response_invalid");
 });
 
+test("game state client enforces a caller-selected bounded response profile", async () => {
+  const client = createGameStateClient({
+    origin: "http://state:3010",token: "game-token",principalAssertionKey: "game-key",
+    maxResponseBytes: 8_192,
+    fetchImpl: async () => new Response(" ".repeat(8_193)),
+  });
+  await assert.rejects(() => client.diagnosticManagedStream(),
+    (error) => error instanceof StateGatewayError && error.status === 502
+      && error.code === "state_response_invalid");
+});
+
 test("diagnostic State calls separate principal host authority from unscoped stream authority", async () => {
   const calls = [];
   const client = createGameStateClient({

@@ -34,7 +34,8 @@ function createProductionService() {
     rotateSegment: (value) => collector().rotateSegment(value),
   };
   const relayState = {
-    authority: (value) => createGameStateClient().diagnosticManagedStream(value),
+    authority: (value) => createGameStateClient({ maxResponseBytes: 8_192 })
+      .diagnosticManagedStream(value),
   };
   const reconciler = createDiagnosticMediation({
     access: { principal: () => { throw new Error("producer_principal_forbidden"); } },
