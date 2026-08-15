@@ -11,6 +11,13 @@ const MAX_BODY_BYTES = 8192;
 const BODY_DEADLINE_MS = 2000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const decoder = new TextDecoder("utf-8",{ fatal: true });
+const BROWSER_FAILURES = new Set([
+  "authentication_required","not_authorized","request_invalid","request_timeout",
+  "diagnostic_not_found","request_conflict","trace_busy","read_expired",
+  "stale_correlation","trace_inactive","collector_busy","collector_degraded",
+  "quota_exhausted","schema_incompatible","collector_response_invalid",
+  "state_response_invalid","collector_unavailable","diagnostic_unavailable",
+]);
 
 class DiagnosticRouteError extends Error {
   constructor(status, code) {
@@ -91,9 +98,10 @@ function headers(request) {
 function responseError(error) {
   if (error instanceof DiagnosticMediationError || error instanceof DiagnosticRouteError
     || error instanceof DiagnosticCollectorGatewayError || error instanceof StateGatewayError) {
-    const status = [400,401,403,404,408,409,426,502,503].includes(error.status)
+    const known = BROWSER_FAILURES.has(error.code);
+    const status = known && [400,401,403,404,408,409,426,502,503].includes(error.status)
       ? error.status : 503;
-    const code = typeof error.code === "string" ? error.code : "diagnostic_unavailable";
+    const code = known ? error.code : "diagnostic_unavailable";
     return Response.json({ error: code === "diagnostic_not_found"
       ? "Diagnostic trace not found."
       : code === "authentication_required" ? "Sign in required."
@@ -107,6 +115,7 @@ function responseError(error) {
 }
 
 export function createDiagnosticRouteHandlers({ mediation,bodyDeadlineMs } = {}) {
+  const collector = () => createDiagnosticCollectorClient();
   const service = () => mediation ?? createDiagnosticMediation({
       access: {
         principal: (requestHeaders) => createAccessGatewayClient().principal(requestHeaders),
@@ -115,7 +124,14 @@ export function createDiagnosticRouteHandlers({ mediation,bodyDeadlineMs } = {})
         runHost: (value) => createGameStateClient().diagnosticRunHost(value),
         managedStream: (value) => createGameStateClient().diagnosticManagedStream(value),
       },
-      collector: createDiagnosticCollectorClient(),
+      collector: {
+        traceContext: (value) => collector().traceContext(value),
+        startReceiptContext: (value) => collector().startReceiptContext(value),
+        startTrace: (value) => collector().startTrace(value),
+        endTrace: (value) => collector().endTrace(value),
+        rotateSegment: (value) => collector().rotateSegment(value),
+        readTrace: (value) => collector().readTrace(value),
+      },
     });
 
   async function trace(request) {

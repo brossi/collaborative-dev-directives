@@ -1,6 +1,8 @@
 import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 
+import { boundedJsonResponse } from "./bounded-json-response.mjs";
+
 function secret(valueName, fileName) {
   const value = process.env[valueName]?.trim();
   if (value) return value;
@@ -62,7 +64,7 @@ export function createGameStateClient({
     });
     let payload;
     try {
-      payload = await response.json();
+      payload = await boundedJsonResponse(response);
     } catch {
       throw new StateGatewayError(502, "state_response_invalid");
     }

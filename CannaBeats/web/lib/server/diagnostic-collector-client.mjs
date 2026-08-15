@@ -187,7 +187,12 @@ export function createDiagnosticCollectorClient({
     readTrace: async ({ traceId,cursor: next }) => {
       const value = await request("/v1/game/trace/read",{ traceId,cursor: next });
       try {
-        return readResult(value);
+        const result = readResult(value);
+        if (next === null && result.status === "found" && result.complete
+          && result.reports.length !== result.metadata.reportCount) {
+          fail(502,"collector_response_invalid");
+        }
+        return result;
       } catch (error) {
         if (error instanceof DiagnosticCollectorGatewayError) throw error;
         fail(502,"collector_response_invalid");

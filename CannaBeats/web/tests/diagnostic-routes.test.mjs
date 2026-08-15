@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { createDiagnosticRouteHandlers } from "../lib/server/diagnostic-routes.mjs";
 import { DiagnosticMediationError } from "../lib/server/diagnostic-mediation.mjs";
+import { StateGatewayError } from "../lib/server/state-client.mjs";
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)),"..");
 
@@ -94,4 +95,18 @@ test("gameplay audio and readiness modules have no collector dependency", () => 
     const source = readFileSync(resolve(webRoot,relative),"utf8");
     assert.doesNotMatch(source,/diagnostic-collector|DIAGNOSTICS_(?:GAME_TOKEN|SERVICE_ORIGIN)/,relative);
   }
+});
+
+test("browser errors never forward an unregistered dependency code", async () => {
+  const handlers = createDiagnosticRouteHandlers({ mediation: {
+    start: async () => { throw new StateGatewayError(503,"private_state_detail"); },
+    stop: async () => {},status: async () => {},read: async () => {},
+  } });
+  const response = await handlers.trace(request({
+    action: "start",requestId: randomUUID(),runId: randomUUID(),
+  }));
+  assert.equal(response.status,503);
+  assert.deepEqual(await response.json(),{
+    error: "Diagnostics are temporarily unavailable.",code: "diagnostic_unavailable",
+  });
 });

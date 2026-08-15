@@ -59,6 +59,21 @@ test("collector client bounds malformed dependency output and timeout", async ()
     (error) => error instanceof DiagnosticCollectorGatewayError
       && error.status === 502 && error.code === "collector_response_invalid");
 
+  const incompleteFirstPage = createDiagnosticCollectorClient({
+    origin: "http://diagnostics:3020",token,
+    fetchImpl: async () => Response.json({
+      status: "found",complete: true,
+      metadata: {
+        traceId: randomUUID(),status: "active",startedAtMs: 1,
+        endedAtMs: null,endReason: null,reportCount: 1,
+      },
+      reports: [],cursor: null,
+    }),
+  });
+  await assert.rejects(() => incompleteFirstPage.readTrace({
+    traceId: randomUUID(),cursor: null,
+  }),(error) => error.code === "collector_response_invalid");
+
   const hanging = createDiagnosticCollectorClient({
     origin: "http://diagnostics:3020",token,deadlineMs: 5,
     fetchImpl: async (_url,{ signal }) => new Promise((resolve,reject) => {

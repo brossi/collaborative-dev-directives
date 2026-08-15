@@ -76,6 +76,38 @@ function traceProjection(state) {
   });
 }
 
+function relatedTrace(trace, expected) {
+  for (const key of ["traceId","runId","runGeneration","status","startedAtMs","expiresAtMs"]) {
+    if (Object.hasOwn(expected,key) && trace?.[key] !== expected[key]) {
+      fail(502,"collector_response_invalid");
+    }
+  }
+  if (Object.hasOwn(expected,"segmentId") && trace?.segment?.segmentId !== expected.segmentId) {
+    fail(502,"collector_response_invalid");
+  }
+  if (Object.hasOwn(expected,"leaseId") && trace?.segment?.leaseId !== expected.leaseId) {
+    fail(502,"collector_response_invalid");
+  }
+  if (Object.hasOwn(expected,"endReason")
+    && trace?.ended?.reason !== expected.endReason) fail(502,"collector_response_invalid");
+  return trace;
+}
+
+function relatedRead(result, trace) {
+  const metadata = result?.metadata;
+  const endedAtMs = trace.status === "ended" ? trace.ended.endedAtMs : null;
+  const endReason = trace.status === "ended" ? trace.ended.reason : null;
+  if (!metadata || metadata.traceId !== trace.traceId || metadata.status !== trace.status
+    || metadata.startedAtMs !== trace.startedAtMs || metadata.endedAtMs !== endedAtMs
+    || metadata.endReason !== endReason
+    || result.reports.some((report) => report.serverContext.traceId !== trace.traceId
+      || report.serverContext.runId !== trace.runId
+      || report.serverContext.runGeneration !== trace.runGeneration)) {
+    fail(502,"collector_response_invalid");
+  }
+  return result;
+}
+
 function exactHost(value, runId) {
   if (!value || value.authorityVersion !== 1 || value.runId !== runId
     || !["active","ended"].includes(value.status)
@@ -143,7 +175,7 @@ export function createDiagnosticMediation({
     }
   }
 
-  async function host(headers, runId) {
+  async function principal(headers) {
     let principal;
     try {
       principal = exactPrincipal(await bounded((signal) => access.principal({ ...headers,signal })));
@@ -152,15 +184,23 @@ export function createDiagnosticMediation({
       if (error?.status === 401 || error?.status === 403) fail(401,"authentication_required");
       fail(503,"diagnostic_unavailable");
     }
+    return principal;
+  }
+
+  async function principalHost(principalValue, runId) {
     try {
       return exactHost(await bounded((signal) => state.runHost({
-        runId,principalId: principal.id,signal,
+        runId,principalId: principalValue.id,signal,
       })),runId);
     } catch (error) {
       if (error instanceof DiagnosticMediationError) throw error;
       if ([403,404].includes(error?.status)) fail(404,"diagnostic_not_found");
       fail(503,"diagnostic_unavailable");
     }
+  }
+
+  async function host(headers, runId) {
+    return principalHost(await principal(headers),runId);
   }
 
   async function currentStream() {
@@ -181,9 +221,12 @@ export function createDiagnosticMediation({
         traceId: trace.traceId,reason,
       }),
     });
-    const ended = restoreTrace(result?.state);
-    if (!["accepted","replayed"].includes(result?.status) || ended.traceId !== trace.traceId
-      || ended.status !== "ended" || ended.ended.reason !== reason) {
+    const ended = relatedTrace(restoreTrace(result?.state),{
+      traceId: trace.traceId,runId: trace.runId,runGeneration: trace.runGeneration,
+      status: "ended",startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
+      segmentId: trace.segment.segmentId,leaseId: trace.segment.leaseId,endReason: reason,
+    });
+    if (!["accepted","replayed"].includes(result?.status)) {
       fail(502,"collector_response_invalid");
     }
     return ended;
@@ -212,10 +255,12 @@ export function createDiagnosticMediation({
       authorityVersion: 1,operation: "segment_rotate",nowMs: clock(),traceId: trace.traceId,
       priorLeaseId: trace.segment.leaseId,leaseId: current.leaseId,issuedSegmentId,
     }) });
-    const state = restoreTrace(rotated?.state);
-    if (rotated?.status !== "accepted" || state.traceId !== trace.traceId
-      || state.segment.leaseId !== current.leaseId
-      || state.segment.segmentId !== issuedSegmentId) fail(502,"collector_response_invalid");
+    const state = relatedTrace(restoreTrace(rotated?.state),{
+      traceId: trace.traceId,runId: trace.runId,runGeneration: trace.runGeneration,
+      status: "active",startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
+      leaseId: current.leaseId,segmentId: issuedSegmentId,
+    });
+    if (rotated?.status !== "accepted") fail(502,"collector_response_invalid");
     return state;
   }
 
@@ -229,11 +274,15 @@ export function createDiagnosticMediation({
     if (retained.status === "found") {
       const receipt = restoreReceipt(retained.receipt);
       if (receipt.operation !== "trace_start" || receipt.requestId !== requestId
-        || receipt.result.runId !== runId || receipt.result.traceId !== traceId
+        || receipt.result.traceId !== traceId || receipt.result.runId !== runId
         || receipt.result.segment.segmentId !== initialSegmentId) {
         fail(409,"request_conflict");
       }
-      return traceProjection(receipt.result);
+      const replayTrace = relatedTrace(receipt.result,{
+        traceId,runId,runGeneration: hostAuthority.runGeneration,status: "active",
+        segmentId: initialSegmentId,
+      });
+      return traceProjection(replayTrace);
     }
     if (retained.status !== "trace_absent") fail(502,"collector_response_invalid");
     if (hostAuthority.status !== "active") fail(404,"diagnostic_not_found");
@@ -251,22 +300,25 @@ export function createDiagnosticMediation({
         issuedTraceId: traceId,issuedSegmentId: initialSegmentId,
       }),
     });
-    const trace = restoreTrace(result.state);
-    if (!["accepted","replayed"].includes(result.status) || trace.traceId !== traceId
-      || trace.runId !== runId || trace.segment.segmentId !== initialSegmentId) {
-      if (result.status === "trace_busy") fail(409,"trace_busy");
+    if (result.status === "trace_busy") fail(409,"trace_busy");
+    if (!["accepted","replayed"].includes(result.status)) {
       fail(502,"collector_response_invalid");
     }
+    const trace = relatedTrace(restoreTrace(result.state),{
+      traceId,runId,runGeneration: hostAuthority.runGeneration,status: "active",
+      leaseId: stream.leaseId,segmentId: initialSegmentId,
+    });
     return traceProjection(trace);
   }
 
   async function traceForHost(headers, traceId, { reconcileActive = true } = {}) {
     exactUuid(traceId);
+    const principalValue = await principal(headers);
     const found = collectorContext(await collector.traceContext({ traceId }));
     if (found.status === "trace_absent") fail(404,"diagnostic_not_found");
     if (found.status !== "found") fail(502,"collector_response_invalid");
-    let trace = restoreTrace(found.state);
-    await host(headers,trace.runId);
+    let trace = relatedTrace(restoreTrace(found.state),{ traceId });
+    await principalHost(principalValue,trace.runId);
     if (reconcileActive && trace.status === "active") trace = await reconcile(trace);
     return trace;
   }
@@ -283,14 +335,24 @@ export function createDiagnosticMediation({
           traceId,reason: "host_stopped",
         }),
       });
-      trace = restoreTrace(result.state);
-      if (!["accepted","replayed"].includes(result.status) || trace.traceId !== traceId) {
+      trace = relatedTrace(restoreTrace(result.state),{
+        traceId,runId: trace.runId,runGeneration: trace.runGeneration,status: "ended",
+        startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
+        segmentId: trace.segment.segmentId,leaseId: trace.segment.leaseId,
+        endReason: "host_stopped",
+      });
+      if (!["accepted","replayed"].includes(result.status)) {
         fail(502,"collector_response_invalid");
       }
     } catch (error) {
-      if (trace.status !== "ended" || !["stale_correlation","trace_inactive"].includes(error?.code)) {
+      if (!["stale_correlation","trace_inactive"].includes(error?.code)) {
         throw error;
       }
+      const found = collectorContext(await collector.traceContext({ traceId }));
+      if (found.status !== "found") throw error;
+      const refreshed = relatedTrace(restoreTrace(found.state),{ traceId,runId: trace.runId });
+      if (refreshed.status !== "ended") throw error;
+      trace = refreshed;
     }
     return traceProjection(trace);
   }
@@ -306,7 +368,7 @@ export function createDiagnosticMediation({
     if (result.status === "read_expired") fail(409,"read_expired");
     if (result.status === "collector_busy") fail(503,"collector_busy");
     if (result.status !== "found") fail(502,"collector_response_invalid");
-    return Object.freeze({ trace: traceProjection(trace),...result });
+    return Object.freeze({ trace: traceProjection(trace),...relatedRead(result,trace) });
   }
 
   return Object.freeze({ start,stop,status,read,reconcile });

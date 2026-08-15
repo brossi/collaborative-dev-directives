@@ -577,12 +577,16 @@ readiness.
   reach the collector client and the browser cannot receive collector secrets.
 
 E8.1/E8.2 independently closed and their local counterexample pass found no
-missing P0/P1 that blocks this matrix, so E8.3a implementation may begin. Its closure
-requires the real composed Game→Access→State→collector schedules above, not
-only mocked clients. E8.3b owns listener grants, consent, synchronization, and
-listener ingestion. E8.3c owns source/relay routes, the relay and maintenance
-caller credentials, maintenance purge, and the final cross-route
-failure-isolation rehearsal.
+missing P0/P1 that blocks this matrix, so E8.3a implementation may begin. Its
+closure requires one representative real-process Game→Access→State→collector
+schedule that includes commit-then-response-loss, collector restart, exact
+retry, read, and non-host concealment. The remaining finite lifecycle branches
+may use focused real-owner tests; duplicating every branch through Docker would
+not add proportionate evidence for this deployment. E8.3b owns listener grants,
+consent, synchronization, and listener ingestion. E8.3c owns source/relay
+routes, the relay and maintenance caller credentials, maintenance purge, and
+the final local cross-route failure-isolation rehearsal. E12 owns the deployed
+credential-path and real-host rehearsal.
 
 ### E8.3a implementation checkpoint
 
@@ -608,10 +612,16 @@ closure review: active request deadlines remain process-owned until settlement,
 and host stop bypasses current-stream reconciliation so it records the exact
 host command even after stream authority disappears. It also found and fixed a
 real composed adapter mismatch that isolated client mocks did not expose.
+The first independent audit then found one shared missing boundary: historical
+trace lookup could precede Access authentication, and structurally valid
+collector output was not always rebound to the authorized request. Remediation
+now authenticates before every retained lookup, lazily creates the optional
+collector client, and applies one relation validator to trace context,
+start/end/rotation results, read metadata, and every returned report context.
 
 Matrix-derived evidence presently passes:
 
-- Web production build and complete suite: `npm test` in `web` (`262/262`);
+- Web production build and complete suite: `npm test` in `web` (`270/270`);
 - Web lint: `npm run lint` (zero errors; one pre-existing E5 unused-parameter
   warning);
 - diagnostics service/store/topology: `node --test --test-concurrency=1
@@ -631,8 +641,14 @@ lease-rotation reconciliation, malformed/oversized/stalled browser input,
 malformed/timeout collector output, credential separation, and absence of a
 collector dependency from gameplay, audio, or readiness modules.
 
-Open local findings: P0 `0`, P1 `0`, P2 `0`. E8.3a is not yet marked locally
-verified because independent closure review remains pending. E8.3b retains
+The deployed credential path is rendered-Compose plus authenticated-startup
+unit evidence at E8.3a; it has not been claimed as a completed state-cutover
+rehearsal. E8.3c owns the final local cross-route isolation scenario and E12
+owns installation and restart evidence on the real deployment hosts.
+
+Open local findings after remediation: P0 `0`, P1 `0`, P2 `0`. E8.3a is not yet
+marked locally verified because the affected independent perspectives must
+re-review the remediation. E8.3b retains
 listener grant, consent, synchronization, and listener ingest. E8.3c retains
 source/relay mediation, the maintenance caller and purge route, and final
 cross-route isolation rehearsal. E12 retains real-host/browser timing and

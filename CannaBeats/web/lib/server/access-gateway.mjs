@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 
+import { boundedJsonResponse } from "./bounded-json-response.mjs";
+
 function gameServiceToken() {
   const direct = process.env.CANNABEATS_GAME_SERVICE_TOKEN?.trim();
   if (direct) return direct;
@@ -39,7 +41,7 @@ export function createAccessGatewayClient({
     });
     let payload;
     try {
-      payload = await response.json();
+      payload = await boundedJsonResponse(response);
     } catch {
       throw new AccessGatewayError(502, "access_response_invalid");
     }

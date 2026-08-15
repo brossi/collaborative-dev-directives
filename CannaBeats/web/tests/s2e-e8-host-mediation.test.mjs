@@ -36,9 +36,8 @@ function fixture() {
   const authority = {
     hostStatus: "active",streamStatus: "active",runId,runGeneration: 1,leaseId,
   };
-  const mediation = createDiagnosticMediation({
-    access: { principal: async () => ({ principal: { id: principalId } }) },
-    state: {
+  const access = { principal: async () => ({ principal: { id: principalId } }) };
+  const state = {
       runHost: async ({ runId: requested,principalId: requestedPrincipal }) => {
         if (!hostRuns.has(requested) || requestedPrincipal !== principalId) {
           throw Object.assign(new Error("missing"),{ status: 404,code: "not_found" });
@@ -55,11 +54,13 @@ function fixture() {
           runGeneration: authority.runGeneration,leaseId: authority.leaseId,
           sourceId: randomUUID(),leaseExpiresAt: now + 120_000,
         },
-    },
-    collector: adapter,clock: () => now,
+    };
+  const mediation = createDiagnosticMediation({
+    access,state,collector: adapter,clock: () => now,
   });
   return {
-    collector,mediation,authority,hostRuns,runId,leaseId,nextLeaseId,principalId,
+    access,adapter,collector,mediation,state,authority,hostRuns,
+    runId,leaseId,nextLeaseId,principalId,
     headers: { authorization: "",cookie: "cb_session=test" },
     setNow: (value) => { now = value; },
   };
@@ -149,5 +150,156 @@ test("simultaneous host starts admit one trace and return one finite busy result
   assert.equal(settled.filter((entry) => entry.status === "fulfilled").length,1);
   const rejected = settled.find((entry) => entry.status === "rejected");
   assert.equal(rejected.reason.code,"trace_busy");
+  f.collector.close();
+});
+
+test("authentication completes before any retained trace lookup", async () => {
+  let collectorCalls = 0;
+  const mediation = createDiagnosticMediation({
+    access: { principal: async () => { throw Object.assign(new Error("denied"),{ status: 401 }); } },
+    state: { runHost: async () => {},managedStream: async () => {} },
+    collector: {
+      traceContext: async () => { collectorCalls += 1; return { status: "trace_absent" }; },
+    },
+  });
+  await assert.rejects(() => mediation.status({
+    headers: { authorization: "",cookie: "" },traceId: randomUUID(),
+  }),(error) => error.code === "authentication_required");
+  assert.equal(collectorCalls,0);
+});
+
+test("every collector projection is bound back to the requested trace", async () => {
+  const f = fixture();
+  const started = await f.mediation.start({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+  });
+  const otherTraceId = randomUUID();
+  const substitutedContext = createDiagnosticMediation({
+    access: f.access,state: f.state,clock: () => 1000,
+    collector: {
+      ...f.adapter,
+      traceContext: () => f.adapter.traceContext({ traceId: started.traceId }),
+    },
+  });
+  await assert.rejects(() => substitutedContext.status({
+    headers: f.headers,traceId: otherTraceId,
+  }),(error) => error.code === "collector_response_invalid");
+
+  const page = await f.adapter.readTrace({ traceId: started.traceId,cursor: null });
+  const substitutedRead = createDiagnosticMediation({
+    access: f.access,state: f.state,clock: () => 1000,
+    collector: {
+      ...f.adapter,
+      readTrace: async () => ({
+        ...page,metadata: { ...page.metadata,traceId: otherTraceId },
+      }),
+    },
+  });
+  await assert.rejects(() => substitutedRead.read({
+    headers: f.headers,traceId: started.traceId,cursor: null,
+  }),(error) => error.code === "collector_response_invalid");
+  f.collector.close();
+
+  const changedStart = fixture();
+  const substitutedStart = createDiagnosticMediation({
+    access: changedStart.access,state: changedStart.state,clock: () => 1000,
+    collector: {
+      ...changedStart.adapter,
+      startTrace: (value) => {
+        const result = changedStart.adapter.startTrace(value);
+        return { ...result,state: { ...result.state,runGeneration: 2 } };
+      },
+    },
+  });
+  await assert.rejects(() => substitutedStart.start({
+    headers: changedStart.headers,requestId: randomUUID(),runId: changedStart.runId,
+  }),(error) => error.code === "collector_response_invalid");
+  changedStart.collector.close();
+});
+
+test("a stop racing exact trace expiry returns the retained expired projection", async () => {
+  const f = fixture();
+  const started = await f.mediation.start({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+  });
+  f.setNow(started.expiresAtMs - 1);
+  let advanceAfterLookup = true;
+  const racing = createDiagnosticMediation({
+    access: f.access,state: f.state,clock: () => started.expiresAtMs,
+    collector: {
+      ...f.adapter,
+      traceContext: (locator) => {
+        const found = f.adapter.traceContext(locator);
+        if (advanceAfterLookup) {
+          advanceAfterLookup = false;
+          f.setNow(started.expiresAtMs);
+        }
+        return found;
+      },
+    },
+  });
+  const stopped = await racing.stop({
+    headers: f.headers,requestId: randomUUID(),traceId: started.traceId,
+  });
+  assert.equal(stopped.ended.reason,"expired");
+  assert.equal(stopped.ended.endedAtMs,started.expiresAtMs);
+  f.collector.close();
+});
+
+test("start refuses absent or wrong-run stream authority before collector mutation", async () => {
+  for (const configure of [
+    (f) => { f.authority.streamStatus = "absent"; },
+    (f) => { f.authority.runId = randomUUID(); },
+  ]) {
+    const f = fixture();
+    configure(f);
+    await assert.rejects(() => f.mediation.start({
+      headers: f.headers,requestId: randomUUID(),runId: f.runId,
+    }),(error) => error.code === "diagnostic_not_found");
+    assert.deepEqual(f.collector.traceContext({ active: true }),{ status: "trace_absent" });
+    f.collector.close();
+  }
+});
+
+test("status preserves an unchanged lease and ends a replaced run", async () => {
+  const unchanged = fixture();
+  const active = await unchanged.mediation.start({
+    headers: unchanged.headers,requestId: randomUUID(),runId: unchanged.runId,
+  });
+  assert.deepEqual(await unchanged.mediation.status({
+    headers: unchanged.headers,traceId: active.traceId,
+  }),active);
+  unchanged.collector.close();
+
+  const replaced = fixture();
+  const started = await replaced.mediation.start({
+    headers: replaced.headers,requestId: randomUUID(),runId: replaced.runId,
+  });
+  replaced.authority.runId = randomUUID();
+  const ended = await replaced.mediation.status({
+    headers: replaced.headers,traceId: started.traceId,
+  });
+  assert.equal(ended.ended.reason,"run_replaced");
+  replaced.collector.close();
+});
+
+test("host stop replays exactly and fresh ended stop/read remain effect-free", async () => {
+  const f = fixture();
+  const started = await f.mediation.start({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+  });
+  const requestId = randomUUID();
+  const stopped = await f.mediation.stop({ headers: f.headers,requestId,traceId: started.traceId });
+  assert.deepEqual(await f.mediation.stop({
+    headers: f.headers,requestId,traceId: started.traceId,
+  }),stopped);
+  assert.deepEqual(await f.mediation.stop({
+    headers: f.headers,requestId: randomUUID(),traceId: started.traceId,
+  }),stopped);
+  const page = await f.mediation.read({
+    headers: f.headers,traceId: started.traceId,cursor: null,
+  });
+  assert.equal(page.trace.status,"ended");
+  assert.equal(page.metadata.endReason,"host_stopped");
   f.collector.close();
 });
