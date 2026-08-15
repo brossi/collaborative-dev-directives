@@ -432,7 +432,13 @@ cross-service lock or hold a State transaction open while calling the optional
 collector.
 
 Game uses one fixed deterministic UUID derivation helper over a versioned label
-and canonical UUID inputs. For a start request, `issuedTraceId` and
+and canonical inputs. It hashes the ASCII string
+`cannabeats:s2e:e8:v1:<label>:<part>[:<part>...]` with SHA-256, retains the
+first 16 bytes, sets the RFC variant and version-5 bits, and emits lowercase
+canonical UUID text. The four labels are `trace`, `initial-segment`,
+`automatic-end`, and `replacement-segment`; no caller supplies a label or raw
+derivation string. Parts are canonical UUIDs except the final automatic-end
+part, which is one exact E2 end-reason enum. For a start request, `issuedTraceId` and
 `issuedSegmentId` derive from the browser `requestId`; the collector command
 uses that request ID unchanged. A response-loss retry therefore reconstructs
 the identical command and authority rather than generating new random IDs.
@@ -487,13 +493,26 @@ diagnostic result. The diagnostic modules are imported only by the two
 diagnostic routes; gameplay mutation, State, Access, audio-stream, audio-source,
 and readiness code have no collector client import or readiness dependency.
 
-E8.3a activates the authenticated collector adapter by mounting both fixed
-collector credentials into the diagnostics service and only the Game credential
-into the Game service. No browser-visible environment or response contains
-either value. The maintenance credential has no caller yet and is not mounted
-into Game, Access, State, or an ordinary app process; E8.3c adds its bounded
-operations caller. This is the minimum deployable secret topology for the host
-routes and does not wait for source/relay work.
+E8.3a activates the authenticated collector adapter in the state-cutover
+deployment overlay by mounting both fixed collector credential files into the
+diagnostics service and only the Game credential file into the `game` service.
+The exact private configuration is
+`CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN=http://diagnostics:3020`,
+`CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE`,
+`CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE`, and the diagnostics-side
+`CANNABEATS_DIAGNOSTICS_AUTHENTICATED_API_REQUIRED=true`. The required flag
+prevents the cutover overlay from silently falling back to E7.3 status-only
+mode when either verifier file is absent.
+The base E7.3 diagnostics profile remains a status-only development topology.
+No browser-visible environment or response contains either value. The
+maintenance credential has no caller yet and is not mounted into Game, Access,
+State, or an ordinary app process; E8.3c adds its bounded operations caller.
+This is the minimum deployable secret topology for the host routes and does not
+wait for source/relay work. Diagnostics refuses its authenticated adapter before
+opening the store if either file is missing/malformed or the two values compare
+equal; Game refuses only its diagnostic routes if its one scoped file is
+missing or malformed. Neither service adds diagnostics to Game or State
+readiness.
 
 ### E8.3a closure matrix
 
