@@ -138,6 +138,28 @@ function commandAuthority(bytes, operation) {
 }
 
 export function validateGameCollectorRequest(path, bytes) {
+  if (path === '/v1/game/trace/context') {
+    const value = parse(bytes);
+    const keys = Object.keys(value);
+    const key = keys[0];
+    if (keys.length !== 1 || !['traceId', 'activeRunId', 'active'].includes(key)
+      || (key === 'active'
+        ? value.active !== true
+        : typeof value[key] !== 'string' || !UUID.test(value[key]))) {
+      fail('request_invalid');
+    }
+    return Object.freeze({
+      operation: 'traceContext',
+      locator: Object.freeze({ [key]: value[key] }),
+    });
+  }
+  if (path === '/v1/game/synchronization/context') {
+    const value = exact(parse(bytes), ['sampleId']);
+    if (typeof value.sampleId !== 'string' || !UUID.test(value.sampleId)) {
+      fail('request_invalid');
+    }
+    return Object.freeze({ operation: 'issuanceContext',sampleId: value.sampleId });
+  }
   if (path === '/v1/game/trace/start') return {
     operation: 'startTrace', ...commandAuthority(bytes, 'trace_start'),
   };

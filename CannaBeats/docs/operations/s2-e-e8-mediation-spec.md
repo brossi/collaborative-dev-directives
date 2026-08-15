@@ -51,10 +51,12 @@ requires one exact bearer credential:
 
 | Route | Method | Credential | Exact request | Delegated operation |
 | --- | --- | --- | --- | --- |
+| `/v1/game/trace/context` | POST | Game | exactly `{traceId}`, `{activeRunId}`, or `{active:true}` | `traceContext` |
 | `/v1/game/trace/start` | POST | Game | `{command,authority}` | `startTrace` |
 | `/v1/game/trace/end` | POST | Game | `{command,authority}` | `endTrace` |
 | `/v1/game/segment/rotate` | POST | Game | `{authority}` | `rotateSegment` |
 | `/v1/game/synchronization/issue` | POST | Game | `{traceId,issuance}` | `putIssuance` |
+| `/v1/game/synchronization/context` | POST | Game | `{sampleId}` | `issuanceContext` |
 | `/v1/game/consent/opt-in` | POST | Game | `{command,authority}` | `optIn` |
 | `/v1/game/consent/stop` | POST | Game | `{command,authority}` | `stopSharing` |
 | `/v1/game/relay/bind` | POST | Game | `{command,authority}` | `bindRelay` |
@@ -68,6 +70,11 @@ production E2 JSON restoration entry points needed to turn exact internal bytes
 into branded operation authority and uploaded-envelope values; those entry
 points use the same normalizers and canonical-byte checks as the already
 verified trusted-store/test seams.
+
+The service and collector share one injected collector clock. HTTP receipt,
+purge, trace-context lazy expiry, issuance-context expiry, and scheduled
+retention therefore cannot make different equality decisions inside one
+process.
 
 Authentication is decided before a body is read. Missing or unknown bearer
 credentials return `401 authentication_required`; a known credential on a
@@ -85,6 +92,20 @@ caller-authored error text is never returned. Because collector operations are
 synchronous transactions, aborting the HTTP response after delegation cannot
 cancel or duplicate an effect; retry uses the existing request or report
 identity and returns the retained result.
+
+The two context routes are the only Game restoration seams. A trace lookup returns the
+exact retained E2 trace state; an active-run lookup returns that state only when
+the deployment's sole active trace belongs to the requested run; and
+`{active:true}` returns the deployment's sole active trace without accepting a
+caller-authored run locator. Missing, ended-by-run lookup, or mismatched context
+returns `trace_absent`. The collector applies deterministic lazy expiry before
+the lookup. This route prevents Game
+from trusting a caller-returned trace, segment, or lease label after Game or a
+producer restarts; it returns no reports, consent rows, receipts, or principal
+data. A synchronization lookup returns the exact retained E2 issuance only
+before its retention boundary; equality returns `sample_absent`. It lets Game
+validate the producer's local send/receive sample without trusting returned
+server timestamps after either side restarts.
 
 | HTTP | Finite codes |
 | --- | --- |
@@ -121,6 +142,9 @@ identity and returns the retained result.
 - unknown route, wrong method, body on GET, invalid JSON/UTF-8, unknown field,
   exact 8-KiB boundary, 8-KiB+1, incomplete body timeout, and client abort;
 - every route delegates exactly once to only its named method;
+- trace context by exact trace, active run, and sole-active lookup; restart
+  restoration, mismatch, and expiry-at-equality; synchronization context before/equality/after its
+  retained boundary and after restart;
 - collector contract error, degraded/full/busy result, unexpected throw, and
   response loss after a committed effect;
 - Game cannot status/purge, maintenance cannot ingest/read/mutate, and neither
@@ -144,7 +168,7 @@ P0/P1, and a targeted independent credential/body/replay review passes.
 
 The implementation is deliberately unwired. `http-boundary.mjs` owns the two
 credential values, fixed authentication decision, 8-KiB/two-second body
-boundary, nine exact Game request families, and maintenance purge validator.
+boundary, eleven exact Game request families, and maintenance purge validator.
 The existing server can enable that adapter only through its constructor; the
 Compose entry point remains in E7.3 status-only mode until E8.3 supplies secret
 files and caller wiring. Enabling malformed or equal credentials fails before
@@ -156,7 +180,7 @@ envelopes. They share the same private provenance sets, exact normalizers, and
 canonical checks as the existing E2 reducers; no network, store, State, or later
 checkpoint dependency enters E2.
 
-Matrix-derived tests enumerate all nine Game request families and delegate
+Matrix-derived tests enumerate all eleven Game request families and delegate
 operations, both credential scopes, every documented HTTP error family, exact
 8-KiB and 8-KiB+1 bodies, invalid UTF-8/JSON/shape, timeout cleanup, unexpected
 dependency failure, maintenance status/purge, startup credential failure before
@@ -165,7 +189,7 @@ restart. The local counterexample pass found no open P0/P1.
 
 Verification at the implementation worktree:
 
-- E1/E2/E7/E8.1 focused suite: `75/75`;
+- E1/E2/E7/E8.1 focused suite: `76/76`;
 - full Web production build and suite: `248/248`;
 - Web lint: zero errors; and
 - syntax and `git diff --check`: pass.
@@ -215,10 +239,13 @@ existing finite `404 not_found`; State does not reveal which condition failed.
 An inconsistent retained active/terminal relationship fails closed through the
 existing State error boundary.
 
-`POST /v1/diagnostics/managed-stream-authority` uses only the existing Game
-bearer; it does not accept a principal assertion. Its exact request is either
-`{}` for the deployment's sole current managed stream or `{sourceId}` after
-Game has authenticated a source. The exact non-authority response is:
+`POST /v1/diagnostics/managed-stream-authority` accepts either the existing
+Game bearer or one existing managed-source bearer; it does not accept a
+principal assertion. Its exact request is always `{}`. The Game bearer requests
+the deployment's sole current managed stream for relay mediation. A source
+bearer is resolved against State's existing source credential registry and
+requests only that source's current stream. Game never receives the registry
+and neither caller may submit a source ID. The exact non-authority response is:
 
 ```json
 {"authorityVersion":1,"status":"absent"}
@@ -240,8 +267,8 @@ The exact active response is:
 
 Active requires one unexpired lease for an enabled source, a `managed` lobby in
 `playing` state, the lobby's unterminated active run at the same generation, and
-no unresolved handoff for that source. `{sourceId}` additionally requires the
-exact current source. No match returns `absent`; stale or delayed source/relay
+no unresolved handoff for that source. A source-scoped lookup additionally
+requires the exact authenticated source. No match returns `absent`; stale or delayed source/relay
 work cannot be rebound to another run. More than one qualifying row is
 ambiguous for the unscoped relay lookup and fails closed rather than selecting
 one. The State clock supplies
@@ -258,7 +285,7 @@ or consume a request identity.
 | Create | `not_applicable`: both projections are read-only and create no receipt or assertion. |
 | Update | `structural`: owner methods contain only bounded `SELECT` statements. |
 | Delete | `not_applicable`: expiry projects absent and does not reap the lease. |
-| Omit | `runtime`: run host requires exactly `runId`; managed stream accepts exactly zero fields or one `sourceId`. |
+| Omit | `runtime`: run host requires exactly `runId`; managed stream accepts exactly zero fields. |
 | Duplicate | `structural`: one route and one owner method own each projection; managed-stream cardinality must be zero or one. |
 | Reorder | `not_applicable`: neither projection has sequence input or output. |
 | Replay | `structural`: repeated reads over unchanged State return the same exact projection without a receipt. |
@@ -277,8 +304,8 @@ or consume a request identity.
 - active managed stream, wrong source, expired-at-equality, disabled source,
   local mode, ended run, released lease, unresolved handoff, and impossible
   duplicate authority;
-- malformed/extra request fields, Access/operator/source/cross-scope denial,
-  forged principal assertion, repeated read, restart, and unchanged State
+- malformed/extra request fields, Access/operator/cross-scope denial, unknown
+  source credential, forged principal assertion, repeated read, restart, and unchanged State
   validation/report rows before and after reads; and
 - collector unavailable is structurally irrelevant because State has no
   collector import, credential, mount, request, or readiness dependency.
@@ -290,14 +317,15 @@ closure record is committed.
 ### E8.2 implementation record
 
 `StateOwner` now owns the two bounded projections and `server.mjs` exposes them
-only under the existing Game service credential. The durable-host route also
-requires the existing short-lived Game principal assertion. The managed-stream
-route deliberately has no principal because E8.3 uses it after its source or
-relay caller boundary; State accepts only an optional source locator and derives
-every returned run, generation, lease, source, and expiry field.
+under the existing Game or managed-source credential. The durable-host route
+also requires the existing short-lived Game principal assertion. The
+managed-stream route deliberately has no principal: its empty body is either
+Game-scoped for relay mediation or source-scoped by State's existing token
+registry. State derives every returned run, generation, lease, source, and
+expiry field.
 
 Matrix-derived tests cover active and historical hosts through whole-history
-purge, non-host concealment, active/source-scoped/ambiguous managed streams,
+purge, non-host concealment, Game-unscoped/source-scoped/ambiguous managed streams,
 expiry before/equality/after, release with unresolved handoff, restart,
 read-only validation stability, exact request shape, forged/cross-scope denial,
 and the published projection version. The local smallest-counterexample pass

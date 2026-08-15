@@ -24,6 +24,8 @@ const FINITE_FAILURES = new Set([
   'schema_incompatible',
 ]);
 const GAME_PATHS = new Set([
+  '/v1/game/trace/context',
+  '/v1/game/synchronization/context',
   '/v1/game/trace/start',
   '/v1/game/trace/end',
   '/v1/game/segment/rotate',
@@ -91,6 +93,12 @@ function noRequestBody(request) {
 }
 
 export function delegateGameCollectorOperation(collector, operation, receivedAt) {
+  if (operation.operation === 'traceContext') {
+    return collector.traceContext(operation.locator);
+  }
+  if (operation.operation === 'issuanceContext') {
+    return collector.issuanceContext(operation.sampleId,receivedAt);
+  }
   if (operation.operation === 'startTrace') {
     return collector.startTrace(operation.command, operation.authority);
   }
@@ -172,7 +180,7 @@ export function createDiagnosticService({
   validateDiagnosticVolumeTopology(volumeTopology);
   const credentials = authenticatedApi === null
     ? null : validateDiagnosticCredentials(authenticatedApi);
-  const collector = createCollector(databasePath, collectorOptions);
+  const collector = createCollector(databasePath, { ...collectorOptions,clock });
   const lifecycle = (event) => {
     try {
       onLifecycle(event);

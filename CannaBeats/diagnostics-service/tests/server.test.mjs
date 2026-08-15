@@ -186,7 +186,8 @@ test('every normalized Game operation delegates once to only its named collector
   const calls = [];
   const collector = {};
   for (const method of [
-    'startTrace', 'endTrace', 'rotateSegment', 'putIssuance', 'optIn',
+    'traceContext', 'issuanceContext', 'startTrace', 'endTrace', 'rotateSegment',
+    'putIssuance', 'optIn',
     'stopSharing', 'bindRelay', 'ingestReport', 'readTrace',
   ]) {
     collector[method] = (...args) => {
@@ -196,6 +197,8 @@ test('every normalized Game operation delegates once to only its named collector
   }
   const marker = Object.freeze({ marker: true });
   const operations = [
+    { operation: 'traceContext', locator: marker },
+    { operation: 'issuanceContext', sampleId: TRACE },
     { operation: 'startTrace', command: marker, authority: marker },
     { operation: 'endTrace', command: marker, authority: marker },
     { operation: 'rotateSegment', authority: marker },
@@ -211,9 +214,10 @@ test('every normalized Game operation delegates once to only its named collector
   }
   assert.deepEqual(calls.map(([method]) => method),
     operations.map(({ operation }) => operation));
-  assert.deepEqual(calls[7], [
+  assert.deepEqual(calls[9], [
     'ingestReport', marker, { receivedAt: 4321, grantGeneration: 2 },
   ]);
+  assert.deepEqual(calls[1],['issuanceContext',TRACE,4321]);
   assert.throws(() => delegateGameCollectorOperation(collector,
     { operation: 'unknown' }, 4321), (error) => error.code === 'request_invalid');
 });
@@ -281,7 +285,7 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
   const fixture = temporaryDirectory();
   const open = () => createDiagnosticService({
     databasePath: fixture.databasePath, host: '127.0.0.1', port: 0,
-    authenticatedApi, collectorOptions: { now: 0 },
+    authenticatedApi,clock: () => 1500,collectorOptions: { now: 0 },
   });
   let service = open();
   try {
@@ -290,6 +294,12 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
       authenticatedOptions(GAME_TOKEN, startBody()));
     assert.equal(accepted.status, 200);
     assert.equal(accepted.body.status, 'accepted');
+    const context = await request(address,'/v1/game/trace/context',
+      authenticatedOptions(GAME_TOKEN,{ activeRunId: RUN }));
+    assert.equal(context.status,200);
+    assert.equal(context.body.status,'found');
+    assert.equal(context.body.state.traceId,TRACE);
+    assert.equal(context.body.state.segment.segmentId,SEGMENT);
     await service.close();
 
     service = open();
@@ -298,6 +308,10 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
       authenticatedOptions(GAME_TOKEN, startBody()));
     assert.equal(replayed.status, 200);
     assert.equal(replayed.body.status, 'replayed');
+    const restoredContext = await request(address,'/v1/game/trace/context',
+      authenticatedOptions(GAME_TOKEN,{ traceId: TRACE }));
+    assert.equal(restoredContext.body.state.traceId,TRACE);
+    assert.equal(restoredContext.body.state.segment.leaseId,LEASE);
 
     const conflict = await request(address, '/v1/game/trace/end',
       authenticatedOptions(GAME_TOKEN, {

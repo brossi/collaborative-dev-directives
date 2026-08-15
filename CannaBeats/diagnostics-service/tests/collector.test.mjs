@@ -399,6 +399,55 @@ test('trace, segment, consent, relay, and receipts survive restart exactly', () 
   collector.close();
 });
 
+test('trace context recovers exact current authority by trace or active run', () => {
+  const dir = workspace();
+  const path = join(dir,'trace-context.sqlite');
+  const lockDirectory = join(dir,'locks');
+  let now = 1200;
+  let collector = new DiagnosticCollector(path,{
+    lockDirectory,now: 0,clock: () => now,
+  });
+  collector.startTrace(command('trace_start'),startAuthority());
+  collector.putIssuance(TRACE,issuance());
+  const expected = {
+    status: 'found',
+    state: collector.traceContext({ traceId: TRACE }).state,
+  };
+  assert.equal(expected.state.traceId,TRACE);
+  assert.equal(expected.state.runId,RUN);
+  assert.equal(expected.state.segment.segmentId,SEGMENT);
+  assert.equal(expected.state.segment.leaseId,LEASE);
+  assert.deepEqual(collector.traceContext({ activeRunId: RUN }),expected);
+  assert.deepEqual(collector.traceContext({ active: true }),expected);
+  assert.equal(collector.issuanceContext(SAMPLE,1200).issuance.sampleId,SAMPLE);
+  assert.deepEqual(collector.traceContext({ activeRunId: SOURCE }),{
+    status: 'trace_absent',
+  });
+  expectCode('request_invalid',() => collector.traceContext({}));
+  expectCode('request_invalid',() => collector.traceContext({ active: 1 }));
+  expectCode('request_invalid',() => collector.traceContext({ active: true,traceId: TRACE }));
+  collector.close();
+
+  collector = new DiagnosticCollector(path,{ lockDirectory,now,clock: () => now });
+  assert.deepEqual(collector.traceContext({ activeRunId: RUN }),expected);
+  assert.equal(collector.issuanceContext(SAMPLE,121004).status,'found');
+  assert.deepEqual(collector.issuanceContext(SAMPLE,121005),{
+    status: 'sample_absent',
+  });
+  now = 1000 + 21_600_000;
+  assert.deepEqual(collector.traceContext({ activeRunId: RUN }),{
+    status: 'trace_absent',
+  });
+  assert.deepEqual(collector.traceContext({ active: true }),{
+    status: 'trace_absent',
+  });
+  const ended = collector.traceContext({ traceId: TRACE });
+  assert.equal(ended.status,'found');
+  assert.equal(ended.state.status,'ended');
+  assert.equal(ended.state.ended.reason,'expired');
+  collector.close();
+});
+
 test('all six report kinds ingest atomically and replay by E1 identity', () => {
   const dir = workspace();
   const path = join(dir, 'diagnostics.sqlite');

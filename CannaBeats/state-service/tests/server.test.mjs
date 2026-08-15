@@ -62,7 +62,7 @@ test("state server rejects retained source credentials that collide with service
   assert.throws(() => createStateServer({ databasePath: path, credentials }), /collides/i);
 });
 
-test("every HTTP mutation and read route has one explicit credential scope", async () => {
+test("every HTTP mutation and read route rejects credentials outside its explicit scope matrix", async () => {
   const path = join(root, "scope-matrix.sqlite");
   const sourceToken = "scope-source";
   const owner = developmentOwner(path);
@@ -99,7 +99,7 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
     ["GET", "/v1/lobbies/ABC123", "game"],
     ["GET", "/v1/lobbies/ABC123/audio", "game"],
     ["POST", "/v1/diagnostics/run-host-authority", "game"],
-    ["POST", "/v1/diagnostics/managed-stream-authority", "game"],
+    ["POST", "/v1/diagnostics/managed-stream-authority", ["game","source"]],
     ["GET", `/v1/history/${commandId}`, "game"],
     ["POST", "/v1/lobbies/ABC123/actions", "game"],
     ["POST", "/v1/lobbies/ABC123/admissions", "access"],
@@ -121,6 +121,7 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
   ];
   try {
     for (const [method, pathname, acceptedScope] of routes) {
+      const acceptedScopes = Array.isArray(acceptedScope) ? acceptedScope : [acceptedScope];
       for (const [scope, token] of Object.entries(tokens)) {
         const headers = {
           authorization: `Bearer ${token}`,
@@ -131,7 +132,7 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
         const response = await fetch(`${origin}${pathname}`, {
           method, headers, ...(method === "POST" ? { body: "{}" } : {}),
         });
-        if (scope === acceptedScope) {
+        if (acceptedScopes.includes(scope)) {
           assert.notEqual(response.status, 401, `${method} ${pathname} rejected its ${scope} scope`);
           assert.notEqual(response.status, 403, `${method} ${pathname} rejected its ${scope} scope`);
         } else {
@@ -142,7 +143,7 @@ test("every HTTP mutation and read route has one explicit credential scope", asy
         method, headers: { "content-type": "application/json" },
         ...(method === "POST" ? { body: "{}" } : {}),
       });
-      assert.equal(anonymous.status, acceptedScope === "source" ? 403 : 401,
+      assert.equal(anonymous.status, acceptedScopes.includes("source") ? 403 : 401,
         `${method} ${pathname} anonymous status`);
     }
   } finally {
@@ -156,6 +157,7 @@ test("diagnostic authority HTTP routes expose only State-derived Game facts", as
   const member = randomUUID();
   const runId = randomUUID();
   const sourceId = randomUUID();
+  const sourceToken = "diagnostic-source-token";
   const owner = developmentOwner(path);
   owner.activate({ now: 1 });
   owner.createLobby({ commandId: randomUUID(),code: "DHT234",hostPrincipalId: host,now: 2 });
@@ -168,7 +170,7 @@ test("diagnostic authority HTTP routes expose only State-derived Game facts", as
   });
   owner.registerManagedSource({
     commandId: randomUUID(),sourceId,displayName: "HTTP Source",
-    tokenHash: "e".repeat(64),now: 5,
+    tokenHash: createHash("sha256").update(sourceToken).digest("hex"),now: 5,
   });
   const lease = owner.acquireManagedLease({
     commandId: randomUUID(),lobbyCode: "DHT234",sourceId,
@@ -210,25 +212,44 @@ test("diagnostic authority HTTP routes expose only State-derived Game facts", as
       method: "POST",headers: {
         authorization: `Bearer ${scopedCredentials.gameToken}`,
         "content-type": "application/json",
-      },body: JSON.stringify({ sourceId }),
+      },body: "{}",
     });
     assert.equal(managedResponse.status,200);
     assert.deepEqual(await managedResponse.json(),{
       authorityVersion: 1,status: "active",runId,runGeneration: 1,
       leaseId: lease.leaseId,sourceId,leaseExpiresAt: 206,
     });
+    const sourceResponse = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
+      method: "POST",headers: {
+        authorization: `Bearer ${sourceToken}`,"content-type": "application/json",
+      },body: "{}",
+    });
+    assert.equal(sourceResponse.status,200);
+    assert.deepEqual(await sourceResponse.json(),{
+      authorityVersion: 1,status: "active",runId,runGeneration: 1,
+      leaseId: lease.leaseId,sourceId,leaseExpiresAt: 206,
+    });
     const extra = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
       method: "POST",headers: hostHeaders,
-      body: JSON.stringify({ sourceId,runId }),
+      body: JSON.stringify({ sourceId }),
     });
     assert.equal(extra.status,400);
     assert.deepEqual(await extra.json(),{ code: "invalid_request" });
-    const malformedSource = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
+    const unknownSource = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
       method: "POST",headers: hostHeaders,
       body: JSON.stringify({ sourceId: "not-a-uuid" }),
     });
-    assert.equal(malformedSource.status,400);
-    assert.deepEqual(await malformedSource.json(),{ code: "invalid_request" });
+    assert.equal(unknownSource.status,400);
+    assert.deepEqual(await unknownSource.json(),{ code: "invalid_request" });
+    const badSourceCredential = await fetch(
+      `${origin}/v1/diagnostics/managed-stream-authority`,{
+        method: "POST",headers: {
+          authorization: "Bearer unknown-source-token","content-type": "application/json",
+        },body: "{}",
+      },
+    );
+    assert.equal(badSourceCredential.status,403);
+    assert.deepEqual(await badSourceCredential.json(),{ code: "source_forbidden" });
     const access = await fetch(`${origin}/v1/diagnostics/managed-stream-authority`,{
       method: "POST",headers: {
         authorization: `Bearer ${scopedCredentials.accessToken}`,

@@ -483,6 +483,47 @@ export class DiagnosticCollector {
     if (physicalReason(observation)) fail('collector_degraded');
   }
 
+  traceContext(locator = {}) {
+    if (!locator || typeof locator !== 'object' || Array.isArray(locator)) {
+      fail('request_invalid');
+    }
+    const keys = Object.keys(locator);
+    const key = keys[0];
+    if (keys.length !== 1 || !['traceId', 'activeRunId', 'active'].includes(key)
+      || (key === 'active'
+        ? locator.active !== true
+        : typeof locator[key] !== 'string' || !UUID.test(locator[key]))) {
+      fail('request_invalid');
+    }
+    const traceId = key === 'traceId' ? locator.traceId : null;
+    const activeRunId = key === 'activeRunId' ? locator.activeRunId : null;
+    return transaction(this.db, () => {
+      expireActiveIfDue(this.db, this.clock());
+      const row = traceId === null ? activeTraceRow(this.db) : traceRow(this.db,traceId);
+      if (!row || (activeRunId !== null && row.run_id !== activeRunId)) {
+        return { status: 'trace_absent' };
+      }
+      return { status: 'found',state: restoreTrace(row) };
+    });
+  }
+
+  issuanceContext(sampleId, now = this.clock()) {
+    if (!UUID.test(sampleId) || !Number.isSafeInteger(now) || now < 0) {
+      fail('request_invalid');
+    }
+    return transaction(this.db, () => {
+      const row = this.db.prepare(`SELECT canonical_issuance FROM diagnostic_issuances
+        WHERE sample_id=? AND expires_at>?`).get(sampleId,now);
+      if (!row) return { status: 'sample_absent' };
+      return {
+        status: 'found',
+        issuance: retained(() => restoreSynchronizationIssuanceFromTrustedStore(
+          row.canonical_issuance,
+        )),
+      };
+    });
+  }
+
   startTrace(command, authority) {
     return transaction(this.db, () => {
       expireActiveIfDue(this.db, authority.nowMs);

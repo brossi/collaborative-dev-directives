@@ -126,6 +126,9 @@ test('operation route and authority operation must agree exactly', () => {
 
 test('every Game route has one exact request family', () => {
   const cases = [
+    ['/v1/game/trace/context', { traceId: TRACE }, 'traceContext'],
+    ['/v1/game/trace/context', { active: true }, 'traceContext'],
+    ['/v1/game/synchronization/context', { sampleId: SAMPLE }, 'issuanceContext'],
     ['/v1/game/trace/start', startBody(), 'startTrace'],
     ['/v1/game/trace/end', {
       command: { requestId: REQUEST, operation: 'trace_end', parameters: {} },
@@ -184,4 +187,16 @@ test('every Game route has one exact request family', () => {
   for (const [path, body, operation] of cases) {
     assert.equal(validateGameCollectorRequest(path, json(body)).operation, operation, path);
   }
+  for (const body of [
+    {},
+    { traceId: TRACE,activeRunId: RUN },
+    { activeRunId: 'bad' },
+    { active: false },
+  ]) {
+    assert.throws(() => validateGameCollectorRequest('/v1/game/trace/context',json(body)),
+      (error) => error.code === 'request_invalid');
+  }
+  assert.throws(() => validateGameCollectorRequest(
+    '/v1/game/synchronization/context',json({ sampleId: SAMPLE,traceId: TRACE })),
+  (error) => error.code === 'request_invalid');
 });

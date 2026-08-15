@@ -145,6 +145,11 @@ export function createStateServer({
       const accessCaller = () => bearerMatches(request.headers.authorization, credentials.accessToken);
       const operatorCaller = () => bearerMatches(request.headers.authorization, credentials.operatorToken);
       const activationCaller = () => bearerMatches(request.headers.authorization, credentials.activationToken);
+      const authenticatedSource = () => {
+        const authorization = request.headers.authorization ?? "";
+        const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+        return bearer ? owner.managedSourceForTokenHash(tokenHash(bearer)) : null;
+      };
       const requireCaller = (accepted) => {
         if (!accepted()) {
           writeJson(response, request.headers.authorization ? 403 : 401, {
@@ -288,10 +293,13 @@ export function createStateServer({
       }
       if (request.method === "POST"
           && url.pathname === "/v1/diagnostics/managed-stream-authority") {
-        if (!requireCaller(gameCaller)) return;
-        requireExactObject(body,{ optional: ["sourceId"] });
+        const sourceId = gameCaller() ? null : authenticatedSource();
+        if (!gameCaller() && !sourceId) {
+          return writeJson(response,403,{ code: "source_forbidden" });
+        }
+        requireExactObject(body);
         return writeJson(response,200,owner.diagnosticManagedStreamAuthority({
-          sourceId: body.sourceId ?? null,now,
+          sourceId,now,
         }));
       }
       const lobbyAudio = url.pathname.match(/^\/v1\/lobbies\/([^/]+)\/audio$/);
@@ -411,19 +419,13 @@ export function createStateServer({
         }));
       }
       if (request.method === "GET" && url.pathname === "/v1/source/work") {
-        const authorization = request.headers.authorization ?? "";
-        const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-        const authenticatedSourceId = bearer
-          ? owner.managedSourceForTokenHash(tokenHash(bearer)) : null;
+        const authenticatedSourceId = authenticatedSource();
         if (!authenticatedSourceId) return writeJson(response, 403, { code: "source_forbidden" });
         return writeJson(response, 200, owner.managedSourceWork({ authenticatedSourceId, now }));
       }
       const transition = url.pathname.match(/^\/v1\/managed-commands\/([^/]+)\/transitions$/);
       if (request.method === "POST" && transition) {
-        const authorization = request.headers.authorization ?? "";
-        const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-        const authenticatedSourceId = bearer
-          ? owner.managedSourceForTokenHash(tokenHash(bearer)) : null;
+        const authenticatedSourceId = authenticatedSource();
         if (!authenticatedSourceId) return writeJson(response, 403, { code: "source_forbidden" });
         requireRequestId(body, "requestId");
         return writeJson(response, 200, owner.transitionManagedCommand({
