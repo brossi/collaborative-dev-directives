@@ -687,10 +687,10 @@ backup, release/rollback, scheduler, rendered-state topology, and schema-
 compatibility regressions pass `59/59`, confirming no diagnostics mount or
 readiness dependency entered those paths.
 
-A real Docker rehearsal built image
-`sha256:24596128c634758c3cde669a3f1e37e23e7653649adb77c502198b2724be41a4`
-under unique project `cannabeats-e73-20260815-a1` and unique labeled volume
-`cannabeats_e73_20260815_a1`. The service became healthy with no published host
+A clean-target Docker rehearsal built image
+`sha256:4d8a886b78c42fc5e63c5990d34c48e3e4a297e81b86317b8cec2c60fba5c5b3`
+from commit `056e2c1` under unique project `cannabeats-e73-20260815-b1` and
+unique labeled volume `cannabeats_e73_20260815_b1`. The service became healthy with no published host
 port; all three private responses matched their exact shapes; restart preserved
 healthy readiness; and label-scoped cleanup removed the container, network, and
 volume with no remnants. This is local disposable-container evidence, not a
