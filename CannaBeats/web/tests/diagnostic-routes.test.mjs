@@ -5,7 +5,9 @@ import { dirname,resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createDiagnosticRouteHandlers } from "../lib/server/diagnostic-routes.mjs";
+import {
+  createDiagnosticListenerRouteHandlers,createDiagnosticRouteHandlers,
+} from "../lib/server/diagnostic-routes.mjs";
 import { DiagnosticCollectorGatewayError } from "../lib/server/diagnostic-collector-client.mjs";
 import { DiagnosticMediationError } from "../lib/server/diagnostic-mediation.mjs";
 import { StateGatewayError } from "../lib/server/state-client.mjs";
@@ -120,4 +122,49 @@ test("browser errors never forward an unregistered dependency code", async () =>
   }));
   assert.equal(normalized.status,503);
   assert.equal((await normalized.json()).code,"collector_degraded");
+});
+
+test("listener routes expose only the three consent actions and one report shape", async () => {
+  const calls = [];
+  const handlers = createDiagnosticListenerRouteHandlers({ mediation: {
+    optIn: async (value) => { calls.push(["optIn",value]); return { status: "enabled" }; },
+    synchronize: async (value) => {
+      calls.push(["synchronize",value]); return { status: "accepted" };
+    },
+    stop: async (value) => { calls.push(["stop",value]); return { status: "revoked" }; },
+    report: async (value) => { calls.push(["report",value]); return { status: "accepted" }; },
+  } });
+  const requestId = randomUUID();
+  const runId = randomUUID();
+  const listenerInstanceId = randomUUID();
+  const grantId = randomUUID();
+  for (const body of [
+    { action: "opt_in",requestId,runId,listenerInstanceId,
+      firstAllowedSequence: 0,localConsentStartedMs: 10 },
+    { action: "synchronize",requestId,grantId },
+    { action: "stop",requestId,grantId },
+  ]) assert.equal((await handlers.listener(request(body))).status,200);
+  assert.equal((await handlers.listenerReport(request({
+    grantId,measurementCore: {},sampleObservation: {},
+  }))).status,200);
+  assert.deepEqual(calls.map(([name]) => name),["optIn","synchronize","stop","report"]);
+
+  const extra = await handlers.listener(request({
+    action: "stop",requestId,grantId,traceId: randomUUID(),
+  }));
+  assert.equal(extra.status,400);
+  assert.equal((await extra.json()).code,"request_invalid");
+});
+
+test("listener route failure codes retain their canonical browser status", async () => {
+  const handlers = createDiagnosticListenerRouteHandlers({ mediation: {
+    optIn: async () => { throw new DiagnosticMediationError(409,"grant_lost"); },
+    synchronize: async () => {},stop: async () => {},report: async () => {},
+  } });
+  const response = await handlers.listener(request({
+    action: "opt_in",requestId: randomUUID(),runId: randomUUID(),
+    listenerInstanceId: randomUUID(),firstAllowedSequence: 0,localConsentStartedMs: 10,
+  }));
+  assert.equal(response.status,409);
+  assert.equal((await response.json()).code,"grant_lost");
 });
