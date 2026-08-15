@@ -861,5 +861,24 @@ depth, concurrent browser controls, terminal report outcomes, disposed
 completions, bounded dependency JSON, the full pre-opt-in disclosure, and the
 structural non-awaited diagnostics retirement edge in production audio start.
 
-This is an implementation checkpoint, not a closure claim. Independent E8.3b
-review remains required before E8.3c authorization.
+### E8.3b closure record
+
+Independent closure review passed the exact implementation target
+`9f6fa684b6d77399ae1a8d8f1d27efc1db4ab4f1` (tree
+`7e9b2deaf678fe5d6d30d06f840cea9b54b5856e`) with no open P0, P1, or P2
+findings. The affected authority/replay, browser/privacy/lifecycle, and
+dependency-isolation/capacity/evidence perspectives all passed under the
+friends-and-family scale filter.
+
+Final verification was:
+
+- focused listener mediation/controller/routes: `32/32`;
+- focused authority perspective including State-facing rows: `35/35`;
+- production build and complete Web suite: `300/300`;
+- lint: zero errors, with only the pre-existing E5 `_status` warning; and
+- `git diff --check`: clean for the reviewed changes.
+
+E8.3b is locally verified and closed. E8.3c remains the named owner for
+source, relay, and maintenance callers plus final local cross-route failure
+isolation. E12 retains deployed-browser timing, real-host credential
+installation, and measured network/resource behavior.
