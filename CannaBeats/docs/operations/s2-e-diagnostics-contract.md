@@ -845,10 +845,10 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Status: `E7.2 closure review passed; checkpoint bookkeeping pending`. The
-unwired transactional and bounded retention/read increments are implemented
-and their targeted independent reviews found no open P0/P1. E7.3
-service/Compose isolation remains open. The independently reviewed bounded
+Status: `E7.2 locally verified; E7.3 implemented with independent closure review
+pending`. The transactional and bounded retention/read increments are closed.
+The optional private process, image, volume, and Compose isolation are
+implemented but not yet closure-verified. The independently reviewed bounded
 storage design is maintained in
 [E7 isolated collector and store](s2-e-e7-collector-store-spec.md).
 

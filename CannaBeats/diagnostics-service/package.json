@@ -4,5 +4,8 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.13.0" },
-  "scripts": { "test": "node --test --test-concurrency=1 tests/*.test.mjs" }
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs"
+  }
 }

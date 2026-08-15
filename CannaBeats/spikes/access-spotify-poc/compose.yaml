@@ -190,6 +190,47 @@ services:
       - --destination
       - /state/cannabeats-state.sqlite
 
+  # Optional, disposable observation plane. E7.3 exposes only private
+  # liveness/readiness/status; E8 adds authenticated mutation and read routes.
+  diagnostics:
+    profiles: ["diagnostics"]
+    build:
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: diagnostics-service/Dockerfile
+    image: ${CANNABEATS_DIAGNOSTICS_IMAGE:-cannabeats/diagnostics-service:local}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /diagnostics-temp:size=8m,mode=0700,uid=1000,gid=1000
+    environment:
+      NODE_ENV: production
+      PORT: "3020"
+      CANNABEATS_DIAGNOSTIC_DATABASE_PATH: /diagnostics/cannabeats-diagnostics.sqlite
+      CANNABEATS_DIAGNOSTIC_LOCK_DIRECTORY: /diagnostics/.locks
+    volumes:
+      - cannabeats_diagnostics_data:/diagnostics
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3020/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m
+        max-file: "4"
+
   backup:
     profiles: ["operations"]
     build:
@@ -286,3 +327,5 @@ volumes:
     name: ${CANNABEATS_DATA_VOLUME:-cannabeats_poc_data}
   cannabeats_state_data:
     name: ${CANNABEATS_STATE_DATA_VOLUME:-cannabeats_state_data}
+  cannabeats_diagnostics_data:
+    name: ${CANNABEATS_DIAGNOSTICS_DATA_VOLUME:-cannabeats_diagnostics_data}

@@ -4,8 +4,8 @@
 
 - Checkpoint: E7 — isolated collector and physical store
 - Scope revision: `E7-spec-v1`
-- Status: `E7.2 closure review passed; checkpoint bookkeeping pending`; E7.3
-  remains unimplemented
+- Status: `E7.2 locally verified`; E7.3 is implemented with independent closure
+  review pending
 - Risk class: `B — boundary-bearing` for durable replay, retention, and a
   disposable SQLite schema; whole-trace purge is the only destructive edge
 - Exact independently reviewed design target:
@@ -546,3 +546,156 @@ claim is made.
 Post-matrix remediation verification: diagnostics `21/21`; combined E1/E2/E7
 `53/53`; full Web production build and tests `248/248`; lint has zero errors and
 one pre-existing E5 unused-parameter warning. `git diff --check` passes.
+
+## E7.3 topology and isolation design
+
+Governing invariant:
+
+> The diagnostic process and its disposable files may be absent, unhealthy,
+> full, incompatible, or deleted without changing gameplay authority, audio
+> delivery, backup, restore, or rollback readiness.
+
+### Exact version-1 boundary
+
+E7.3 adds one `diagnostics` Compose-profile service built from
+`diagnostics-service/Dockerfile`. It runs as an unprivileged read-only
+container, owns only `/diagnostics`, and listens only on the private Compose
+network. It has no published host port and no `depends_on` edge in either
+direction. Its fixed process interface is:
+
+| Request | Result | Claim |
+| --- | --- | --- |
+| `GET /live` | `200 {status:"live"}` | The HTTP process can answer; no store-health claim |
+| `GET /ready` | `200 {status:"ready"}` or `503 {status:"degraded",reason}` | The generation-1 store opened and its bounded status is healthy |
+| `GET /v1/status` | exact bounded E7 status projection | Private topology/test seam only; no authorization claim |
+
+Every other method or path returns one constant `404` response. Request bodies
+are never read. E7.3 exposes no trace, issuance, consent, relay, report, read, or
+purge operation. E8 later adds authenticated fixed routes and may consume the
+same collector owner in process; it may not reinterpret these three endpoints
+as authority.
+
+The service owns one `DiagnosticCollector`, one HTTP server, one 60-second
+maintenance timer, and fixed signal handlers. Startup validates the complete
+store before binding the port. Schema incompatibility or retained corruption
+exits without serving readiness. Shutdown stops acceptance, clears the timer,
+closes the server, closes SQLite and its ownership locks, and then exits.
+Because the interface has no streaming or mutation request in E7.3, bounded
+shutdown requires no request-drain framework.
+
+Compose fixes the deployment shape:
+
+- dedicated `cannabeats_diagnostics_data` volume mounted only at
+  `/diagnostics`;
+- database `/diagnostics/cannabeats-diagnostics.sqlite` and ownership locks
+  `/diagnostics/.locks`;
+- read-only root filesystem, `node` user, init, all capabilities dropped, and
+  `no-new-privileges`;
+- 256 MiB memory, 0.25 CPU, 64 PIDs, 32 MiB general `/tmp`, and an 8 MiB
+  diagnostics temp tmpfs;
+- Docker JSON log rotation of four 1-MiB files, satisfying the E7 log
+  allocation structurally rather than by parsing its own logs;
+- a loopback healthcheck against `/ready`; and
+- no application, State, Access, backup, restore, history, operator, migration,
+  or audio service mount or dependency.
+
+The service never deletes an incompatible store. Disposal is an explicit
+operator/Compose volume removal affecting only the diagnostics volume. Starting
+with a missing or newly recreated volume creates a fresh generation-1 store.
+Coordinated backup and restore continue to name exactly Access and State; the
+diagnostics volume is neither an input nor an output.
+
+### E7.3 closure matrix
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `runtime`: startup creates only a missing/empty generation-1 database in the dedicated volume; an incompatible nonempty file fails before listen. |
+| Update | `structural`: E7.3 exposes status only; maintenance delegates to the verified E7.2 transaction boundary. |
+| Delete | `structural + operations`: the process deletes no store; explicit disposal targets only the named diagnostics volume. |
+| Omit | `runtime`: readiness is available only after `DiagnosticCollector` startup validation; status never substitutes for a complete trace read. |
+| Duplicate | `runtime`: the E7 ownership lock prevents a second owner of the same database; Compose defines one service instance. |
+| Reorder | `not_applicable`: E7.3 introduces no externally accepted mutation or paged read. |
+| Replay | `not_applicable`: all three GETs are read-only; E8 owns mutation replay over HTTP. |
+| Conflict | `runtime`: incompatible schema or a second owner fails before the port binds. |
+| Concurrency | `structural`: one process owns one synchronous collector; status and maintenance do not introduce a second writer. |
+| Expiry | `runtime`: one bounded startup sweep and one 60-second timer call the verified E7.2 retention operation; timer overlap is impossible in the synchronous process. |
+| Restart | `runtime`: every process start reopens and fully validates the retained store before readiness. |
+| Dependency failure | `structural`: there is no upstream dependency; no other service depends on diagnostic health or existence. |
+| Corruption | `runtime`: startup corruption fails before bind; a retained-data failure reached by maintenance latches degraded status; arbitrary out-of-band live-file tampering is detected on restart rather than by turning each health probe into a full-store scan. E7.3 has no report read surface from which to publish partial data. |
+| Capacity | `Compose + runtime`: fixed container/tmpfs/log/volume admission bounds apply; missing/full service remains optional to every authority and audio path. |
+
+### Predictable schedules and evidence
+
+The implementation tests must cover:
+
+- healthy process liveness/readiness/status and constant unknown-route behavior;
+- incompatible store, retained corruption, and second-owner startup before bind,
+  plus a maintenance-reached retained-data failure latching degraded readiness;
+- startup sweep, one timer sweep, signal shutdown, and restart with retained
+  healthy data;
+- deleted/missing volume recreation without touching Access or State data;
+- rendered Compose profile, private networking, exact mounts, security/resource
+  limits, healthcheck, and absence of every forbidden dependency;
+- backup/restore manifests and services continuing to exclude diagnostics; and
+- unavailable, stopped, and degraded diagnostics while existing Game, State,
+  backup, restore, rollback, and audio readiness definitions remain unchanged.
+
+Docker-unavailable environments may prove the rendered topology statically but
+cannot claim container lifecycle closure. The local E7.3 checkpoint requires a
+real container build/start/health/stop/delete-volume rehearsal before it may be
+called `locally verified`. Rehearsals use a unique labeled Compose project and
+volume and remove only resources carrying that exact test ownership label.
+
+### Scope and review decision
+
+Implementation scope is limited to the process wrapper, Docker image, optional
+Compose-profile service/volume, topology tests, and focused documentation.
+Credentials, caller authorization, mutation routes, Game/State clients,
+browser upload, producer reporters, comparison UI, Caddy exposure, and real-host
+measurements remain prohibited as E8-E12 work.
+
+E7.3 is a boundary-bearing topology change. Implementation begins only after a
+targeted design review finds no open P0/P1 in process ownership, mounts,
+dependency direction, disposal, and backup/restore exclusion.
+
+Primary design review: the closure matrix and smallest-counterexample pass found
+no open P0/P1 after narrowing live corruption detection to startup, reached
+maintenance, and restart rather than an unbounded health-check rescan. E7.3
+implementation is authorized for the exact scope above. Independent topology
+and process closure remains required before `locally verified` status.
+
+## E7.3 implementation record
+
+The implementation adds only the authorized boundary:
+
+- `diagnostics-service/src/server.mjs` owns one real `DiagnosticCollector`, one
+  bounded HTTP server, one maintenance timer, and idempotent shutdown;
+- the process exposes only `/live`, `/ready`, and `/v1/status`, returns constant
+  not-found results for every other method/path, and normalizes status and
+  maintenance failures without echoing lower-layer text;
+- listen failure releases SQLite ownership, lifecycle observers cannot affect
+  the service, and shutdown clears maintenance before closing HTTP and SQLite;
+- `diagnostics-service/Dockerfile` contains only the diagnostics service and its
+  verified E1/E2 dependencies; and
+- the optional Compose service has one private network attachment, one
+  diagnostics-only volume, no published port or dependency edge, and the exact
+  user, filesystem, capability, tmpfs, CPU, memory, PID, health, and log bounds
+  above.
+
+Matrix-derived process and topology tests pass `28/28`. The existing coordinated
+backup, release/rollback, scheduler, rendered-state topology, and schema-
+compatibility regressions pass `59/59`, confirming no diagnostics mount or
+readiness dependency entered those paths.
+
+A real Docker rehearsal built image
+`sha256:24596128c634758c3cde669a3f1e37e23e7653649adb77c502198b2724be41a4`
+under unique project `cannabeats-e73-20260815-a1` and unique labeled volume
+`cannabeats_e73_20260815_a1`. The service became healthy with no published host
+port; all three private responses matched their exact shapes; restart preserved
+healthy readiness; and label-scoped cleanup removed the container, network, and
+volume with no remnants. This is local disposable-container evidence, not a
+production packaging or real-host claim.
+
+The implementation worktree is based on E7.2 checkpoint `93f1715`. No E8 route,
+credential, authority lookup, or producer caller exists. Permitted status is
+`E7.3 implemented; independent closure review pending`.

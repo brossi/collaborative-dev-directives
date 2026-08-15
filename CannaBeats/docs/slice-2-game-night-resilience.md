@@ -1047,9 +1047,10 @@ locally verified at `087b8ea` after three independent final reviews. E6's
 local-only panel, canonical copy, reset control, and production E5 attachment
 are locally verified at `b0596f2`. E7.1 and E7.2 implement the unwired collector
 store; the targeted E7.2 transaction, retained-read, corruption, lifetime, and
-physical-boundary reviews found no open P0/P1. E7.3 service isolation, E8
-routing/authenticated authority, E9/E10 producer integration, E11 composition,
-and E12 real-device timing remain open.
+physical-boundary reviews found no open P0/P1. E7.3 service isolation is
+implemented with independent closure review pending. E8 routing/authenticated
+authority, E9/E10 producer integration, E11 composition, and E12 real-device
+timing remain open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
