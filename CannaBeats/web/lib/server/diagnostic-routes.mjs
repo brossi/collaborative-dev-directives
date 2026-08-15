@@ -11,12 +11,14 @@ const MAX_BODY_BYTES = 8192;
 const BODY_DEADLINE_MS = 2000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const decoder = new TextDecoder("utf-8",{ fatal: true });
-const BROWSER_FAILURES = new Set([
-  "authentication_required","not_authorized","request_invalid","request_timeout",
-  "diagnostic_not_found","request_conflict","trace_busy","read_expired",
-  "stale_correlation","trace_inactive","collector_busy","collector_degraded",
-  "quota_exhausted","schema_incompatible","collector_response_invalid",
-  "state_response_invalid","collector_unavailable","diagnostic_unavailable",
+const BROWSER_FAILURES = new Map([
+  ["authentication_required",401],["not_authorized",403],["request_invalid",400],
+  ["request_timeout",408],["diagnostic_not_found",404],["request_conflict",409],
+  ["trace_busy",409],["read_expired",409],["stale_correlation",409],
+  ["trace_inactive",409],["collector_busy",503],["collector_degraded",503],
+  ["quota_exhausted",503],["schema_incompatible",503],
+  ["collector_response_invalid",502],["state_response_invalid",502],
+  ["collector_unavailable",503],["diagnostic_unavailable",503],
 ]);
 
 class DiagnosticRouteError extends Error {
@@ -99,8 +101,7 @@ function responseError(error) {
   if (error instanceof DiagnosticMediationError || error instanceof DiagnosticRouteError
     || error instanceof DiagnosticCollectorGatewayError || error instanceof StateGatewayError) {
     const known = BROWSER_FAILURES.has(error.code);
-    const status = known && [400,401,403,404,408,409,426,502,503].includes(error.status)
-      ? error.status : 503;
+    const status = known ? BROWSER_FAILURES.get(error.code) : 503;
     const code = known ? error.code : "diagnostic_unavailable";
     return Response.json({ error: code === "diagnostic_not_found"
       ? "Diagnostic trace not found."

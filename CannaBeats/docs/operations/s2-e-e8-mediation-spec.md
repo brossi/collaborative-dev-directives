@@ -578,9 +578,10 @@ readiness.
 
 E8.1/E8.2 independently closed and their local counterexample pass found no
 missing P0/P1 that blocks this matrix, so E8.3a implementation may begin. Its
-closure requires one representative real-process Game→Access→State→collector
-schedule that includes commit-then-response-loss, collector restart, exact
-retry, read, and non-host concealment. The remaining finite lifecycle branches
+closure requires one representative composed production-boundary schedule
+through real Access, State, and collector HTTP services and the production Game
+mediation handler. It includes commit-then-response-loss, collector restart,
+exact retry, read, and non-host concealment. The remaining finite lifecycle branches
 may use focused real-owner tests; duplicating every branch through Docker would
 not add proportionate evidence for this deployment. E8.3b owns listener grants,
 consent, synchronization, and listener ingestion. E8.3c owns source/relay
@@ -618,10 +619,15 @@ collector output was not always rebound to the authorized request. Remediation
 now authenticates before every retained lookup, lazily creates the optional
 collector client, and applies one relation validator to trace context,
 start/end/rotation results, read metadata, and every returned report context.
+The affected authority re-review then found that canonical timestamps could
+still be substituted without changing those identities. The same boundary now
+binds accepted operation timestamps to the single submitted collector time and
+requires every receipt-bearing response to match both its exact command and
+returned state; stale stop refreshes retain every immutable trace field.
 
 Matrix-derived evidence presently passes:
 
-- Web production build and complete suite: `npm test` in `web` (`270/270`);
+- Web production build and complete suite: `npm test` in `web` (`272/272`);
 - Web lint: `npm run lint` (zero errors; one pre-existing E5 unused-parameter
   warning);
 - diagnostics service/store/topology: `node --test --test-concurrency=1

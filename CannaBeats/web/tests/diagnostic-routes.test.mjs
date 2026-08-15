@@ -6,6 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { createDiagnosticRouteHandlers } from "../lib/server/diagnostic-routes.mjs";
+import { DiagnosticCollectorGatewayError } from "../lib/server/diagnostic-collector-client.mjs";
 import { DiagnosticMediationError } from "../lib/server/diagnostic-mediation.mjs";
 import { StateGatewayError } from "../lib/server/state-client.mjs";
 
@@ -109,4 +110,14 @@ test("browser errors never forward an unregistered dependency code", async () =>
   assert.deepEqual(await response.json(),{
     error: "Diagnostics are temporarily unavailable.",code: "diagnostic_unavailable",
   });
+
+  const mismatched = createDiagnosticRouteHandlers({ mediation: {
+    start: async () => { throw new DiagnosticCollectorGatewayError(401,"collector_degraded"); },
+    stop: async () => {},status: async () => {},read: async () => {},
+  } });
+  const normalized = await mismatched.trace(request({
+    action: "start",requestId: randomUUID(),runId: randomUUID(),
+  }));
+  assert.equal(normalized.status,503);
+  assert.equal((await normalized.json()).code,"collector_degraded");
 });

@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 
 import {
+  canonicalE2OperationCommandBytes,
+  canonicalTraceStateBytes,
   restoreE2OperationReceiptFromTrustedStore,
   restoreTraceStateFromTrustedStore,
   validateE2OperationCommandJson,
@@ -69,6 +71,26 @@ function restoreReceipt(value) {
   }
 }
 
+function sameBytes(left,right) {
+  if (left.byteLength !== right.byteLength) return false;
+  for (let index = 0; index < left.byteLength; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
+function relatedReceipt(result,submittedCommand,state) {
+  const receipt = restoreReceipt(result?.receipt);
+  if (receipt.requestId !== submittedCommand.requestId
+    || receipt.operation !== submittedCommand.operation
+    || !sameBytes(canonicalE2OperationCommandBytes(receipt.canonicalCommand),
+      canonicalE2OperationCommandBytes(submittedCommand))
+    || !sameBytes(canonicalTraceStateBytes(receipt.result),canonicalTraceStateBytes(state))) {
+    fail(502,"collector_response_invalid");
+  }
+  return receipt;
+}
+
 function traceProjection(state) {
   return Object.freeze({
     traceId: state.traceId,runId: state.runId,status: state.status,
@@ -88,8 +110,14 @@ function relatedTrace(trace, expected) {
   if (Object.hasOwn(expected,"leaseId") && trace?.segment?.leaseId !== expected.leaseId) {
     fail(502,"collector_response_invalid");
   }
+  if (Object.hasOwn(expected,"segmentStartedAtMs")
+    && trace?.segment?.startedAtMs !== expected.segmentStartedAtMs) {
+    fail(502,"collector_response_invalid");
+  }
   if (Object.hasOwn(expected,"endReason")
     && trace?.ended?.reason !== expected.endReason) fail(502,"collector_response_invalid");
+  if (Object.hasOwn(expected,"endedAtMs")
+    && trace?.ended?.endedAtMs !== expected.endedAtMs) fail(502,"collector_response_invalid");
   return trace;
 }
 
@@ -148,7 +176,7 @@ function collectorContext(value, payloadKey = "state") {
 function exactPrincipal(value) {
   const principal = value?.principal;
   if (!principal || typeof principal.id !== "string" || !principal.id) {
-    fail(401,"authentication_required");
+    fail(503,"diagnostic_unavailable");
   }
   return principal;
 }
@@ -214,21 +242,26 @@ export function createDiagnosticMediation({
 
   async function automaticEnd(trace, reason) {
     const requestId = deriveDiagnosticUuid("automatic-end",trace.traceId,reason);
+    const endCommand = command({ requestId,operation: "trace_end",parameters: {} });
+    const nowMs = clock();
     const result = await collector.endTrace({
-      command: command({ requestId,operation: "trace_end",parameters: {} }),
+      command: endCommand,
       authority: authority({
-        authorityVersion: 1,operation: "trace_end",nowMs: clock(),
+        authorityVersion: 1,operation: "trace_end",nowMs,
         traceId: trace.traceId,reason,
       }),
     });
     const ended = relatedTrace(restoreTrace(result?.state),{
       traceId: trace.traceId,runId: trace.runId,runGeneration: trace.runGeneration,
       status: "ended",startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
-      segmentId: trace.segment.segmentId,leaseId: trace.segment.leaseId,endReason: reason,
+      segmentId: trace.segment.segmentId,leaseId: trace.segment.leaseId,
+      segmentStartedAtMs: trace.segment.startedAtMs,endReason: reason,
+      ...(result?.status === "accepted" ? { endedAtMs: nowMs } : {}),
     });
     if (!["accepted","replayed"].includes(result?.status)) {
       fail(502,"collector_response_invalid");
     }
+    relatedReceipt(result,endCommand,ended);
     return ended;
   }
 
@@ -251,14 +284,15 @@ export function createDiagnosticMediation({
     const issuedSegmentId = deriveDiagnosticUuid(
       "replacement-segment",trace.traceId,trace.segment.leaseId,current.leaseId,
     );
+    const nowMs = clock();
     const rotated = await collector.rotateSegment({ authority: authority({
-      authorityVersion: 1,operation: "segment_rotate",nowMs: clock(),traceId: trace.traceId,
+      authorityVersion: 1,operation: "segment_rotate",nowMs,traceId: trace.traceId,
       priorLeaseId: trace.segment.leaseId,leaseId: current.leaseId,issuedSegmentId,
     }) });
     const state = relatedTrace(restoreTrace(rotated?.state),{
       traceId: trace.traceId,runId: trace.runId,runGeneration: trace.runGeneration,
       status: "active",startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
-      leaseId: current.leaseId,segmentId: issuedSegmentId,
+      leaseId: current.leaseId,segmentId: issuedSegmentId,segmentStartedAtMs: nowMs,
     });
     if (rotated?.status !== "accepted") fail(502,"collector_response_invalid");
     return state;
@@ -292,10 +326,12 @@ export function createDiagnosticMediation({
       fail(404,"diagnostic_not_found");
     }
     await reconcile(null,stream);
+    const startCommand = command({ requestId,operation: "trace_start",parameters: {} });
+    const nowMs = clock();
     const result = await collector.startTrace({
-      command: command({ requestId,operation: "trace_start",parameters: {} }),
+      command: startCommand,
       authority: authority({
-        authorityVersion: 1,operation: "trace_start",nowMs: clock(),isHost: true,
+        authorityVersion: 1,operation: "trace_start",nowMs,isHost: true,
         runId,runGeneration: hostAuthority.runGeneration,leaseId: stream.leaseId,
         issuedTraceId: traceId,issuedSegmentId: initialSegmentId,
       }),
@@ -307,7 +343,11 @@ export function createDiagnosticMediation({
     const trace = relatedTrace(restoreTrace(result.state),{
       traceId,runId,runGeneration: hostAuthority.runGeneration,status: "active",
       leaseId: stream.leaseId,segmentId: initialSegmentId,
+      ...(result.status === "accepted" ? {
+        startedAtMs: nowMs,expiresAtMs: nowMs + 21_600_000,segmentStartedAtMs: nowMs,
+      } : {}),
     });
+    relatedReceipt(result,startCommand,trace);
     return traceProjection(trace);
   }
 
@@ -328,10 +368,11 @@ export function createDiagnosticMediation({
     let trace = await traceForHost(headers,traceId,{ reconcileActive: false });
     const stopCommand = command({ requestId,operation: "trace_end",parameters: {} });
     try {
+      const nowMs = clock();
       const result = await collector.endTrace({
         command: stopCommand,
         authority: authority({
-          authorityVersion: 1,operation: "trace_end",nowMs: clock(),
+          authorityVersion: 1,operation: "trace_end",nowMs,
           traceId,reason: "host_stopped",
         }),
       });
@@ -339,18 +380,25 @@ export function createDiagnosticMediation({
         traceId,runId: trace.runId,runGeneration: trace.runGeneration,status: "ended",
         startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
         segmentId: trace.segment.segmentId,leaseId: trace.segment.leaseId,
-        endReason: "host_stopped",
+        segmentStartedAtMs: trace.segment.startedAtMs,endReason: "host_stopped",
+        ...(result?.status === "accepted" ? { endedAtMs: nowMs } : {}),
       });
       if (!["accepted","replayed"].includes(result.status)) {
         fail(502,"collector_response_invalid");
       }
+      relatedReceipt(result,stopCommand,trace);
     } catch (error) {
       if (!["stale_correlation","trace_inactive"].includes(error?.code)) {
         throw error;
       }
       const found = collectorContext(await collector.traceContext({ traceId }));
       if (found.status !== "found") throw error;
-      const refreshed = relatedTrace(restoreTrace(found.state),{ traceId,runId: trace.runId });
+      const refreshed = relatedTrace(restoreTrace(found.state),{
+        traceId,runId: trace.runId,runGeneration: trace.runGeneration,
+        startedAtMs: trace.startedAtMs,expiresAtMs: trace.expiresAtMs,
+        segmentId: trace.segment.segmentId,leaseId: trace.segment.leaseId,
+        segmentStartedAtMs: trace.segment.startedAtMs,
+      });
       if (refreshed.status !== "ended") throw error;
       trace = refreshed;
     }

@@ -166,6 +166,18 @@ test("authentication completes before any retained trace lookup", async () => {
     headers: { authorization: "",cookie: "" },traceId: randomUUID(),
   }),(error) => error.code === "authentication_required");
   assert.equal(collectorCalls,0);
+
+  const malformedAccess = createDiagnosticMediation({
+    access: { principal: async () => ({}) },
+    state: { runHost: async () => {},managedStream: async () => {} },
+    collector: {
+      traceContext: async () => { collectorCalls += 1; return { status: "trace_absent" }; },
+    },
+  });
+  await assert.rejects(() => malformedAccess.status({
+    headers: { authorization: "",cookie: "" },traceId: randomUUID(),
+  }),(error) => error.code === "diagnostic_unavailable");
+  assert.equal(collectorCalls,0);
 });
 
 test("every collector projection is bound back to the requested trace", async () => {
@@ -217,6 +229,76 @@ test("every collector projection is bound back to the requested trace", async ()
   changedStart.collector.close();
 });
 
+test("operation results retain the exact submitted timing and receipt projection", async () => {
+  const shiftedStart = fixture();
+  const startMediation = createDiagnosticMediation({
+    access: shiftedStart.access,state: shiftedStart.state,clock: () => 1000,
+    collector: {
+      ...shiftedStart.adapter,
+      startTrace: (value) => {
+        const result = shiftedStart.adapter.startTrace(value);
+        const state = {
+          ...result.state,startedAtMs: 1001,expiresAtMs: 21_601_001,
+          segment: { ...result.state.segment,startedAtMs: 1001 },
+        };
+        return { ...result,state,receipt: { ...result.receipt,result: state } };
+      },
+    },
+  });
+  await assert.rejects(() => startMediation.start({
+    headers: shiftedStart.headers,requestId: randomUUID(),runId: shiftedStart.runId,
+  }),(error) => error.code === "collector_response_invalid");
+  shiftedStart.collector.close();
+
+  const shiftedEnd = fixture();
+  const started = await shiftedEnd.mediation.start({
+    headers: shiftedEnd.headers,requestId: randomUUID(),runId: shiftedEnd.runId,
+  });
+  shiftedEnd.setNow(2000);
+  const endMediation = createDiagnosticMediation({
+    access: shiftedEnd.access,state: shiftedEnd.state,clock: () => 2000,
+    collector: {
+      ...shiftedEnd.adapter,
+      endTrace: (value) => {
+        const result = shiftedEnd.adapter.endTrace(value);
+        const state = {
+          ...result.state,ended: { ...result.state.ended,endedAtMs: 2001 },
+        };
+        return { ...result,state,receipt: { ...result.receipt,result: state } };
+      },
+    },
+  });
+  await assert.rejects(() => endMediation.stop({
+    headers: shiftedEnd.headers,requestId: randomUUID(),traceId: started.traceId,
+  }),(error) => error.code === "collector_response_invalid");
+  shiftedEnd.collector.close();
+
+  const shiftedRotate = fixture();
+  const rotating = await shiftedRotate.mediation.start({
+    headers: shiftedRotate.headers,requestId: randomUUID(),runId: shiftedRotate.runId,
+  });
+  shiftedRotate.setNow(2000);
+  shiftedRotate.authority.leaseId = shiftedRotate.nextLeaseId;
+  const rotateMediation = createDiagnosticMediation({
+    access: shiftedRotate.access,state: shiftedRotate.state,clock: () => 2000,
+    collector: {
+      ...shiftedRotate.adapter,
+      rotateSegment: (value) => {
+        const result = shiftedRotate.adapter.rotateSegment(value);
+        return {
+          ...result,state: {
+            ...result.state,segment: { ...result.state.segment,startedAtMs: 2001 },
+          },
+        };
+      },
+    },
+  });
+  await assert.rejects(() => rotateMediation.status({
+    headers: shiftedRotate.headers,traceId: rotating.traceId,
+  }),(error) => error.code === "collector_response_invalid");
+  shiftedRotate.collector.close();
+});
+
 test("a stop racing exact trace expiry returns the retained expired projection", async () => {
   const f = fixture();
   const started = await f.mediation.start({
@@ -243,6 +325,37 @@ test("a stop racing exact trace expiry returns the retained expired projection",
   });
   assert.equal(stopped.ended.reason,"expired");
   assert.equal(stopped.ended.endedAtMs,started.expiresAtMs);
+  f.collector.close();
+});
+
+test("a stale stop refresh cannot replace immutable trace identity", async () => {
+  const f = fixture();
+  const started = await f.mediation.start({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+  });
+  const active = f.adapter.traceContext({ traceId: started.traceId }).state;
+  let lookups = 0;
+  const mediation = createDiagnosticMediation({
+    access: f.access,state: f.state,clock: () => 2000,
+    collector: {
+      ...f.adapter,
+      traceContext: () => {
+        lookups += 1;
+        if (lookups === 1) return { status: "found",state: active };
+        return { status: "found",state: {
+          ...active,status: "ended",startedAtMs: 1001,expiresAtMs: 21_601_001,
+          segment: { ...active.segment,startedAtMs: 1001 },
+          ended: { status: "ended",endedAtMs: 2000,reason: "host_stopped" },
+        } };
+      },
+      endTrace: async () => {
+        throw Object.assign(new Error("inactive"),{ status: 409,code: "trace_inactive" });
+      },
+    },
+  });
+  await assert.rejects(() => mediation.stop({
+    headers: f.headers,requestId: randomUUID(),traceId: started.traceId,
+  }),(error) => error.code === "collector_response_invalid");
   f.collector.close();
 });
 
