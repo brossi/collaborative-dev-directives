@@ -55,6 +55,7 @@ requires one exact bearer credential:
 | --- | --- | --- | --- | --- |
 | `/v1/game/trace/context` | POST | Game | exactly `{traceId}`, `{activeRunId}`, or `{active:true}` | `traceContext` |
 | `/v1/game/trace/start-context` | POST | Game | exactly `{requestId}` | `traceStartReceiptContext` |
+| `/v1/game/consent/receipt-context` | POST | Game | exactly `{requestId,operation}` for `consent_opt_in|consent_stop` | `consentReceiptContext` |
 | `/v1/game/trace/start` | POST | Game | `{command,authority}` | `startTrace` |
 | `/v1/game/trace/end` | POST | Game | `{command,authority}` | `endTrace` |
 | `/v1/game/segment/rotate` | POST | Game | `{authority}` | `rotateSegment` |

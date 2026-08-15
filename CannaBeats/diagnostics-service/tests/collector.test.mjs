@@ -370,6 +370,10 @@ test('trace, segment, consent, relay, and receipts survive restart exactly', () 
     listenerInstanceId: INSTANCE,
   });
   assert.equal(collector.optIn(optCommand, optAuthority).status, 'accepted');
+  assert.equal(collector.consentReceiptContext(REQUESTS[1],'consent_opt_in').status,'found');
+  assert.deepEqual(collector.consentReceiptContext(uuidFor(999),'consent_opt_in'),{
+    status: 'receipt_absent',
+  });
   const relayCommand = command('relay_bind', { relayGenerationId: INSTANCE }, REQUESTS[2]);
   const relayAuthority = authority({
     operation: 'relay_bind', traceId: TRACE, segmentId: SEGMENT_2,
@@ -390,6 +394,7 @@ test('trace, segment, consent, relay, and receipts survive restart exactly', () 
     listenerInstanceId: INSTANCE,
   });
   assert.equal(collector.stopSharing(stopCommand, stopAuthority).status, 'accepted');
+  assert.equal(collector.consentReceiptContext(REQUESTS[3],'consent_stop').status,'found');
   const endCommand = command('trace_end', {}, REQUESTS[4]);
   const endAuthority = authority({
     operation: 'trace_end', nowMs: 3000, traceId: TRACE, reason: 'host_stopped',

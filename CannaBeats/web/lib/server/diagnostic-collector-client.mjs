@@ -177,6 +177,9 @@ export function createDiagnosticCollectorClient({
     startReceiptContext: (requestId) => request(
       "/v1/game/trace/start-context",{ requestId },
     ),
+    consentReceiptContext: (requestId,operation) => request(
+      "/v1/game/consent/receipt-context",{ requestId,operation },
+    ),
     startTrace: ({ command,authority }) => request(
       "/v1/game/trace/start",{ command,authority },
     ),

@@ -105,6 +105,11 @@ export function createGameStateClient({
         principalId,method: "POST",body: { runId },signal,
       },
     ),
+    diagnosticRunMember: ({ runId,principalId,signal }) => request(
+      "/v1/diagnostics/run-member-authority",{
+        method: "POST",principalId,body: { runId },signal,
+      },
+    ),
     diagnosticManagedStream: ({ signal } = {}) => request(
       "/v1/diagnostics/managed-stream-authority",{
         method: "POST",body: {},signal,requirePrincipal: false,

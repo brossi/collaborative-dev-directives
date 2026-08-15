@@ -129,6 +129,9 @@ test('every Game route has one exact request family', () => {
     ['/v1/game/trace/context', { traceId: TRACE }, 'traceContext'],
     ['/v1/game/trace/context', { active: true }, 'traceContext'],
     ['/v1/game/trace/start-context', { requestId: REQUEST }, 'traceStartReceiptContext'],
+    ['/v1/game/consent/receipt-context', {
+      requestId: REQUEST,operation: 'consent_opt_in',
+    }, 'consentReceiptContext'],
     ['/v1/game/synchronization/context', { sampleId: SAMPLE }, 'issuanceContext'],
     ['/v1/game/trace/start', startBody(), 'startTrace'],
     ['/v1/game/trace/end', {

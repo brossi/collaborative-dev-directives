@@ -160,6 +160,17 @@ export function validateGameCollectorRequest(path, bytes) {
     }
     return Object.freeze({ operation: 'traceStartReceiptContext',requestId: value.requestId });
   }
+  if (path === '/v1/game/consent/receipt-context') {
+    const value = exact(parse(bytes), ['requestId','operation']);
+    if (typeof value.requestId !== 'string' || !UUID.test(value.requestId)
+      || !['consent_opt_in','consent_stop'].includes(value.operation)) {
+      fail('request_invalid');
+    }
+    return Object.freeze({
+      operation: 'consentReceiptContext',requestId: value.requestId,
+      consentOperation: value.operation,
+    });
+  }
   if (path === '/v1/game/synchronization/context') {
     const value = exact(parse(bytes), ['sampleId']);
     if (typeof value.sampleId !== 'string' || !UUID.test(value.sampleId)) {

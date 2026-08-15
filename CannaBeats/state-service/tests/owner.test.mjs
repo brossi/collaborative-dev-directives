@@ -172,6 +172,12 @@ test("diagnostic authority is durable for hosts and current-only for managed str
   assert.deepEqual(owner.diagnosticRunHostAuthority({ runId,principalId: host }),{
     authorityVersion: 1,status: "active",runId,runGeneration: 1,isHost: true,
   });
+  assert.deepEqual(owner.diagnosticRunMemberAuthority({ runId,principalId: host }),{
+    authorityVersion: 1,status: "active",runId,runGeneration: 1,role: "host",
+  });
+  assert.deepEqual(owner.diagnosticRunMemberAuthority({ runId,principalId: member }),{
+    authorityVersion: 1,status: "active",runId,runGeneration: 1,role: "member",
+  });
   assert.throws(() => owner.diagnosticRunHostAuthority({
     runId,principalId: member,
   }),/not found/i);

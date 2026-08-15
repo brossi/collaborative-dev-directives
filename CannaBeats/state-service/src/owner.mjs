@@ -503,6 +503,29 @@ export class StateOwner {
     };
   }
 
+  diagnosticRunMemberAuthority({ runId, principalId }) {
+    if (!UUID_PATTERN.test(runId)) throw new Error("Run ID must be a canonical UUID.");
+    if (typeof principalId !== "string" || !principalId) {
+      throw new Error("Diagnostic member principal is required.");
+    }
+    const row = this.#db.prepare(`SELECT r.id AS run_id,r.ended_at,r.terminal_outcome,
+        l.host_principal_id,l.status,l.active_run_id,l.run_generation
+      FROM game_runs r JOIN lobbies l ON l.code=r.lobby_code
+      JOIN lobby_members m ON m.lobby_code=l.code AND m.principal_id=?
+      WHERE r.id=?`).get(principalId,runId);
+    if (!row) throw new Error("Diagnostic run lookup was not found.");
+    const active = row.ended_at === null && row.terminal_outcome === null
+      && row.status === "playing" && row.active_run_id === row.run_id;
+    const ended = row.ended_at !== null && row.terminal_outcome !== null
+      && row.status === "ended" && row.active_run_id === row.run_id;
+    if (!active && !ended) throw new Error("Diagnostic run authority is inconsistent.");
+    return {
+      authorityVersion: 1,status: active ? "active" : "ended",runId: row.run_id,
+      runGeneration: row.run_generation,
+      role: row.host_principal_id === principalId ? "host" : "member",
+    };
+  }
+
   diagnosticManagedStreamAuthority({ sourceId = null, now = Date.now() } = {}) {
     if (sourceId !== null && !UUID_PATTERN.test(sourceId)) {
       throw new Error("Source ID must be a canonical UUID.");

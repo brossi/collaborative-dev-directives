@@ -291,6 +291,14 @@ export function createStateServer({
           runId: body.runId,principalId,
         }));
       }
+      if (request.method === "POST" && url.pathname === "/v1/diagnostics/run-member-authority") {
+        if (!requireCaller(gameCaller)) return;
+        if (!requirePrincipal("game")) return;
+        requireExactObject(body,{ required: ["runId"] });
+        return writeJson(response,200,owner.diagnosticRunMemberAuthority({
+          runId: body.runId,principalId,
+        }));
+      }
       if (request.method === "POST"
           && url.pathname === "/v1/diagnostics/managed-stream-authority") {
         const sourceId = gameCaller() ? null : authenticatedSource();

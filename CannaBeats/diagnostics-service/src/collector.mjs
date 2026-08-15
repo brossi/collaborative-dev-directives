@@ -591,6 +591,22 @@ export class DiagnosticCollector {
     });
   }
 
+  consentReceiptContext(requestId, operation) {
+    if (!validUuid(requestId) || !['consent_opt_in','consent_stop'].includes(operation)) {
+      fail('request_invalid');
+    }
+    return transaction(this.db, () => {
+      const row = this.db.prepare(`SELECT * FROM diagnostic_requests
+        WHERE request_id=? AND operation=?`).get(requestId,operation);
+      if (!row) return { status: 'receipt_absent' };
+      const receipt = retained(() => restoreReceipt(row));
+      if (receipt.requestId !== row.request_id || receipt.operation !== operation
+        || !sameBytes(row.canonical_receipt,
+          retained(() => canonicalE2OperationReceiptBytes(receipt)))) dataFail();
+      return { status: 'found',receipt };
+    });
+  }
+
   startTrace(command, authority) {
     return transaction(this.db, () => {
       expireActiveIfDue(this.db, authority.nowMs);

@@ -27,6 +27,7 @@ const FINITE_FAILURES = new Set([
 const GAME_PATHS = new Set([
   '/v1/game/trace/context',
   '/v1/game/trace/start-context',
+  '/v1/game/consent/receipt-context',
   '/v1/game/synchronization/context',
   '/v1/game/trace/start',
   '/v1/game/trace/end',
@@ -101,6 +102,9 @@ export function delegateGameCollectorOperation(collector, operation, receivedAt)
   }
   if (operation.operation === 'traceStartReceiptContext') {
     return collector.traceStartReceiptContext(operation.requestId);
+  }
+  if (operation.operation === 'consentReceiptContext') {
+    return collector.consentReceiptContext(operation.requestId,operation.consentOperation);
   }
   if (operation.operation === 'issuanceContext') {
     return collector.issuanceContext(operation.sampleId,receivedAt);

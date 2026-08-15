@@ -53,9 +53,12 @@ test("diagnostic State calls separate principal host authority from unscoped str
   });
   const runId = randomUUID();
   await client.diagnosticRunHost({ runId,principalId: "principal-1" });
+  await client.diagnosticRunMember({ runId,principalId: "principal-1" });
   await client.diagnosticManagedStream();
   assert.deepEqual(JSON.parse(calls[0].options.body),{ runId });
   assert.equal(calls[0].options.headers["x-cannabeats-principal"],"principal-1");
-  assert.deepEqual(JSON.parse(calls[1].options.body),{});
-  assert.equal(Object.hasOwn(calls[1].options.headers,"x-cannabeats-principal"),false);
+  assert.deepEqual(JSON.parse(calls[1].options.body),{ runId });
+  assert.equal(calls[1].options.headers["x-cannabeats-principal"],"principal-1");
+  assert.deepEqual(JSON.parse(calls[2].options.body),{});
+  assert.equal(Object.hasOwn(calls[2].options.headers,"x-cannabeats-principal"),false);
 });

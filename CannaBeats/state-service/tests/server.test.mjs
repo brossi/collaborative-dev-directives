@@ -114,6 +114,7 @@ test("every HTTP mutation and read route rejects credentials outside its explici
     ["GET", "/v1/lobbies/ABC123", "game"],
     ["GET", "/v1/lobbies/ABC123/audio", "game"],
     ["POST", "/v1/diagnostics/run-host-authority", "game"],
+    ["POST", "/v1/diagnostics/run-member-authority", "game"],
     ["POST", "/v1/diagnostics/managed-stream-authority", ["game","source"]],
     ["GET", `/v1/history/${commandId}`, "game"],
     ["POST", "/v1/lobbies/ABC123/actions", "game"],
@@ -208,6 +209,15 @@ test("diagnostic authority HTTP routes expose only State-derived Game facts", as
     assert.equal(hostResponse.status,200);
     assert.deepEqual(await hostResponse.json(),{
       authorityVersion: 1,status: "active",runId,runGeneration: 1,isHost: true,
+    });
+    const memberAuthority = await fetch(`${origin}/v1/diagnostics/run-member-authority`,{
+      method: "POST",headers: {
+        ...hostHeaders,...signedPrincipalHeaders(member,"game"),
+      },body: JSON.stringify({ runId }),
+    });
+    assert.equal(memberAuthority.status,200);
+    assert.deepEqual(await memberAuthority.json(),{
+      authorityVersion: 1,status: "active",runId,runGeneration: 1,role: "member",
     });
     const memberResponse = await fetch(`${origin}/v1/diagnostics/run-host-authority`,{
       method: "POST",headers: {
