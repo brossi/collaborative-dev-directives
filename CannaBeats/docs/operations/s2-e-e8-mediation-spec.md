@@ -102,10 +102,12 @@ returns `trace_absent`. The collector applies deterministic lazy expiry before
 the lookup. This route prevents Game
 from trusting a caller-returned trace, segment, or lease label after Game or a
 producer restarts; it returns no reports, consent rows, receipts, or principal
-data. A synchronization lookup returns the exact retained E2 issuance only
-before its retention boundary; equality returns `sample_absent`. It lets Game
+data. A synchronization lookup returns the exact retained E2 issuance and its
+stored `traceId` only before its retention boundary; equality returns
+`sample_absent`. It lets Game
 validate the producer's local send/receive sample without trusting returned
-server timestamps after either side restarts.
+server timestamps or substituting a sample from another trace after either side
+restarts.
 
 | HTTP | Finite codes |
 | --- | --- |
@@ -189,7 +191,7 @@ restart. The local counterexample pass found no open P0/P1.
 
 Verification at the implementation worktree:
 
-- E1/E2/E7/E8.1 focused suite: `76/76`;
+- E1/E2/E7/E8.1 focused suite: `77/77`;
 - full Web production build and suite: `248/248`;
 - Web lint: zero errors; and
 - syntax and `git diff --check`: pass.

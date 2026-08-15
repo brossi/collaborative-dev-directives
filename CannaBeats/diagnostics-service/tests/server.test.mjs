@@ -19,6 +19,9 @@ const RUN = '523e4567-e89b-42d3-a456-426614174000';
 const LEASE = '723e4567-e89b-42d3-a456-426614174000';
 const SEGMENT = '623e4567-e89b-42d3-a456-426614174000';
 const REQUEST = 'b23e4567-e89b-42d3-a456-426614174000';
+const SAMPLE = '223e4567-e89b-42d3-a456-426614174000';
+const TIMEBASE = '323e4567-e89b-42d3-a456-426614174000';
+const INSTANCE = '123e4567-e89b-42d3-a456-426614174000';
 const authenticatedApi = Object.freeze({
   gameToken: GAME_TOKEN, maintenanceToken: MAINTENANCE_TOKEN,
 });
@@ -300,6 +303,14 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
     assert.equal(context.body.status,'found');
     assert.equal(context.body.state.traceId,TRACE);
     assert.equal(context.body.state.segment.segmentId,SEGMENT);
+    const issued = await request(address,'/v1/game/synchronization/issue',
+      authenticatedOptions(GAME_TOKEN,{
+        traceId: TRACE,issuance: {
+          sampleId: SAMPLE,timebaseId: TIMEBASE,instanceId: INSTANCE,
+          serverReceiveMs: 1500,serverSendMs: 1505,
+        },
+      }));
+    assert.deepEqual(issued,{ status: 200,body: { status: 'accepted' } });
     await service.close();
 
     service = open();
@@ -312,6 +323,11 @@ test('HTTP mutation replay and conflict remain exact across collector restart', 
       authenticatedOptions(GAME_TOKEN,{ traceId: TRACE }));
     assert.equal(restoredContext.body.state.traceId,TRACE);
     assert.equal(restoredContext.body.state.segment.leaseId,LEASE);
+    const issuanceContext = await request(address,'/v1/game/synchronization/context',
+      authenticatedOptions(GAME_TOKEN,{ sampleId: SAMPLE }));
+    assert.equal(issuanceContext.body.status,'found');
+    assert.equal(issuanceContext.body.traceId,TRACE);
+    assert.equal(issuanceContext.body.issuance.sampleId,SAMPLE);
 
     const conflict = await request(address, '/v1/game/trace/end',
       authenticatedOptions(GAME_TOKEN, {

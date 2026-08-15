@@ -239,8 +239,10 @@ function insertReceipt(db, traceId, command, fingerprint, receipt, acceptedAt, e
 
 function expireActiveIfDue(db, now) {
   const row = activeTraceRow(db);
-  if (!row || now < row.active_expires_at) return row;
-  const state = expireDiagnosticTrace(restoreTrace(row));
+  if (!row) return null;
+  const current = validateTraceAuthorityProjection(db,row);
+  if (now < current.expiresAtMs) return row;
+  const state = expireDiagnosticTrace(current);
   persistTrace(db, state);
   return null;
 }
@@ -308,7 +310,7 @@ function snapshotDigest(rows) {
   return hash.digest('hex');
 }
 
-function validateTraceProjection(db, trace) {
+function validateTraceAuthorityProjection(db, trace) {
   let state;
   try {
     state = restoreTrace(trace);
@@ -326,6 +328,20 @@ function validateTraceProjection(db, trace) {
     || (ended !== null && (ended.endedAtMs !== trace.ended_at
       || ended.reason !== trace.end_reason
       || trace.purge_after !== trace.ended_at + 172_800_000))) dataFail();
+
+  const currentSegment = db.prepare(`SELECT * FROM diagnostic_segments
+    WHERE segment_id=? AND trace_id=?`).get(trace.current_segment_id,trace.trace_id);
+  if (!currentSegment || !validUuid(currentSegment.segment_id)
+    || !validUuid(currentSegment.trace_id) || !validUuid(currentSegment.lease_id)
+    || currentSegment.lease_id !== state.segment.leaseId
+    || currentSegment.started_at !== state.segment.startedAtMs
+    || currentSegment.started_at < trace.started_at
+    || currentSegment.started_at >= trace.active_expires_at) dataFail();
+  return state;
+}
+
+function validateTraceProjection(db, trace) {
+  const state = validateTraceAuthorityProjection(db,trace);
 
   const segments = db.prepare(`SELECT * FROM diagnostic_segments
     WHERE trace_id=? ORDER BY started_at,segment_id`).all(trace.trace_id);
@@ -500,10 +516,14 @@ export class DiagnosticCollector {
     return transaction(this.db, () => {
       expireActiveIfDue(this.db, this.clock());
       const row = traceId === null ? activeTraceRow(this.db) : traceRow(this.db,traceId);
-      if (!row || (activeRunId !== null && row.run_id !== activeRunId)) {
+      if (!row) {
         return { status: 'trace_absent' };
       }
-      return { status: 'found',state: restoreTrace(row) };
+      const state = validateTraceAuthorityProjection(this.db,row);
+      if (activeRunId !== null && state.runId !== activeRunId) {
+        return { status: 'trace_absent' };
+      }
+      return { status: 'found',state };
     });
   }
 
@@ -512,14 +532,24 @@ export class DiagnosticCollector {
       fail('request_invalid');
     }
     return transaction(this.db, () => {
-      const row = this.db.prepare(`SELECT canonical_issuance FROM diagnostic_issuances
-        WHERE sample_id=? AND expires_at>?`).get(sampleId,now);
+      const row = this.db.prepare(`SELECT * FROM diagnostic_issuances
+        WHERE sample_id=?`).get(sampleId);
       if (!row) return { status: 'sample_absent' };
+      const issuance = retained(() => restoreSynchronizationIssuanceFromTrustedStore(
+        row.canonical_issuance,
+      ));
+      if (issuance.sampleId !== row.sample_id || issuance.instanceId !== row.instance_id
+        || issuance.timebaseId !== row.timebase_id
+        || issuance.serverReceiveMs !== row.server_receive_ms
+        || issuance.serverSendMs !== row.server_send_ms
+        || row.expires_at !== issuance.serverSendMs + 120_000
+        || !sameBytes(row.canonical_issuance,
+          retained(() => canonicalSynchronizationIssuanceBytes(issuance)))) dataFail();
+      if (now >= row.expires_at) return { status: 'sample_absent' };
       return {
         status: 'found',
-        issuance: retained(() => restoreSynchronizationIssuanceFromTrustedStore(
-          row.canonical_issuance,
-        )),
+        traceId: row.trace_id,
+        issuance,
       };
     });
   }
@@ -594,10 +624,12 @@ export class DiagnosticCollector {
       const canonical = bytes(canonicalSynchronizationIssuanceBytes(issuance));
       const restored = restoreSynchronizationIssuanceFromTrustedStore(canonical);
       if (restored.sampleId !== issuance.sampleId) fail('report_invalid');
-      const existing = this.db.prepare(`SELECT canonical_issuance FROM diagnostic_issuances
+      const existing = this.db.prepare(`SELECT trace_id,canonical_issuance
+        FROM diagnostic_issuances
         WHERE sample_id=?`).get(issuance.sampleId);
       if (existing) {
-        if (!sameBytes(existing.canonical_issuance, canonical)) fail('report_conflict');
+        if (existing.trace_id !== traceId
+          || !sameBytes(existing.canonical_issuance, canonical)) fail('report_conflict');
         return 'replayed';
       }
       this.#assertPhysicalAdmission();
