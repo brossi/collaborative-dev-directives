@@ -845,7 +845,8 @@ behavior, and bounded report export.
 
 ### E7 — Isolated collector and physical store
 
-Status: `design-review-pending`. The bounded storage design is maintained in
+Status: `implementation-candidate` at `1311f37`. The independently reviewed
+bounded storage design is maintained in
 [E7 isolated collector and store](s2-e-e7-collector-store-spec.md).
 
 Add the disposable collector/store and dedicated volume in three increments:

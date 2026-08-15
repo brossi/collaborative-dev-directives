@@ -4,10 +4,12 @@
 
 - Checkpoint: E7 — isolated collector and physical store
 - Scope revision: `E7-spec-v1`
-- Status: `design-review-pending`
+- Status: `implementation-candidate`
 - Risk class: `B — boundary-bearing` for durable replay, retention, and a
   disposable SQLite schema; whole-trace purge is the only destructive edge
-- Exact source/tree identity: to be recorded by the independent design review
+- Exact independently reviewed design target:
+  `1311f37550f4855ad3a587796178b4dcb7c0c8ee`, tree
+  `cfe16d983511fb8396491e760689afe0b04def58`
 - Required verified checkpoints: E1 at `736a401`; E2 at `df41d2c`
 - Explicitly excluded later checkpoints: external credentials, Game/State
   authority resolution, browser/source/relay routes, and consent transport
@@ -17,6 +19,8 @@
 - First independently audited target: commit
   `14c67b1d4082919adf3f81b08cc5b1520540b982`, tree
   `265aed33bac7b41628a6768c89089c9c84cf5e74`; verdict `revise`, no P0
+- Final independent review: three focused perspectives passed on 2026-08-14
+  with no open P0/P1 after the exact cursor-progression follow-up above
 
 ## Boundary map
 
@@ -409,14 +413,16 @@ isolation checks.
   unproved envelope cap, and overstated physical-limit language. This revision
   resolves them with fixed tables, separate clocks, bounded receipt tombstones,
   an E2-owned 4-KiB envelope boundary, and an honest admission threshold.
-- Open blockers: narrow independent re-review of this remediation target.
-- Approved implementation scope: none until the E7 B-boundary design review.
+- Open blockers: none for E7.1 design; implementation evidence remains pending.
+- Approved implementation scope: E2 complete-envelope encode/restore and
+  retained-state restoration/expiry prerequisites, followed by the unwired
+  E7.1 transactional SQLite core and focused tests.
 - Explicitly prohibited implementation scope: E8 routes/credentials/authority,
   E9/E10 producers, E11 diagnosis UI, E12 measurements.
-- Decision: `revise`
+- Decision: `designed`
 - Packet linked from normative checkpoint: yes
 - Every `Not applicable` names its owning checkpoint: yes
-- Dependency-firewall review passed: pending
-- Predictable-failure matrix resolved: pending independent review
-- No open P0/P1 design finding: pending
-- Implementation authorized: no
+- Dependency-firewall review passed: yes
+- Predictable-failure matrix resolved: yes
+- No open P0/P1 design finding: yes
+- Implementation authorized: yes, E7.1 only
