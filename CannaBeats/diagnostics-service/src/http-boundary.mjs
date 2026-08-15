@@ -171,6 +171,22 @@ export function validateGameCollectorRequest(path, bytes) {
       consentOperation: value.operation,
     });
   }
+  if (path === '/v1/game/relay/receipt-context') {
+    const value = exact(parse(bytes), ['requestId']);
+    if (typeof value.requestId !== 'string' || !UUID.test(value.requestId)) {
+      fail('request_invalid');
+    }
+    return Object.freeze({ operation: 'relayReceiptContext',requestId: value.requestId });
+  }
+  if (path === '/v1/game/relay/context') {
+    const value = exact(parse(bytes), ['relayGenerationId']);
+    if (typeof value.relayGenerationId !== 'string' || !UUID.test(value.relayGenerationId)) {
+      fail('request_invalid');
+    }
+    return Object.freeze({
+      operation: 'relayBindingContext',relayGenerationId: value.relayGenerationId,
+    });
+  }
   if (path === '/v1/game/report/context') {
     const value = exact(parse(bytes), ['traceId','instanceId','sequence']);
     if (typeof value.traceId !== 'string' || !UUID.test(value.traceId)

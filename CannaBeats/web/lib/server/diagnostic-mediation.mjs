@@ -36,7 +36,7 @@ function bytes(value) {
 
 export function deriveDiagnosticUuid(label, ...parts) {
   if (!["trace","initial-segment","automatic-end","replacement-segment",
-    "listener-grant","synchronization-sample"].includes(label)
+    "listener-grant","source-grant","synchronization-sample"].includes(label)
     || parts.length === 0 || parts.some((part) => typeof part !== "string" || !part)) {
     fail(400,"request_invalid");
   }

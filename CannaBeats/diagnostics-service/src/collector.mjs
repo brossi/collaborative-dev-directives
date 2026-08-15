@@ -607,6 +607,40 @@ export class DiagnosticCollector {
     });
   }
 
+  relayReceiptContext(requestId) {
+    if (!validUuid(requestId)) fail('request_invalid');
+    return transaction(this.db, () => {
+      const row = this.db.prepare(`SELECT * FROM diagnostic_requests
+        WHERE request_id=? AND operation='relay_bind'`).get(requestId);
+      if (!row) return { status: 'receipt_absent' };
+      const receipt = retained(() => restoreReceipt(row));
+      if (receipt.requestId !== row.request_id || receipt.operation !== 'relay_bind'
+        || receipt.result.traceId !== row.trace_id
+        || !sameBytes(row.canonical_receipt,
+          retained(() => canonicalE2OperationReceiptBytes(receipt)))) dataFail();
+      return { status: 'found',receipt };
+    });
+  }
+
+  relayBindingContext(relayGenerationId) {
+    if (!validUuid(relayGenerationId)) fail('request_invalid');
+    return transaction(this.db, () => {
+      const row = this.db.prepare(`SELECT * FROM diagnostic_relay_bindings
+        WHERE relay_generation_id=?`).get(relayGenerationId);
+      if (!row) return { status: 'binding_absent' };
+      const binding = retained(() => restoreRelayBindingFromTrustedStore(row.canonical_state));
+      const segment = this.db.prepare(`SELECT trace_id,lease_id FROM diagnostic_segments
+        WHERE segment_id=?`).get(row.segment_id);
+      if (binding.relayGenerationId !== row.relay_generation_id
+        || binding.traceId !== row.trace_id || binding.segmentId !== row.segment_id
+        || binding.leaseId !== row.lease_id
+        || !segment || segment.trace_id !== row.trace_id || segment.lease_id !== row.lease_id
+        || !sameBytes(row.canonical_state,
+          retained(() => canonicalRelayBindingBytes(binding)))) dataFail();
+      return { status: 'found',binding };
+    });
+  }
+
   reportIdentityContext(traceId, instanceId, sequence) {
     if (!validUuid(traceId) || !validUuid(instanceId)
       || !Number.isSafeInteger(sequence) || sequence < 0) fail('request_invalid');

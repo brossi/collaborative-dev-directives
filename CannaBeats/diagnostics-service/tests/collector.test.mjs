@@ -380,12 +380,18 @@ test('trace, segment, consent, relay, and receipts survive restart exactly', () 
     leaseId: LEASE_2, relayGenerationId: INSTANCE,
   });
   assert.equal(collector.bindRelay(relayCommand, relayAuthority).status, 'accepted');
+  assert.equal(collector.relayReceiptContext(REQUESTS[2]).status,'found');
+  assert.deepEqual(collector.relayReceiptContext(uuidFor(998)),{ status: 'receipt_absent' });
+  assert.equal(collector.relayBindingContext(INSTANCE).status,'found');
+  assert.deepEqual(collector.relayBindingContext(uuidFor(997)),{ status: 'binding_absent' });
   collector.close();
 
   collector = new DiagnosticCollector(path, { ...options, now: 2200 });
   assert.equal(collector.startTrace(startCommand, startAuthority()).status, 'replayed');
   assert.equal(collector.optIn(optCommand, optAuthority).status, 'replayed');
   assert.equal(collector.bindRelay(relayCommand, relayAuthority).status, 'replayed');
+  assert.equal(collector.relayReceiptContext(REQUESTS[2]).receipt.requestId,REQUESTS[2]);
+  assert.equal(collector.relayBindingContext(INSTANCE).binding.traceId,TRACE);
   const stopCommand = command('consent_stop', {
     listenerInstanceId: INSTANCE, expectedGeneration: 1,
   }, REQUESTS[3]);

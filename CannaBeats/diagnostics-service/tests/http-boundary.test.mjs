@@ -132,6 +132,10 @@ test('every Game route has one exact request family', () => {
     ['/v1/game/consent/receipt-context', {
       requestId: REQUEST,operation: 'consent_opt_in',
     }, 'consentReceiptContext'],
+    ['/v1/game/relay/receipt-context', { requestId: REQUEST }, 'relayReceiptContext'],
+    ['/v1/game/relay/context', {
+      relayGenerationId: RELAY_GENERATION,
+    }, 'relayBindingContext'],
     ['/v1/game/report/context', {
       traceId: TRACE,instanceId: INSTANCE,sequence: 0,
     }, 'reportIdentityContext'],

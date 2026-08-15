@@ -147,13 +147,16 @@ or corrected. E8 owns authenticated issuance/lookup and E7 owns its bounded
 120-second transport-grace persistence; the pure E2 fixture supplies only the same private
 provenance brand.
 
-No additional synchronization route is introduced. The listener-instance,
-source-work, and relay-generation responses carry the first issuance. A
-successful listener/source/relay report response may carry the next issuance
-when renewal is due. The producer records local send immediately before that
-request and local receive after the response, so the new sample applies only to
-subsequent measurement intervals. A lost response yields no usable sample and
-does not authorize pairing the issuance with another request's local times.
+No additional public route is introduced solely for synchronization. The
+listener, source, and relay diagnostic routes each expose a fixed
+`synchronize` action after their caller binding exists. This keeps optional
+diagnostics out of the source authority-poll and relay audio paths. A successful
+report response may later carry the next issuance when renewal is due. The
+producer records local send immediately before the synchronization request and
+local receive after the response, so the sample applies only to subsequent
+measurement intervals. A lost response yields no usable sample and requires a
+fresh synchronization request ID; it never authorizes pairing retained server
+timestamps with another request's local times.
 
 Let `localRtt = localReceiveMs - localSendMs` and
 `serverWork = serverSendMs - serverReceiveMs`. Validation requires:

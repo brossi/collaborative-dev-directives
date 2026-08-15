@@ -22,6 +22,7 @@ services:
       CANNABEATS_STATE_GAME_PRINCIPAL_ASSERTION_KEY_FILE: /run/secrets/cannabeats/state-game-principal-assertion-key
       CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN: http://diagnostics:3020
       CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-game-token
+      CANNABEATS_DIAGNOSTICS_RELAY_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-relay-token
       CANNABEATS_ENABLE_LEGACY_STATE: "false"
     volumes: !override
       - ${AUDIO_RELAY_LISTEN_TOKEN_HOST_FILE:-./secrets/audio-relay-listen-token}:${AUDIO_RELAY_LISTEN_TOKEN_FILE:-/run/secrets/cannabeats/audio-relay-listen-token}:ro
@@ -29,6 +30,7 @@ services:
       - ${STATE_GAME_TOKEN_HOST_FILE:-./secrets/state-game-token}:/run/secrets/cannabeats/state-game-token:ro
       - ${STATE_GAME_PRINCIPAL_ASSERTION_KEY_HOST_FILE:-./secrets/state-game-principal-assertion-key}:/run/secrets/cannabeats/state-game-principal-assertion-key:ro
       - ${DIAGNOSTICS_GAME_TOKEN_HOST_FILE:-./secrets/diagnostics-game-token}:/run/secrets/cannabeats/diagnostics-game-token:ro
+      - ${DIAGNOSTICS_RELAY_TOKEN_HOST_FILE:-./secrets/diagnostics-relay-token}:/run/secrets/cannabeats/diagnostics-relay-token:ro
     depends_on:
       state:
         condition: service_healthy
@@ -43,6 +45,30 @@ services:
     volumes:
       - ${DIAGNOSTICS_GAME_TOKEN_HOST_FILE:-./secrets/diagnostics-game-token}:/run/secrets/cannabeats/diagnostics-game-token:ro
       - ${DIAGNOSTICS_MAINTENANCE_TOKEN_HOST_FILE:-./secrets/diagnostics-maintenance-token}:/run/secrets/cannabeats/diagnostics-maintenance-token:ro
+
+  diagnostics-maintenance:
+    profiles: ["operations"]
+    build:
+      context: ${CANNABEATS_REPOSITORY_ROOT:-../..}
+      dockerfile: diagnostics-service/Dockerfile
+    image: ${CANNABEATS_DIAGNOSTICS_IMAGE:-cannabeats/diagnostics-service:local}
+    user: node
+    read_only: true
+    init: true
+    environment:
+      CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN: http://diagnostics:3020
+      CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-maintenance-token
+    volumes:
+      - ${DIAGNOSTICS_MAINTENANCE_TOKEN_HOST_FILE:-./secrets/diagnostics-maintenance-token}:/run/secrets/cannabeats/diagnostics-maintenance-token:ro
+    entrypoint: ["node", "scripts/maintenance.mjs"]
+    command: ["status"]
+    mem_limit: 128m
+    cpus: 0.1
+    pids_limit: 32
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
   backup:
     network_mode: !reset null

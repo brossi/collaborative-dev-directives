@@ -180,6 +180,12 @@ export function createDiagnosticCollectorClient({
     consentReceiptContext: (requestId,operation) => request(
       "/v1/game/consent/receipt-context",{ requestId,operation },
     ),
+    relayReceiptContext: (requestId) => request(
+      "/v1/game/relay/receipt-context",{ requestId },
+    ),
+    relayBindingContext: (relayGenerationId) => request(
+      "/v1/game/relay/context",{ relayGenerationId },
+    ),
     reportIdentityContext: ({ traceId,instanceId,sequence }) => request(
       "/v1/game/report/context",{ traceId,instanceId,sequence },
     ),
@@ -194,6 +200,9 @@ export function createDiagnosticCollectorClient({
     ),
     stopSharing: ({ command,authority }) => request(
       "/v1/game/consent/stop",{ command,authority },
+    ),
+    bindRelay: ({ command,authority }) => request(
+      "/v1/game/relay/bind",{ command,authority },
     ),
     ingestReport: ({ envelope,grantGeneration }) => request(
       "/v1/game/report/ingest",{ envelope,grantGeneration },

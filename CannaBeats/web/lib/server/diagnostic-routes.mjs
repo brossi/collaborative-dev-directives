@@ -17,6 +17,7 @@ const BROWSER_FAILURES = new Map([
   ["request_timeout",408],["diagnostic_not_found",404],["request_conflict",409],
   ["trace_busy",409],["read_expired",409],["stale_correlation",409],
   ["trace_inactive",409],["grant_lost",409],["sharing_disabled",409],
+  ["source_session_lost",409],["relay_generation_unbound",409],
   ["report_conflict",409],["report_invalid",400],["rate_limited",429],
   ["collector_busy",503],["collector_degraded",503],
   ["quota_exhausted",503],["schema_incompatible",503],
@@ -268,3 +269,10 @@ export function createDiagnosticListenerRouteHandlers({ mediation,bodyDeadlineMs
 
   return Object.freeze({ listener,listenerReport });
 }
+
+export {
+  exact as exactDiagnosticRequest,
+  readBody as readDiagnosticRequestBody,
+  responseError as diagnosticRouteErrorResponse,
+  uuid as diagnosticRequestUuid,
+};

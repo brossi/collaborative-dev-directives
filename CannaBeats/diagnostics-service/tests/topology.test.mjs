@@ -75,8 +75,12 @@ test('authenticated topology keeps collector credentials scoped and optional', (
   assert.equal(game.environment.CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN,'http://diagnostics:3020');
   assert.equal(game.environment.CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE,
     '/run/secrets/cannabeats/diagnostics-game-token');
+  assert.equal(game.environment.CANNABEATS_DIAGNOSTICS_RELAY_TOKEN_FILE,
+    '/run/secrets/cannabeats/diagnostics-relay-token');
   assert.equal(game.volumes.some((volume) =>
     volume.target === '/run/secrets/cannabeats/diagnostics-game-token'),true);
+  assert.equal(game.volumes.some((volume) =>
+    volume.target === '/run/secrets/cannabeats/diagnostics-relay-token'),true);
   assert.equal(game.volumes.some((volume) =>
     volume.target === '/run/secrets/cannabeats/diagnostics-maintenance-token'),false);
   assert.equal(Object.hasOwn(game.depends_on ?? {},'diagnostics'),false);
@@ -84,6 +88,22 @@ test('authenticated topology keeps collector credentials scoped and optional', (
     assert.equal((compose.services[name].volumes ?? []).some((volume) =>
       String(volume.target).includes('diagnostics-')),false,name);
   }
+
+  const maintenance = compose.services['diagnostics-maintenance'];
+  assert.deepEqual(maintenance.profiles,['operations']);
+  assert.equal(maintenance.read_only,true);
+  assert.equal(maintenance.user,'node');
+  assert.equal(maintenance.ports,undefined);
+  assert.equal(maintenance.depends_on,undefined);
+  assert.equal(maintenance.environment.CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN,
+    'http://diagnostics:3020');
+  assert.deepEqual((maintenance.volumes ?? []).map((volume) => volume.target),[
+    '/run/secrets/cannabeats/diagnostics-maintenance-token',
+  ]);
+  assert.equal((maintenance.volumes ?? []).some((volume) =>
+    volume.target === '/diagnostics'),false);
+  assert.equal(maintenance.environment.CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE,undefined);
+  assert.equal(maintenance.environment.CANNABEATS_DIAGNOSTICS_RELAY_TOKEN_FILE,undefined);
 });
 
 test('rendered volume identities are passed to the runtime collision preflight', (context) => {

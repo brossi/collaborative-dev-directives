@@ -6,6 +6,7 @@
   "engines": { "node": ">=22.13.0" },
   "scripts": {
     "dispose-volume": "node scripts/dispose-volume.mjs",
+    "maintenance": "node scripts/maintenance.mjs",
     "start": "node src/server.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs"
   }

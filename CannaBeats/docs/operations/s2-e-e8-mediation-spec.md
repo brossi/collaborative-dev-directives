@@ -1,9 +1,8 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1, E8.2, and E8.3a locally verified; E8.3b implemented with
-closure review pending`. Independent closure found no open P0/P1 in the
-verified increments. E8.3c remains unimplemented and unauthorized until
-E8.3b closes.
+Status: `E8.1, E8.2, E8.3a, and E8.3b locally verified; E8.3c implemented with closure review pending`.
+Independent closure found no open P0/P1 in the verified increments. E8.3c is
+the final contained mediation increment before the E9/E10 producer reporters.
 
 This packet applies the repository scale filter: one private collector, one
 Game gateway, one State authority service, and two collector credentials. It
@@ -56,6 +55,8 @@ requires one exact bearer credential:
 | `/v1/game/trace/context` | POST | Game | exactly `{traceId}`, `{activeRunId}`, or `{active:true}` | `traceContext` |
 | `/v1/game/trace/start-context` | POST | Game | exactly `{requestId}` | `traceStartReceiptContext` |
 | `/v1/game/consent/receipt-context` | POST | Game | exactly `{requestId,operation}` for `consent_opt_in|consent_stop` | `consentReceiptContext` |
+| `/v1/game/relay/receipt-context` | POST | Game | exactly `{requestId}` | `relayReceiptContext` |
+| `/v1/game/relay/context` | POST | Game | exactly `{relayGenerationId}` | `relayBindingContext` |
 | `/v1/game/report/context` | POST | Game | exactly `{traceId,instanceId,sequence}` | `reportIdentityContext` |
 | `/v1/game/trace/start` | POST | Game | `{command,authority}` | `startTrace` |
 | `/v1/game/trace/end` | POST | Game | `{command,authority}` | `endTrace` |
@@ -882,3 +883,206 @@ E8.3b is locally verified and closed. E8.3c remains the named owner for
 source, relay, and maintenance callers plus final local cross-route failure
 isolation. E12 retains deployed-browser timing, real-host credential
 installation, and measured network/resource behavior.
+
+## E8.3c source, relay, and maintenance mediation
+
+### Governing invariant
+
+> A source or relay report is accepted only under its fixed caller credential
+> and immutable source-session or relay-generation binding, while maintenance
+> can only inspect status or purge a whole trace; every stale, replayed,
+> malformed, full, or unavailable diagnostic operation is finite and cannot
+> enter source authority polling, relay audio, gameplay, or readiness.
+
+This increment adds mediation only. E9 and E10 still own the source and relay
+snapshot interfaces, reporter loops, cadence, local queues, and real process
+attachment. E8.3c therefore uses route/owner fixtures and exposes no fake
+producer metrics in production.
+
+### Fixed external routes and credentials
+
+The source reuses its existing managed-source bearer. Game forwards that bearer
+only to State's verified source-scoped
+`/v1/diagnostics/managed-stream-authority` route. Game never enumerates the
+source registry and never accepts a caller-supplied source, run, trace, lease,
+segment, or role label.
+
+The relay receives one new 32-256-byte visible-ASCII bearer from
+`CANNABEATS_DIAGNOSTICS_RELAY_TOKEN_FILE`. It is mounted only into Game and the
+future relay reporter. Game validates it as distinct from the collector Game
+credential before constructing producer mediation. The collector still sees
+only its existing Game credential. Diagnostics already validates collector
+Game versus maintenance; the release credential preflight checks all three
+values pairwise before deployed enablement. E12 owns installation on the real
+relay host, not definition of this local boundary.
+
+The exact public operations are:
+
+| Route | Caller | Exact actions |
+| --- | --- | --- |
+| `/api/diagnostics/source-report` | existing source bearer | `open`, `synchronize`, or one source `report` |
+| `/api/diagnostics/relay-generation` | fixed relay bearer | `bind` or `synchronize` |
+| `/api/diagnostics/relay-report` | fixed relay bearer | one relay `report` |
+
+All three are POST-only, require authorization before body parsing, use the
+existing 8-KiB/two-second request boundary, return `Cache-Control: no-store`,
+and expose only finite codes. They are separate from `/api/audio-source`,
+`/api/audio-stream`, gameplay, and readiness. No diagnostic call is made from
+those existing paths.
+
+Source actions are exact:
+
+```text
+open        {action:"open",requestId,sourceInstanceId}
+synchronize {action:"synchronize",requestId,sourceGrantId}
+report      {sourceGrantId,measurementCore,sampleObservation}
+```
+
+`open` requires current source-scoped State stream authority and the sole
+active trace reconciled to that exact run/generation/lease. Game retains at
+most eight memory-only source grants. A grant binds a deterministic opaque
+`sourceGrantId`, the authenticated bearer fingerprint, `sourceId`,
+`sourceInstanceId`, run/generation, trace/segment/lease, and the earlier of
+lease or trace expiry. The fingerprint is never returned, logged, or persisted.
+Exact same-process request replay returns the same grant; changed request reuse
+fails before current-state evaluation. Game restart loses grants and returns
+`source_session_lost`; E9 may open a fresh bounded session without changing
+source playback or its authority poll.
+
+Source synchronization requires the grant, the same authenticated bearer, and
+the same current State/trace binding. It derives `sampleId` from its request ID,
+stores the exact collector issuance, and returns only that issuance plus the
+grant ID. A producer discards a lost response and uses a fresh request ID.
+Source report replay checks the bearer fingerprint, E1 identity, retained
+envelope, and exact core before current correlation. New work additionally
+requires the grant's unexpired current State/trace binding, retained issuance,
+physically valid sample, E1/E2 composition, and the source E1 instance equal to
+the grant's source instance. A committed replay may survive a later lease
+change; unseen work never moves to a new lease.
+
+Relay actions are exact:
+
+```text
+bind        {action:"bind",requestId,relayGenerationId}
+synchronize {action:"synchronize",requestId,relayGenerationId}
+report      {relayGenerationId,measurementCore,sampleObservation}
+```
+
+`bind` authenticates the relay, obtains the sole current State stream, and
+reconciles the sole active trace before submitting the exact E2 `relay_bind`
+command. Collector receipt replay is evaluated before current authority and
+returns the original immutable trace/segment/lease binding after response loss.
+Game accepts neither a caller trace nor lease. E8.3c adds two narrow Game-scoped
+collector restoration seams: relay-bind receipt by request ID and relay binding
+by generation ID. Both restore canonical E2 bytes and reveal no report body.
+
+Relay synchronization and reports restore that immutable binding. A delayed
+old-generation report therefore remains on its original segment or fails; it
+is never relabeled to State's current lease. New report ingestion still
+requires an active trace, a retained unexpired issuance, exact E1 relay family
+and generation identity, physically valid alignment, E2 composition, and the
+collector's own binding check. Exact retained report replay returns the
+original envelope/result before current trace evaluation.
+
+### Maintenance caller
+
+One bounded `diagnostics-maintenance` operations client calls the collector
+directly on the private Compose network. It reads only the maintenance token,
+has no authority database or diagnostics-volume mount, and supports exactly:
+
+```text
+status
+purge REQUEST_UUID TRACE_UUID
+```
+
+It uses a two-second request deadline, an 8-KiB response cap, fatal UTF-8/JSON,
+no redirects, and finite exit/output. Purge constructs the exact E7
+`trace_purge` command. It never receives the collector Game or relay token and
+cannot read or ingest reports. Game and the relay never receive the maintenance
+token. The service has no `depends_on` edge; collector absence is a finite
+operations failure, not an application startup failure.
+
+### E8.3c closure matrix
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `runtime`: source `open` creates one bounded memory grant from source-scoped State facts; relay `bind` creates one immutable collector binding from unscoped State facts. |
+| Update | `structural`: source grant authority fields never update; relay bindings are immutable E7 rows. A new lease requires a new source grant or relay generation. |
+| Delete | `runtime`: source grants expire or vanish on restart; maintenance alone can submit exact whole-trace purge. |
+| Omit | `runtime`: exact request validators plus E1/E2 restoration reject every missing authority, sample, or report relationship. |
+| Duplicate | `runtime`: deterministic source grant/sample IDs, E2 relay request identity, immutable generation binding, and E7 report identity return one result. |
+| Reorder | `runtime`: retained report replay is decided before current correlation; unseen source work requires current binding and relay work retains its original generation binding. |
+| Replay | `runtime`: source memory requests, relay bind receipts, issuances, reports, and purge receipts return their original finite results without another effect. |
+| Conflict | `runtime`: changed request/core/generation/instance reuse fails before current-state evaluation. |
+| Concurrency | `runtime`: source grants permit one active plus one queued operation per key; a third is `collector_busy`. Collector transactions serialize relay/report/purge effects. |
+| Expiry | `runtime`: source grant, lease, trace, and issuance equality are expired; relay reports retain E7's trace/issuance equality. |
+| Restart | `structural`: source grants are intentionally lost and reopen; relay binding/request/report/purge truth restores from E7 canonical state. |
+| Dependency failure | `structural`: producer routes and maintenance client are disjoint from source work, relay audio, gameplay, and readiness; bounded calls return finite failure only. |
+| Corruption | `runtime`: all retained E2 bindings/receipts/envelopes use the shared E7 restoration boundary; no partial producer projection is returned. |
+| Capacity | `runtime`: eight source grants, one active plus one queued operation per grant, 8-KiB bodies/responses, two-second deadlines, and existing E7 report/physical caps. |
+
+### Derived schedules and authorization
+
+Before closure, focused tests cover:
+
+- source wrong/unknown/other bearer, active/absent/replaced lease, exact open,
+  changed request, response loss, restart loss, expiry equality, and `7/8/9`;
+- source synchronization response loss with a fresh sample request, retained
+  issuance substitution, accepted/replayed/conflicting report, delayed
+  committed replay, unseen old-lease report, and same-key queue depth;
+- relay missing/wrong/equal credential, bind accepted/replayed/conflict,
+  response loss, State absence/ambiguity, restart restoration, generation
+  substitution, lease handoff, delayed old-generation report, and expiry;
+- source-kind/relay-kind crossover, instance mismatch, malformed/oversized
+  bodies and dependency output, deadline, native-error suppression, and no
+  credential or caller label in any response;
+- maintenance wrong scope, status, exact purge/replay/conflict, unavailable or
+  malformed collector, bounded output/deadline, and no read/ingest route; and
+- one representative source path through real State and collector HTTP
+  services plus the production Game mediation handler; bounded dependency
+  failures at the producer/maintenance boundary; and structural assertions
+  that source work, listener audio, gameplay, and readiness have no producer or
+  collector dependency, mount, or readiness edge. E12 retains deployed-host
+  failure injection and timing.
+
+The local counterexample question is: what smallest changed token, request,
+instance, generation, retained binding, sample, or E1 identity preserves every
+checked field but would relabel evidence to another source, run, trace,
+segment, or lease? Any valid answer becomes a matrix row before audit.
+
+E8.3c implementation is authorized within this exact boundary. It does not
+authorize E9/E10 snapshot interfaces or reporter attachment, E11 comparison
+UI, or E12 real-host installation and timing.
+
+### E8.3c implementation checkpoint
+
+The contained implementation now provides:
+
+- source-scoped State authentication, eight bounded memory grants, exact
+  synchronization/report composition, retained report replay, and
+  one-active-plus-one-queued per-key serialization;
+- relay-only authentication, immutable collector-backed generation binding,
+  restart restoration, synchronization, and delayed original-binding report
+  replay;
+- exact producer routes that authenticate before the shared 8-KiB body reader;
+- a maintenance-only private client and operations container with status and
+  exact whole-trace purge only; and
+- the two narrow collector restoration reads required for relay receipt and
+  binding recovery.
+
+The local counterexample pass found one lifecycle defect before review: a
+grant-expiry check deleted the record immediately, which could erase bounded
+replay evidence before `retainedUntilMs`. The check now rejects new work at
+equality without deleting the retained grant; bounded purge owns final removal.
+
+Verification at this checkpoint:
+
+- Diagnostics service: `npm test` -> `51/51` pass.
+- State authority regression: `npm test` -> `67/67` pass.
+- Web production build and complete suite: `npm test` -> `309/309` pass.
+- Web lint: zero errors; one pre-existing E5 unused-parameter warning.
+- `git diff --check`: pass.
+
+Open local findings: `P0=0`, `P1=0`, `P2=0`. Independent E8.3c closure review
+is still required before this increment is marked locally verified. E9/E10,
+E11, and E12 deferrals remain unchanged.

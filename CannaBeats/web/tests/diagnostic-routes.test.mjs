@@ -96,7 +96,9 @@ test("gameplay audio and readiness modules have no collector dependency", () => 
     "app/api/audio-source/route.ts","app/api/ready/route.ts","app/api/health/route.ts",
   ]) {
     const source = readFileSync(resolve(webRoot,relative),"utf8");
-    assert.doesNotMatch(source,/diagnostic-collector|DIAGNOSTICS_(?:GAME_TOKEN|SERVICE_ORIGIN)/,relative);
+    assert.doesNotMatch(source,
+      /diagnostic-(?:collector|producer)|DIAGNOSTICS_(?:GAME_TOKEN|RELAY_TOKEN|SERVICE_ORIGIN)/,
+      relative);
   }
 });
 
