@@ -108,6 +108,28 @@ test("listener opt-in returns one bounded grant and exact same-process replay", 
   assert.equal(accepted.status,"enabled");
   assert.equal(accepted.listenerInstanceId,f.listenerInstanceId);
   assert.deepEqual(await f.listener.optIn(input),accepted);
+  await assert.rejects(() => f.listener.optIn({
+    ...input,firstAllowedSequence: 1,
+  }),(error) => error.code === "request_conflict");
+  f.collector.close();
+});
+
+test("opt-in installs only the correlation reconciled after collector commit", async () => {
+  const f = await fixture();
+  const original = f.adapter.optIn;
+  f.adapter.optIn = async (value) => {
+    const result = original(value);
+    f.authority.leaseId = randomUUID();
+    return result;
+  };
+  const grant = await f.listener.optIn({
+    headers: f.headers,requestId: randomUUID(),runId: f.runId,
+    listenerInstanceId: f.listenerInstanceId,firstAllowedSequence: 0,
+    localConsentStartedMs: 100,
+  });
+  assert.equal((await f.listener.synchronize({
+    headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
+  })).status,"accepted");
   f.collector.close();
 });
 
@@ -154,14 +176,19 @@ test("synchronization replay is bound to the grant's current trace segment", asy
 
 test("grant store counts pending bindings in the fixed cap and expires at equality", () => {
   let now = 100;
-  const store = createListenerGrantStore({ clock: () => now,maxGrants: 2 });
-  for (let index = 0; index < 2; index += 1) {
+  const store = createListenerGrantStore({ clock: () => now });
+  for (let index = 0; index < 31; index += 1) {
     store.rememberOptIn({
       requestId: randomUUID(),principalId: randomUUID(),runId: randomUUID(),
       listenerInstanceId: randomUUID(),expiresAtMs: 200,
     });
   }
-  assert.equal(store.size(),2);
+  assert.equal(store.size(),31);
+  store.rememberOptIn({
+    requestId: randomUUID(),principalId: randomUUID(),runId: randomUUID(),
+    listenerInstanceId: randomUUID(),expiresAtMs: 200,
+  });
+  assert.equal(store.size(),32);
   assert.throws(() => store.rememberOptIn({
     requestId: randomUUID(),principalId: randomUUID(),runId: randomUUID(),
     listenerInstanceId: randomUUID(),expiresAtMs: 200,
@@ -190,6 +217,11 @@ test("accepted report replays after stop while unseen revoked work is rejected",
     sampleObservation: observation,
   };
   assert.equal((await f.listener.report(report)).status,"accepted");
+  f.authority.memberStatus = "ended";
+  await assert.rejects(() => f.listener.report({
+    ...report,measurementCore: listenerTransition(f.listenerInstanceId,1),
+  }),(error) => error.code === "stale_correlation");
+  f.authority.memberStatus = "active";
   const stopped = await f.listener.stop({
     headers: f.headers,requestId: randomUUID(),grantId: grant.grantId,
   });

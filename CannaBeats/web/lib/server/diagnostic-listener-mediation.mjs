@@ -304,9 +304,12 @@ export function createDiagnosticListenerMediation({
         if (receipt.result.listenerInstanceId !== listenerInstanceId) {
           fail(409,"request_conflict");
         }
-        const trace = await traceById(receipt.result.traceId);
+        let trace = await traceById(receipt.result.traceId);
         if (trace.runId !== runId) fail(409,"request_conflict");
         const membership = await member(principalValue.id,runId);
+        trace = await reconcile(trace);
+        if (trace.status !== "active" || trace.runId !== runId
+          || trace.runGeneration !== membership.runGeneration) fail(409,"stale_correlation");
         const record = grantRecord({
           consent: receipt.result,trace,principalId: principalValue.id,role: membership.role,
           optInRequestId: requestId,
@@ -356,6 +359,9 @@ export function createDiagnosticListenerMediation({
         || (result.status === "accepted" && receipt.result.changedAtMs !== nowMs)) {
         fail(502,"collector_response_invalid");
       }
+      trace = await reconcile(trace);
+      if (trace.status !== "active" || trace.runId !== runId
+        || trace.runGeneration !== membership.runGeneration) fail(409,"stale_correlation");
       const record = grantRecord({
         consent: receipt.result,trace,principalId: principalValue.id,role: membership.role,
         optInRequestId: requestId,
@@ -420,7 +426,7 @@ export function createDiagnosticListenerMediation({
         if (retained.status !== "found") throw error;
         const receipt = restoreReceipt(retained.receipt);
         const trace = await traceById(receipt.result.traceId);
-        const membership = await member(principalValue.id,trace.runId);
+        await member(principalValue.id,trace.runId);
         const originalGeneration = receipt.canonicalCommand.parameters.expectedGeneration;
         const expectedGrantId = deriveDiagnosticUuid(
           "listener-grant",trace.traceId,receipt.result.listenerInstanceId,

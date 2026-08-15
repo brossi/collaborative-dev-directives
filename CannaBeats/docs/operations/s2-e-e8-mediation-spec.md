@@ -1,9 +1,9 @@
 # S2-E E8 diagnostic mediation
 
-Status: `E8.1, E8.2, and E8.3a locally verified`. Independent closure found no
-open P0/P1 in those increments.
-E8.3b and E8.3c remain unimplemented and unauthorized until their preceding
-increments close.
+Status: `E8.1, E8.2, and E8.3a locally verified; E8.3b implemented with
+closure review pending`. Independent closure found no open P0/P1 in the
+verified increments. E8.3c remains unimplemented and unauthorized until
+E8.3b closes.
 
 This packet applies the repository scale filter: one private collector, one
 Game gateway, one State authority service, and two collector credentials. It
@@ -756,8 +756,11 @@ request ID with the fixed `synchronization-sample` label. Game records one
 `serverReceiveMs`, creates the exact E2 issuance with `timebaseId=traceId` and
 the grant's listener instance, records `serverSendMs` immediately before its
 bounded collector call, and persists it through the existing Game-scoped
-issuance endpoint. Exact retry first asks for the retained issuance by sample
-ID and returns it only when trace, timebase, and instance match the grant.
+issuance endpoint. An exact duplicate request first asks for the retained
+issuance by sample ID and returns it only when trace, timebase, and instance
+match the grant. The browser does not use that old issuance to describe a
+later exchange after response loss: it creates a fresh request/sample ID and
+leaves the abandoned issuance to normal collector cleanup.
 
 For upload, Game authenticates the principal, resolves the exact grant, and
 first asks the collector for that grant-bound E1 report identity. A matching
@@ -776,7 +779,9 @@ the exact submitted envelope before projecting `{status,receivedAt}`.
 
 Successful opt-in is the upload linearization point. The UI supplies its current
 next report sequence and monotonic click time, receives the grant only after the
-collector consent commit, and never uploads an existing local-ring entry.
+collector consent commit, then advances its local upload floor again to the
+next sequence observed at acknowledgement. It never uploads an entry already
+in the local ring at either boundary.
 Upload uses one replaceable pending report, no durable browser queue, and no
 automatic backfill. Stop becomes visible only after its collector commit; after
 acknowledgement the UI disables sharing and discards any unsent report. Lost or
@@ -810,7 +815,7 @@ Before closure, tests derive these schedules from the matrix:
 - opt-in exact replay, changed-request conflict, response loss after collector
   commit, Game restart `grant_lost` plus fresh generation, cap `31/32/33`, and trace/run/lease
   replacement before grant installation;
-- synchronization exact retry, changed instance/trace substitution, expiry
+- synchronization duplicate replay, fresh sample after response loss, changed instance/trace substitution, expiry
   equality, and delayed old-grant response after restart;
 - report accepted/replayed/conflict, report-before-stop versus stop-before-report,
   unseen revoked work, pre-opt-in sequence/time, rate limit, and one pending
@@ -830,3 +835,24 @@ E8.3b implementation is authorized only within this boundary. E8.3c remains
 unauthorized and retains source/relay/maintenance callers and final local
 cross-route failure isolation. E12 retains deployed-browser timing, real-host
 credential installation, and measured network/resource behavior.
+
+### E8.3b implementation checkpoint
+
+The contained implementation now provides the bounded Game listener grant,
+same-origin consent/synchronization/report routes, exact E1/E2 composition,
+and a volatile browser controller attached to the existing E5/E6 local panel.
+The browser retains no grant or pending report in storage. It advances the
+upload floor at opt-in acknowledgement, keeps at most one report pending,
+uses a fresh synchronization exchange after response loss, retries the exact
+report after report-response loss, and admits no new upload while stop is
+uncertain.
+
+Local evidence before independent review:
+
+- full production Web build and suite: `npm test` in `web` (`285/285`);
+- focused listener mediation/controller/routes: `11/11` plus route coverage;
+- fixed grant capacity: explicit `31/32/33` rows and expiry equality; and
+- lint: zero errors, with only the pre-existing E5 `_status` warning.
+
+This is an implementation checkpoint, not a closure claim. Independent E8.3b
+review remains required before E8.3c authorization.

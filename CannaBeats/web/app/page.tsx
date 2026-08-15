@@ -19,7 +19,7 @@ import {
   type RoomSnapshotCursor,
 } from "../lib/game-request";
 import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-player";
-import { useManagedAudioStream, type ManagedAudioDiagnostics, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
+import { useManagedAudioStream, type ManagedAudioDiagnostics, type ManagedAudioSharing, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { E6_EMPTY_PANEL_STATE, E6PanelController } from "../lib/s2e-e6-local-panel.mjs";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../lib/game-client-contract.ts";
@@ -143,10 +143,12 @@ function GameSetup({ rules, busy, onApply }: {
 }
 
 function SharedAudioPanel({
-  code, enabled, ready, status, label, compact = false, onStart, onStop,
+  code, runId, enabled, ready, status, label, compact = false, onStart, onStop,
   diagnosticGeneration, onDiagnostics, onCopyDiagnostics, onResetDiagnostics,
+  sharing, onShareDiagnostics, onStopSharing,
 }: {
   code: string;
+  runId: string;
   enabled: boolean;
   ready: boolean;
   status: ManagedAudioStatus;
@@ -158,6 +160,9 @@ function SharedAudioPanel({
   onDiagnostics: () => ManagedAudioDiagnostics | null;
   onCopyDiagnostics: () => Promise<"copied">;
   onResetDiagnostics: () => Promise<"reset">;
+  sharing: ManagedAudioSharing;
+  onShareDiagnostics: (runId: string) => Promise<boolean>;
+  onStopSharing: () => Promise<boolean>;
 }) {
   const [panelState, setPanelState] = useState<{
     open: boolean;
@@ -187,6 +192,14 @@ function SharedAudioPanel({
         : panelState.notice === "copy_failed" ? "The report could not be copied. Audio is unchanged."
           : panelState.notice === "reset_failed" ? "Diagnostics could not be reset. Check the audio status above."
             : "";
+  const sharingNotice = sharing.notice === "sharing_enabled"
+    ? "Future diagnostic windows are being shared with this game’s host."
+    : sharing.notice === "sharing_stopped" ? "Diagnostic sharing stopped."
+      : sharing.notice === "accepted" || sharing.notice === "replayed"
+        ? `${sharing.uploadedCount} diagnostic report${sharing.uploadedCount === 1 ? "" : "s"} shared.`
+        : sharing.notice === "grant_lost"
+          ? "The sharing session expired after restart. Start sharing again to continue."
+          : sharing.notice ? "Diagnostic sharing could not complete. Local audio and reports are unchanged." : "";
 
   return (
     <section className={`shared-audio-panel ${compact ? "compact" : ""} ${enabled ? "has-diagnostics" : ""}`}>
@@ -204,7 +217,9 @@ function SharedAudioPanel({
         <details className="audio-diagnostics" open={panelState.open} onToggle={(event) => panelController.setOpen(event.currentTarget.open)}>
           <summary>Local audio diagnostics</summary>
           <div className="audio-diagnostics-body">
-            <p className="helper">Upload disabled. These measurements stay in this browser unless you copy them.</p>
+            <p className="helper">{sharing.status === "enabled"
+              ? "Sharing is on for future reports only. Existing local reports stay on this device."
+              : "Upload disabled. These measurements stay in this browser unless you copy them."}</p>
             {diagnostics ? (
               <dl className="audio-diagnostics-grid">
                 <div><dt>Stream</dt><dd>{diagnostics.status}</dd></div>
@@ -224,9 +239,17 @@ function SharedAudioPanel({
             <div className="audio-diagnostics-actions">
               <button className="text-button" disabled={panelState.busy || !diagnostics?.copyAvailable} onClick={() => void panelController.copy()} type="button">Copy local report</button>
               <button className="text-button" disabled={panelState.busy || !diagnostics} onClick={() => void panelController.reset()} type="button">Reset diagnostics</button>
+              {sharing.status === "enabled" ? (
+                <button className="text-button" onClick={() => void onStopSharing()} type="button">Stop sharing</button>
+              ) : sharing.status === "stopping" ? (
+                <button className="text-button" onClick={() => void onStopSharing()} type="button">Retry stop sharing</button>
+              ) : (
+                <button className="text-button" disabled={!diagnostics || sharing.status === "enabling"} onClick={() => void onShareDiagnostics(runId)} type="button">{sharing.status === "enabling" ? "Starting sharing…" : "Share future diagnostics"}</button>
+              )}
             </div>
             <p className="visually-hidden" aria-live="polite" role="status">{diagnosticNotice}</p>
             {diagnosticNotice && <p className="audio-diagnostics-notice" aria-hidden="true">{diagnosticNotice}</p>}
+            {sharingNotice && <p className="audio-diagnostics-notice" aria-live="polite">{sharingNotice}</p>}
           </div>
         </details>
       )}
@@ -947,6 +970,7 @@ export default function Home() {
           {audio.selection === "managed" && (
             <SharedAudioPanel
               code={room.code}
+              runId={room.runId}
               enabled={managedAudio.enabled}
               ready={managedAudio.ready}
               status={managedAudio.status}
@@ -957,6 +981,9 @@ export default function Home() {
               onDiagnostics={managedAudio.diagnostics}
               onCopyDiagnostics={managedAudio.copyDiagnostics}
               onResetDiagnostics={managedAudio.resetDiagnostics}
+              sharing={managedAudio.sharing}
+              onShareDiagnostics={managedAudio.optInDiagnostics}
+              onStopSharing={managedAudio.stopDiagnosticsSharing}
             />
           )}
           {room.isHost ? (
@@ -1106,6 +1133,7 @@ export default function Home() {
         <SharedAudioPanel
           compact
           code={room.code}
+          runId={room.runId}
           enabled={managedAudio.enabled}
           ready={managedAudio.ready}
           status={managedAudio.status}
@@ -1116,6 +1144,9 @@ export default function Home() {
           onDiagnostics={managedAudio.diagnostics}
           onCopyDiagnostics={managedAudio.copyDiagnostics}
           onResetDiagnostics={managedAudio.resetDiagnostics}
+          sharing={managedAudio.sharing}
+          onShareDiagnostics={managedAudio.optInDiagnostics}
+          onStopSharing={managedAudio.stopDiagnosticsSharing}
         />
       )}
 
