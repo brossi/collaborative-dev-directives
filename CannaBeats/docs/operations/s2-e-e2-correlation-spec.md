@@ -25,6 +25,9 @@ operation-receipt replay, and report-ingest decisions are implemented in the
 isolated E2 module. Focused E1+E2 verification passes 30/30 and independent
 closure found no open P0/P1. Later checkpoints may consume this pure boundary;
 this status does not verify persistence, routing, or authenticated integration.
+The complete-envelope canonical encode/trusted-store restoration extension
+specified below is an E7.1 prerequisite and is not part of the `df41d2c`
+verification claim until its focused tests and E7 review pass.
 
 ## Boundary map
 
@@ -80,6 +83,7 @@ linearization rules transactionally.
 | E2-CONSENT-002 | Stop-sharing commits revocation before acknowledgement. An unseen old-generation report is rejected, while exact replay of a report committed before stop remains `replayed` without a new write. | Finite ingest decision | Stop/ingest interleaving table |
 | E2-REPLAY-001 | Stored report identity is `(traceId, instanceId, sequence)`. Same E1 bytes replay the originally stored alignment/context; different E1 bytes conflict. A retry never rewrites correlation. | `replayed|report_conflict` | Response-loss/replay matrix |
 | E2-REPLAY-002 | Trace, consent, and relay-binding reducers return one fixed canonical command/result receipt. A branded retained receipt plus identical command replays its result; conflicting request-ID reuse fails. Sample acquisition is a side-effect-free timing attempt and is deliberately not replayed. | `replayed|request_conflict` | Fixed-operation replay table |
+| E2-STORE-001 | The complete uploaded envelope has one registry-order canonical encoding no larger than 4,096 bytes. Trusted-store restoration revalidates its E1 bytes, timing/context relations, and exact re-encoding before restoring provenance. | `report_invalid|report_too_large` | Six-kind maximal-shape, reorder, tamper, and 4,096/4,097 tests |
 | E2-PRIV-001 | E2 authority/alignment is host/operator diagnostic data only. Local/member copy remains the E1 projection and never gains E2 siblings. | `not_authorized` | Recursive projection matrix |
 | E2-BOUND-001 | E2 imports E1 only and performs bounded synchronous computation over one report/state transition. | Checkpoint failure | Dependency/source inspection |
 
@@ -101,6 +105,9 @@ linearization rules transactionally.
   private-provenance rules as E1.
 - Every object below is exact. Unknown fields and cross-variant fields are
   rejected; no extension bag exists.
+- Complete uploaded-envelope canonical encoding and trusted-store restoration
+  are the only additive E2 storage surfaces. They accept no authority override,
+  database row, receipt, or E7 metadata.
 
 ### Synchronization sample
 
@@ -258,8 +265,17 @@ The exact E2 output is:
 `measurementCore` is the exact E1-produced object; calling E1 canonical encoding
 on it yields the same bytes accepted at the E2 boundary. Alignment and context
 are siblings and cannot rewrite it. Envelope identity is
-`(traceId, E1.instanceId, E1.sequence)`. Canonical collector storage encoding
-is E7-owned; E2 returns a frozen normalized object plus unchanged E1 bytes.
+`(traceId, E1.instanceId, E1.sequence)`. E2 owns one registry-order standard
+JSON encoding of the complete envelope and one trusted-store restoration API.
+The encoding is at most 4,096 bytes and includes the unchanged canonical E1
+core plus exact alignment and server context. Restoration revalidates the E1
+core, every exact sibling shape, timing arithmetic, instance/family/trace
+relationships, and the same canonical encoding before restoring private
+provenance. It does not reauthenticate historical server authority; E7 may call
+it only for bytes previously committed through the authenticated E8-to-E7
+boundary. All-six-kind maximal-shape and 4,096/4,097-byte tests are a required
+E7.1 prerequisite. E7 owns transactions and storage, not a second envelope
+schema.
 
 ### Trace and segment state
 
@@ -290,7 +306,7 @@ The pure current-state projection is exact:
 
 `expiresAtMs = startedAtMs + 21600000` with checked arithmetic. An ended trace
 retains its final segment only as diagnostic correlation. It authorizes no new
-sample, consent, report, or read. E7 later stores prior segment bindings needed
+sample, consent, report, or read. E7 stores the current trace and prior segment bindings needed
 for already accepted reports; the E2 current projection deliberately is not an
 event log.
 
@@ -357,8 +373,10 @@ Synchronization acquisition is not in this list. It is a side-effect-free
 timing attempt: each network attempt uses a new request UUID, and only a response
 actually received by the producer supplies the matching local receive time.
 A lost response creates no usable sample and retry starts a new attempt. The
-sample first becomes durable only when a report and its physically valid mapping
-commit together in E7.
+issuance becomes durable before its response is returned and expires after 60
+seconds. A response-loss issuance is harmless and expires unused. The complete
+accepted sample first becomes durable inside a report envelope when that report
+and its physically valid mapping commit together in E7.
 
 ### Listener consent state and ingest decision
 

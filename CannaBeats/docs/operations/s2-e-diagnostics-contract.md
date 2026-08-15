@@ -397,13 +397,15 @@ machine interface from the pinned relay; it may not scrape arbitrary log text.
 - Normal upload cadence is one summary every 10 seconds. An exceptional
   transition may upload immediately, with a maximum of one accepted report per
   listener instance per second.
-- Each report body is at most 8 KiB; its validated
-  canonical persisted envelope is at most 2 KiB and contains one schema
+- Each report body is at most 8 KiB; its validated E1 core is at most 2 KiB and
+  its complete canonical E2 persisted envelope is at most 4 KiB. Each contains one schema
   version. Unknown fields,
   non-finite numbers, out-of-range values, invalid enum members, and excess
   nesting fail the entire request with a stable error.
-- `(traceId, kind, instanceId, sequence)` is the idempotency key for every report
-  kind. Exact replay is accepted; conflicting reuse is rejected. Request UUIDs
+- `(traceId, instanceId, sequence)` is the idempotency key for every report.
+  `kind` is derived validated data, not another identity dimension. Exact replay
+  of identical E1 core bytes returns the originally stored alignment/context;
+  conflicting core reuse is rejected. Request UUIDs
   protect proxy mutations but do not replace producer sequence idempotency.
 - The browser retains at most 15 minutes or 256 KiB of local summaries,
   whichever is reached first. It retains at most one unsent aggregate during
@@ -416,17 +418,22 @@ machine interface from the pinned relay; it may not scrape arbitrary log text.
 - The logical ceiling is 64 MiB per trace and 192 MiB globally. A short checked-
   in arithmetic test proves the normal six-hour/eight-listener cadence fits;
   version 1 does not need a general capacity-planning subsystem.
-- Physical usage includes the database, indexes, WAL, SHM, temp files, and
-  diagnostic logs. The collector uses a dedicated volume, stops accepting new
-  reports when database plus WAL reaches 256 MiB or host free space falls below
-  1 GiB, and bounds temp files and log rotation. A filesystem project-quota
+- Physical usage includes the database, indexes, WAL, SHM, the dedicated SQLite
+  temp directory, and bounded diagnostic logs. The collector uses a dedicated
+  volume and stops accepting new reports at a 256-MiB admission threshold or
+  when host free space falls below 1 GiB. One already-started transaction or
+  logical whole-trace purge may create bounded SQLite maintenance overshoot;
+  this threshold is not described as a filesystem quota. A filesystem project-quota
   integration is not required for this small optional store. It never shares
   the State authority volume or coordinated-backup scratch path.
 - Exceeding any budget drops
   diagnostics with a visible bounded reason; it never evicts or blocks State
   authority.
-- Server diagnostic retention is a fixed 48 hours in version 1. Purge deletes a
-  complete trace. Diagnostic data
+- An active trace ends no later than six hours after start. Server diagnostic
+  retention is a fixed 48 hours after its terminal timestamp in version 1.
+  Purge deletes a complete trace projection; one bounded purge receipt may
+  remain for its finite replay horizon, and hash-only prior request tombstones
+  prevent conflicting UUID reuse without retaining trace state. Diagnostic data
   is not promoted into significant game history before a separate reviewed
   contract exists.
 - A full, unavailable, or purging diagnostic store returns a stable degraded
@@ -851,8 +858,13 @@ Game/State/audio readiness, backup, and rollback do not depend on diagnostics.
 
 Exit gate: process/SQLite/Compose tests prove caps, retention/purge, restore
 exclusion, disposable-schema recreation, and unchanged S2-D behavior under
-collector loss or corruption. The real two-credential caller matrix remains an
-E8 gate.
+ collector loss or corruption. The real two-credential caller matrix remains an
+ E8 gate.
+
+The E7.3 HTTP adapter is a loopback/private-topology test seam and is not
+deployable by itself. Production enablement requires E8's distinct Game and
+maintenance credentials, exact caller matrix, request/body deadlines, and
+State-derived authority mediation.
 
 ### E8 — Game/State mediation and consent routing
 
