@@ -52,8 +52,9 @@ starts normally. Neither retained generation is overwritten or relabeled.
 E10.2 observes that scalar and may record only a finite local coverage-loss
 notice; it retries only already-owned evidence and never creates a generation
 queue. Any omitted generation record is detached from the report interface and
-retained only by its still-closing generation-bound clients; the Hub's global
-eight-listener limit bounds those records, and the last close releases them.
+retained only by its still-closing generation-bound clients; no additional
+record is created beyond the Client objects the Hub already owns, and the last
+close releases the detached counter record.
 
 ## Exact snapshot
 
@@ -82,7 +83,7 @@ eight-listener limit bounds those records, and the last close releases them.
     "deliveredBytes":"safe integer >=0",
     "backpressureClosureCount":"safe integer >=0",
     "generationFenceDisconnectCount":"safe integer >=0",
-    "activeListenerCount":"safe integer 0..8"
+    "activeListenerCount":"safe integer >=0"
   }
 }
 ```
@@ -184,7 +185,7 @@ parent privacy disclosure covers normal relay output as well as reports.
 | Restart | `structural`: no durable E10.1 state; restart creates a new generation ID and cannot reuse prior counters. |
 | Dependency failure | `not_applicable`: E10.1 has no network, credential, Game, State, or collector dependency. |
 | Corruption | `runtime`: exact snapshot construction rejects non-finite, out-of-range, impossible, or unknown state without partial output. |
-| Capacity | `runtime`: one active plus one finalized generation, at most eight listener records already owned by Hub, and fixed scalar fields. |
+| Capacity | `runtime`: one active plus one prior reportable generation, no diagnostic listener queue beyond Hub's existing Client objects, and fixed scalar fields; the supported game trace remains eight listeners. |
 
 ## E10.1 matrix-derived verification
 
@@ -227,3 +228,46 @@ Malformed/hung Game or collector behavior can lose diagnostics but cannot
 change ingress, fencing, fan-out, listener delivery, readiness, or service
 exit. Exact route outcomes, reporter capacity, restart, and privacy are closed
 in the E10.2 matrix after E10.1 is pinned; they are not E10.1 evidence.
+
+## E10.1 implementation checkpoint
+
+Status: `implemented; local counterexample pass complete; independent review pending`.
+E10.2 is not authorized by this checkpoint.
+
+The pinned sibling target is
+`91a1fc54aee13dbdc83838986aeb40946dc3ec58` (tree
+`9e4eed464b1cb5847113605aebda218606deedf6`). It adds the exact
+`RelayDiagnostics` owner, generation creation at successful claim, bounded
+frame carry, generation-bound listener attribution, and scalar hooks at the
+existing ingress/drain/fence/cleanup commit points. It performs no network or
+credential work.
+
+The local counterexample pass closed these schedules before review:
+
+- an old listener drain completing after a new publisher starts and being
+  charged to the current generation;
+- generation finalization becoming visible before the last listener drain and
+  close counters commit;
+- a rapid handoff overwriting an older finalized generation;
+- diagnostic failure with a partial-frame carry dropping PCM that the
+  pre-instrumentation relay would have delivered; and
+- repeated fencing or cleanup incrementing a listener terminal counter twice.
+
+Enforcement lives in `src/btaudio/relay_diagnostics.py`; `RelaySource` owns
+claim/feed/release identity and bounded carry; `Hub` and `Server.stream` pass
+the immutable client generation to delivery/fence/close updates. The current
+and prior generations are the only reportable objects. A coverage-lost
+generation can remain referenced only by an already-existing closing Client
+and disappears on its final close.
+
+Local verification:
+
+- focused relay diagnostics: `8/8` pass;
+- full pinned sibling suite: `267/267` pass;
+- affected Ruff: pass;
+- compileall and sibling/CannaBeats diff checks: pass; and
+- the exact CannaBeats pin assertion: pass as part of managed-source discovery.
+
+Open local findings are `P0=0`, `P1=0`, `P2=0`; independent E10.1 review is
+pending. E10.2 still owns Game credentials, binding, synchronization, uploads,
+retry/backoff, normal-output privacy cleanup, and collector failure isolation.
