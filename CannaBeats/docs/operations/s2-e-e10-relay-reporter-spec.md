@@ -464,8 +464,8 @@ and collector failure isolation.
 Status: `implemented and locally verified; independent review pending`.
 
 The pinned sibling implementation is
-`ffc889b6fd719da5f0c7f0179787ffc09b0e18bf` (tree
-`9af390154dba95c042297c826e87e4c75f41f4ae`). It adds the strict
+`ea259eb7f0ed00db3643411a80ae335f06e8ad45` (tree
+`1dbf47fe792e1d1e78f5f1d7c3b5ba90f5ebc456`). It adds the strict
 `RelayGameClient`, the one-slot `RelayReporter`, optional relay CLI attachment,
 and fixed relay-mode operational output. `RelaySource`, `Hub`, and listener
 tasks do not call or await the reporter.
@@ -486,6 +486,8 @@ The local counterexample pass added and closed:
 - a finalizing generation being mistaken for missing while listener cleanup
   still made its finalized snapshot unavailable;
 - a terminally rejected active generation being immediately re-adopted;
+- a successor being adopted while that rejected generation still occupied the
+  owner's non-reportable ending state;
 - a pre-existing finalized generation occupying the sole evidence slot;
 - a valid but request-unrelated synchronization sample being substituted;
 - a timeout retry relabeling the original synchronization exchange with retry
@@ -498,8 +500,8 @@ The local counterexample pass added and closed:
 Local verification at this checkpoint:
 
 - pinned sibling full suite: `301/301` pass;
-- focused reporter tests: `18/18` pass;
-- focused E10.0/E10.1 plus server/ingest regression: `101/101` pass;
+- focused reporter tests: `19/19` pass;
+- focused E10.0/E10.1 plus server/ingest regression: `102/102` pass;
 - affected Ruff and Python compileall: pass;
 - CannaBeats E1/E8 producer boundary: `28/28` pass;
 - managed-source pin/lifecycle discovery: `58/58` pass;
