@@ -3,8 +3,8 @@
 ## Identity and status
 
 - Checkpoint: E12 / S2-F — real-environment proof
-- Status: `design closed; local evidence tool implemented; independent local
-  closure review pending; external execution not authorized`
+- Status: `design and local evidence boundary closed; external execution not
+  authorized`
 - Risk class: `C — irreversible/external`, because the rehearsal provisions
   provider resources, installs temporary credentials, exercises real Spotify
   authorization, restores data, and destroys disposable hosts
@@ -311,7 +311,7 @@ foreign-trace/unmapped/duplicate/cross-role corruption, browser/journal gap
 allowlists, stable `/proc` roster projection, loopback/upstream/body/deadline
 bounds, exact 16-page cursor progression, nested collector identity and trace
 attribution, five-minute observation ownership, multiplexed-route/2-MiB read
-transparency, Node/Python fixture projection parity, the Python CLI root guard,
+transparency, bounded Node and Python fixture projections, the Python CLI root guard,
 broken observer output, malformed output, and post-commit response-loss
 schedules from this matrix. Actual cross-UID `/proc` access remains a mandatory
 real-host E12 observation rather than a local-fixture claim.
@@ -477,3 +477,30 @@ This record authorizes only the checked-in local sampler/fault-proxy increment.
 It does not authorize provider, firewall, Tailscale, Spotify, browser-profile,
 credential, or destructive external mutations. Those remain behind the exact
 operator approval described above.
+
+## Local evidence closure record
+
+The initial local implementation at
+`f0b1b0377b3418576c6fbf34a1137c5ae5ca1c32` was remediated through
+`a7ecfeebd08416570c05628730b25252219d6350`. Three independent affected-seam
+reviews then found `P0=0`, `P1=0`, and `P2=0` for aggregation/authority,
+HTTP/privacy/deadlines, and topology/deployability after the bounded evidence
+wording correction. The closed invariant now includes exact five-minute and
+trace ownership, complete mapped trace validation, fixed paging/capacity,
+finite one-shot proxy behavior, exact collector-read transparency, and a
+root-only host sampler that does not require Docker or Node on the source host.
+
+Verification at the closure target passed:
+
+- E1/E2 plus evidence-tool Node tests: `56/56`;
+- root-only Python sampler fixture and guard tests: `3/3`;
+- rendered diagnostics/evidence topology tests: `5/5`;
+- production Game image build and in-image evidence command;
+- exact merged Compose render; and
+- Node/Python syntax, shell syntax, and diff checks.
+
+The repository is locally ready to request the separate Risk-C authorization.
+Actual provider/Tailscale/Spotify/browser mutations, real cross-UID `/proc`
+sampling, real devices and audio, measured thresholds, cleanup, and the final
+sanitized rehearsal ledger remain mandatory E12 execution work—not inferred
+from this local closure.
