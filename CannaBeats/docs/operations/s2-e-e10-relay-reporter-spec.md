@@ -277,8 +277,8 @@ Status: `implemented; local counterexample pass complete; independent review pen
 E10.2 is not authorized by this checkpoint.
 
 The remediated pinned sibling target is
-`4cbdd31d8a7fa53eb3874f3554b0d6c9411689e7` (tree
-`988b1d8a6297678320c717514f537b091a431c40`). It adds the E10.0
+`cb4815bda0bd34fa0a423dbdf9ca5976add8c994` (tree
+`cf19f94326d9a33549880cff2346675456652ff6`). It adds the E10.0
 complete-frame relay baseline and the exact
 `RelayDiagnostics` owner, generation creation at successful claim, bounded
 frame carry, generation-bound listener attribution, and scalar hooks at the
@@ -302,7 +302,9 @@ The local counterexample pass closed these schedules before review:
 - a ninth concurrent listener entering through an in-flight admission race;
 - nine sequential listeners invalidating cumulative accepted/closed counters;
 - delayed old-generation PCM reaching a newly admitted generation; and
-- pending callbacks growing the detached-generation map without live clients.
+- pending callbacks growing the detached-generation map without live clients;
+- and a pre-arm partial byte surviving to contaminate PCM after the Hub callback
+  becomes active.
 
 Enforcement lives in `src/btaudio/relay_diagnostics.py`; `RelaySource` owns
 claim/feed/release identity and the E10.0 structural complete-frame carry,
