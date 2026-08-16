@@ -27,10 +27,10 @@ this same structural framing behavior.
 | Dimension | Disposition and enforcement |
 | --- | --- |
 | Create | `not_applicable`: framing creates no durable or authority identity. |
-| Update | `structural`: one `RelaySource` carry selects only complete frames before every Hub callback. |
+| Update | `structural`: once the Hub callback is armed, one `RelaySource` carry selects only complete frames before every callback. |
 | Delete | `runtime`: release/stop clears only the bounded terminal partial; complete PCM is already forwarded. |
-| Omit | `runtime`: only a terminal incomplete frame is deliberately omitted. |
-| Duplicate | `structural`: each input byte is either in the sole carry, one forwarded payload, or the terminal omission. |
+| Omit | `runtime`: input received before the Hub callback is armed is dropped by the existing lifecycle rule; after arming, only a terminal incomplete frame is deliberately omitted. |
+| Duplicate | `structural`: each armed input byte is either in the sole carry, one forwarded payload, or the terminal omission; unarmed input never enters the carry. |
 | Reorder | `structural`: carry bytes precede the next network fragment in the emitted payload. |
 | Replay | `not_applicable`: the live PCM callback has no retry identity. |
 | Conflict | `not_applicable`: exact format validation occurs before the source claim. |
