@@ -1,6 +1,6 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.0 prerequisite and E10.1 remediation implemented; independent re-review pending`.
+Status: `E10.0 prerequisite and E10.1 locally verified; E10.2 remains unauthorized`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
@@ -273,7 +273,7 @@ in the E10.2 matrix after E10.1 is pinned; they are not E10.1 evidence.
 
 ## E10.1 implementation checkpoint
 
-Status: `implemented; local counterexample pass complete; independent review pending`.
+Status: `locally verified; independent review complete`.
 E10.2 is not authorized by this checkpoint.
 
 The remediated pinned sibling target is
@@ -324,6 +324,7 @@ Local verification:
 - compileall and sibling/CannaBeats diff checks: pass; and
 - the exact CannaBeats pin assertion: pass as part of managed-source discovery.
 
-Open local findings are `P0=0`, `P1=0`, `P2=0`; independent E10.1 review is
-pending. E10.2 still owns Game credentials, binding, synchronization, uploads,
-retry/backoff, normal-output privacy cleanup, and collector failure isolation.
+Independent review of the final implementation target found `P0=0`, `P1=0`,
+`P2=0` after the matrix wording correction. E10.2 still owns Game credentials,
+binding, synchronization, uploads, retry/backoff, normal-output privacy cleanup,
+and collector failure isolation.
