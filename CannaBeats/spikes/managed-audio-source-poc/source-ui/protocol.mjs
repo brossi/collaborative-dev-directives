@@ -18,3 +18,10 @@ export function reconcileManagedProviderObservation(command, playback) {
       && playback.trackUri === command.trackUri) return "playing";
   return null;
 }
+
+export function classifyPlaybackObservation(playback) {
+  if (!playback || typeof playback !== "object" || typeof playback.paused !== "boolean") {
+    return "unknown";
+  }
+  return playback.paused ? "paused" : "playing";
+}

@@ -41,6 +41,9 @@ apt-get install --yes --no-install-recommends \
 if ! getent group cannabeats-audio >/dev/null 2>&1; then
   groupadd --system cannabeats-audio
 fi
+if ! getent group cannabeats-diagnostics >/dev/null 2>&1; then
+  groupadd --system cannabeats-diagnostics
+fi
 if ! id cannabeats-source >/dev/null 2>&1; then
   useradd --system --create-home --home-dir /var/lib/cannabeats-source \
     --shell /usr/sbin/nologin cannabeats-source
@@ -55,14 +58,16 @@ if ! id cannabeats-controller >/dev/null 2>&1; then
 fi
 usermod --append --groups cannabeats-audio cannabeats-source
 usermod --append --groups cannabeats-audio cannabeats-relay
+usermod --append --groups cannabeats-diagnostics cannabeats-controller
 chmod 0700 /var/lib/cannabeats-source
 chmod 0700 /var/lib/cannabeats-relay
 chmod 0700 /var/lib/cannabeats-controller
 install -d -o root -g root -m 0755 /etc/cannabeats-managed-source
 install -d -o root -g root -m 0755 /opt/cannabeats-managed-source/source-ui
-install -o root -g root -m 0755 agent.py controller.py health_check.py \
+install -o root -g root -m 0755 agent.py controller.py source_reporter.py health_check.py \
   infra/install-vnc-password.sh /opt/cannabeats-managed-source/
-install -o root -g root -m 0644 source-ui/index.html source-ui/app.js source-ui/styles.css \
+install -o root -g root -m 0644 \
+  source-ui/index.html source-ui/app.js source-ui/protocol.mjs source-ui/styles.css \
   /opt/cannabeats-managed-source/source-ui/
 install -o root -g root -m 0644 infra/source.env.example \
   /etc/cannabeats-managed-source/source.env.example
@@ -82,8 +87,10 @@ install -m 0644 infra/cannabeats-vnc.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-source-agent.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-source-controller.service /etc/systemd/system/
 install -m 0644 infra/cannabeats-relay-push.service /etc/systemd/system/
+install -m 0644 infra/cannabeats-diagnostics.conf /etc/tmpfiles.d/
 install -o root -g root -m 0440 infra/cannabeats-controller.sudoers /etc/sudoers.d/cannabeats-controller
 visudo -cf /etc/sudoers.d/cannabeats-controller
+systemd-tmpfiles --create /etc/tmpfiles.d/cannabeats-diagnostics.conf
 
 systemctl daemon-reload
 systemctl enable --now tailscaled

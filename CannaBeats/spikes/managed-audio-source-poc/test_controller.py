@@ -3,13 +3,101 @@ import pathlib
 import tempfile
 import threading
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 
 MODULE_PATH = pathlib.Path(__file__).with_name("controller.py")
 SPEC = importlib.util.spec_from_file_location("cannabeats_source_controller", MODULE_PATH)
 controller = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(controller)
+
+
+class SourceDiagnosticsObservationTests(unittest.TestCase):
+    def setUp(self):
+        with controller.lock:
+            controller.state["browserReport"] = None
+
+    def test_readiness_accepts_only_the_exact_finite_observation(self):
+        controller.record_browser_readiness({
+            "spotifyAuthorization": "authorized",
+            "player": "ready",
+            "playbackObservation": "playing",
+        })
+        self.assertEqual(controller.controller_playback_snapshot(), "playing")
+        for invalid in (
+            {"spotifyAuthorization": "authorized", "player": "ready"},
+            {"spotifyAuthorization": "authorized", "player": "ready",
+             "playbackObservation": "playing", "track": "private"},
+            {"spotifyAuthorization": "authorized", "player": "ready",
+             "playbackObservation": "buffering"},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                controller.record_browser_readiness(invalid)
+
+    def test_stale_observation_becomes_unknown_without_mutating_browser_state(self):
+        with patch.object(controller.time, "monotonic", return_value=10.0):
+            controller.record_browser_readiness({
+                "spotifyAuthorization": "authorized",
+                "player": "ready",
+                "playbackObservation": "paused",
+            })
+        with patch.object(
+            controller.time, "monotonic",
+            return_value=10.0 + controller.BROWSER_REPORT_STALE_SECONDS,
+        ):
+            self.assertEqual(controller.controller_playback_snapshot(), "paused")
+        with patch.object(
+            controller.time, "monotonic",
+            return_value=10.001 + controller.BROWSER_REPORT_STALE_SECONDS,
+        ):
+            self.assertEqual(controller.controller_playback_snapshot(), "unknown")
+        with controller.lock:
+            self.assertEqual(controller.state["browserReport"]["playbackObservation"], "paused")
+
+    def test_reporter_log_maps_arbitrary_text_to_one_finite_reason(self):
+        controller.last_reporter_error = None
+        with patch.object(controller, "operational_log") as log:
+            controller.reporter_log("/private/path secret-token")
+        self.assertEqual(log.call_args.kwargs["reasonCode"], "unavailable")
+
+    def test_held_reporter_dependency_cannot_delay_poll_or_fail_close(self):
+        entered = threading.Event()
+        release = threading.Event()
+
+        class HeldPublisher:
+            def snapshot(self):
+                entered.set()
+                release.wait(1)
+                raise RuntimeError("diagnostics only")
+
+        reporter = controller.SourceReporter(
+            HeldPublisher(), Mock(), lambda: "unknown",
+        )
+        reporter_stop = threading.Event()
+        worker = threading.Thread(target=reporter.run, args=(reporter_stop,), daemon=True)
+        worker.start()
+        self.assertTrue(entered.wait(0.2))
+
+        with controller.lock:
+            controller.state.update({
+                "lease": {"id": "lease"}, "command": None,
+                "lastError": None, "lastSuccessfulPoll": 0.0,
+            })
+        with patch.object(controller, "retry_unresolved_execution"), \
+                patch.object(controller, "retry_pending_completion"), \
+                patch.object(controller, "api_call", side_effect=OSError("game down")), \
+                patch.object(controller, "set_relay") as relay, \
+                patch.object(controller, "operational_log"), \
+                patch.object(controller.time, "monotonic", return_value=26.0), \
+                patch.object(controller.time, "sleep", side_effect=StopIteration):
+            with self.assertRaises(StopIteration):
+                controller.poll_loop()
+        relay.assert_called_once_with(False)
+        with controller.lock:
+            self.assertIsNone(controller.state["lease"])
+        release.set()
+        reporter_stop.set()
+        worker.join(0.2)
 
 
 class CompletionAcknowledgementTests(unittest.TestCase):

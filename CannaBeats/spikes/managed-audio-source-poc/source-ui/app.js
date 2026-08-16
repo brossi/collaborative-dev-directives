@@ -1,5 +1,5 @@
 import {
-  classifyManagedCommandFailure,reconcileManagedProviderObservation,
+  classifyManagedCommandFailure,classifyPlaybackObservation,reconcileManagedProviderObservation,
   shouldExecuteManagedControllerCommand,
 } from './protocol.mjs';
 
@@ -19,6 +19,7 @@ const state = {
   readiness: {
     spotifyAuthorization: 'unknown',
     player: 'not_ready',
+    playbackObservation: 'unknown',
   },
 };
 const byId = (id) => document.getElementById(id);
@@ -180,20 +181,28 @@ async function startPlayer() {
   player.addListener('not_ready', () => {
     state.deviceId = null;
     setReadiness('player', 'not_ready');
+    setReadiness('playbackObservation', 'unknown');
     render();
   });
+  player.addListener('player_state_changed', (playback) => {
+    setReadiness('playbackObservation', classifyPlaybackObservation(playback));
+  });
   player.addListener('initialization_error', ({ message }) => {
-    setReadiness('player', 'error'); log(`Initialization error: ${message}`);
+    setReadiness('player', 'error'); setReadiness('playbackObservation', 'error');
+    log(`Initialization error: ${message}`);
   });
   player.addListener('authentication_error', ({ message }) => {
     setReadiness('spotifyAuthorization', 'error'); setReadiness('player', 'error');
+    setReadiness('playbackObservation', 'error');
     log(`Authentication error: ${message}`);
   });
   player.addListener('account_error', ({ message }) => {
-    setReadiness('player', 'error'); log(`Account error: ${message}`);
+    setReadiness('player', 'error'); setReadiness('playbackObservation', 'error');
+    log(`Account error: ${message}`);
   });
   player.addListener('playback_error', ({ message }) => {
-    setReadiness('player', 'error'); log(`Playback error: ${message}`);
+    setReadiness('player', 'error'); setReadiness('playbackObservation', 'error');
+    log(`Playback error: ${message}`);
   });
   player.addListener('autoplay_failed', () => log('Autoplay was blocked. Press Resume once in this private session.'));
   await player.activateElement();
@@ -420,6 +429,7 @@ byId('disconnect').addEventListener('click', () => {
   state.deviceId = null;
   setReadiness('spotifyAuthorization', 'not_authorized');
   setReadiness('player', 'not_ready');
+  setReadiness('playbackObservation', 'unknown');
   log('Spotify authorization removed from this browser profile.');
   render();
 });

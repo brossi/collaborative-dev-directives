@@ -7,12 +7,15 @@ Wants=network-online.target
 Type=simple
 User=cannabeats-controller
 Group=cannabeats-controller
+SupplementaryGroups=cannabeats-diagnostics
 WorkingDirectory=/opt/cannabeats-managed-source
 Environment=PYTHONUNBUFFERED=1
 Environment=CANNABEATS_AUDIO_SOURCE_API=https://poc.cannabeats.social/game/api/audio-source
 Environment=CANNABEATS_AUDIO_SOURCE_TOKEN_FILE=/etc/cannabeats-managed-source/source-token
 EnvironmentFile=-/etc/cannabeats-managed-source/source.env
 Environment=CANNABEATS_PENDING_COMPLETION_FILE=/var/lib/cannabeats-controller/pending-completion.json
+Environment=CANNABEATS_PUBLISHER_DIAGNOSTICS_SOCKET=/run/cannabeats-diagnostics/publisher.sock
+Environment=CANNABEATS_DIAGNOSTIC_SOURCE_URL=https://poc.cannabeats.social/game/api/diagnostics/source-report
 ExecStart=/usr/bin/python3 /opt/cannabeats-managed-source/controller.py
 Restart=on-failure
 RestartSec=3

@@ -7,10 +7,11 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=cannabeats-relay
-Group=cannabeats-audio
+Group=cannabeats-diagnostics
+SupplementaryGroups=cannabeats-audio
 Environment=HOME=/var/lib/cannabeats-relay
 Environment=PULSE_SERVER=unix:/run/cannabeats-audio/pulse.sock
-ExecStart=/opt/btaudio-venv/bin/btaudio-push cannaudio.cannabeats.social --port 443 --token-file /etc/cannabeats-managed-source/relay-ingest-token --device pulse
+ExecStart=/opt/btaudio-venv/bin/btaudio-push cannaudio.cannabeats.social --port 443 --token-file /etc/cannabeats-managed-source/relay-ingest-token --device pulse --diagnostics-socket /run/cannabeats-diagnostics/publisher.sock
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true

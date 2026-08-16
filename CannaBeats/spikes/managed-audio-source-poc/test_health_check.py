@@ -91,6 +91,30 @@ class ProvisioningContractTests(unittest.TestCase):
         self.assertIn("vnc.pass", password_installer.read_text(encoding="utf-8"))
         enable_block = installer.split("systemctl enable --now \\\n", 1)[-1].split("\n\n", 1)[0]
         self.assertNotIn("cannabeats-vnc.service", enable_block)
+        self.assertIn("source-ui/protocol.mjs", installer)
+        self.assertIn("source_reporter.py", installer)
+        self.assertIn("groupadd --system cannabeats-diagnostics", installer)
+        self.assertIn(
+            "usermod --append --groups cannabeats-diagnostics cannabeats-controller",
+            installer,
+        )
+        self.assertNotIn(
+            "usermod --append --groups cannabeats-audio cannabeats-controller", installer,
+        )
+        infra = Path(__file__).with_name("infra")
+        controller_unit = (infra / "cannabeats-source-controller.service").read_text()
+        relay_unit = (infra / "cannabeats-relay-push.service").read_text()
+        self.assertIn("SupplementaryGroups=cannabeats-diagnostics", controller_unit)
+        self.assertNotIn("SupplementaryGroups=cannabeats-audio", controller_unit)
+        self.assertIn("CANNABEATS_PUBLISHER_DIAGNOSTICS_SOCKET=", controller_unit)
+        self.assertIn("Group=cannabeats-diagnostics", relay_unit)
+        self.assertIn("SupplementaryGroups=cannabeats-audio", relay_unit)
+        self.assertIn("--diagnostics-socket /run/cannabeats-diagnostics/", relay_unit)
+        tmpfiles = (infra / "cannabeats-diagnostics.conf").read_text()
+        self.assertEqual(
+            tmpfiles.strip(),
+            "d /run/cannabeats-diagnostics 0750 cannabeats-relay cannabeats-diagnostics -",
+        )
 
 
 class ControllerReadinessTests(unittest.TestCase):
@@ -110,6 +134,7 @@ class ControllerReadinessTests(unittest.TestCase):
             controller.record_browser_readiness({
                 "spotifyAuthorization": "authorized",
                 "player": "ready",
+                "playbackObservation": "playing",
             })
             public = controller.public_state()
         self.assertEqual(public["gameApi"], {
@@ -124,6 +149,7 @@ class ControllerReadinessTests(unittest.TestCase):
             controller.record_browser_readiness({
                 "spotifyAuthorization": "not_authorized",
                 "player": "not_ready",
+                "playbackObservation": "unknown",
             })
             public = controller.public_state()
         self.assertEqual(public["browserReadiness"]["spotifyAuthorization"], {
@@ -133,6 +159,7 @@ class ControllerReadinessTests(unittest.TestCase):
             controller.record_browser_readiness({
                 "spotifyAuthorization": "raw private provider error",
                 "player": "ready",
+                "playbackObservation": "unknown",
             })
 
 

@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  classifyManagedCommandFailure,reconcileManagedProviderObservation,
+  classifyManagedCommandFailure,classifyPlaybackObservation,reconcileManagedProviderObservation,
   shouldExecuteManagedControllerCommand,
 } from "./protocol.mjs";
+
+test("playback diagnostics retain only the finite playback observation", () => {
+  assert.equal(classifyPlaybackObservation({ paused: false,track: { uri: "private" } }),"playing");
+  assert.equal(classifyPlaybackObservation({ paused: true,device_id: "private" }),"paused");
+  assert.equal(classifyPlaybackObservation(null),"unknown");
+  assert.equal(classifyPlaybackObservation({ paused: "false" }),"unknown");
+});
 
 test("provider authorization and execution ambiguity remain fail closed", () => {
   assert.equal(classifyManagedCommandFailure("prepare"),"failed");

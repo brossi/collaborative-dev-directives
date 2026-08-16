@@ -3,6 +3,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -11,6 +12,9 @@ import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from source_reporter import PublisherSnapshotClient, SourceGameClient, SourceReporter
 
 API_URL = os.environ.get(
     "CANNABEATS_AUDIO_SOURCE_API",
@@ -33,6 +37,14 @@ PENDING_COMPLETION_PATH = Path(os.environ.get(
     "CANNABEATS_PENDING_COMPLETION_FILE",
     "/var/lib/cannabeats-controller/pending-completion.json",
 ))
+DIAGNOSTIC_SOURCE_URL = os.environ.get(
+    "CANNABEATS_DIAGNOSTIC_SOURCE_URL",
+    "https://poc.cannabeats.social/game/api/diagnostics/source-report",
+)
+PUBLISHER_DIAGNOSTICS_PATH = Path(os.environ.get(
+    "CANNABEATS_PUBLISHER_DIAGNOSTICS_SOCKET",
+    "/run/cannabeats-diagnostics/publisher.sock",
+))
 
 lock = threading.Lock()
 state = {
@@ -47,6 +59,8 @@ state = {
     "browserReport": None,
 }
 device_id = None
+reporter_stop = threading.Event()
+last_reporter_error = None
 
 
 def correlation_id(value=None):
@@ -91,16 +105,57 @@ def record_browser_readiness(payload):
         raise ValueError("Browser readiness payload is invalid")
     authorization = payload.get("spotifyAuthorization")
     player = payload.get("player")
+    playback = payload.get("playbackObservation")
+    if set(payload) != {"spotifyAuthorization", "player", "playbackObservation"}:
+        raise ValueError("Browser readiness payload is invalid")
     if authorization not in {"authorized", "not_authorized", "error", "unknown"}:
         raise ValueError("Spotify authorization state is invalid")
     if player not in {"ready", "not_ready", "error", "unknown"}:
         raise ValueError("Player readiness state is invalid")
+    if playback not in {"playing", "paused", "error", "unknown"}:
+        raise ValueError("Playback observation is invalid")
     with lock:
         state["browserReport"] = {
             "spotifyAuthorization": authorization,
             "player": player,
+            "playbackObservation": playback,
             "reportedAt": time.monotonic(),
         }
+
+
+def controller_playback_snapshot():
+    with lock:
+        browser = state.get("browserReport")
+        if not browser or time.monotonic() - browser["reportedAt"] > BROWSER_REPORT_STALE_SECONDS:
+            return "unknown"
+        value = browser.get("playbackObservation")
+    return value if value in {"playing", "paused", "error", "unknown"} else "unknown"
+
+
+def reporter_log(reason_code):
+    global last_reporter_error
+    if reason_code not in {
+        "collector_busy", "collector_degraded", "collector_unavailable",
+        "diagnostic_unavailable", "request_timeout", "response_invalid",
+        "unavailable", "coverage_gap",
+    }:
+        reason_code = "unavailable"
+    if reason_code == last_reporter_error:
+        return
+    last_reporter_error = reason_code
+    operational_log(
+        "warn", "diagnostics.reporter_unavailable", "Source diagnostics evidence is incomplete",
+        reasonCode=reason_code,
+    )
+
+
+def create_source_reporter():
+    return SourceReporter(
+        PublisherSnapshotClient(PUBLISHER_DIAGNOSTICS_PATH),
+        SourceGameClient(DIAGNOSTIC_SOURCE_URL, source_token),
+        controller_playback_snapshot,
+        logger=reporter_log,
+    )
 
 
 def public_state():
@@ -747,6 +802,9 @@ if __name__ == "__main__":
     source_token()
     load_durable_command_state()
     threading.Thread(target=poll_loop, daemon=True).start()
+    threading.Thread(
+        target=create_source_reporter().run, args=(reporter_stop,), daemon=True,
+    ).start()
     server = ThreadingHTTPServer(LISTEN_ADDRESS, Handler)
     def shutdown(signum, _frame):
         operational_log(
@@ -761,4 +819,5 @@ if __name__ == "__main__":
     try:
         server.serve_forever()
     finally:
+        reporter_stop.set()
         server.server_close()
