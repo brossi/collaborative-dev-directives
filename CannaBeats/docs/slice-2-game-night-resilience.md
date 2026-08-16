@@ -1052,7 +1052,7 @@ resolved-volume identity, and checked disposal have also passed targeted
 closure review. E8.1's collector credential boundary, E8.2's read-only State
 authority projections, and E8.3 host/listener/source/relay mediation are
 locally verified. E9.1's finite publisher snapshot interface is implemented
-and pinned at `3ac7ab9` with targeted remediation re-review pending. E9.2 source
+and pinned at `5704f4a` with final narrow re-review pending. E9.2 source
 reporting, E10 relay integration, E11 composition, and E12 real-device timing
 remain open.
 

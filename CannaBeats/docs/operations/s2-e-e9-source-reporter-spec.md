@@ -186,8 +186,8 @@ collector failure remain explicitly outside this increment.
 ## E9.1 implementation checkpoint
 
 The pinned sibling target is
-`3ac7ab94225b11a79fe87daee56cd5b399804d71` (tree
-`479c250658639d6a79443eb6ed17709c7c34d85a`) on the sibling branch
+`5704f4a3ca3a56940ff0beaefe40a63cd5985e12` (tree
+`e370a342276d08f0a05c10f5f37d054dde02214d`) on the sibling branch
 `feature/s2-e-publisher-diagnostics`. It adds `btaudio` version `0.4.0`, the
 finite Unix-socket interface, capture/publisher scalar provenance, exact
 rotation/replay, finite operational output, and no reporter or network
@@ -207,12 +207,16 @@ retires a simultaneously owned queue item before returning, keeps the capture
 handoff live until PortAudio stops, and bounds/suppresses connection-scoped
 write and close failures. It also records socket ownership before mode changes
 and exercises the real capture callback with diagnostics both disabled and
-enabled. Targeted independent re-review remains pending.
+enabled. The first targeted re-review found one bounded cleanup substitution:
+a pre-attestation failure could make cleanup guess that a replacement socket
+was owned. The final target binds the socket itself, records its exact inode
+before handing it to asyncio, and never unlinks an unattested or substituted
+path. Final narrow re-review remains pending.
 
 Verification at this checkpoint:
 
-- Python 3.12 full sibling suite: `253/253` pass;
-- focused publisher interface and pusher suite: `47/47` pass;
+- Python 3.12 full sibling suite: `254/254` pass;
+- focused publisher interface and pusher suite: `48/48` pass;
 - Ruff check of `src/btaudio/diagnostics.py`, `src/btaudio/capture.py`,
   `src/btaudio/relay.py`, and `tests/test_publisher_diagnostics.py`: pass;
 - compileall: pass;
