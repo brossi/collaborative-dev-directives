@@ -1,4 +1,5 @@
 const STORAGE_KEY = "cannabeats:s2e:e11:host-trace:v1";
+const INVALID_STORAGE = "blocked";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const MAX_RESPONSE_BYTES = 16_384;
 const RESULTS = new Set([
@@ -100,19 +101,29 @@ function trace(value, expectedRunId) {
   return freeze({ ...value,ended: value.ended && { ...value.ended } });
 }
 
-function comparison(value, expectedTraceId) {
+function comparison(value, expectedTrace) {
   exact(value,["comparisonVersion","trace","reportCount","diagnosis"]);
   if (value.comparisonVersion !== 1) fail("collector_response_invalid");
   exact(value.trace,["traceId","status","startedAtMs","endedAtMs"]);
-  if (value.trace.traceId !== expectedTraceId
+  if (value.trace.traceId !== expectedTrace.traceId
     || !["active","ended"].includes(value.trace.status)) fail("collector_response_invalid");
   safe(value.trace.startedAtMs);
   safe(value.trace.endedAtMs,{ nullable: true });
+  if (value.trace.startedAtMs !== expectedTrace.startedAtMs) {
+    fail("collector_response_invalid");
+  }
   if ((value.trace.status === "active") !== (value.trace.endedAtMs === null)) {
     fail("collector_response_invalid");
   }
   if (value.trace.endedAtMs !== null
     && value.trace.endedAtMs < value.trace.startedAtMs) fail("collector_response_invalid");
+  if (value.trace.endedAtMs !== null
+    && value.trace.endedAtMs > expectedTrace.expiresAtMs) fail("collector_response_invalid");
+  if (expectedTrace.status === "ended"
+    && (value.trace.status !== "ended"
+      || value.trace.endedAtMs !== expectedTrace.ended.endedAtMs)) {
+    fail("collector_response_invalid");
+  }
   if (safe(value.reportCount) > 4_096) fail("collector_response_invalid");
   exact(value.diagnosis,["result","confidence","missing","evidenceCount","interval"]);
   if (!RESULTS.has(value.diagnosis.result) || !CONFIDENCE.has(value.diagnosis.confidence)
@@ -134,6 +145,9 @@ function comparison(value, expectedTraceId) {
   }
   if (["source_suspected","relay_suspected"].includes(value.diagnosis.result)
       !== (value.diagnosis.confidence === "high")) fail("collector_response_invalid");
+  if (!insufficient && value.diagnosis.evidenceCount === 0) {
+    fail("collector_response_invalid");
+  }
   if (value.diagnosis.interval !== null) {
     exact(value.diagnosis.interval,["startEarliestMs","endLatestMs"]);
     if (!Number.isFinite(value.diagnosis.interval.startEarliestMs)
@@ -232,8 +246,9 @@ export function createE11HostTransport({
       const response = await fetchImpl(url,{ method: "POST",redirect: "error",headers: {
         "Content-Type": "application/json",
       },body: JSON.stringify(body),signal: controller.signal });
-      const contentType = response.headers.get("content-type") ?? "";
-      if (response.redirected || !contentType.toLowerCase().startsWith("application/json")) {
+      const contentType = (response.headers.get("content-type") ?? "")
+        .split(";",1)[0].trim().toLowerCase();
+      if (response.redirected || contentType !== "application/json") {
         fail("diagnostic_unavailable");
       }
       return parsedResponse(response,controller.signal);
@@ -263,7 +278,17 @@ function stored(value) {
   uuid(value.startRequestId,"request_invalid");
   if (value.trace !== null) trace(value.trace,value.runId);
   if (value.stopRequestId !== null) uuid(value.stopRequestId,"request_invalid");
+  if (value.stopRequestId !== null
+    && (value.trace === null || value.trace.status !== "active")) fail("request_invalid");
   return value;
+}
+
+function stoppedTrace(value, prior) {
+  const ended = trace(value,prior.runId);
+  if (ended.status !== "ended" || ended.traceId !== prior.traceId
+    || ended.startedAtMs !== prior.startedAtMs
+    || ended.expiresAtMs !== prior.expiresAtMs) fail("collector_response_invalid");
+  return ended;
 }
 
 function initial() {
@@ -307,7 +332,7 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
       return value.runId === runId ? value : null;
     } catch {
       storageBlocked = true;
-      try { storage.removeItem(STORAGE_KEY); } catch {}
+      try { storage.setItem(STORAGE_KEY,INVALID_STORAGE); } catch {}
       return null;
     }
   };
@@ -364,15 +389,19 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
   async function refresh() {
     if (!state.enabled || state.busy || !state.trace) return false;
     const runId = state.runId;
-    const traceId = state.trace.traceId;
+    const priorTrace = state.trace;
+    const traceId = priorTrace.traceId;
     const token = epoch;
     readAbort?.abort();
     const ownedAbort = new AbortController();
     readAbort = ownedAbort;
     publish({ ...state,busy: true,notice: null });
     try {
-      const result = comparison(await transport.compare(traceId,ownedAbort.signal),traceId);
-      if (current(token,runId)) publish({
+      const result = comparison(
+        await transport.compare(traceId,ownedAbort.signal),priorTrace,
+      );
+      if (ownedAbort.signal.aborted || !current(token,runId)) return false;
+      publish({
         ...state,busy: false,comparison: result,notice: "refreshed",
       });
       return true;
@@ -404,10 +433,9 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
     publish({ ...state,busy: true,notice: null });
     try {
       save(pending);
-      const ended = trace(await transport.stop(state.trace.traceId,stopRequestId),runId);
-      if (ended.status !== "ended" || ended.traceId !== state.trace.traceId) {
-        fail("collector_response_invalid");
-      }
+      const ended = stoppedTrace(
+        await transport.stop(state.trace.traceId,stopRequestId),state.trace,
+      );
       if (!saveIfSameIntent({ ...pending,trace: ended,stopRequestId: null },pending)) {
         fail("diagnostic_unavailable");
       }

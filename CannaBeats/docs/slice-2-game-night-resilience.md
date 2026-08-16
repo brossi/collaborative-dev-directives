@@ -1055,7 +1055,7 @@ verified and pinned at `321c34d` with no open P0/P1/P2. E9.2 source reporting
 is locally verified at its recorded exact target. E10.0/E10.1/E10.2 relay
 integration is independently closed at the exact pinned target recorded in the
 E10 packet. E11 comparison and composed local evidence are implemented with
-audit remediation and the complete Web suite passing `334/334`; affected E11
+audit remediation and the complete Web suite passing `336/336`; affected E11
 closure re-review and E12 real-device timing remain open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate

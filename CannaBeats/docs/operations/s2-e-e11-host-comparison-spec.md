@@ -120,7 +120,7 @@ control decision. Collector failure changes only the panel's finite status.
 | Update | `structural`: a comparison response is immutable browser state and cannot update State, audio, E7 evidence, or E3 rules. |
 | Delete | `runtime`: E8 stop ends the trace; maintenance-owned whole-trace purge makes later compare return concealed not-found. E11 owns no deletion. |
 | Omit | `runtime`: incomplete paging, missing families, fewer than two newest source/relay windows, no listeners, or more than eight recent listener instances returns finite insufficient/unavailable; no partial classification is published. |
-| Duplicate | `runtime`: exact page/cursor progression is E7-owned; E11 selects one newest envelope per listener instance and E3 rejects duplicate listener identity or invalid source/relay series. |
+| Duplicate | `runtime`: exact page/cursor progression is E7-owned; E11 rejects duplicate uploaded identities across the complete snapshot before selecting one newest envelope per listener instance, and E3 rejects duplicate listener identity or invalid source/relay series. |
 | Reorder | `runtime`: E7 snapshot cursors freeze report membership; E11 verifies stable page metadata and sorts by mapped interval, instance, and sequence before deterministic selection. |
 | Replay | `runtime`: trace start/stop replay remains E8-owned; comparison is a read-only recomputation over one immutable E7 read snapshot. |
 | Conflict | `runtime`: E8 rejects conflicting start/stop request IDs before current authority; E11 accepts only one exact trace locator. |
@@ -181,12 +181,12 @@ review:
 Local verification at this checkpoint:
 
 - focused route, selector, browser-controller, attachment, and composed suites:
-  `29/29`;
+  `31/31`;
 - the composed schedule launches real Access, State, and collector HTTP
   services, passes through the production Game mediation/route handler, and
   proves all five fixed classifications plus missing evidence, ended-trace
   reads, purge concealment, and collector-loss isolation;
-- production Next build and the complete Web suite: `334/334`;
+- production Next build and the complete Web suite: `336/336`;
 - ESLint: zero errors and one pre-existing E5 unused-parameter warning;
 - syntax checks and `git diff --check`: pass.
 
@@ -199,18 +199,22 @@ representation and closes the counterexamples directly:
 - browser timeout and close ownership cover fetch headers and the complete
   bounded body, explicitly refuse redirects, and remain finite even when an
   injected fetch ignores abort;
-- malformed retained control state blocks mutation for that controller
-  lifetime instead of being confused with absence;
-- start requires an active result, stop requires the exact requested ended
-  trace, and comparison count/evidence and trace-lifecycle relations are
-  rebound before publication; and
-- each refresh clears only its own abort controller, so an old completion
-  cannot detach or publish through a newer closed read.
+- malformed retained control state is replaced by a fixed blocked sentinel, so
+  it remains fail-closed across controller replacement instead of being
+  confused with absence;
+- start requires an active result; a retained stop ID requires an active trace;
+  stop preserves the exact requested trace and its immutable timing; and
+  comparison count/evidence and trace-lifecycle relations are rebound before
+  publication; and
+- each refresh clears only its own abort controller and rejects an aborted
+  successful completion, so an old dependency cannot detach or publish through
+  a newer or closed read.
 
 The remediation also canonicalizes response status, content type, and finite
 error prose, and adds exact listener `7/8/9`, cohort-horizon
-`before/equality/after`, report/page, wrong-result, stalled-body, and ABA
-schedules. The affected local finding count is now `P0=0`, `P1=0`, `P2=0`.
+`before/equality/after`, report/page, wrong-result, stalled-body, durable
+malformed-storage, zero-evidence-positive, exact-media-type, and ABA schedules.
+The affected local finding count is now `P0=0`, `P1=0`, `P2=0`.
 E11 is not yet closed: the affected independent perspectives must re-review
 the remediation. E12 continues to own real-browser timing, deployed credential
 and process topology, supported device capacity, human usability,

@@ -89,6 +89,9 @@ test("stop response loss retains exact intent and ended trace remains comparable
   assert.equal(await f.controller.stop(),true);
   assert.deepEqual(seen,[[TRACE,ids[1]],[TRACE,ids[1]]]);
   assert.equal(f.controller.snapshot().trace.status,"ended");
+  f.transport.compare = async () => ({ ...comparison(),trace: {
+    ...comparison().trace,status: "ended",endedAtMs: 2,
+  } });
   assert.equal(await f.controller.refresh(),true);
   assert.equal(f.controller.snapshot().comparison.diagnosis.result,
     "listener_buffer_suspected");
@@ -124,17 +127,24 @@ test("one pending action fences duplicate controls and close aborts only the rea
   assert.equal(f.controller.snapshot().comparison,null);
 });
 
-test("disabled/member state admits no action and malformed storage is discarded", async () => {
+test("malformed storage remains durably blocked across controller replacement", async () => {
   const f = fixture();
   f.storage.setItem(E11_HOST_STORAGE_KEY,"{bad");
   f.controller.sync({ enabled: false,runId: RUN });
   assert.equal(await f.controller.start(),false);
   assert.equal(f.calls.length,0);
   f.controller.sync({ enabled: true,runId: RUN });
-  assert.equal(f.storage.getItem(E11_HOST_STORAGE_KEY),null);
+  assert.equal(f.storage.getItem(E11_HOST_STORAGE_KEY),"blocked");
   assert.equal(f.controller.snapshot().trace,null);
   assert.equal(f.controller.snapshot().notice,"request_invalid");
   assert.equal(await f.controller.start(),false);
+  assert.equal(f.calls.length,0);
+
+  const replacement = createE11HostPanelController({
+    storage: f.storage,transport: f.transport,randomUuid: () => ids[2],
+  });
+  replacement.sync({ enabled: true,runId: RUN });
+  assert.equal(await replacement.start(),false);
   assert.equal(f.calls.length,0);
 });
 
@@ -204,6 +214,8 @@ test("browser transport bounds deadlines and rejects noncanonical dependency out
     Response.json(comparison(),{ status: 201 }),
     new Response(JSON.stringify(comparison()),{ status: 200,
       headers: { "content-type": "text/plain" } }),
+    new Response(JSON.stringify(comparison()),{ status: 200,
+      headers: { "content-type": "application/jsonp" } }),
   ]) {
     const noncanonical = createE11HostTransport({ fetchImpl: async () => response });
     await assert.rejects(() => noncanonical.compare(TRACE),
@@ -233,6 +245,31 @@ test("browser transport bounds deadlines and rejects noncanonical dependency out
   await impossible.start();
   assert.equal(await impossible.refresh(),false);
   assert.equal(impossible.snapshot().notice,"collector_response_invalid");
+
+  const unsupported = createE11HostPanelController({ storage: new MemoryStorage(),
+    randomUuid: () => ids[0],transport: {
+      start: async () => active(),stop: async () => ended(),compare: async () => ({
+        ...comparison(),diagnosis: {
+          ...comparison().diagnosis,evidenceCount: 0,interval: null,
+        },
+      }),
+    } });
+  unsupported.sync({ enabled: true,runId: RUN });
+  await unsupported.start();
+  assert.equal(await unsupported.refresh(),false);
+  assert.equal(unsupported.snapshot().notice,"collector_response_invalid");
+
+  const shiftedLifecycle = createE11HostPanelController({
+    storage: new MemoryStorage(),randomUuid: () => ids[0],transport: {
+      start: async () => active(),stop: async () => ended(),compare: async () => ({
+        ...comparison(),trace: { ...comparison().trace,startedAtMs: 2 },
+      }),
+    },
+  });
+  shiftedLifecycle.sync({ enabled: true,runId: RUN });
+  await shiftedLifecycle.start();
+  assert.equal(await shiftedLifecycle.refresh(),false);
+  assert.equal(shiftedLifecycle.snapshot().notice,"collector_response_invalid");
 });
 
 test("operation results remain bound to their requested lifecycle", async () => {
@@ -249,9 +286,31 @@ test("operation results remain bound to their requested lifecycle", async () => 
   assert.equal(await activeStop.controller.stop(),false);
   assert.equal(activeStop.controller.snapshot().trace.status,"active");
 
+  for (const changed of [
+    { ...ended(),startedAtMs: 2 },
+    { ...ended(),expiresAtMs: 21_600_002 },
+  ]) {
+    const alteredStop = fixture({ stop: async () => changed });
+    await alteredStop.controller.start();
+    assert.equal(await alteredStop.controller.stop(),false);
+    assert.equal(alteredStop.controller.snapshot().notice,"collector_response_invalid");
+    assert.equal(alteredStop.controller.snapshot().trace.status,"active");
+  }
+
   const endedStart = fixture({ start: async () => ended() });
   assert.equal(await endedStart.controller.start(),false);
   assert.equal(endedStart.controller.snapshot().notice,"collector_response_invalid");
+});
+
+test("impossible retained stop intent fails before a fresh mutation", async () => {
+  const f = fixture();
+  f.storage.setItem(E11_HOST_STORAGE_KEY,JSON.stringify({
+    version: 1,runId: RUN,startRequestId: ids[0],trace: null,stopRequestId: ids[1],
+  }));
+  f.controller.sync({ enabled: true,runId: RUN });
+  assert.equal(f.controller.snapshot().notice,"request_invalid");
+  assert.equal(await f.controller.start(),false);
+  assert.deepEqual(f.calls,[]);
 });
 
 test("a stale refresh cannot clear or publish through a newer read owner", async () => {
@@ -285,4 +344,23 @@ test("a stale refresh cannot clear or publish through a newer read owner", async
   assert.equal(newAborted,true);
   assert.equal(f.controller.snapshot().comparison,null);
   assert.equal(resolveNew instanceof Function,true);
+});
+
+test("a closed read cannot publish when its dependency ignores abort", async () => {
+  const f = fixture();
+  await f.controller.start();
+  let resolve;
+  let signal;
+  f.transport.compare = (_traceId,currentSignal) => new Promise((done) => {
+    signal = currentSignal;
+    resolve = done;
+  });
+  f.controller.setOpen(true);
+  const pending = f.controller.refresh();
+  f.controller.setOpen(false);
+  assert.equal(signal.aborted,true);
+  resolve(comparison());
+  assert.equal(await pending,false);
+  assert.equal(f.controller.snapshot().open,false);
+  assert.equal(f.controller.snapshot().comparison,null);
 });
