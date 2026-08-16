@@ -37,7 +37,7 @@ class HostSampleTests(unittest.TestCase):
         }}
         return temporary, root, allowlist
 
-    def test_cross_uid_root_sampler_emits_only_stable_allowlisted_scalars(self):
+    def test_fixture_projection_matches_stable_allowlisted_scalar_schema(self):
         temporary, root, allowlist = self.fixture()
         self.addCleanup(temporary.cleanup)
         with patch.object(MODULE.time, "monotonic_ns", return_value=5_000_000_000):

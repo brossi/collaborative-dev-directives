@@ -311,8 +311,10 @@ foreign-trace/unmapped/duplicate/cross-role corruption, browser/journal gap
 allowlists, stable `/proc` roster projection, loopback/upstream/body/deadline
 bounds, exact 16-page cursor progression, nested collector identity and trace
 attribution, five-minute observation ownership, multiplexed-route/2-MiB read
-transparency, cross-UID host sampling, broken observer output, malformed
-output, and post-commit response-loss schedules from this matrix.
+transparency, Node/Python fixture projection parity, the Python CLI root guard,
+broken observer output, malformed output, and post-commit response-loss
+schedules from this matrix. Actual cross-UID `/proc` access remains a mandatory
+real-host E12 observation rather than a local-fixture claim.
 
 The executable surfaces are deliberately small:
 
