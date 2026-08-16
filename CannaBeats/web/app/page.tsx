@@ -22,6 +22,9 @@ import { useSpotifyPlayer, type SpotifyTrackArtwork } from "../lib/use-spotify-p
 import { useManagedAudioStream, type ManagedAudioDiagnostics, type ManagedAudioSharing, type ManagedAudioStatus } from "../lib/use-managed-audio-stream";
 import { E6_EMPTY_PANEL_STATE, E6PanelController } from "../lib/s2e-e6-local-panel.mjs";
 import { E8_SHARING_DISCLOSURE } from "../lib/s2e-e8-listener-sharing.mjs";
+import {
+  createE11HostPanelController,createE11HostTransport,
+} from "../lib/s2e-e11-host-panel.mjs";
 import { CANNABEATS_BASE_PATH, cannabeatsPath } from "../lib/paths";
 import { GAME_CLIENT_CONTRACT_HEADER, GAME_CLIENT_CONTRACT_VERSION } from "../lib/game-client-contract.ts";
 
@@ -255,6 +258,68 @@ function SharedAudioPanel({
           </div>
         </details>
       )}
+    </section>
+  );
+}
+
+const DIAGNOSIS_LABELS: Record<string, string> = {
+  source_suspected: "Source capture or publishing",
+  relay_suspected: "Relay ingress or delivery",
+  listener_delivery_suspected: "One listener’s network delivery",
+  listener_buffer_suspected: "One listener’s playback buffer",
+  browser_output_suspected: "One listener’s browser output",
+  insufficient_evidence: "Insufficient evidence",
+};
+
+function HostDiagnosticsPanel({ runId }: { runId: string }) {
+  const controller = useMemo(() => createE11HostPanelController({
+    transport: createE11HostTransport({
+      traceUrl: cannabeatsPath("/api/diagnostics/trace"),
+      comparisonUrl: cannabeatsPath("/api/diagnostics/comparison"),
+    }),
+    storage: {
+      getItem: (key: string) => window.sessionStorage.getItem(key),
+      setItem: (key: string,value: string) => window.sessionStorage.setItem(key,value),
+      removeItem: (key: string) => window.sessionStorage.removeItem(key),
+    },
+    randomUuid: () => window.crypto.randomUUID(),
+  }), []);
+  const [state, setState] = useState(controller.snapshot());
+
+  useEffect(() => controller.subscribe(setState), [controller]);
+  useEffect(() => { controller.sync({ enabled: true,runId }); }, [controller,runId]);
+  useEffect(() => () => controller.dispose(), [controller]);
+
+  const diagnosis = state.comparison?.diagnosis;
+  const notice = state.notice === "started" ? "Diagnostic trace started."
+    : state.notice === "stopped" ? "Diagnostic trace stopped; retained evidence remains readable."
+      : state.notice === "refreshed" ? "Comparison refreshed from the complete retained trace."
+        : state.notice === "resume_available" ? "A prior start may have completed. Resume it with the same request."
+          : state.notice ? "Diagnostics are unavailable right now. Game and audio are unchanged." : "";
+
+  return (
+    <section className="host-diagnostics-panel">
+      <details open={state.open} onToggle={(event) => controller.setOpen(event.currentTarget.open)}>
+        <summary>Advanced host diagnostics</summary>
+        <div className="host-diagnostics-body">
+          <p className="helper">Evidence only—this view never changes playback, game state, or listener settings.</p>
+          {diagnosis ? (
+            <div className={`host-diagnosis ${diagnosis.result === "insufficient_evidence" ? "insufficient" : ""}`}>
+              <span>{diagnosis.confidence === "insufficient" ? "No reliable location" : `${diagnosis.confidence} confidence`}</span>
+              <strong>{DIAGNOSIS_LABELS[diagnosis.result] ?? "Insufficient evidence"}</strong>
+              <small>{diagnosis.evidenceCount} bounded evidence reference{diagnosis.evidenceCount === 1 ? "" : "s"} · {state.comparison.reportCount} retained report{state.comparison.reportCount === 1 ? "" : "s"}</small>
+              {diagnosis.missing.length > 0 && <small>Reason: {diagnosis.missing.join(", ").replaceAll("_"," ")}</small>}
+            </div>
+          ) : <p className="helper">Start a trace, let participants share diagnostic windows, then refresh this comparison.</p>}
+          <div className="audio-diagnostics-actions">
+            {!state.trace && <button className="text-button" disabled={state.busy} onClick={() => void controller.start()} type="button">{state.notice === "resume_available" ? "Resume trace" : "Start trace"}</button>}
+            {state.trace && <button className="text-button" disabled={state.busy} onClick={() => void controller.refresh()} type="button">Refresh comparison</button>}
+            {state.trace?.status === "active" && <button className="text-button" disabled={state.busy} onClick={() => void controller.stop()} type="button">Stop trace</button>}
+          </div>
+          <p className="visually-hidden" aria-live="polite" role="status">{notice}</p>
+          {notice && <p className="audio-diagnostics-notice" aria-hidden="true">{notice}</p>}
+        </div>
+      </details>
     </section>
   );
 }
@@ -988,6 +1053,9 @@ export default function Home() {
               onStopSharing={managedAudio.stopDiagnosticsSharing}
             />
           )}
+          {room.isHost && audio.selection === "managed" && (
+            <HostDiagnosticsPanel runId={room.runId} />
+          )}
           {room.isHost ? (
             <>
               <GameSetup
@@ -1150,6 +1218,9 @@ export default function Home() {
           onShareDiagnostics={managedAudio.optInDiagnostics}
           onStopSharing={managedAudio.stopDiagnosticsSharing}
         />
+      )}
+      {room.isHost && audio.selection === "managed" && (
+        <HostDiagnosticsPanel runId={room.runId} />
       )}
 
       {winner && room.phase === "finished" ? (

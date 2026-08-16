@@ -5,6 +5,9 @@ import {
 import {
   createDiagnosticMediation,DiagnosticMediationError,
 } from "./diagnostic-mediation.mjs";
+import {
+  createDiagnosticComparisonService,DiagnosticComparisonError,
+} from "./diagnostic-comparison.mjs";
 import { createDiagnosticListenerMediation } from "./diagnostic-listener-mediation.mjs";
 import { createGameStateClient,StateGatewayError } from "./state-client.mjs";
 
@@ -103,6 +106,7 @@ function headers(request) {
 
 function responseError(error) {
   if (error instanceof DiagnosticMediationError || error instanceof DiagnosticRouteError
+    || error instanceof DiagnosticComparisonError
     || error instanceof DiagnosticCollectorGatewayError || error instanceof StateGatewayError) {
     const known = BROWSER_FAILURES.has(error.code);
     const status = known ? BROWSER_FAILURES.get(error.code) : 503;
@@ -138,6 +142,10 @@ export function createDiagnosticRouteHandlers({ mediation,bodyDeadlineMs } = {})
         readTrace: (value) => collector().readTrace(value),
       },
     });
+  let comparisonService = null;
+  const comparisonOwner = () => comparisonService ??= createDiagnosticComparisonService({
+    readPage: (value) => service().read(value),
+  });
 
   async function trace(request) {
     try {
@@ -181,7 +189,21 @@ export function createDiagnosticRouteHandlers({ mediation,bodyDeadlineMs } = {})
     }
   }
 
-  return Object.freeze({ trace,report });
+  async function comparison(request) {
+    try {
+      if (!originAccepted(request)) fail(403,"not_authorized");
+      const body = exact(await readBody(request,{
+        ...(bodyDeadlineMs ? { deadlineMs: bodyDeadlineMs } : {}),
+      }),["traceId"]);
+      return Response.json(await comparisonOwner().compare({
+        headers: headers(request),traceId: uuid(body.traceId),
+      }),{ headers: { "Cache-Control": "no-store" } });
+    } catch (error) {
+      return responseError(error);
+    }
+  }
+
+  return Object.freeze({ trace,report,comparison });
 }
 
 let productionListenerService = null;

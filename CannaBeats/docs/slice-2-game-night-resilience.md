@@ -1054,7 +1054,9 @@ locally verified. E9.1's finite publisher snapshot interface is locally
 verified and pinned at `321c34d` with no open P0/P1/P2. E9.2 source reporting
 is locally verified at its recorded exact target. E10.0/E10.1/E10.2 relay
 integration is independently closed at the exact pinned target recorded in the
-E10 packet. E11 composition and E12 real-device timing remain open.
+E10 packet. E11 comparison and composed local evidence are implemented with
+the complete Web suite passing `330/330`; independent E11 closure review and
+E12 real-device timing remain open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.

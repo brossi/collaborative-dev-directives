@@ -9,7 +9,9 @@ import {
   createDiagnosticListenerRouteHandlers,createDiagnosticRouteHandlers,
 } from "../lib/server/diagnostic-routes.mjs";
 import { DiagnosticCollectorGatewayError } from "../lib/server/diagnostic-collector-client.mjs";
-import { DiagnosticMediationError } from "../lib/server/diagnostic-mediation.mjs";
+import {
+  createDiagnosticMediation,DiagnosticMediationError,
+} from "../lib/server/diagnostic-mediation.mjs";
 import { StateGatewayError } from "../lib/server/state-client.mjs";
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)),"..");
@@ -43,6 +45,72 @@ test("diagnostic routes accept only the exact host trace and read families", asy
   });
   assert.equal((await handlers.report(report)).status,200);
   assert.deepEqual(calls.map(([name]) => name),["start","stop","status","read"]);
+});
+
+test("host comparison route uses the authorized complete read and returns no raw evidence", async () => {
+  const traceId = randomUUID();
+  const runId = randomUUID();
+  let reads = 0;
+  const handlers = createDiagnosticRouteHandlers({ mediation: {
+    start: async () => {},stop: async () => {},status: async () => {},
+    read: async ({ headers,traceId: requested,cursor }) => {
+      reads += 1;
+      assert.equal(headers.cookie,"cb_session=x");
+      assert.equal(requested,traceId);
+      assert.equal(cursor,null);
+      return {
+        trace: { traceId,runId,status: "active",startedAtMs: 1,
+          expiresAtMs: 21_600_001,ended: null },
+        status: "found",complete: true,metadata: {
+          traceId,status: "active",startedAtMs: 1,endedAtMs: null,
+          endReason: null,reportCount: 0,
+        },reports: [],cursor: null,
+      };
+    },
+  } });
+  const response = await handlers.comparison(request({ traceId }));
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get("cache-control"),"no-store");
+  const body = await response.json();
+  assert.equal(body.comparisonVersion,1);
+  assert.equal(body.diagnosis.result,"insufficient_evidence");
+  assert.equal(body.diagnosis.evidenceCount,0);
+  assert.equal("reports" in body,false);
+  assert.equal(JSON.stringify(body).includes(runId),false);
+  assert.equal(reads,1);
+});
+
+test("comparison route conceals a member read and preserves finite collector failure", async () => {
+  const traceId = randomUUID();
+  for (const [error,status,code] of [
+    [new DiagnosticMediationError(404,"diagnostic_not_found"),404,"diagnostic_not_found"],
+    [new DiagnosticMediationError(503,"collector_degraded"),503,"collector_degraded"],
+  ]) {
+    const handlers = createDiagnosticRouteHandlers({ mediation: {
+      start: async () => {},stop: async () => {},status: async () => {},
+      read: async () => { throw error; },
+    } });
+    const response = await handlers.comparison(request({ traceId }));
+    assert.equal(response.status,status);
+    assert.equal((await response.json()).code,code);
+  }
+});
+
+test("comparison authenticates before any State or collector lookup", async () => {
+  let lowerCalls = 0;
+  const mediation = createDiagnosticMediation({
+    access: { principal: async () => {
+      throw new DiagnosticMediationError(401,"authentication_required");
+    } },
+    state: { runHost: async () => { lowerCalls += 1; },
+      managedStream: async () => { lowerCalls += 1; } },
+    collector: { traceContext: async () => { lowerCalls += 1; } },
+  });
+  const handlers = createDiagnosticRouteHandlers({ mediation });
+  const response = await handlers.comparison(request({ traceId: randomUUID() }));
+  assert.equal(response.status,401);
+  assert.equal((await response.json()).code,"authentication_required");
+  assert.equal(lowerCalls,0);
 });
 
 test("diagnostic routes conceal authority and normalize malformed or failed requests", async () => {
