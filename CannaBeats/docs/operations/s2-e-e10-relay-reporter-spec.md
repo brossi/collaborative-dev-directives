@@ -1,11 +1,45 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.1 remediation implemented; independent re-review pending`.
+Status: `E10.0 prerequisite and E10.1 remediation implemented; independent re-review pending`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
 not add a metrics daemon, reporter process, event journal, log parser, or
 general observability framework.
+
+## E10.0 complete-frame relay prerequisite
+
+The legacy relay forwarded arbitrary HTTP chunk fragments, including a terminal
+partial s16le frame. Verified E1 requires both ingress and total fan-out bytes
+to be frame-divisible, so that behavior cannot produce an exact relay report.
+The authorized E10 remediation therefore includes one contained, non-diagnostic
+prerequisite:
+
+> `RelaySource` forwards only complete s16le frames, with at most one
+> `channels*2-1` byte carry, and discards a terminal partial identically whether
+> diagnostics are disabled, enabled, or have failed.
+
+This is an intentional relay correctness change, not credited as observational
+parity with the pre-E10 relay. It occurs before the E10.1 observation boundary;
+E10.1 parity compares diagnostics-disabled and diagnostics-enabled execution of
+this same structural framing behavior.
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `not_applicable`: framing creates no durable or authority identity. |
+| Update | `structural`: one `RelaySource` carry selects only complete frames before every Hub callback. |
+| Delete | `runtime`: release/stop clears only the bounded terminal partial; complete PCM is already forwarded. |
+| Omit | `runtime`: only a terminal incomplete frame is deliberately omitted. |
+| Duplicate | `structural`: each input byte is either in the sole carry, one forwarded payload, or the terminal omission. |
+| Reorder | `structural`: carry bytes precede the next network fragment in the emitted payload. |
+| Replay | `not_applicable`: the live PCM callback has no retry identity. |
+| Conflict | `not_applicable`: exact format validation occurs before the source claim. |
+| Concurrency | `structural`: the one accepted publisher feeds the one carry on the relay event loop. |
+| Expiry | `not_applicable`: carry ends with the publisher lifecycle. |
+| Restart | `structural`: process loss discards the in-memory partial and creates no retained state. |
+| Dependency failure | `not_applicable`: framing calls no external dependency. |
+| Corruption | `runtime`: declared s16le format fixes frame size; malformed chunk framing terminates the accepted stream. |
+| Capacity | `structural`: carry length is always `0..channels*2-1`. |
 
 ## Increment sequence
 
@@ -16,7 +50,7 @@ general observability framework.
    reportable generation once through E8, and upload one bounded aggregate.
 
 E10.1 closes before E10.2 attaches networking. This split keeps fan-out
-instrumentation independently comparable with the pre-instrumentation relay.
+instrumentation independently comparable with the E10.0 structural baseline.
 
 ## E10.1 governing invariant
 
@@ -113,12 +147,12 @@ Exact relations:
 
 ## Counter provenance
 
-- `RelaySource` forwards the exact original callback chunks whether diagnostics
-  are enabled or disabled. A private diagnostic scalar carry reconciles network
-  fragmentation without changing callback segmentation, listener queue
-  pressure, delivered PCM, or terminal-partial handling. Complete frames enter
-  `ingressFrames/Bytes`; a terminal diagnostic carry of at most
-  `channels*2-1` bytes increments `droppedIngressCount` once and is excluded.
+- E10.0 `RelaySource` framing is identical whether diagnostics are disabled,
+  enabled, or have failed. It may join network fragments, but diagnostics do
+  not further change callback segmentation, listener queue pressure, delivered
+  PCM, or terminal-partial handling. Complete frames enter
+  `ingressFrames/Bytes`; the structural terminal carry increments
+  `droppedIngressCount` once when diagnostics remain available and is excluded.
 - `ingressFrames/Bytes` reserve the captured generation and feed timestamp,
   but advance only in `Hub._broadcast` after the Hub commits the same callback
   payload to `total_bytes`. The reportable prior remains unavailable until its
@@ -191,7 +225,7 @@ parent privacy disclosure covers normal relay output as well as reports.
 | Concurrency | `runtime`: relay mutations and snapshot/consume run on one asyncio event loop; pending-ingress reservations preserve identity across scheduling, and a listener reservation plus post-header generation check makes admission atomic across its only await. |
 | Expiry | `not_applicable`: generations end by publisher lifecycle, not wall-clock expiry. |
 | Restart | `structural`: no durable E10.1 state; restart creates a new generation ID and cannot reuse prior counters. |
-| Dependency failure | `not_applicable`: E10.1 has no network, credential, Game, State, or collector dependency. |
+| Dependency failure | `structural`: E10.1 has no external dependency; an internal diagnostic failure disables observation but the RelaySource generation tag, E10.0 framing, and Hub fan-out filter remain active. |
 | Corruption | `runtime`: exact snapshot construction rejects non-finite, out-of-range, impossible, or unknown state without partial output. |
 | Capacity | `runtime`: `Server.stream` admits at most eight live plus in-flight listener slots; the snapshot owner independently rejects a ninth active listener. Accepted/closed counts remain cumulative safe integers. One active plus one prior generation are reportable, and every detached record requires one of those fixed live clients. |
 
@@ -243,8 +277,9 @@ Status: `implemented; local counterexample pass complete; independent review pen
 E10.2 is not authorized by this checkpoint.
 
 The remediated pinned sibling target is
-`6ee671d304e505ad42639f6d43a4a46786e10c34` (tree
-`ab4369b2e1d1035aefeeaa4ae4ba4756214c9156`). It adds the exact
+`4cbdd31d8a7fa53eb3874f3554b0d6c9411689e7` (tree
+`988b1d8a6297678320c717514f537b091a431c40`). It adds the E10.0
+complete-frame relay baseline and the exact
 `RelayDiagnostics` owner, generation creation at successful claim, bounded
 frame carry, generation-bound listener attribution, and scalar hooks at the
 existing ingress/drain/fence/cleanup commit points. It performs no network or
@@ -270,19 +305,19 @@ The local counterexample pass closed these schedules before review:
 - pending callbacks growing the detached-generation map without live clients.
 
 Enforcement lives in `src/btaudio/relay_diagnostics.py`; `RelaySource` owns
-claim/feed/release identity while forwarding the original chunks unchanged;
-the snapshot owner keeps only private scalar frame carries. `Hub` commits bytes
-before ingress observation and filters a scheduled publisher payload to clients
-of that same generation. `Server.stream` owns the eight-slot reservation and
-post-header generation check. The immutable client generation and captured
-frame size own delivery/fence/close updates. The current and prior generations
-are the only reportable objects; bounded detached records disappear on their
-final client cleanup.
+claim/feed/release identity and the E10.0 structural complete-frame carry,
+identically across diagnostic modes. `Hub` commits bytes before ingress
+observation and filters a scheduled publisher payload to clients of that same
+generation even after diagnostics fail. `Server.stream` owns the eight-slot
+reservation and post-header generation check. The immutable client generation
+and captured frame size own delivery/fence/close updates. The current and prior
+generations are the only reportable objects; bounded detached records disappear
+on their final client cleanup.
 
 Local verification:
 
-- focused relay diagnostics: `24/24` pass;
-- full pinned sibling suite: `283/283` pass;
+- focused E10.0/E10.1 relay diagnostics: `26/26` pass;
+- full pinned sibling suite: `285/285` pass;
 - affected Ruff: pass;
 - compileall and sibling/CannaBeats diff checks: pass; and
 - the exact CannaBeats pin assertion: pass as part of managed-source discovery.

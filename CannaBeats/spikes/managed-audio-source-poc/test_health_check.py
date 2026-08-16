@@ -120,7 +120,7 @@ class ProvisioningContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8").strip()
         self.assertEqual(
             sibling_pin,
-            "6ee671d304e505ad42639f6d43a4a46786e10c34",
+            "4cbdd31d8a7fa53eb3874f3554b0d6c9411689e7",
         )
 
 
