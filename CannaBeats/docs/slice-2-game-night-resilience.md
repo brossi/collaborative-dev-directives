@@ -1,8 +1,8 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E E1-E10 are locally verified and independently closed where
-  required; E11 and E12/S2-F real-environment proof remain open
+  verified; S2-E E1-E11 are locally verified and independently closed where
+  required; only E12/S2-F real-environment proof remains open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1056,7 +1056,7 @@ is locally verified at its recorded exact target. E10.0/E10.1/E10.2 relay
 integration is independently closed at the exact pinned target recorded in the
 E10 packet. E11 comparison and composed local evidence are implemented with
 audit remediation and the complete Web suite passing `337/337`; affected E11
-closure re-review and E12 real-device timing remain open.
+closure review found no open P0/P1/P2. E12 real-device timing remains open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.

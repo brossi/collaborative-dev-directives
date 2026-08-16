@@ -3,7 +3,7 @@
 ## Identity and status
 
 - Checkpoint: E11 — one host comparison proof
-- Status: `audit remediation implemented; narrow closure re-review pending`
+- Status: `locally verified; independent closure review complete`
 - Risk class: `B — boundary-bearing`, because this joins retained diagnostic
   evidence to host authorization and a browser-visible conclusion
 - Required verified checkpoints: E1-E10 at their recorded exact targets
@@ -216,8 +216,11 @@ error prose, and adds exact listener `7/8/9`, cohort-horizon
 malformed-storage, zero-evidence-positive, exact-media-type, and ABA schedules.
 Closing a read releases only that read's busy state; closing during an
 outcome-unknown mutation retains the one-action fence until it settles.
-The affected local finding count is now `P0=0`, `P1=0`, `P2=0`.
-E11 is not yet closed: the affected independent perspectives must re-review
-the remediation. E12 continues to own real-browser timing, deployed credential
+The affected local finding count is `P0=0`, `P1=0`, `P2=0`. Independent
+selector/evidence, authority/lifecycle, and HTTP/privacy review is complete;
+the final affected lifecycle recheck passed at commit
+`bd66b9b9ef606e82477f52134158f038acd3e087`, tree
+`3634c37833c633fe33b046fcec35940120002f18`. E11 is closed. E12 continues to
+own real-browser timing, deployed credential
 and process topology, supported device capacity, human usability,
 installation, restart, and cleanup evidence.
