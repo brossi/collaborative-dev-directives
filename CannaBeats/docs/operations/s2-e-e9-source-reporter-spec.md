@@ -186,8 +186,8 @@ collector failure remain explicitly outside this increment.
 ## E9.1 implementation checkpoint
 
 The pinned sibling target is
-`168d07261fe5ba27ff1cfaaf952b5d80095d2402` (tree
-`78448d00458b6bc9b5a41d39af74a4023a413e44`) on the sibling branch
+`3ac7ab94225b11a79fe87daee56cd5b399804d71` (tree
+`479c250658639d6a79443eb6ed17709c7c34d85a`) on the sibling branch
 `feature/s2-e-publisher-diagnostics`. It adds `btaudio` version `0.4.0`, the
 finite Unix-socket interface, capture/publisher scalar provenance, exact
 rotation/replay, finite operational output, and no reporter or network
@@ -199,14 +199,25 @@ queued old-instance PCM could be published after rotation and violate
 the exact zero-carry boundary and returns `busy` without waiting or changing
 audio when capture-to-queue or queue-to-writer work remains.
 
+The first independent review found two further lifecycle races. A relay verdict
+could win in the same event-loop turn in which `queue.get()` had already taken
+ownership of PCM, stranding unpublished accounting; and peer resets could let
+native write/close errors escape the Unix-socket handler. The remediated target
+retires a simultaneously owned queue item before returning, keeps the capture
+handoff live until PortAudio stops, and bounds/suppresses connection-scoped
+write and close failures. It also records socket ownership before mode changes
+and exercises the real capture callback with diagnostics both disabled and
+enabled. Targeted independent re-review remains pending.
+
 Verification at this checkpoint:
 
-- Python 3.12 full sibling suite: `248/248` pass;
-- focused publisher interface and pusher suite: `42/42` pass;
-- source/test Ruff check: pass;
+- Python 3.12 full sibling suite: `253/253` pass;
+- focused publisher interface and pusher suite: `47/47` pass;
+- Ruff check of `src/btaudio/diagnostics.py`, `src/btaudio/capture.py`,
+  `src/btaudio/relay.py`, and `tests/test_publisher_diagnostics.py`: pass;
 - compileall: pass;
 - source distribution and wheel build: pass; and
 - sibling and CannaBeats `git diff --check`: pass.
 
 Open local findings are `P0=0`, `P1=0`, `P2=0`. E9.1 remains unconsumable by
-E9.2 until the targeted independent snapshot/audio-isolation review closes it.
+E9.2 until targeted independent re-review closes the remediated boundary.
