@@ -37,6 +37,7 @@ FINITE_REPORT = {
     "request_conflict",
     *CORRELATION_LOST,
 }
+REPORT_RESULTS = FINITE_REPORT - {"request_conflict"}
 HTTP_FAILURES = {
     "authentication_required": 401, "not_authorized": 403,
     "request_invalid": 400, "request_timeout": 408,
@@ -320,7 +321,7 @@ class SourceGameClient:
         if status in {"accepted", "replayed"}:
             _exact(value, {"status", "receivedAt"})
             _number(value["receivedAt"], integer=True)
-        elif status in FINITE_REPORT - {"accepted", "replayed"}:
+        elif status in REPORT_RESULTS - {"accepted", "replayed"}:
             _exact(value, {"status"})
         else:
             raise SourceReporterError("response_invalid")

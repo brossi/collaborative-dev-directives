@@ -377,7 +377,9 @@ failures become terminal codes only when their body is at most 8 KiB, has the
 exact canonical `{error,code}` shape, and matches the route's status/code pair;
 otherwise the pending evidence remains outcome-unknown.
 JSON duplicate member names are malformed at every publisher and Game parse
-boundary; last-key-wins parsing cannot select a terminal result.
+boundary; last-key-wins parsing cannot select a terminal result. Finite success
+status sets are action-specific, so open-only `request_conflict` cannot become
+a report outcome.
 
 ## E9.2 closure matrix
 
@@ -482,7 +484,7 @@ failure is cleaned up before normal publication continues.
 Local verification on the remediated implementation worktree:
 
 - affected Python Ruff: pass;
-- managed-source Python discovery: `57/57` pass;
+- managed-source Python discovery: `58/58` pass;
 - browser protocol tests: `5/5` pass;
 - pinned sibling full suite: `259/259` pass;
 - focused pinned publisher diagnostics suite: `28/28` pass;

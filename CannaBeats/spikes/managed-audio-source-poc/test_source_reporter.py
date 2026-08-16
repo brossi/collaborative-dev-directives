@@ -198,6 +198,24 @@ class PublisherContractTests(unittest.TestCase):
 
 
 class GameClientBoundaryTests(unittest.TestCase):
+    def test_open_only_request_conflict_is_not_a_report_result(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self, _amount):
+                return b'{"status":"request_conflict"}'
+
+        client = SourceGameClient(
+            "https://example.invalid", lambda: "a" * 32,
+            opener=lambda *_args, **_kwargs: Response(),
+        )
+        with self.assertRaisesRegex(SourceReporterError, "response_invalid"):
+            client.report(GRANT, {}, {})
+
     def test_http_errors_require_bounded_exact_canonical_code_status_pairs(self):
         def failure(status, body):
             return urllib.error.HTTPError(
