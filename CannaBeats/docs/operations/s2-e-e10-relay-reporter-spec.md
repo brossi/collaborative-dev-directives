@@ -53,9 +53,9 @@ E10.2 observes that scalar and may record only a finite local coverage-loss
 notice; it retries only already-owned evidence and never creates a generation
 queue. Any omitted generation record is detached from the report interface in
 a generation-keyed map. It exists only while at least one of the fixed eight
-generation-bound clients is closing or one already-scheduled Hub ingress
-commit is pending. The last close/commit releases it; this is not a reportable
-or unbounded generation history.
+generation-bound clients is closing. The last close releases it; pending Hub
+callbacks for an omitted generation commit audio but deliberately add no
+diagnostic evidence. This is not a reportable or unbounded generation history.
 
 ## Exact snapshot
 
@@ -79,7 +79,7 @@ or unbounded generation history.
     "ingressGapCount":"safe integer >=0",
     "rejectedIngressCount":"safe integer >=0",
     "droppedIngressCount":"safe integer >=0",
-    "acceptedListenerCount":"integer 0..8",
+    "acceptedListenerCount":"safe integer >=0",
     "closedListenerCount":"safe integer >=0",
     "deliveredBytes":"safe integer >=0",
     "backpressureClosureCount":"safe integer >=0",
@@ -106,24 +106,24 @@ Exact relations:
   process restart creates a new value;
 - `closedListenerCount <= acceptedListenerCount`;
 - `activeListenerCount = acceptedListenerCount - closedListenerCount` while
-  active, and is zero when finalized;
+  active, is at most eight, and is zero when finalized;
 - `backpressureClosureCount <= closedListenerCount`;
 - `generationFenceDisconnectCount <= closedListenerCount`; and
 - all counters are monotonic within one generation and never reset in place.
 
 ## Counter provenance
 
-- Complete-frame normalization is a structural `RelaySource` behavior whether
-  diagnostics are enabled or disabled. Network fragmentation is reconciled
-  with a bounded carry of at most `channels*2-1` bytes; a terminal partial is
-  never delivered, increments `droppedIngressCount` when observed, and is not
-  counted as ingress. Diagnostics therefore cannot change callback chunking,
-  listener queue pressure, delivered PCM, or terminal-partial handling.
+- `RelaySource` forwards the exact original callback chunks whether diagnostics
+  are enabled or disabled. A private diagnostic scalar carry reconciles network
+  fragmentation without changing callback segmentation, listener queue
+  pressure, delivered PCM, or terminal-partial handling. Complete frames enter
+  `ingressFrames/Bytes`; a terminal diagnostic carry of at most
+  `channels*2-1` bytes increments `droppedIngressCount` once and is excluded.
 - `ingressFrames/Bytes` reserve the captured generation and feed timestamp,
-  but advance only in `Hub._broadcast` after the Hub commits the same complete
-  payload to `total_bytes`. A pending reservation keeps an ending generation
-  reachable until that scheduled commit completes; snapshots never expose the
-  bytes early.
+  but advance only in `Hub._broadcast` after the Hub commits the same callback
+  payload to `total_bytes`. The reportable prior remains unavailable until its
+  pending commits complete; a coverage-lost generation's delayed callback is
+  intentionally unobserved. Snapshots never expose bytes early.
 - `ingressGapCount` increments when accepted feed callbacks in one generation
   are separated by strictly more than twice the later callback's nominal audio
   duration. Equality is not a gap; lifecycle boundaries are not gaps.
@@ -193,7 +193,7 @@ parent privacy disclosure covers normal relay output as well as reports.
 | Restart | `structural`: no durable E10.1 state; restart creates a new generation ID and cannot reuse prior counters. |
 | Dependency failure | `not_applicable`: E10.1 has no network, credential, Game, State, or collector dependency. |
 | Corruption | `runtime`: exact snapshot construction rejects non-finite, out-of-range, impossible, or unknown state without partial output. |
-| Capacity | `runtime`: `Server.stream` admits at most eight live plus in-flight listener slots; the snapshot owner independently rejects a ninth. One active plus one prior generation are reportable, and the bounded detached map exists only for those fixed clients or already-scheduled ingress commits. |
+| Capacity | `runtime`: `Server.stream` admits at most eight live plus in-flight listener slots; the snapshot owner independently rejects a ninth active listener. Accepted/closed counts remain cumulative safe integers. One active plus one prior generation are reportable, and every detached record requires one of those fixed live clients. |
 
 ## E10.1 matrix-derived verification
 
@@ -243,8 +243,8 @@ Status: `implemented; local counterexample pass complete; independent review pen
 E10.2 is not authorized by this checkpoint.
 
 The remediated pinned sibling target is
-`7fab3edf7be087855d79660ec8f13584c2ba85ba` (tree
-`d8cbc2b4925cbd95201c3deb9f220d8477249ba7`). It adds the exact
+`6ee671d304e505ad42639f6d43a4a46786e10c34` (tree
+`ab4369b2e1d1035aefeeaa4ae4ba4756214c9156`). It adds the exact
 `RelayDiagnostics` owner, generation creation at successful claim, bounded
 frame carry, generation-bound listener attribution, and scalar hooks at the
 existing ingress/drain/fence/cleanup commit points. It performs no network or
@@ -264,20 +264,25 @@ The local counterexample pass closed these schedules before review:
 - a Hub ingress snapshot becoming visible before the same payload commits;
 - publisher handoff or disconnect during the listener header drain rebinding
   or silently omitting that listener; and
-- a ninth listener entering through an in-flight admission race.
+- a ninth concurrent listener entering through an in-flight admission race;
+- nine sequential listeners invalidating cumulative accepted/closed counters;
+- delayed old-generation PCM reaching a newly admitted generation; and
+- pending callbacks growing the detached-generation map without live clients.
 
 Enforcement lives in `src/btaudio/relay_diagnostics.py`; `RelaySource` owns
-claim/feed/release identity and structural bounded carry; `Hub` commits bytes
-before ingress observation; and `Server.stream` owns the eight-slot reservation
-and post-header generation check. The immutable client generation continues to
-own delivery/fence/close updates. The current and prior generations are the
-only reportable objects; bounded detached records disappear on their final
-client cleanup or already-scheduled ingress commit.
+claim/feed/release identity while forwarding the original chunks unchanged;
+the snapshot owner keeps only private scalar frame carries. `Hub` commits bytes
+before ingress observation and filters a scheduled publisher payload to clients
+of that same generation. `Server.stream` owns the eight-slot reservation and
+post-header generation check. The immutable client generation and captured
+frame size own delivery/fence/close updates. The current and prior generations
+are the only reportable objects; bounded detached records disappear on their
+final client cleanup.
 
 Local verification:
 
-- focused relay diagnostics: `18/18` pass;
-- full pinned sibling suite: `277/277` pass;
+- focused relay diagnostics: `24/24` pass;
+- full pinned sibling suite: `283/283` pass;
 - affected Ruff: pass;
 - compileall and sibling/CannaBeats diff checks: pass; and
 - the exact CannaBeats pin assertion: pass as part of managed-source discovery.
