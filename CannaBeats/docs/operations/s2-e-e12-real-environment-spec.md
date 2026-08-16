@@ -104,7 +104,7 @@ These thresholds are fixed before provisioning:
 
 | Measurement | Pass boundary and owner on failure |
 | --- | --- |
-| Synchronization | during each five-minute foreground enabled run, each listener/source/relay producer attempts at least 30 exchanges and at least 27 succeed; every accepted local RTT is `<= 2,000 ms` and server receive/send is ordered inside the retained exchange; otherwise return to E2/E8/E9/E10 |
+| Synchronization | during each five-minute foreground enabled run, each listener/source/relay producer attempts at least 30 exchanges and at least 27 distinct E2 samples appear in accepted retained reports; HTTP success alone never counts. Every retained accepted local RTT is `<= 2,000 ms` and server receive/send is ordered inside the retained exchange; otherwise return to E2/E8/E9/E10 |
 | Listener/source/relay windows | each foreground producer contributes at least 240,000 ms of accepted coverage during five minutes; accepted windows are positive and `<= 10,000 ms`; each listener records at most three explicit local coverage gaps and each source/relay records at most three finite `coverage_gap` notices; delayed browser coverage is one explicit local gap rather than split or fabricated; otherwise E5/E9/E10 |
 | Clock comparison | only E2-mapped intervals sharing the issued timebase may establish precedence; overlap remains insufficient; otherwise E2/E3 |
 | Playback non-interference | two sequential five-minute steady-track runs—upload disabled, then enabled—each show zero new underrun, overflow, reconnect, or dropped-PCM events and uninterrupted publication/listener playback; this is an observed parity gate, not a causal benchmark; otherwise E4/E5/E9/E10 |
@@ -224,15 +224,28 @@ a finite result. Thresholds are not changed after the run.
 
 Before external authorization, a checked-in `tools/s2f-evidence.mjs` and its
 tests must implement the following bounded observation boundary. The tool is
-both the loopback one-shot fault proxy and an allowlisted sampler. It records
-route family, action, finite status, monotonic timestamp, and an ephemeral role
-label, but never request/response bodies, request IDs, trace/instance IDs,
-credentials, URLs, addresses, or native errors. It counts synchronization
-attempts and successes at the proxy; transiently reads the complete collector
-trace through the production Game/E2 restoration seam; aggregates accepted
-window count/duration and last sequence by ephemeral producer/instance label;
-reads the E6 `gapCount` projection and source/relay finite `coverage_gap`
-notices; samples only the allowlisted app containers and source systemd PIDs
+both the loopback one-shot fault proxy and an allowlisted sampler. One proxy
+profile sits on each configured Game-to-collector, source-to-Game, and
+relay-to-Game diagnostic path. It records route family, action, finite status,
+monotonic timestamp, and an ephemeral role label, but never records
+request/response bodies, request IDs, trace/instance/sample IDs, credentials,
+URLs, addresses, or native errors. It may parse only the exact route identity
+fields in memory to bind attempts to the encrypted ephemeral role map. Proxy
+request arrival counts as an attempt; HTTP response status never counts as a
+successful synchronization.
+
+The sampler transiently reads the complete collector trace through the
+production Game/E2 restoration seam. A synchronization success is one distinct
+restored E2 sample referenced by an accepted retained report for that producer;
+this is deliberately conservative when a successful sample produced no report.
+The sampler aggregates those distinct samples, accepted window count/duration,
+and last sequence by ephemeral producer/instance label. For each listener, the
+operator enters the integer displayed as E6 `gapCount` through the fixed
+`browser-gap --role <listener-a|listener-b> --count <safe-integer>` command and
+confirms the displayed role before submission. Source and relay gap counts come
+only from exact `coverage_gap` finite notices in their allowlisted systemd
+journal units; all other journal text is ignored. The tool samples only the
+allowlisted app containers and source systemd PIDs
 through the `/proc` formulas above; then emits only fixed finite categories and
 count/min/max/median/p95 aggregates. Raw samples and the role-to-identity map
 remain only in the encrypted manifest and are deleted during cleanup.
