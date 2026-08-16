@@ -49,10 +49,10 @@ The provider context is `cannabeats-p2e1`. Existing Droplets
 (`cannabeats-audio-source-poc`) are protected and read-only for this rehearsal.
 The two retained image IDs above are protected. New resources use a unique
 `cannabeats-s2f-YYYYMMDD-*` prefix, size `s-2vcpu-4gb` (two 4-GiB hosts,
-currently USD 24/month each; planned eight-hour compute below USD 1 total),
+currently USD 24/month each; a same-session rehearsal is expected below USD 1),
 project `6751c1ab-8303-490d-af5b-0f6ecf35d22c`, VPC
 `3d117cd8-9efc-4df5-9cc7-8ff1a2ee15f1`, operator SSH-key ID `29645296`, no
-public IPv6, no Droplet agent, and a hard eight-hour local-service lifetime.
+public IPv6 and no Droplet agent.
 Public IPv4 exists only
 for controlled outbound TCP `80/443` and the DNS/Tailscale UDP traffic required
 for enrollment and Spotify. Before either Droplet is created, the operator
@@ -146,7 +146,7 @@ a finite result. Thresholds are not changed after the run.
 | Restart | `runtime`: application service restart, collector restart, source reboot, relay restart, and browser refresh restore only their documented durable or volatile state; exact IDs are recorded across each edge. |
 | Dependency failure | `runtime`: a loopback-only one-shot fault proxy produces post-upstream-response loss, bounded delay, and malformed dependency output without logging bodies. Collector faults preserve unrelated planes; Access/State faults produce their documented readiness degradation; Spotify/browser interruption retains S2-D external-effect semantics. |
 | Corruption | `runtime`: real hosts rerun startup validation and one isolated restored-copy corruption check; production or protected data is never corrupted for evidence. |
-| Capacity | `runtime`: one ledger fixes two hosts, three browser contexts, two listeners, one trace, existing protocol maxima, the eight-hour lifetime, and cleanup reserve; no fleet extrapolation is made. |
+| Capacity | `runtime`: one ledger fixes two hosts, three browser contexts, two listeners, one trace, existing protocol maxima, and cleanup reserve; no fleet extrapolation is made. |
 
 ## Ordered rehearsal
 
@@ -156,11 +156,10 @@ a finite result. Thresholds are not changed after the run.
    image IDs, local build identities, tool versions, browser versions, provider
    account/context, VPC, protected resource IDs, and the intended disposable
    names.
-2. Create the sanitized rehearsal ledger, exact-ID cleanup script, and rendered
-   eight-hour host service-stop/sanitize timer; verify provider/Tailscale
-   cleanup authority. The timer cannot be armed until a host exists: during the
-   creation-to-bootstrap interval the provider control plane, unique resource
-   prefix, and immediately recorded exact IDs are the fallback. Obtain
+2. Create the sanitized rehearsal ledger and exact-ID cleanup script; verify
+   provider/Tailscale cleanup authority. The provider control plane, unique
+   resource prefix, and immediately recorded exact IDs are the recovery path.
+   Obtain
    explicit operator authorization for Droplets, the unique provider tag and
    firewall, public egress, Tailscale ephemeral node/key/certificate and CT
    publication, temporary Spotify authorization, and final destructive
@@ -183,8 +182,7 @@ a finite result. Thresholds are not changed after the run.
    and verify no IPv6, no Droplet agent, the union of all effectively attached
    firewall rules contains only the exact private TCP `22` rule sourced from
    protected jump Droplet `559513055`, has no public or other inbound rule, and
-   has only the approved outbound rules. As the first bootstrap action on each host, install, arm, and verify
-   its pre-rendered eight-hour stop/sanitize timer. Every exit after this step enters the
+   has only the approved outbound rules. Every exit after this step enters the
    cleanup branch in section 6, including operator-machine or network failure.
 2. Transfer an archive of the exact candidate rather than the working tree.
 3. Enroll both hosts as the exact ephemeral user-owned Tailscale nodes through
@@ -434,16 +432,13 @@ operator to recover exact IDs if the local ledger cannot be reached.
    Remove browser profiles, cookies, credentials, fault-proxy state, temporary
    restore data, backup material, and generated one-run keys.
 3. Stop and remove only the diagnostics container, run checked diagnostic
-   volume disposal, and prove authority volumes remain. Sanitize both hosts and
-   allow the pre-armed local timer to remain a fallback until destruction.
+   volume disposal, and prove authority volumes remain. Sanitize both hosts.
 4. Destroy and confirm absence of only the ledger-listed disposable Droplets
    before deleting the rehearsal firewall and provider tag. If a host
    is unreachable, use the ledger or provider-control-plane IDs; host
    cleanup is not a prerequisite for provider deletion. Verify provider,
    Tailscale, Compose, volume, credential, local temporary-file, and browser
-   inventories are empty. Host destruction constitutes final timer disarm; if
-   destruction is delayed, keep the verified timer armed until absence is
-   confirmed.
+   inventories are empty.
 5. Retain no new provider snapshot unless a separate review explicitly
    authorizes its sanitized contents. Scan the final ledger and repository diff
    before declaring cleanup complete.
@@ -475,7 +470,7 @@ received independent authority/lifecycle, topology/evidence, and HTTP/privacy
 review. Remediation was recorded through
 `2ebef5347a86deebc4815b9d0cde965d4bdf0dda`. Narrow re-review of the affected
 seams found `P0=0`, `P1=0`, and `P2=0`: action-specific browser ownership,
-accepted-sample evidence, cleanup/timer ordering, private jump-only firewall
+accepted-sample evidence, cleanup ordering, private jump-only firewall
 bootstrap, and user-owned ephemeral Tailscale verification are design-closed.
 
 This record authorizes only the checked-in local sampler/fault-proxy increment.

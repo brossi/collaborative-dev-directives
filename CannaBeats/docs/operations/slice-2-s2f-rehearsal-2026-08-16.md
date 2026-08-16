@@ -1,13 +1,13 @@
-# Slice 2 S2-F real-environment rehearsal — YYYY-MM-DD
+# Slice 2 S2-F real-environment rehearsal — 2026-08-16
 
 - Status: `rehearsal incomplete`
 - Governing specification: [E12 real-environment rehearsal](s2-e-e12-real-environment-spec.md)
-- Candidate commit: `REQUIRED`
-- Candidate tree: `REQUIRED`
-- Pinned btaudio commit/tree: `REQUIRED`
+- Candidate commit: `f31a36c0d88f5e0d12f8f3fe7d2cf6f5df4c7871`
+- Candidate tree: `a2d74f3c9a3b58b4a5f148830ab6b09dec613118`
+- Pinned btaudio commit/tree: `42f1e1a5c8af8ae02bba175941b63fe4f0c647c6` / `ba787da3c377ac8660568e50f784f7b656586d92`
 - Application image digest: `REQUIRED`
-- Source release identity: `REQUIRED`
-- Rehearsal start/end UTC: `REQUIRED`
+- Source release identity: pinned btaudio commit/tree above
+- Rehearsal start/end UTC: `2026-08-16T14:03:43Z` / `pending`
 - Operator: `operator-confirmed` (no account name retained)
 
 This ledger is the sanitized durable record. It must not contain credentials,
@@ -21,17 +21,17 @@ once and are never written to this ledger or a second credential store.
 
 Record one finite authorization result before the first external mutation:
 
-- [ ] two disposable NYC3 `s-2vcpu-4gb` Droplets from the exact retained snapshots;
-- [ ] one unique provider tag and private-jump-only firewall;
-- [ ] controlled public egress and no public inbound beyond the approved private jump rule;
-- [ ] single-use Tailscale keys, two ephemeral nodes, HTTPS certificate, and acknowledged CT publication;
-- [ ] temporary Spotify authorization;
-- [ ] disposable credentials, browser profiles, backup/restore copies, and evidence inputs; and
-- [ ] destructive exact-ID cleanup of every rehearsal-owned resource.
+- [x] two disposable NYC3 `s-2vcpu-4gb` Droplets from the exact retained snapshots;
+- [x] one unique provider tag and private-jump-only firewall;
+- [x] controlled public egress and no public inbound beyond the approved private jump rule;
+- [x] single-use Tailscale keys, two ephemeral nodes, HTTPS certificate, and acknowledged CT publication;
+- [x] temporary Spotify authorization;
+- [x] disposable credentials, browser profiles, backup/restore copies, and evidence inputs; and
+- [x] destructive exact-ID cleanup of every rehearsal-owned resource.
 
-- Authorization UTC: `NOT AUTHORIZED`
-- Authorization result: `pending|authorized|refused`
-- Interactive Mac/iPhone/Tailscale/Spotify availability: `unconfirmed`
+- Authorization UTC: `2026-08-16T13:41:00Z`
+- Authorization result: `authorized`
+- Interactive Mac/iPhone/Tailscale/Spotify availability: `operator-confirmed`
 
 If any item remains pending, stop before provider mutation.
 
@@ -39,15 +39,15 @@ If any item remains pending, stop before provider mutation.
 
 | Gate | Required evidence | Result |
 | --- | --- | --- |
-| Exact source | clean candidate commit/tree and sibling pin | `pending` |
-| Local closure | E12 design/local evidence P0/P1/P2 = 0 | `pending` |
+| Exact source | clean candidate commit/tree and sibling pin | `pass` |
+| Local closure | E12 design/local evidence P0/P1/P2 = 0 | `pass` |
 | Images | exact local image IDs and successful production build | `pending` |
-| Protected inventory | protected provider resources recorded by ID and read-only | `pending` |
-| Recovery inventory | unique prefix plus immediately recorded exact IDs; provider/Tailscale control planes reconciled | `pending` |
-| Cleanup authority | exact-ID provider/Tailscale cleanup access verified | `pending` |
-| Provider boundary | project/VPC/SSH key/snapshot/size/cost and requested names fixed | `pending` |
-| Tailnet boundary | devices enrolled; MagicDNS/HTTPS/policy state recorded; no policy mutation required | `pending` |
-| Browser/device boundary | exact browser versions and physical audio availability recorded | `pending` |
+| Protected inventory | protected provider resources recorded by ID and read-only | `pass` |
+| Recovery inventory | `cannabeats-s2f-20260816-01`; exact IDs recorded immediately; provider/Tailscale inventories recoverable | `pass` |
+| Cleanup authority | exact-ID provider/Tailscale cleanup access verified | `pass` |
+| Provider boundary | project/VPC/SSH key/snapshot/size/cost and requested names fixed | `pass` |
+| Tailnet boundary | Mac+iPhone enrolled; MagicDNS/HTTPS enabled; no policy mutation required | `pass` |
+| Browser/device boundary | macOS 26.5.1/Safari 26.5/Chrome 151.0.7922.138; iOS 26.6; audio operator-confirmed | `pass` |
 
 ## Sanitized resource inventory
 
@@ -56,14 +56,14 @@ may be retained; addresses, keys, tokens, and provider/account identity may not.
 
 | Resource | Requested identity | Assigned sanitized ID | Created UTC | Removed UTC | Absence verified |
 | --- | --- | --- | --- | --- | --- |
-| Provider tag | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Rehearsal firewall | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Application Droplet | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Source Droplet | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Application Tailscale node | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Source Tailscale node | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Diagnostics Compose project/volume | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
-| Isolated restore target | `REQUIRED` | `pending` | `pending` | `pending` | `pending` |
+| Provider tag | `cannabeats-s2f-20260816-01` | `pending` | `pending` | `pending` | `pending` |
+| Rehearsal firewall | `cannabeats-s2f-20260816-01-firewall` | `pending` | `pending` | `pending` | `pending` |
+| Application Droplet | `cannabeats-s2f-20260816-01-app` | `pending` | `pending` | `pending` | `pending` |
+| Source Droplet | `cannabeats-s2f-20260816-01-source` | `pending` | `pending` | `pending` | `pending` |
+| Application Tailscale node | `cannabeats-s2f-20260816-01-app` | `pending` | `pending` | `pending` | `pending` |
+| Source Tailscale node | `cannabeats-s2f-20260816-01-source` | `pending` | `pending` | `pending` | `pending` |
+| Diagnostics Compose project/volume | `cannabeats-s2f-20260816-01` | `pending` | `pending` | `pending` | `pending` |
+| Isolated restore target | `cannabeats-s2f-20260816-01-restore` | `pending` | `pending` | `pending` | `pending` |
 
 ## Bootstrap and topology
 
