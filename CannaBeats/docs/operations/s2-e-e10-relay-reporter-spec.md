@@ -1,6 +1,6 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.0/E10.1 independently closed; E10.2 implemented and locally verified, independent review pending`.
+Status: `E10.0/E10.1 independently closed; E10.2 audit remediation implemented and locally verified, narrow re-review pending`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
@@ -461,11 +461,11 @@ and collector failure isolation.
 
 ## E10.2 implementation checkpoint
 
-Status: `implemented and locally verified; independent review pending`.
+Status: `audit remediation implemented and locally verified; narrow affected-seam re-review pending`.
 
 The pinned sibling implementation is
-`ea259eb7f0ed00db3643411a80ae335f06e8ad45` (tree
-`1dbf47fe792e1d1e78f5f1d7c3b5ba90f5ebc456`). It adds the strict
+`c9f99fe0f3aee64f7cbe6cc3f82bea69644e1665` (tree
+`0708123bc9d0584b3c4ccf96a2acb9dc2c021db2`). It adds the strict
 `RelayGameClient`, the one-slot `RelayReporter`, optional relay CLI attachment,
 and fixed relay-mode operational output. `RelaySource`, `Hub`, and listener
 tasks do not call or await the reporter.
@@ -495,12 +495,26 @@ The local counterexample pass added and closed:
 - a cancelled default-executor request delaying process shutdown;
 - a publisher-close fence being mislabeled as `generation_replaced`; and
 - a malformed dependency error or redirect impersonating a finite terminal
-  result.
+  result;
+- accepted synchronization retry results being paired with an earlier failed
+  exchange instead of the successful attempt;
+- an unusable retained synchronization observation poisoning every retry;
+- an ignored generation omitted behind the occupied prior slot preventing a
+  later generation from being adopted;
+- final counter changes after a queued window being consumed without a bounded
+  coverage-gap notice;
+- a fenced final consuming the terminal reason before
+  `generation_stopped` was emitted;
+- terminal evidence attempting to reuse an E2 sample older than 60 seconds;
+- malformed URL, oversized credential, and dependency calls that ignore their
+  socket timeout escaping the optional-plane boundary; and
+- operational logger failure terminating the reporter task and obstructing
+  relay cleanup.
 
 Local verification at this checkpoint:
 
-- pinned sibling full suite: `301/301` pass;
-- focused reporter tests: `19/19` pass;
+- pinned sibling full suite: `313/313` pass;
+- focused reporter tests: `28/28` pass;
 - focused E10.0/E10.1 plus server/ingest regression: `102/102` pass;
 - affected Ruff and Python compileall: pass;
 - CannaBeats E1/E8 producer boundary: `28/28` pass;
@@ -512,5 +526,7 @@ Local verification at this checkpoint:
 
 The matrix intentionally does not claim installed relay-host credentials,
 systemd wiring, real network timing, or measured reporter overhead. E12 owns
-those fresh-host and real-host proofs. E10.2 closure requires an independent
-review of this exact pinned target with no open P0/P1.
+those fresh-host and real-host proofs. E10.2 closure requires only a narrow
+re-review of the affected timing, terminal, omission, dependency, and cleanup
+seams on this exact pinned target; unchanged authority/topology surfaces do not
+require another broad audit.
