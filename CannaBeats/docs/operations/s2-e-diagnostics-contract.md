@@ -934,8 +934,11 @@ waived in rehearsal notes.
 
 Detailed specification packet:
 [E12 real-environment rehearsal](s2-e-e12-real-environment-spec.md). Its
-external create/destroy and temporary Spotify authorization steps require a
-separate exact-resource operator approval before execution.
+external Droplet, provider-tag/firewall and public-egress mutations; Tailscale
+ephemeral node/auth-key/certificate creation (including Certificate
+Transparency hostname publication and any separately required tailnet-policy
+or HTTPS change); temporary Spotify authorization; and exact destructive
+cleanup require a separate exact-resource operator approval before execution.
 
 ## Local acceptance gate
 
