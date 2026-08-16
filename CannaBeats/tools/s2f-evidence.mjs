@@ -2,13 +2,14 @@
 
 import http from 'node:http';
 import process from 'node:process';
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, readlink } from 'node:fs/promises';
 import { TextEncoder } from 'node:util';
 import { restoreUploadedEnvelopeFromTrustedStore } from '../web/lib/s2e-e2-correlation.mjs';
 import { createDiagnosticCollectorClient } from '../web/lib/server/diagnostic-collector-client.mjs';
 
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
-const MAX_INPUT_BYTES = 2 * 1024 * 1024;
+const MAX_INPUT_BYTES = 32 * 1024 * 1024;
 const MAX_PROXY_BODY_BYTES = 8192;
 const MAX_REPORTS = 4096;
 const MAX_ATTEMPTS = 512;
@@ -16,13 +17,13 @@ const MAX_SAMPLES = 512;
 const ROLES = new Set(['listener-a', 'listener-b', 'source', 'relay']);
 const LISTENERS = new Set(['listener-a', 'listener-b']);
 const PRODUCERS = Object.freeze(['listener-a', 'listener-b', 'source', 'relay']);
-const KINDS = Object.freeze({
-  'listener-a': 'listener_window',
-  'listener-b': 'listener_window',
-  source: 'source_window',
-  relay: 'relay_window',
+const FAMILIES = Object.freeze({
+  'listener-a': 'listener',
+  'listener-b': 'listener',
+  source: 'source',
+  relay: 'relay',
 });
-const ROUTES = new Set(['collector-sync', 'listener-sync', 'source-sync', 'relay-sync', 'passthrough']);
+const ROUTES = new Set(['collector-sync', 'passthrough']);
 const HOP_HEADERS = new Set([
   'connection', 'content-length', 'host', 'keep-alive', 'proxy-authenticate',
   'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'accept-encoding',
@@ -98,7 +99,7 @@ function validateRoleInstances(value) {
       fail('evidence_invalid');
     }
     for (const [label, instanceId] of entries) {
-      if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(label)
+      if (!/^instance-(0[1-9]|1[0-6])$/.test(label)
         || typeof instanceId !== 'string' || owner.has(instanceId)) fail('evidence_invalid');
       owner.set(instanceId, Object.freeze({ producer, label }));
     }
@@ -109,17 +110,16 @@ function validateRoleInstances(value) {
 function validateAttempts(values) {
   if (!Array.isArray(values) || values.length > MAX_ATTEMPTS) fail('evidence_invalid');
   const counts = Object.fromEntries(PRODUCERS.map((producer) => [producer, 0]));
-  let previous = -1;
+  const previous = Object.fromEntries(PRODUCERS.map((producer) => [producer, -1]));
   for (const value of values) {
     exact(value, ['role', 'routeFamily', 'action', 'monotonicMs']);
     const producer = role(value.role);
     if (!ROUTES.has(value.routeFamily) || value.routeFamily === 'passthrough'
       || value.action !== 'synchronize') fail('evidence_invalid');
-    const expected = `${producer.startsWith('listener') ? 'listener' : producer}-sync`;
-    if (value.routeFamily !== expected && value.routeFamily !== 'collector-sync') fail('evidence_invalid');
+    if (value.routeFamily !== 'collector-sync') fail('evidence_invalid');
     finite(value.monotonicMs);
-    if (value.monotonicMs < previous) fail('evidence_invalid');
-    previous = value.monotonicMs;
+    if (value.monotonicMs < previous[producer]) fail('evidence_invalid');
+    previous[producer] = value.monotonicMs;
     counts[producer] += 1;
   }
   return counts;
@@ -167,61 +167,72 @@ function validateReports(values, owners, traceId) {
     if (envelope.serverContext.traceId !== traceId) fail('report_invalid');
     const core = envelope.measurementCore;
     const owned = owners.get(core.instanceId);
-    if (!owned) continue;
+    if (!owned) fail('report_invalid');
     const { producer, label } = owned;
-    if (core.kind !== KINDS[producer]) fail('report_invalid');
+    if (![`${FAMILIES[producer]}_window`, `${FAMILIES[producer]}_transition`].includes(core.kind)) {
+      fail('report_invalid');
+    }
     const identity = `${core.instanceId}:${core.sequence}`;
     if (identities.has(identity)) fail('report_duplicate');
     identities.add(identity);
     samples[producer].add(envelope.alignment.sample.sampleId);
-    windows[producer] += 1;
     const prior = lastSequence[producer];
     lastSequence[producer] = prior === null ? core.sequence : Math.max(prior, core.sequence);
     const instance = instances[producer][label];
     instance.acceptedSampleIds.add(envelope.alignment.sample.sampleId);
-    instance.acceptedWindowCount += 1;
     instance.lastSequence = instance.lastSequence === null
       ? core.sequence : Math.max(instance.lastSequence, core.sequence);
-    instance.intervals.push([core.monotonicStartMs, core.monotonicStartMs + core.durationMs]);
+    if (core.kind.endsWith('_window')) {
+      windows[producer] += 1;
+      instance.acceptedWindowCount += 1;
+      const start = (envelope.alignment.mappedStartEarliestMs
+        + envelope.alignment.mappedStartLatestMs) / 2;
+      const end = (envelope.alignment.mappedEndEarliestMs
+        + envelope.alignment.mappedEndLatestMs) / 2;
+      if (end > start) instance.intervals.push([start, end]);
+    }
   }
+  const intervalProjection = (values) => {
+    const ordered = [...values].sort((left, right) => left[0] - right[0] || left[1] - right[1]);
+    let gapCount = 0;
+    let coverageMs = 0;
+    let currentStart = null;
+    let priorEnd = null;
+    for (const [start, end] of ordered) {
+      if (priorEnd !== null && start > priorEnd) {
+        gapCount += 1;
+        coverageMs += priorEnd - currentStart;
+        currentStart = start;
+      } else if (currentStart === null) {
+        currentStart = start;
+      }
+      priorEnd = priorEnd === null ? end : Math.max(priorEnd, end);
+    }
+    if (priorEnd !== null) coverageMs += priorEnd - currentStart;
+    finite(coverageMs);
+    return Object.freeze({ coverageMs, gapCount });
+  };
   return Object.fromEntries(PRODUCERS.map((producer) => {
-    let retainedCoverageGapCount = 0;
-    let acceptedCoverageMs = 0;
+    const roleIntervals = [];
     const projectedInstances = Object.freeze(Object.fromEntries(Object.entries(instances[producer]).map(
       ([label, value]) => {
-        const ordered = [...value.intervals].sort((left, right) => left[0] - right[0]);
-        let instanceGapCount = 0;
-        let instanceCoverageMs = 0;
-        let currentStart = null;
-        let priorEnd = null;
-        for (const [start, end] of ordered) {
-          if (priorEnd !== null && start > priorEnd) {
-            instanceGapCount += 1;
-            instanceCoverageMs += priorEnd - currentStart;
-            currentStart = start;
-          } else if (currentStart === null) {
-            currentStart = start;
-          }
-          priorEnd = priorEnd === null ? end : Math.max(priorEnd, end);
-        }
-        if (priorEnd !== null) instanceCoverageMs += priorEnd - currentStart;
-        retainedCoverageGapCount += instanceGapCount;
-        acceptedCoverageMs += instanceCoverageMs;
-        if (!Number.isSafeInteger(acceptedCoverageMs)) fail('evidence_invalid');
+        roleIntervals.push(...value.intervals);
+        const projected = intervalProjection(value.intervals);
         return [label, Object.freeze({
           acceptedSampleCount: value.acceptedSampleIds.size,
           acceptedWindowCount: value.acceptedWindowCount,
-          acceptedCoverageMs: instanceCoverageMs,
-          retainedCoverageGapCount: instanceGapCount,
+          acceptedCoverageMs: projected.coverageMs,
+          retainedCoverageGapCount: projected.gapCount,
           lastSequence: value.lastSequence,
         })];
       },
     )));
+    const roleProjection = intervalProjection(roleIntervals);
     return [producer, Object.freeze({
       acceptedSampleCount: samples[producer].size,
       acceptedWindowCount: windows[producer],
-      acceptedCoverageMs,
-      retainedCoverageGapCount,
+      acceptedCoverageMs: roleProjection.coverageMs,
+      retainedCoverageGapCount: roleProjection.gapCount,
       lastSequence: lastSequence[producer],
       instances: projectedInstances,
     })];
@@ -231,6 +242,7 @@ function validateReports(values, owners, traceId) {
 function validateHostSamples(values) {
   if (!Array.isArray(values) || values.length > MAX_SAMPLES) fail('evidence_invalid');
   const byHost = new Map();
+  const rosterByHost = new Map();
   for (const value of values) {
     exact(value, ['hostRole', 'monotonicMs', 'totalCpuTicks', 'processes']);
     if (!['application', 'source'].includes(value.hostRole)) fail('evidence_invalid');
@@ -240,17 +252,27 @@ function validateHostSamples(values) {
       fail('evidence_invalid');
     }
     const names = new Set();
+    const identities = new Set();
+    const roster = [];
     let cpuTicks = 0;
     let rssBytes = 0;
     for (const processValue of value.processes) {
-      exact(processValue, ['service', 'cpuTicks', 'rssBytes']);
+      exact(processValue, ['service', 'identity', 'cpuTicks', 'rssBytes']);
       if (typeof processValue.service !== 'string' || processValue.service.length < 1
-        || processValue.service.length > 64 || names.has(processValue.service)) fail('evidence_invalid');
+        || processValue.service.length > 64 || names.has(processValue.service)
+        || typeof processValue.identity !== 'string' || !/^[0-9a-f]{64}$/.test(processValue.identity)
+        || identities.has(processValue.identity)) fail('evidence_invalid');
       names.add(processValue.service);
+      identities.add(processValue.identity);
+      roster.push(`${processValue.service}:${processValue.identity}`);
       cpuTicks += safeInteger(processValue.cpuTicks);
       rssBytes += safeInteger(processValue.rssBytes);
       if (!Number.isSafeInteger(cpuTicks) || !Number.isSafeInteger(rssBytes)) fail('evidence_invalid');
     }
+    roster.sort();
+    const rosterKey = roster.join('|');
+    if (!rosterByHost.has(value.hostRole)) rosterByHost.set(value.hostRole, rosterKey);
+    else if (rosterByHost.get(value.hostRole) !== rosterKey) fail('evidence_invalid');
     const list = byHost.get(value.hostRole) ?? [];
     list.push({ monotonicMs: value.monotonicMs, totalCpuTicks: value.totalCpuTicks, cpuTicks, rssBytes });
     byHost.set(value.hostRole, list);
@@ -279,10 +301,13 @@ function validateHostSamples(values) {
 }
 
 export function summarizeEvidence(input) {
-  exact(input, ['version', 'traceId', 'roleInstances', 'attempts', 'reports', 'browserGaps', 'coverageNotices', 'hostSamples']);
+  exact(input, ['version', 'traceId', 'reportCount', 'roleInstances', 'attempts', 'reports', 'browserGaps', 'coverageNotices', 'hostSamples']);
   if (input.version !== 1 || typeof input.traceId !== 'string' || !UUID.test(input.traceId)) {
     fail('evidence_invalid');
   }
+  safeInteger(input.reportCount);
+  if (input.reportCount > MAX_REPORTS || !Array.isArray(input.reports)
+    || input.reportCount !== input.reports.length) fail('evidence_invalid');
   const owners = validateRoleInstances(input.roleInstances);
   const attempts = validateAttempts(input.attempts);
   const reports = validateReports(input.reports, owners, input.traceId);
@@ -310,7 +335,8 @@ export async function readCompleteTrace({ traceId, collector }) {
   const reports = [];
   let cursor = null;
   let metadata = null;
-  for (let page = 0; page < 17; page += 1) {
+  const seenCursors = new Set();
+  for (let page = 0; page < 16; page += 1) {
     let result;
     try { result = await collector.readTrace({ traceId, cursor }); }
     catch { fail('collector_unavailable'); }
@@ -331,6 +357,9 @@ export async function readCompleteTrace({ traceId, collector }) {
       return Object.freeze(reports);
     }
     if (result.cursor === null) fail('collector_response_invalid');
+    const cursorKey = JSON.stringify(result.cursor);
+    if (seenCursors.has(cursorKey)) fail('collector_response_invalid');
+    seenCursors.add(cursorKey);
     cursor = result.cursor;
   }
   fail('collector_response_invalid');
@@ -348,12 +377,18 @@ export function coverageNoticeRecords(producer, lines) {
   const output = [];
   for (const line of lines) {
     if (typeof line !== 'string' || Buffer.byteLength(line) > 2048) fail('evidence_invalid');
-    let accepted = line === 'coverage_gap';
-    if (!accepted && producer === 'source') {
+    let accepted = producer === 'relay' && line === 'coverage_gap';
+    if (producer === 'source') {
       try {
         const parsed = JSON.parse(line);
-        accepted = record(parsed).service === 'managed-source-controller'
+        exact(parsed, [
+          'timestamp', 'level', 'service', 'environment', 'event', 'message',
+          'applicationVersion', 'catalogVersion', 'reasonCode',
+        ]);
+        accepted = parsed.level === 'warn'
+          && parsed.service === 'managed-source-controller'
           && parsed.event === 'diagnostics.reporter_unavailable'
+          && parsed.message === 'Source diagnostics evidence is incomplete'
           && parsed.reasonCode === 'coverage_gap';
       } catch { accepted = false; }
     }
@@ -375,16 +410,17 @@ function cpuTicks(text) {
   return total;
 }
 
-function processTicks(text) {
+function processIdentityFields(text) {
   const close = text.lastIndexOf(')');
   if (close < 2) fail('sample_invalid');
   const fields = text.slice(close + 1).trim().split(/\s+/);
-  if (fields.length < 13 || !/^\d+$/.test(fields[11]) || !/^\d+$/.test(fields[12])) {
+  if (fields.length < 20 || !/^\d+$/.test(fields[11]) || !/^\d+$/.test(fields[12])
+    || !/^\d+$/.test(fields[19])) {
     fail('sample_invalid');
   }
   const total = Number(fields[11]) + Number(fields[12]);
   if (!Number.isSafeInteger(total)) fail('sample_invalid');
-  return total;
+  return Object.freeze({ cpuTicks: total, startTimeTicks: fields[19] });
 }
 
 function residentBytes(text) {
@@ -398,22 +434,35 @@ function residentBytes(text) {
 export async function readHostSample({
   hostRole,
   allowlistedProcesses,
-  monotonicMs = Math.floor(performance.now()),
+  monotonicMs = Number(process.hrtime.bigint() / 1_000_000n),
   procRoot = '/proc',
   readText = (path) => readFile(path, 'utf8'),
+  readLink = (path) => readlink(path),
 }) {
   if (!['application', 'source'].includes(hostRole)
     || !(allowlistedProcesses instanceof Map) || allowlistedProcesses.size < 1
     || allowlistedProcesses.size > 32 || procRoot !== '/proc') fail('configuration_invalid');
   const processes = [];
-  for (const [service, pid] of allowlistedProcesses) {
+  for (const [service, expected] of allowlistedProcesses) {
     if (typeof service !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(service)
-      || !Number.isSafeInteger(pid) || pid < 1) fail('configuration_invalid');
+      || !expected || typeof expected !== 'object' || Array.isArray(expected)
+      || !Number.isSafeInteger(expected.pid) || expected.pid < 1
+      || typeof expected.executable !== 'string' || !expected.executable.startsWith('/')
+      || typeof expected.cgroup !== 'string' || expected.cgroup.length < 1
+      || expected.cgroup.length > 1024) fail('configuration_invalid');
     try {
+      const stat = processIdentityFields(await readText(`/proc/${expected.pid}/stat`));
+      const cgroup = (await readText(`/proc/${expected.pid}/cgroup`)).trim();
+      const executable = await readLink(`/proc/${expected.pid}/exe`);
+      if (cgroup !== expected.cgroup || executable !== expected.executable) fail('sample_invalid');
+      const identity = createHash('sha256').update(
+        `${stat.startTimeTicks}\0${cgroup}\0${executable}`,
+      ).digest('hex');
       processes.push(Object.freeze({
         service,
-        cpuTicks: processTicks(await readText(`/proc/${pid}/stat`)),
-        rssBytes: residentBytes(await readText(`/proc/${pid}/status`)),
+        identity,
+        cpuTicks: stat.cpuTicks,
+        rssBytes: residentBytes(await readText(`/proc/${expected.pid}/status`)),
       }));
     } catch (error) {
       if (error instanceof S2FEvidenceError) throw error;
@@ -436,6 +485,10 @@ function loopbackHost(hostname) {
   return hostname === '127.0.0.1' || hostname === '::1' || hostname === 'localhost';
 }
 
+function privateServiceHost(hostname) {
+  return loopbackHost(hostname) || /^[a-z0-9][a-z0-9-]{0,62}$/.test(hostname);
+}
+
 async function boundedBody(stream, maximum = MAX_PROXY_BODY_BYTES) {
   const chunks = [];
   let total = 0;
@@ -445,6 +498,28 @@ async function boundedBody(stream, maximum = MAX_PROXY_BODY_BYTES) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks, total);
+}
+
+function boundedWait(promise, deadlineMs, onTimeout) {
+  if (!Number.isFinite(deadlineMs) || deadlineMs <= 0) fail('request_timeout');
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (action, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      action(value);
+    };
+    const timer = setTimeout(() => {
+      try { onTimeout?.(); } catch { /* finite cleanup */ }
+      finish(reject, new S2FEvidenceError('request_timeout'));
+    }, deadlineMs);
+    promise.then((value) => finish(resolve, value), (error) => finish(reject, error));
+  });
+}
+
+async function boundedIncomingBody(stream, maximum, deadlineMs) {
+  return boundedWait(boundedBody(stream, maximum), deadlineMs, () => stream.destroy());
 }
 
 async function boundedResponseBody(response, maximum = MAX_PROXY_BODY_BYTES) {
@@ -458,7 +533,7 @@ async function boundedResponseBody(response, maximum = MAX_PROXY_BODY_BYTES) {
       if (done) break;
       total += value.byteLength;
       if (total > maximum) {
-        try { await reader.cancel(); } catch { /* finite cleanup */ }
+        try { void reader.cancel().catch(() => {}); } catch { /* finite cleanup */ }
         fail('upstream_invalid');
       }
       chunks.push(Buffer.from(value));
@@ -477,11 +552,12 @@ export function createOneShotFaultProxy({
   routeFamily,
   identityRoleMap,
   onAttempt = () => {},
+  onResult = () => {},
   fetchImpl = fetch,
 }) {
   let upstream;
   try { upstream = new URL(upstreamOrigin); } catch { fail('configuration_invalid'); }
-  if (upstream.protocol !== 'http:' || !loopbackHost(upstream.hostname) || upstream.pathname !== '/'
+  if (upstream.protocol !== 'http:' || !privateServiceHost(upstream.hostname) || upstream.pathname !== '/'
     || upstream.username !== '' || upstream.password !== '' || upstream.search !== ''
     || upstream.hash !== '') {
     fail('configuration_invalid');
@@ -494,15 +570,15 @@ export function createOneShotFaultProxy({
   for (const [identity, producer] of identityRoleMap ?? []) {
     if (typeof identity !== 'string' || !UUID.test(identity)) fail('configuration_invalid');
     role(producer);
-    if (routeFamily !== 'collector-sync'
-      && routeFamily !== `${producer.startsWith('listener') ? 'listener' : producer}-sync`) {
-      fail('configuration_invalid');
-    }
   }
   if (!['forward', 'drop-after-response', 'delay', 'malformed'].includes(mode)) fail('configuration_invalid');
   safeInteger(delayMs); safeInteger(deadlineMs, { positive: true });
   if (delayMs > 10000 || deadlineMs > 10000) fail('configuration_invalid');
   let faultAvailable = mode !== 'forward';
+  const result = (value) => {
+    try { onResult(Object.freeze({ type: 'proxy_result', routeFamily, mode, ...value })); }
+    catch { /* observation cannot alter forwarding */ }
+  };
 
   return http.createServer(async (request, response) => {
     const finish = (status, body) => {
@@ -513,71 +589,73 @@ export function createOneShotFaultProxy({
     try {
       if (request.method !== 'POST' || typeof request.url !== 'string' || !request.url.startsWith('/')) {
         finish(404, '{"error":"unavailable","code":"unavailable"}');
+        result({ outcome: 'refused', status: 404 });
         return;
       }
       if (request.url.startsWith('//')) fail('request_invalid');
       const upstreamTarget = new URL(request.url, upstream);
       if (upstreamTarget.origin !== upstream.origin) fail('request_invalid');
-      const body = await boundedBody(request);
-      if (classifiesAttempt) {
+      const startedAtMs = Number(process.hrtime.bigint() / 1_000_000n);
+      const remaining = () => deadlineMs
+        - (Number(process.hrtime.bigint() / 1_000_000n) - startedAtMs);
+      const body = await boundedIncomingBody(request, MAX_PROXY_BODY_BYTES, remaining());
+      if (classifiesAttempt && request.url === '/v1/game/synchronization/issue') {
         let parsed;
         try { parsed = JSON.parse(body.toString('utf8')); } catch { fail('request_invalid'); }
         let identity;
-        if (routeFamily === 'collector-sync') {
-          exact(parsed, ['traceId', 'issuance'], 'request_invalid');
-          record(parsed.issuance, 'request_invalid');
-          identity = parsed.issuance.instanceId;
-          if (request.url !== '/v1/game/synchronization/issue') fail('request_invalid');
-        } else {
-          const identityField = routeFamily === 'listener-sync' ? 'grantId'
-            : routeFamily === 'source-sync' ? 'sourceGrantId' : 'relayGenerationId';
-          exact(parsed, ['action', 'requestId', identityField], 'request_invalid');
-          if (parsed.action !== 'synchronize' || typeof parsed.requestId !== 'string'
-            || !UUID.test(parsed.requestId)) fail('request_invalid');
-          identity = parsed[identityField];
-        }
+        exact(parsed, ['traceId', 'issuance'], 'request_invalid');
+        record(parsed.issuance, 'request_invalid');
+        identity = parsed.issuance.instanceId;
         if (typeof identity !== 'string' || !UUID.test(identity)) fail('request_invalid');
         const producer = identityRoleMap.get(identity);
         if (!producer) fail('request_invalid');
-        onAttempt(Object.freeze({
-          role: producer, routeFamily, action: 'synchronize', monotonicMs: Math.floor(performance.now()),
-        }));
+        try {
+          onAttempt(Object.freeze({
+            role: producer, routeFamily, action: 'synchronize',
+            monotonicMs: Number(process.hrtime.bigint() / 1_000_000n),
+          }));
+        } catch { /* observation cannot alter forwarding */ }
       }
       const headers = Object.create(null);
       for (const [name, value] of Object.entries(request.headers)) {
         if (!HOP_HEADERS.has(name) && value !== undefined) headers[name] = value;
       }
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), deadlineMs);
       let upstreamResponse;
       let upstreamBody;
       try {
-        upstreamResponse = await fetchImpl(upstreamTarget, {
+        upstreamResponse = await boundedWait(fetchImpl(upstreamTarget, {
           method: 'POST', headers, body,
           redirect: 'manual', signal: controller.signal,
-        });
-        upstreamBody = await boundedResponseBody(upstreamResponse);
+        }), remaining(), () => controller.abort());
+        upstreamBody = await boundedWait(
+          boundedResponseBody(upstreamResponse), remaining(),
+          () => { controller.abort(); try { void upstreamResponse.body?.cancel(); } catch { /* cleanup */ } },
+        );
         if (upstreamResponse.status < 100
           || upstreamResponse.status > 599 || (upstreamResponse.status >= 300 && upstreamResponse.status < 400)) {
           fail('upstream_invalid');
         }
-      } finally {
-        clearTimeout(timer);
-      }
+      } finally { controller.abort(); }
       const applyFault = faultAvailable;
       faultAvailable = false;
       if (applyFault && mode === 'drop-after-response') {
         response.destroy();
+        result({ outcome: 'response_lost', status: upstreamResponse.status });
         return;
       }
       if (applyFault && mode === 'delay') await new Promise((resolve) => setTimeout(resolve, delayMs));
       if (applyFault && mode === 'malformed') {
         finish(200, '{');
+        result({ outcome: 'malformed', status: 200 });
         return;
       }
       finish(upstreamResponse.status, upstreamBody);
+      result({ outcome: applyFault && mode === 'delay' ? 'delayed' : 'forwarded',
+        status: upstreamResponse.status });
     } catch {
       finish(503, '{"error":"Diagnostics are temporarily unavailable.","code":"diagnostic_unavailable"}');
+      result({ outcome: 'unavailable', status: 503 });
     }
   });
 }
@@ -616,7 +694,9 @@ async function main() {
     const reports = await readCompleteTrace({
       traceId: input.traceId, collector: createDiagnosticCollectorClient(),
     });
-    process.stdout.write(`${JSON.stringify(summarizeEvidence({ ...input, reports }))}\n`);
+    process.stdout.write(`${JSON.stringify(summarizeEvidence({
+      ...input, reportCount: reports.length, reports,
+    }))}\n`);
     return;
   }
   if (command === 'browser-gap') {
@@ -633,8 +713,7 @@ async function main() {
     let allowlistedProcesses;
     try {
       const parsed = JSON.parse(process.env.S2F_ALLOWLISTED_PIDS_JSON ?? '');
-      allowlistedProcesses = new Map(Object.entries(record(parsed, 'configuration_invalid'))
-        .map(([service, pid]) => [service, Number(pid)]));
+      allowlistedProcesses = new Map(Object.entries(record(parsed, 'configuration_invalid')));
     } catch { fail('configuration_invalid'); }
     delete process.env.S2F_ALLOWLISTED_PIDS_JSON;
     process.stdout.write(`${JSON.stringify(await readHostSample({
@@ -657,6 +736,7 @@ async function main() {
       delayMs: Number(process.argv.includes('--delay-ms') ? argument('--delay-ms') : 0),
       routeFamily, identityRoleMap,
       onAttempt: (value) => process.stdout.write(`${JSON.stringify(value)}\n`),
+      onResult: (value) => process.stdout.write(`${JSON.stringify(value)}\n`),
     });
     server.on('error', () => { process.exitCode = 1; });
     server.listen(Number(argument('--port')), '127.0.0.1');

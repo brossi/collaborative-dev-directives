@@ -27,6 +27,27 @@ function renderedCompose(environment = {}) {
   return JSON.parse(result.stdout);
 }
 
+function renderedS2fCompose() {
+  const result = spawnSync('docker', [
+    'compose', '-f', 'compose.yaml', '-f', 'compose.state-cutover.yaml',
+    '-f', 'compose.s2f.yaml', '--profile', 'diagnostics', '--profile', 'state-cutover',
+    '--profile', 's2f', 'config', '--format', 'json',
+  ], {
+    cwd: composeDirectory,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      CANNABEATS_RELEASE_EPOCH: 's2f-topology-test',
+      CANNABEATS_GAME_IMAGE: 'cannabeats/game:s2f-exact',
+      S2F_EPHEMERAL_ROLE_MAP:
+        '{"123e4567-e89b-42d3-a456-426614174000":"source"}',
+    },
+  });
+  if (result.error?.code === 'ENOENT') return null;
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout);
+}
+
 test('diagnostics is one private optional service with one disposable volume', (context) => {
   const compose = renderedCompose();
   if (!compose) {
@@ -145,4 +166,39 @@ test('authority operations and audio topology have no diagnostics dependency or 
   const restore = readFileSync(resolve(composeDirectory, 'deploy/restore-rehearsal.compose.yaml'), 'utf8');
   assert.doesNotMatch(backup, /diagnostic/i);
   assert.doesNotMatch(restore, /diagnostic/i);
+});
+
+test('S2-F evidence profile attaches one private collector proxy with scoped Game authority', (context) => {
+  const compose = renderedS2fCompose();
+  if (!compose) {
+    context.skip('Docker Compose is unavailable');
+    return;
+  }
+  const game = compose.services.game;
+  const evidence = compose.services['diagnostics-evidence'];
+  assert.equal(game.image, 'cannabeats/game:s2f-exact');
+  assert.equal(evidence.image, game.image);
+  assert.equal(game.environment.CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN,
+    'http://127.0.0.1:3021');
+  assert.deepEqual(evidence.profiles, ['s2f']);
+  assert.equal(evidence.network_mode, 'service:game');
+  assert.equal(evidence.ports, undefined);
+  assert.equal(evidence.read_only, true);
+  assert.deepEqual(evidence.cap_drop, ['ALL']);
+  assert.deepEqual(evidence.security_opt, ['no-new-privileges:true']);
+  assert.equal(evidence.environment.CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN,
+    'http://diagnostics:3020');
+  assert.equal(evidence.environment.CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE, undefined);
+  assert.deepEqual(evidence.volumes.map((volume) => volume.target), [
+    '/run/secrets/cannabeats/diagnostics-game-token',
+  ]);
+  assert.deepEqual(evidence.entrypoint, ['node', '/app/tools/s2f-evidence.mjs']);
+  assert.deepEqual(evidence.command.slice(0, 2), ['proxy', '--upstream']);
+
+  const dockerfile = readFileSync(resolve(repositoryRoot, 'web/Dockerfile'), 'utf8');
+  assert.match(dockerfile, /COPY --chown=node:node tools\/s2f-evidence\.mjs/);
+  assert.match(dockerfile, /diagnostic-collector-client\.mjs/);
+  const wrapper = readFileSync(resolve(repositoryRoot, 'tools/run-s2f-host-sample.sh'), 'utf8');
+  assert.match(wrapper, /--network none --pid host --read-only/);
+  assert.match(wrapper, /S2F_ALLOWLISTED_PIDS_JSON/);
 });

@@ -105,7 +105,7 @@ These thresholds are fixed before provisioning:
 | Measurement | Pass boundary and owner on failure |
 | --- | --- |
 | Synchronization | during each five-minute foreground enabled run, each listener/source/relay producer attempts at least 30 exchanges and at least 27 distinct E2 samples appear in accepted retained reports; HTTP success alone never counts. Every retained accepted local RTT is `<= 2,000 ms` and server receive/send is ordered inside the retained exchange; otherwise return to E2/E8/E9/E10 |
-| Listener/source/relay windows | each foreground producer contributes at least 240,000 ms of unioned accepted coverage during five minutes; accepted windows are positive and `<= 10,000 ms`; each listener records at most three explicit local coverage gaps and each source/relay has at most three discontinuities between retained intervals of one instance. Finite `coverage_gap` notices are recorded as supporting observations, not the numerical authority; delayed browser coverage is one explicit local gap rather than split or fabricated; otherwise E5/E9/E10 |
+| Listener/source/relay windows | each foreground producer contributes at least 240,000 ms of unioned mapped accepted coverage during five minutes; accepted windows are positive and `<= 10,000 ms`; each listener records at most three explicit local coverage gaps and each source/relay has at most three discontinuities in its role-wide mapped interval union. Finite `coverage_gap` notices and per-instance discontinuities are recorded as supporting observations, not the numerical role gate; delayed browser coverage is one explicit local gap rather than split or fabricated; otherwise E5/E9/E10 |
 | Clock comparison | only E2-mapped intervals sharing the issued timebase may establish precedence; overlap remains insufficient; otherwise E2/E3 |
 | Playback non-interference | two sequential five-minute steady-track runs—upload disabled, then enabled—each show zero new underrun, overflow, reconnect, or dropped-PCM events and uninterrupted publication/listener playback; this is an observed parity gate, not a causal benchmark; otherwise E4/E5/E9/E10 |
 | Real-client usefulness | sampled every five seconds, enabled host CPU p95 may rise by at most 10 percentage points of total two-vCPU host capacity and resident memory by at most 128 MiB relative to the disabled run; neither host may OOM/restart, and the foreground coverage/synchronization gates above must hold. Portable iPhone CPU/RSS is not claimed. |
@@ -224,10 +224,14 @@ a finite result. Thresholds are not changed after the run.
 
 Before external authorization, a checked-in `tools/s2f-evidence.mjs` and its
 tests must implement the following bounded observation boundary. The tool is
-both the loopback one-shot fault proxy and an allowlisted sampler. One proxy
-profile sits on each configured Game-to-collector, source-to-Game, and
-relay-to-Game diagnostic path. It records route family, action, finite status,
-monotonic timestamp, and an ephemeral role label, but never records
+both the loopback one-shot fault proxy and an allowlisted sampler. The single
+classified `collector-sync` profile sits only on Game's multiplexed collector
+origin, transparently forwards non-issuance routes, and counts synchronization
+attempts only at `/v1/game/synchronization/issue`. Body-silent `passthrough`
+profiles may be inserted on the other already-classified mutation paths solely
+to inject a one-shot response fault; they never count synchronization attempts.
+Each profile records route family, finite outcome/status, and monotonic time,
+but never records
 request/response bodies, request IDs, trace/instance/sample IDs, credentials,
 URLs, addresses, or native errors. It may parse only the exact route identity
 fields in memory to bind attempts to the encrypted ephemeral role map. Proxy
@@ -240,16 +244,25 @@ restored E2 sample referenced by an accepted retained report for that producer;
 this is deliberately conservative when a successful sample produced no report.
 The sampler aggregates those distinct samples, unioned accepted interval
 duration, retained interval discontinuities, and last sequence by ephemeral
-producer/instance label. For each listener, the
+producer/instance label. Coverage uses the midpoint of each restored E2 mapped
+start/end bound and unions those trace-time intervals first per instance and
+then across every instance of the role, so overlapping successor generations
+cannot double-count real coverage. Instance labels are restricted to
+`instance-01` through `instance-16`; caller/member-authored labels cannot enter
+retained output. For each listener, the
 operator enters the integer displayed as E6 `gapCount` through the fixed
 `browser-gap --role <listener-a|listener-b> --count <safe-integer>` command and
 confirms the displayed role before submission. Source and relay numerical gap
-counts come from discontinuities between restored retained windows of the same
-instance. Exact `coverage_gap` finite notices from their allowlisted systemd
+counts come from discontinuities in the union of restored mapped windows across
+the role; the summary also retains each safe-labeled instance's discontinuity
+count. Exact `coverage_gap` finite notices from their allowlisted systemd
 journal units are retained only as supporting counts; all other journal text is
-ignored. The tool samples only the
-allowlisted app containers and source systemd PIDs
-through the `/proc` formulas above; then emits only fixed finite categories and
+ignored. The tool samples only the allowlisted app containers and source
+systemd PIDs through the `/proc` formulas above. Each allowlisted process is
+rebound on every sample to its exact executable link, cgroup membership, and
+start-time field; only a hash of those facts, fixed service label, and
+allowlisted scalar counters enter the raw sample. The stable complete roster is
+required across the series before the tool emits fixed finite categories and
 count/min/max/median/p95 aggregates. Raw samples and the role-to-identity map
 remain only in the encrypted manifest and are deleted during cleanup.
 
@@ -269,22 +282,24 @@ Its implementation matrix is:
 | Delete | `not_applicable`: the tool owns no durable state; encrypted raw-input cleanup remains the mandatory E12 manifest operation. |
 | Omit | `runtime`: exact top-level fields, all four instance-label maps, trace binding, restored accepted samples, unioned interval coverage/discontinuities, gap inputs, and both host aggregates are required before output. |
 | Duplicate | `runtime`: instance ownership is unique and duplicate report identity fails before aggregation; distinct sample IDs alone count as synchronization success. |
-| Reorder | `runtime`: proxy attempts must be monotonic; host samples are ordered by monotonic time and invalid/nonpositive deltas fail; report order does not alter aggregate totals. |
+| Reorder | `runtime`: proxy attempts must be monotonic within each role; proxy and one-shot host-sample processes use host monotonic time; host samples are ordered by that time and invalid/nonpositive deltas fail; report order does not alter aggregate totals. |
 | Replay | `structural`: summarization is pure; a fault profile consumes its one-shot mode once, and later requests pass through normally. |
 | Conflict | `runtime`: foreign trace, cross-role instance reuse, wrong route/identity, and unknown profile identity fail before output or forwarding. |
 | Concurrency | `structural`: one Node event loop atomically consumes the one-shot fault flag; the tool performs no concurrent durable mutation. |
 | Expiry | `not_applicable`: E2 restoration proves sample validity; the tool does not create or extend authority/retention. |
 | Restart | `not_applicable`: no tool state is claimed durable; restart re-creates a profile from the encrypted manifest and cannot count as response-loss evidence already in flight. |
-| Dependency failure | `runtime`: fault-proxy request/upstream bodies are capped at 8 KiB, production collector pages retain their existing 2 MiB cap, upstream work has a five-second default deadline, delay is capped at ten seconds, redirects/native failures normalize finitely, and peer disconnect cannot alter authority. |
+| Dependency failure | `runtime`: the deadline starts before inbound-body reading and bounds body, fetch, and response-body completion even when a dependency ignores abort; fault-proxy request/upstream bodies are capped at 8 KiB, production collector pages retain their existing 2 MiB cap, delay is capped at ten seconds, redirects/native failures normalize finitely, and peer disconnect cannot alter authority. |
 | Corruption | `runtime`: exact E2 envelope restoration, trace/role relations, report identity, `/proc` scalar parsing, and fixed journal/browser inputs fail closed before a summary. |
-| Capacity | `runtime`: 4,096 reports, 512 attempts/notices, 512 host samples, 32 identities/PIDs, 16 instances per role, and 2 MiB summary input are hard maxima. |
+| Capacity | `runtime`: 4,096 reports, 16 collector pages, 512 attempts/notices, 512 host samples, at most 32 allowlisted processes in each host sample, 16 instances per role (64 total), an 8 KiB proxy body, a 2 MiB collector page, and a 32 MiB offline summary input are hard maxima. |
 
 Local verification is `node --test tools/s2f-evidence.test.mjs`,
 `node --check tools/s2f-evidence.mjs`, and `git diff --check`. Tests derive the
-accepted-sample false-pass, foreign-trace/duplicate/cross-role corruption,
-browser/journal gap allowlists, `/proc` projection, loopback/upstream/body
-bounds, nested collector identity attribution, malformed output, and
-post-commit response-loss schedules from this matrix.
+accepted-sample false-pass, mapped successor overlap,
+foreign-trace/unmapped/duplicate/cross-role corruption, browser/journal gap
+allowlists, stable `/proc` roster projection, loopback/upstream/body/deadline
+bounds, exact 16-page cursor progression, nested collector identity
+attribution, multiplexed-route transparency, malformed output, and post-commit
+response-loss schedules from this matrix.
 
 The executable surfaces are deliberately small:
 
@@ -293,8 +308,9 @@ The executable surfaces are deliberately small:
   restores E2 envelopes, and writes only the sanitized summary;
 - `summarize` performs the same aggregation over an encrypted-manifest export
   for local/recovery verification;
-- `proxy` binds synchronization identities through
-  `S2F_EPHEMERAL_ROLE_MAP` or runs a body-silent `passthrough` mutation profile;
+- `proxy` binds collector issuance identities through
+  `S2F_EPHEMERAL_ROLE_MAP`, transparently forwards every other collector route,
+  or runs a body-silent `passthrough` mutation profile;
 - `host-sample` reads only PIDs supplied through
   `S2F_ALLOWLISTED_PIDS_JSON`; and
 - `browser-gap` and `coverage-notices` accept only their fixed role/code forms.
@@ -302,6 +318,17 @@ The executable surfaces are deliberately small:
 The two environment maps are removed from the tool process immediately after
 parsing. They and collector credentials are transient encrypted-manifest
 inputs, never command-line arguments or retained summary fields.
+
+The checked-in attachment is equally narrow. The production Game image copies
+the tool and only its E1/E2/collector-client dependencies. The
+`spikes/access-spotify-poc/compose.s2f.yaml` overlay runs that exact image in
+Game's network namespace, moves only Game's collector origin to loopback, and
+mounts only the Game-scoped collector credential; it publishes no port and has
+no maintenance credential. `tools/run-s2f-host-sample.sh` runs the same exact
+image with no network, a read-only filesystem, the host PID namespace, and the
+encrypted-manifest allowlist. Other passthrough placements remain explicit
+per-schedule client-origin overrides recorded in the encrypted manifest; the
+tool is never described as transparently intercepting traffic without one.
 
 The browser action worksheet has one row per action and uses these exact
 expectations:

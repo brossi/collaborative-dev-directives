@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import net from 'node:net';
 import test from 'node:test';
 
 import {
@@ -70,17 +71,30 @@ function relayMeasurements() {
   };
 }
 
-function envelope(producer, sequence = 0, traceId = TRACE) {
-  const instanceId = INSTANCES[producer];
-  const kind = producer.startsWith('listener') ? 'listener_window' : `${producer}_window`;
+function envelope(
+  producer,
+  sequence = 0,
+  traceId = TRACE,
+  transition = false,
+  instanceId = INSTANCES[producer],
+  sampleOffset = 0,
+) {
+  const family = producer.startsWith('listener') ? 'listener' : producer;
+  const kind = `${family}_${transition ? 'transition' : 'window'}`;
   const monotonicStartMs = 120 + (sequence * 10_000);
+  const transitionMeasurements = family === 'listener'
+    ? { type: 'request_started', category: 'observed', connectionAttemptSequence: 0, elapsedMs: 0 }
+    : family === 'source' ? { type: 'capture_started', category: 'observed' }
+      : { type: 'process_started', category: 'observed' };
   const measurement = validateMeasurementJson(bytes({
     schemaVersion: 1, kind, instanceId, sequence, monotonicStartMs,
-    durationMs: 10_000,
-    measurements: producer.startsWith('listener') ? listenerMeasurements()
-      : producer === 'source' ? sourceMeasurements() : relayMeasurements(),
+    durationMs: transition ? 0 : 10_000,
+    measurements: transition ? transitionMeasurements
+      : producer.startsWith('listener') ? listenerMeasurements()
+        : producer === 'source' ? sourceMeasurements() : relayMeasurements(),
   }));
-  const sampleId = id(100 + (Object.keys(INSTANCES).indexOf(producer) * 1000) + sequence);
+  const sampleId = id(100 + (Object.keys(INSTANCES).indexOf(producer) * 1000)
+    + sequence + sampleOffset);
   const issuance = createSynchronizationIssuanceFixtureForTest(bytes({
     sampleId, timebaseId: traceId, instanceId,
     serverReceiveMs: monotonicStartMs + 880, serverSendMs: monotonicStartMs + 885,
@@ -104,31 +118,34 @@ function envelope(producer, sequence = 0, traceId = TRACE) {
 }
 
 function input(overrides = {}) {
-  return {
+  const value = {
     version: 1,
     traceId: TRACE,
-    roleInstances: Object.fromEntries(Object.entries(INSTANCES).map(([key, value]) => [key, { initial: value }])),
+    roleInstances: Object.fromEntries(Object.entries(INSTANCES).map(([key, value]) => [key, { 'instance-01': value }])),
     attempts: [
-      { role: 'listener-a', routeFamily: 'listener-sync', action: 'synchronize', monotonicMs: 1 },
-      { role: 'listener-b', routeFamily: 'listener-sync', action: 'synchronize', monotonicMs: 2 },
-      { role: 'source', routeFamily: 'source-sync', action: 'synchronize', monotonicMs: 3 },
-      { role: 'relay', routeFamily: 'relay-sync', action: 'synchronize', monotonicMs: 4 },
+      { role: 'listener-a', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: 1 },
+      { role: 'listener-b', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: 2 },
+      { role: 'source', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: 3 },
+      { role: 'relay', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: 4 },
     ],
     reports: Object.keys(INSTANCES).map((producer) => envelope(producer)),
     browserGaps: { 'listener-a': 1, 'listener-b': 2 },
     coverageNotices: [{ role: 'source', code: 'coverage_gap' }],
     hostSamples: [
       { hostRole: 'application', monotonicMs: 0, totalCpuTicks: 100,
-        processes: [{ service: 'game', cpuTicks: 10, rssBytes: 1000 }] },
+        processes: [{ service: 'game', identity: 'a'.repeat(64), cpuTicks: 10, rssBytes: 1000 }] },
       { hostRole: 'application', monotonicMs: 5000, totalCpuTicks: 200,
-        processes: [{ service: 'game', cpuTicks: 20, rssBytes: 1200 }] },
+        processes: [{ service: 'game', identity: 'a'.repeat(64), cpuTicks: 20, rssBytes: 1200 }] },
       { hostRole: 'source', monotonicMs: 0, totalCpuTicks: 50,
-        processes: [{ service: 'source', cpuTicks: 5, rssBytes: 800 }] },
+        processes: [{ service: 'source', identity: 'b'.repeat(64), cpuTicks: 5, rssBytes: 800 }] },
       { hostRole: 'source', monotonicMs: 5000, totalCpuTicks: 150,
-        processes: [{ service: 'source', cpuTicks: 15, rssBytes: 900 }] },
+        processes: [{ service: 'source', identity: 'b'.repeat(64), cpuTicks: 15, rssBytes: 900 }] },
     ],
-    ...overrides,
   };
+  const merged = { ...value, ...overrides };
+  merged.reportCount = Object.hasOwn(overrides, 'reportCount')
+    ? overrides.reportCount : merged.reports.length;
+  return merged;
 }
 
 function code(expected, action) {
@@ -141,7 +158,7 @@ test('sanitized summary counts restored accepted samples and fixed gap sources',
     attempts: 1, acceptedSampleCount: 1, acceptedWindowCount: 1,
     acceptedCoverageMs: 10_000, retainedCoverageGapCount: 0,
     lastSequence: 0, gapCount: 1, noticeCount: null,
-    instances: { initial: {
+    instances: { 'instance-01': {
       acceptedSampleCount: 1, acceptedWindowCount: 1,
       acceptedCoverageMs: 10_000, retainedCoverageGapCount: 0, lastSequence: 0,
     } },
@@ -157,7 +174,7 @@ test('sanitized summary counts restored accepted samples and fixed gap sources',
 
 test('HTTP attempts cannot impersonate accepted E2 samples', () => {
   const attempts = Array.from({ length: 30 }, (_, index) => ({
-    role: 'listener-a', routeFamily: 'listener-sync', action: 'synchronize', monotonicMs: index,
+    role: 'listener-a', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: index,
   }));
   const reports = Array.from({ length: 24 }, (_, index) => envelope('listener-a', index));
   const result = summarizeEvidence(input({ attempts, reports }));
@@ -171,12 +188,12 @@ test('instance labels keep retired and successor evidence separate without retai
   const result = summarizeEvidence(input({
     roleInstances: {
       ...input().roleInstances,
-      'listener-a': { initial: INSTANCES['listener-a'], 'reset-1': successorId },
+      'listener-a': { 'instance-01': INSTANCES['listener-a'], 'instance-02': successorId },
     },
     reports: [envelope('listener-a', 0)],
   }));
-  assert.equal(result.producers['listener-a'].instances.initial.lastSequence, 0);
-  assert.deepEqual(result.producers['listener-a'].instances['reset-1'], {
+  assert.equal(result.producers['listener-a'].instances['instance-01'].lastSequence, 0);
+  assert.deepEqual(result.producers['listener-a'].instances['instance-02'], {
     acceptedSampleCount: 0, acceptedWindowCount: 0,
     acceptedCoverageMs: 0, retainedCoverageGapCount: 0, lastSequence: null,
   });
@@ -196,26 +213,51 @@ test('coverage is the interval union and retained discontinuities are counted', 
   assert.equal(gap.producers.source.gapCount, 1);
 });
 
+test('mapped transitions belong to the complete trace without inflating window coverage', () => {
+  const result = summarizeEvidence(input({ reports: [
+    envelope('source', 0), envelope('source', 1, TRACE, true),
+  ] }));
+  assert.equal(result.producers.source.acceptedSampleCount, 2);
+  assert.equal(result.producers.source.acceptedWindowCount, 1);
+  assert.equal(result.producers.source.acceptedCoverageMs, 10_000);
+});
+
+test('mapped trace-time coverage unions overlapping successor instances once', () => {
+  const successor = id(5000);
+  const roleInstances = structuredClone(input().roleInstances);
+  roleInstances.source['instance-02'] = successor;
+  const reports = input().reports.filter((value) => value.measurementCore.kind !== 'source_window');
+  reports.push(envelope('source', 0), envelope('source', 0, TRACE, false, successor, 50));
+  const result = summarizeEvidence(input({ roleInstances, reports }));
+  assert.equal(result.producers.source.acceptedWindowCount, 2);
+  assert.equal(result.producers.source.acceptedCoverageMs, 10_000);
+  assert.equal(result.producers.source.instances['instance-01'].acceptedCoverageMs, 10_000);
+  assert.equal(result.producers.source.instances['instance-02'].acceptedCoverageMs, 10_000);
+});
+
 test('duplicate report identity and role substitution fail closed', () => {
   const report = envelope('listener-a');
   code('report_duplicate', () => summarizeEvidence(input({ reports: [report, report] })));
   code('evidence_invalid', () => summarizeEvidence(input({
-    roleInstances: { ...input().roleInstances, 'listener-b': { initial: INSTANCES['listener-a'] } },
+    roleInstances: { ...input().roleInstances, 'listener-b': { 'instance-01': INSTANCES['listener-a'] } },
   })));
   code('report_invalid', () => summarizeEvidence(input({ reports: [envelope('listener-a', 0, id(9999))] })));
+  code('report_invalid', () => summarizeEvidence(input({
+    reports: [...input().reports, envelope('source', 1, TRACE, false, id(7777), 50)],
+  })));
 });
 
 test('fixed attempt, notice, host, and identity capacities reject max plus one', () => {
   for (const count of [511, 512]) {
     const accepted = summarizeEvidence(input({
       attempts: Array.from({ length: count }, (_, index) => ({
-        role: 'source', routeFamily: 'source-sync', action: 'synchronize', monotonicMs: index,
+        role: 'source', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: index,
       })),
     }));
     assert.equal(accepted.producers.source.attempts, count);
   }
   const attempts = Array.from({ length: 513 }, (_, index) => ({
-    role: 'source', routeFamily: 'source-sync', action: 'synchronize', monotonicMs: index,
+    role: 'source', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: index,
   }));
   code('evidence_invalid', () => summarizeEvidence(input({ attempts })));
   const coverageNotices = Array.from({ length: 513 }, () => ({ role: 'relay', code: 'coverage_gap' }));
@@ -224,18 +266,69 @@ test('fixed attempt, notice, host, and identity capacities reject max plus one',
     coverageNotices: Array.from({ length: 512 }, () => ({ role: 'relay', code: 'coverage_gap' })),
   })).producers.relay.noticeCount, 512);
   code('evidence_invalid', () => summarizeEvidence(input({ hostSamples: [] })));
-  const relayInstances = Object.fromEntries(
-    Array.from({ length: 16 }, (_, index) => [`g-${index}`, id(6000 + index)]),
-  );
+  const changedRoster = structuredClone(input().hostSamples);
+  changedRoster[1].processes[0].identity = 'c'.repeat(64);
+  code('evidence_invalid', () => summarizeEvidence(input({ hostSamples: changedRoster })));
+  const relayInstances = Object.fromEntries(Array.from({ length: 16 }, (_, index) => [
+    `instance-${String(index + 1).padStart(2, '0')}`,
+    index === 0 ? INSTANCES.relay : id(6000 + index),
+  ]));
   assert.equal(Object.keys(summarizeEvidence(input({
     roleInstances: { ...input().roleInstances, relay: relayInstances },
   })).producers.relay.instances).length, 16);
   code('evidence_invalid', () => summarizeEvidence(input({
     roleInstances: {
       ...input().roleInstances,
-      relay: Object.fromEntries(Array.from({ length: 17 }, (_, index) => [`g-${index}`, id(6000 + index)])),
+      relay: Object.fromEntries(Array.from({ length: 17 }, (_, index) => [`instance-${String(index + 1).padStart(2, '0')}`, id(6000 + index)])),
     },
   })));
+});
+
+test('report and host-sample maxima accept max minus one and max and reject max plus one', () => {
+  const reports = Array.from({ length: 4096 }, (_, sequence) => envelope('source', sequence));
+  assert.equal(summarizeEvidence(input({ reports: reports.slice(0, 4095) }))
+    .producers.source.acceptedWindowCount, 4095);
+  assert.equal(summarizeEvidence(input({ reports }))
+    .producers.source.acceptedWindowCount, 4096);
+  code('evidence_invalid', () => summarizeEvidence(input({
+    reports: [...reports, reports[0]], reportCount: 4097,
+  })));
+
+  const hostSamples = (count) => Array.from({ length: count }, (_, index) => ({
+    hostRole: index < count - 2 ? 'application' : 'source',
+    monotonicMs: index < count - 2 ? index * 5000 : (index - (count - 2)) * 5000,
+    totalCpuTicks: 1000 + (index * 100),
+    processes: [{
+      service: index < count - 2 ? 'game' : 'source',
+      identity: (index < count - 2 ? 'a' : 'b').repeat(64),
+      cpuTicks: 10 + index, rssBytes: 1000 + index,
+    }],
+  }));
+  assert.equal(summarizeEvidence(input({ hostSamples: hostSamples(511) }))
+    .hosts.application.rssBytes.count, 509);
+  assert.equal(summarizeEvidence(input({ hostSamples: hostSamples(512) }))
+    .hosts.application.rssBytes.count, 510);
+  code('evidence_invalid', () => summarizeEvidence(input({ hostSamples: hostSamples(513) })));
+});
+
+test('per-host process roster accepts 31 and 32 and rejects 33', () => {
+  const roster = (count, cpuOffset = 0) => Array.from({ length: count }, (_, index) => ({
+    service: `game-${String(index).padStart(2, '0')}`,
+    identity: (index + 1).toString(16).padStart(64, '0'),
+    cpuTicks: index + cpuOffset,
+    rssBytes: 1000 + index,
+  }));
+  const samples = (count) => [
+    { hostRole: 'application', monotonicMs: 0, totalCpuTicks: 1000, processes: roster(count) },
+    { hostRole: 'application', monotonicMs: 5000, totalCpuTicks: 2000,
+      processes: roster(count, 1) },
+    ...input().hostSamples.filter((value) => value.hostRole === 'source'),
+  ];
+  assert.equal(summarizeEvidence(input({ hostSamples: samples(31) }))
+    .hosts.application.rssBytes.count, 2);
+  assert.equal(summarizeEvidence(input({ hostSamples: samples(32) }))
+    .hosts.application.rssBytes.count, 2);
+  code('evidence_invalid', () => summarizeEvidence(input({ hostSamples: samples(33) })));
 });
 
 test('browser gap input is fixed to listener roles and safe integers', () => {
@@ -247,11 +340,17 @@ test('browser gap input is fixed to listener roles and safe integers', () => {
 test('journal filtering retains only exact source and relay coverage notices', () => {
   assert.deepEqual(coverageNoticeRecords('source', [
     'coverage_gap', 'unavailable', 'coverage_gap details',
-    JSON.stringify({ service: 'managed-source-controller',
-      event: 'diagnostics.reporter_unavailable', reasonCode: 'coverage_gap', private: 'ignored' }),
+    JSON.stringify({
+      timestamp: '2026-08-16T00:00:00Z', level: 'warn', service: 'managed-source-controller',
+      environment: 'rehearsal', event: 'diagnostics.reporter_unavailable',
+      message: 'Source diagnostics evidence is incomplete', applicationVersion: 'test',
+      catalogVersion: 'test', reasonCode: 'coverage_gap',
+    }),
   ]), [
     { role: 'source', code: 'coverage_gap' },
-    { role: 'source', code: 'coverage_gap' },
+  ]);
+  assert.deepEqual(coverageNoticeRecords('relay', ['coverage_gap', 'coverage_gap detail']), [
+    { role: 'relay', code: 'coverage_gap' },
   ]);
   code('evidence_invalid', () => coverageNoticeRecords('listener-a', ['coverage_gap']));
 });
@@ -259,19 +358,28 @@ test('journal filtering retains only exact source and relay coverage notices', (
 test('host sampler reads only allowlisted proc scalars and excludes pid and paths', async () => {
   const values = new Map([
     ['/proc/stat', 'cpu  100 2 3 400 5 6 7 8 9 10\n'],
-    ['/proc/42/stat', '42 (game worker) R 1 1 1 1 1 1 1 1 1 1 20 5 0 0\n'],
+    ['/proc/42/stat', '42 (game worker) R 1 1 1 1 1 1 1 1 1 1 20 5 0 0 0 0 0 0 777 0\n'],
     ['/proc/42/status', 'Name:\tgame\nVmRSS:\t123 kB\n'],
+    ['/proc/42/cgroup', '0::/system.slice/cannabeats-game.service\n'],
   ]);
   const sample = await readHostSample({
-    hostRole: 'application', allowlistedProcesses: new Map([['game', 42]]), monotonicMs: 5000,
+    hostRole: 'application', allowlistedProcesses: new Map([['game', {
+      pid: 42, executable: '/usr/bin/node', cgroup: '0::/system.slice/cannabeats-game.service',
+    }]]), monotonicMs: 5000,
     readText: async (path) => {
       if (!values.has(path)) throw new Error('unexpected');
       return values.get(path);
     },
+    readLink: async (path) => {
+      assert.equal(path, '/proc/42/exe');
+      return '/usr/bin/node';
+    },
   });
-  assert.deepEqual(sample, {
-    hostRole: 'application', monotonicMs: 5000, totalCpuTicks: 550,
-    processes: [{ service: 'game', cpuTicks: 25, rssBytes: 125952 }],
+  assert.equal(sample.hostRole, 'application');
+  assert.equal(sample.totalCpuTicks, 550);
+  assert.match(sample.processes[0].identity, /^[0-9a-f]{64}$/);
+  assert.deepEqual({ ...sample.processes[0], identity: 'redacted' }, {
+    service: 'game', identity: 'redacted', cpuTicks: 25, rssBytes: 125952,
   });
   assert.equal(JSON.stringify(sample).includes('/proc'), false);
   assert.equal(JSON.stringify(sample).includes('42'), false);
@@ -302,6 +410,41 @@ test('complete trace reader follows the exact cursor snapshot and rejects metada
       : { status: 'found', complete: true, metadata: { ...metadata, reportCount: 3 },
         reports: [second], cursor: null } },
   }), (error) => error instanceof S2FEvidenceError && error.code === 'collector_response_invalid');
+
+  let repeatedCalls = 0;
+  await assert.rejects(readCompleteTrace({
+    traceId: TRACE,
+    collector: { readTrace: async () => {
+      repeatedCalls += 1;
+      return { status: 'found', complete: false, metadata, reports: [], cursor: { token: 1 } };
+    } },
+  }), (error) => error instanceof S2FEvidenceError && error.code === 'collector_response_invalid');
+  assert.equal(repeatedCalls, 2);
+
+  let boundaryCalls = 0;
+  const boundaryMetadata = { ...metadata, reportCount: 0 };
+  assert.deepEqual(await readCompleteTrace({
+    traceId: TRACE,
+    collector: { readTrace: async () => {
+      boundaryCalls += 1;
+      return boundaryCalls === 16
+        ? { status: 'found', complete: true, metadata: boundaryMetadata, reports: [], cursor: null }
+        : { status: 'found', complete: false, metadata: boundaryMetadata, reports: [],
+          cursor: { token: boundaryCalls } };
+    } },
+  }), []);
+  assert.equal(boundaryCalls, 16);
+
+  let overflowCalls = 0;
+  await assert.rejects(readCompleteTrace({
+    traceId: TRACE,
+    collector: { readTrace: async () => {
+      overflowCalls += 1;
+      return { status: 'found', complete: false, metadata: boundaryMetadata, reports: [],
+        cursor: { token: overflowCalls } };
+    } },
+  }), (error) => error instanceof S2FEvidenceError && error.code === 'collector_response_invalid');
+  assert.equal(overflowCalls, 16);
 });
 
 async function listen(server) {
@@ -324,25 +467,29 @@ test('one-shot malformed proxy is loopback-only, body-silent, and then forwards'
   });
   const upstreamPort = await listen(upstream);
   const attempts = [];
+  const results = [];
   const proxy = createOneShotFaultProxy({
     upstreamOrigin: `http://127.0.0.1:${upstreamPort}/`, mode: 'malformed',
-    routeFamily: 'listener-sync', identityRoleMap: new Map([[INSTANCES['listener-a'], 'listener-a']]),
-    onAttempt: (value) => attempts.push(value),
+    routeFamily: 'collector-sync', identityRoleMap: new Map([[INSTANCES['listener-a'], 'listener-a']]),
+    onAttempt: (value) => { attempts.push(value); throw new Error('observer unavailable'); },
+    onResult: (value) => results.push(value),
   });
   const proxyPort = await listen(proxy);
   try {
-    const body = JSON.stringify({
-      action: 'synchronize', requestId: id(7000), grantId: INSTANCES['listener-a'],
-    });
-    const first = await fetch(`http://127.0.0.1:${proxyPort}/v1`, { method: 'POST', body });
+    const body = JSON.stringify({ traceId: TRACE, issuance: { instanceId: INSTANCES['listener-a'] } });
+    const issueUrl = `http://127.0.0.1:${proxyPort}/v1/game/synchronization/issue`;
+    const first = await fetch(issueUrl, { method: 'POST', body });
     assert.equal(await first.text(), '{');
-    const second = await fetch(`http://127.0.0.1:${proxyPort}/v1`, { method: 'POST', body });
+    const second = await fetch(issueUrl, { method: 'POST', body });
     assert.equal(await second.text(), '{"status":"accepted"}');
     const escaped = await fetch(`http://127.0.0.1:${proxyPort}//example.com/private`, {
       method: 'POST', body,
     });
     assert.equal(escaped.status, 503);
     assert.equal(attempts.length, 2);
+    assert.deepEqual(results.map((value) => value.outcome), [
+      'malformed', 'forwarded', 'unavailable',
+    ]);
     assert.equal(JSON.stringify(attempts).includes(INSTANCES['listener-a']), false);
   } finally {
     await close(proxy);
@@ -353,16 +500,25 @@ test('one-shot malformed proxy is loopback-only, body-silent, and then forwards'
 test('proxy rejects non-loopback upstream and oversized request bodies', async () => {
   code('configuration_invalid', () => createOneShotFaultProxy({
     upstreamOrigin: 'https://example.com/', mode: 'forward',
-    routeFamily: 'relay-sync', identityRoleMap: new Map([[INSTANCES.relay, 'relay']]),
+    routeFamily: 'collector-sync', identityRoleMap: new Map([[INSTANCES.relay, 'relay']]),
   }));
-  const upstream = http.createServer((_request, response) => response.end('{}'));
+  let upstreamCalls = 0;
+  const upstream = http.createServer(async (request, response) => {
+    for await (const _chunk of request) { /* drain */ }
+    upstreamCalls += 1;
+    response.end('{}');
+  });
   const upstreamPort = await listen(upstream);
   const proxy = createOneShotFaultProxy({
     upstreamOrigin: `http://127.0.0.1:${upstreamPort}/`, mode: 'forward',
-    routeFamily: 'source-sync', identityRoleMap: new Map([[INSTANCES.source, 'source']]),
+    routeFamily: 'passthrough',
   });
   const proxyPort = await listen(proxy);
   try {
+    const boundary = await fetch(`http://127.0.0.1:${proxyPort}/v1`, {
+      method: 'POST', body: Buffer.alloc(8192),
+    });
+    assert.equal(boundary.status, 200);
     const response = await fetch(`http://127.0.0.1:${proxyPort}/v1`, {
       method: 'POST', body: Buffer.alloc(8193),
     });
@@ -370,6 +526,7 @@ test('proxy rejects non-loopback upstream and oversized request bodies', async (
     assert.deepEqual(await response.json(), {
       error: 'Diagnostics are temporarily unavailable.', code: 'diagnostic_unavailable',
     });
+    assert.equal(upstreamCalls, 1);
   } finally {
     await close(proxy);
     await close(upstream);
@@ -434,6 +591,12 @@ test('collector synchronization profile binds nested instance identity to role',
     );
     assert.equal(response.status, 200);
     assert.equal(attempts[0].role, 'listener-b');
+    const context = await fetch(
+      `http://127.0.0.1:${proxyPort}/v1/game/synchronization/context`,
+      { method: 'POST', body: JSON.stringify({ sampleId: id(7780) }) },
+    );
+    assert.equal(context.status, 200);
+    assert.equal(attempts.length, 1);
     const wrong = await fetch(
       `http://127.0.0.1:${proxyPort}/v1/game/synchronization/issue`,
       { method: 'POST', body: JSON.stringify({ traceId: TRACE, issuance: { instanceId: id(7777) } }) },
@@ -482,6 +645,45 @@ test('upstream deadline and response cap fail finitely', async () => {
   } finally {
     await close(bounded);
     await close(oversized);
+  }
+});
+
+test('deadline bounds partial inbound bodies and abort-ignoring dependencies', async () => {
+  const unused = http.createServer((_request, response) => response.end('{}'));
+  const unusedPort = await listen(unused);
+  const proxy = createOneShotFaultProxy({
+    upstreamOrigin: `http://127.0.0.1:${unusedPort}/`, mode: 'forward',
+    routeFamily: 'passthrough', deadlineMs: 20,
+  });
+  const proxyPort = await listen(proxy);
+  try {
+    const started = performance.now();
+    await new Promise((resolve, reject) => {
+      const socket = net.createConnection(proxyPort, '127.0.0.1', () => {
+        socket.write('POST /held HTTP/1.1\r\nHost: localhost\r\nContent-Length: 100\r\n\r\n{');
+      });
+      const timer = setTimeout(() => reject(new Error('partial body did not close')), 500);
+      socket.on('close', () => { clearTimeout(timer); resolve(); });
+      socket.on('error', () => { clearTimeout(timer); resolve(); });
+    });
+    assert.ok(performance.now() - started < 500);
+  } finally {
+    await close(proxy);
+    await close(unused);
+  }
+
+  const ignoring = createOneShotFaultProxy({
+    upstreamOrigin: 'http://127.0.0.1:9/', mode: 'forward', routeFamily: 'passthrough',
+    deadlineMs: 20, fetchImpl: () => new Promise(() => {}),
+  });
+  const ignoringPort = await listen(ignoring);
+  try {
+    const response = await fetch(`http://127.0.0.1:${ignoringPort}/held`, {
+      method: 'POST', body: '{}',
+    });
+    assert.equal(response.status, 503);
+  } finally {
+    await close(ignoring);
   }
 });
 

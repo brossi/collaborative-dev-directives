@@ -24,6 +24,10 @@ COPY --from=build --chown=node:node /app/web/.next/standalone ./
 COPY --from=build --chown=node:node /app/web/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/web/public ./public
 COPY --from=build --chown=node:node /app/web/scripts/game-history.mjs ./game-history.mjs
+COPY --chown=node:node tools/s2f-evidence.mjs ./tools/s2f-evidence.mjs
+COPY --chown=node:node web/lib/s2e-e1-contract.mjs ./web/lib/s2e-e1-contract.mjs
+COPY --chown=node:node web/lib/s2e-e2-correlation.mjs ./web/lib/s2e-e2-correlation.mjs
+COPY --chown=node:node web/lib/server/diagnostic-collector-client.mjs ./web/lib/server/diagnostic-collector-client.mjs
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]
