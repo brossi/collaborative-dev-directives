@@ -108,12 +108,16 @@ export function selectDiagnosticEvidence(reports) {
     fail(502,"collector_response_invalid");
   }
   const groups = new Map();
+  const identities = new Set();
   for (const report of reports) {
+    let identity;
     try {
-      uploadedEnvelopeIdentity(report);
+      identity = uploadedEnvelopeIdentity(report);
     } catch {
       fail(502,"collector_response_invalid");
     }
+    if (identities.has(identity)) fail(502,"collector_response_invalid");
+    identities.add(identity);
     if (!ALL_KINDS.has(report.measurementCore.kind)) fail(502,"collector_response_invalid");
     if (!WINDOW_KINDS.has(report.measurementCore.kind)) continue;
     const key = partitionKey(report);
@@ -130,8 +134,15 @@ export function selectDiagnosticEvidence(reports) {
       ? Math.max(...listeners.map(intervalEnd)) : Number.NEGATIVE_INFINITY;
     const newestWindow = Math.max(...values.map(intervalEnd));
     return { key,values,newestListener,newestWindow };
-  }).sort((left,right) => left.newestListener - right.newestListener
-    || left.newestWindow - right.newestWindow || left.key.localeCompare(right.key));
+  }).sort((left,right) => {
+    const listenerOrder = left.newestListener - right.newestListener;
+    if (listenerOrder) return listenerOrder;
+    if (left.newestListener === Number.NEGATIVE_INFINITY) {
+      const windowOrder = left.newestWindow - right.newestWindow;
+      if (windowOrder) return windowOrder;
+    }
+    return left.key.localeCompare(right.key);
+  });
   const group = candidates.at(-1).values;
   return Object.freeze({
     source: selectPair(group,"source_window"),

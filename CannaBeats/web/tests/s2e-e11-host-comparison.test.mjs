@@ -212,6 +212,40 @@ test("newest listener partition wins and nine recent listeners fail insufficient
   assert.equal(selectDiagnosticEvidence(reports).listeners.length,9);
 });
 
+test("listener selection enforces exact capacity and cohort-horizon boundaries", () => {
+  for (const count of [7,8,9]) {
+    const selected = selectDiagnosticEvidence([
+      ...sourcePair({ currentStart: 100_000 }),...relayPair({ currentStart: 100_000 }),
+      ...Array.from({ length: count },(_,index) => listener(index + 1,90_000)),
+    ]);
+    assert.equal(selected.listeners.length,count);
+  }
+  const reports = [
+    listener(1,90_000),
+    listener(2,30_001),
+    listener(3,30_000),
+    listener(4,29_999),
+  ];
+  assert.deepEqual(selectDiagnosticEvidence(reports).listeners.map(
+    (value) => value.measurementCore.instanceId,
+  ),[id(11),id(12),id(13)]);
+});
+
+test("listener-anchor ties use only the lexical partition and identities are unique", () => {
+  const lowerSegment = id(80);
+  const upperSegment = id(90);
+  const reports = [
+    listener(1,60_000,{}, { segmentId: lowerSegment }),
+    envelope(sourceReport(id(70),0,90_000),"source",{ segmentId: lowerSegment }),
+    listener(2,60_000,{}, { segmentId: upperSegment }),
+  ];
+  const selected = selectDiagnosticEvidence(reports);
+  assert.equal(selected.listeners[0].serverContext.correlationSegmentId,upperSegment);
+  const duplicate = listener(3,60_000);
+  assert.throws(() => selectDiagnosticEvidence([duplicate,duplicate]),
+    (error) => error.code === "collector_response_invalid");
+});
+
 test("missing contradictory and overlapping evidence remain finite and explicit", async () => {
   const cases = [
     ["source",[...relayPair({ currentStart: 70_000 }),listener(1)]],
@@ -268,10 +302,14 @@ test("paging rejects repeated cursors, cross-page substitution, and a seventeent
   assert.deepEqual(E11_LIMITS,{ maxPages: 16,maxReports: 4096,maxListeners: 8,
     cohortHorizonMs: 60_000 });
   for (const count of [255,256,257,4_095,4_096]) {
-    const result = await compareReports(Array(count).fill(item),{ pageSize: 256 });
+    const result = await compareReports(Array.from(
+      { length: count },(_,index) => listener(index + 100,60_000),
+    ),{ pageSize: 256 });
     assert.equal(result.reportCount,count);
   }
-  await assert.rejects(() => compareReports(Array(4_097).fill(item),{ pageSize: 256 }),
+  await assert.rejects(() => compareReports(Array.from(
+    { length: 4_097 },(_,index) => listener(index + 100,60_000),
+  ),{ pageSize: 256 }),
     (error) => error.code === "collector_response_invalid");
 });
 

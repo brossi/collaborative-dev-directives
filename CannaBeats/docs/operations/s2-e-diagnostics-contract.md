@@ -916,7 +916,7 @@ hung-collector tests pass without changing relay delivery or S2-D isolation.
 
 ### E11 — Comparison experience and composed local fault injection
 
-Status: `implemented; independent closure review pending`.
+Status: `audit remediation implemented; narrow closure re-review pending`.
 
 Add one host comparison view over E3/E7. Inject one deterministic fault at each
 of the five modeled boundaries, plus one missing/contradictory evidence case.

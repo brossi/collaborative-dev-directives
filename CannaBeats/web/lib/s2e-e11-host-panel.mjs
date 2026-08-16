@@ -34,6 +34,10 @@ const CODE_STATUS = new Map([
   ["collector_response_invalid",502],["state_response_invalid",502],
   ["collector_unavailable",503],["diagnostic_unavailable",503],
 ]);
+const ERROR_TEXT = new Map([
+  ["diagnostic_not_found","Diagnostic trace not found."],
+  ["authentication_required","Sign in required."],
+]);
 const decoder = new TextDecoder("utf-8",{ fatal: true });
 
 export class E11HostPanelError extends Error {
@@ -81,6 +85,7 @@ function trace(value, expectedRunId) {
   }
   safe(value.startedAtMs);
   safe(value.expiresAtMs);
+  if (value.expiresAtMs <= value.startedAtMs) fail("collector_response_invalid");
   if (value.status === "active") {
     if (value.ended !== null) fail("collector_response_invalid");
   } else {
@@ -119,6 +124,9 @@ function comparison(value, expectedTraceId) {
     fail("collector_response_invalid");
   }
   if (safe(value.diagnosis.evidenceCount) > 12) fail("collector_response_invalid");
+  if (value.diagnosis.evidenceCount > value.reportCount) {
+    fail("collector_response_invalid");
+  }
   const insufficient = value.diagnosis.result === "insufficient_evidence";
   if (insufficient !== (value.diagnosis.confidence === "insufficient")
     || insufficient !== (value.diagnosis.missing.length > 0)) {
@@ -144,11 +152,16 @@ function comparison(value, expectedTraceId) {
   });
 }
 
-async function responseBytes(response) {
+async function responseBytes(response,signal) {
   if (!response.body) fail("diagnostic_unavailable");
   const reader = response.body.getReader();
   const chunks = [];
   let size = 0;
+  const cancel = () => {
+    try { void reader.cancel().catch(() => {}); } catch {}
+  };
+  signal?.addEventListener("abort",cancel,{ once: true });
+  if (signal?.aborted) cancel();
   try {
     while (true) {
       const { done,value } = await reader.read();
@@ -161,6 +174,7 @@ async function responseBytes(response) {
       chunks.push(value);
     }
   } finally {
+    signal?.removeEventListener("abort",cancel);
     reader.releaseLock();
   }
   const joined = new Uint8Array(size);
@@ -172,10 +186,10 @@ async function responseBytes(response) {
   return joined;
 }
 
-async function parsedResponse(response) {
+async function parsedResponse(response,signal) {
   let value;
   try {
-    value = JSON.parse(decoder.decode(await responseBytes(response)));
+    value = JSON.parse(decoder.decode(await responseBytes(response,signal)));
   } catch (error) {
     if (error instanceof E11HostPanelError) throw error;
     fail("diagnostic_unavailable");
@@ -185,8 +199,12 @@ async function parsedResponse(response) {
     if (!FINITE_CODES.has(value.code) || CODE_STATUS.get(value.code) !== response.status) {
       fail("diagnostic_unavailable");
     }
+    const expectedText = ERROR_TEXT.get(value.code)
+      ?? "Diagnostics are temporarily unavailable.";
+    if (value.error !== expectedText) fail("diagnostic_unavailable");
     fail(value.code);
   }
+  if (response.status !== 200) fail("diagnostic_unavailable");
   return value;
 }
 
@@ -197,23 +215,39 @@ export function createE11HostTransport({
   if (typeof fetchImpl !== "function" || !Number.isSafeInteger(deadlineMs)
     || deadlineMs < 1) throw new Error("e11_transport_configuration_invalid");
   async function post(url,body,{ signal } = {}) {
-    let response;
-    let timedOut = false;
     const controller = new AbortController();
-    const relayAbort = () => controller.abort();
+    let interrupt;
+    const interrupted = new Promise((_,reject) => { interrupt = reject; });
+    const relayAbort = () => {
+      interrupt(new E11HostPanelError("diagnostic_unavailable"));
+      controller.abort();
+    };
     signal?.addEventListener("abort",relayAbort,{ once: true });
-    const deadline = setTimeout(() => { timedOut = true; controller.abort(); },deadlineMs);
-    try {
-      response = await fetchImpl(url,{ method: "POST",headers: {
+    if (signal?.aborted) relayAbort();
+    const deadline = setTimeout(() => {
+      interrupt(new E11HostPanelError("request_timeout"));
+      controller.abort();
+    },deadlineMs);
+    const work = (async () => {
+      const response = await fetchImpl(url,{ method: "POST",redirect: "error",headers: {
         "Content-Type": "application/json",
       },body: JSON.stringify(body),signal: controller.signal });
-    } catch {
-      fail(timedOut ? "request_timeout" : "diagnostic_unavailable");
+      const contentType = response.headers.get("content-type") ?? "";
+      if (response.redirected || !contentType.toLowerCase().startsWith("application/json")) {
+        fail("diagnostic_unavailable");
+      }
+      return parsedResponse(response,controller.signal);
+    })();
+    work.catch(() => {});
+    try {
+      return await Promise.race([work,interrupted]);
+    } catch (error) {
+      if (error instanceof E11HostPanelError) throw error;
+      fail("diagnostic_unavailable");
     } finally {
       clearTimeout(deadline);
       signal?.removeEventListener("abort",relayAbort);
     }
-    return parsedResponse(response);
   }
   return Object.freeze({
     start: (runId,requestId) => post(traceUrl,{ action: "start",runId,requestId }),
@@ -248,6 +282,7 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
   let state = initial();
   let epoch = 0;
   let readAbort = null;
+  let storageBlocked = false;
   const listeners = new Set();
   const publish = (next) => {
     state = freeze(next);
@@ -255,16 +290,23 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
   };
   const save = (record) => {
     try { storage.setItem(STORAGE_KEY,JSON.stringify(record)); }
-    catch { fail("diagnostic_unavailable"); }
+    catch {
+      storageBlocked = true;
+      fail("diagnostic_unavailable");
+    }
   };
   const load = (runId) => {
     let raw;
-    try { raw = storage.getItem(STORAGE_KEY); } catch { return null; }
+    try { raw = storage.getItem(STORAGE_KEY); } catch {
+      storageBlocked = true;
+      return null;
+    }
     if (raw === null) return null;
     try {
       const value = stored(JSON.parse(raw));
       return value.runId === runId ? value : null;
     } catch {
+      storageBlocked = true;
       try { storage.removeItem(STORAGE_KEY); } catch {}
       return null;
     }
@@ -279,10 +321,15 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
   };
 
   async function start() {
-    if (!state.enabled || state.busy || !state.runId) return false;
+    if (!state.enabled || state.busy || !state.runId || storageBlocked) return false;
     const runId = state.runId;
     const token = epoch;
     let record = load(runId);
+    let needsSave = false;
+    if (storageBlocked) {
+      if (current(token,runId)) publish({ ...state,notice: "request_invalid" });
+      return false;
+    }
     if (record?.trace) {
       if (current(token,runId)) publish({ ...state,trace: record.trace,notice: null });
       return true;
@@ -291,12 +338,16 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
       const startRequestId = randomUuid();
       uuid(startRequestId,"request_invalid");
       record = { version: 1,runId,startRequestId,trace: null,stopRequestId: null };
-      save(record);
+      needsSave = true;
     }
     publish({ ...state,busy: true,notice: null });
     try {
+      if (needsSave) save(record);
       const retainedTrace = trace(await transport.start(runId,record.startRequestId),runId);
-      saveIfSameIntent({ ...record,trace: retainedTrace },record);
+      if (retainedTrace.status !== "active") fail("collector_response_invalid");
+      if (!saveIfSameIntent({ ...record,trace: retainedTrace },record)) {
+        fail("diagnostic_unavailable");
+      }
       if (current(token,runId)) publish({
         ...state,busy: false,trace: retainedTrace,comparison: null,notice: "started",
       });
@@ -316,10 +367,11 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
     const traceId = state.trace.traceId;
     const token = epoch;
     readAbort?.abort();
-    readAbort = new AbortController();
+    const ownedAbort = new AbortController();
+    readAbort = ownedAbort;
     publish({ ...state,busy: true,notice: null });
     try {
-      const result = comparison(await transport.compare(traceId,readAbort.signal),traceId);
+      const result = comparison(await transport.compare(traceId,ownedAbort.signal),traceId);
       if (current(token,runId)) publish({
         ...state,busy: false,comparison: result,notice: "refreshed",
       });
@@ -331,24 +383,34 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
       });
       return false;
     } finally {
-      readAbort = null;
+      if (readAbort === ownedAbort) readAbort = null;
     }
   }
 
   async function stop() {
-    if (!state.enabled || state.busy || state.trace?.status !== "active") return false;
+    if (!state.enabled || state.busy || state.trace?.status !== "active"
+      || storageBlocked) return false;
     const runId = state.runId;
     const token = epoch;
     const record = load(runId);
+    if (storageBlocked) {
+      if (current(token,runId)) publish({ ...state,notice: "request_invalid" });
+      return false;
+    }
     if (!record?.trace || record.trace.traceId !== state.trace.traceId) return false;
     const stopRequestId = record.stopRequestId ?? randomUuid();
     uuid(stopRequestId,"request_invalid");
     const pending = { ...record,stopRequestId };
-    save(pending);
     publish({ ...state,busy: true,notice: null });
     try {
+      save(pending);
       const ended = trace(await transport.stop(state.trace.traceId,stopRequestId),runId);
-      saveIfSameIntent({ ...pending,trace: ended,stopRequestId: null },pending);
+      if (ended.status !== "ended" || ended.traceId !== state.trace.traceId) {
+        fail("collector_response_invalid");
+      }
+      if (!saveIfSameIntent({ ...pending,trace: ended,stopRequestId: null },pending)) {
+        fail("diagnostic_unavailable");
+      }
       if (current(token,runId)) publish({
         ...state,busy: false,trace: ended,notice: "stopped",
       });
@@ -380,7 +442,8 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
       const record = load(runId);
       publish(freeze({
         enabled: true,open: false,runId,busy: false,trace: record?.trace ?? null,
-        comparison: null,notice: record && !record.trace ? "resume_available" : null,
+        comparison: null,notice: storageBlocked ? "request_invalid"
+          : record && !record.trace ? "resume_available" : null,
       }));
     },
     setOpen(open) {

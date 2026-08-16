@@ -3,7 +3,7 @@
 ## Identity and status
 
 - Checkpoint: E11 — one host comparison proof
-- Status: `implemented; independent closure review pending`
+- Status: `audit remediation implemented; narrow closure re-review pending`
 - Risk class: `B — boundary-bearing`, because this joins retained diagnostic
   evidence to host authorization and a browser-visible conclusion
 - Required verified checkpoints: E1-E10 at their recorded exact targets
@@ -181,16 +181,37 @@ review:
 Local verification at this checkpoint:
 
 - focused route, selector, browser-controller, attachment, and composed suites:
-  `25/25`;
+  `29/29`;
 - the composed schedule launches real Access, State, and collector HTTP
   services, passes through the production Game mediation/route handler, and
   proves all five fixed classifications plus missing evidence, ended-trace
   reads, purge concealment, and collector-loss isolation;
-- production Next build and the complete Web suite: `330/330`;
+- production Next build and the complete Web suite: `334/334`;
 - ESLint: zero errors and one pre-existing E5 unused-parameter warning;
 - syntax checks and `git diff --check`: pass.
 
-The local finding count is `P0=0`, `P1=0`, `P2=0`. E11 is not yet closed:
-one independent matrix-based adversarial review remains required. E12 continues
-to own real-browser timing, deployed credential and process topology, supported
-device capacity, human usability, installation, restart, and cleanup evidence.
+The first independent review found no P0 and identified four grouped P1
+boundaries plus bounded P2 precision. The remediation keeps the original
+representation and closes the counterexamples directly:
+
+- equal listener-anchor partitions now use only the documented lexical tie;
+  duplicate uploaded identities fail before selection;
+- browser timeout and close ownership cover fetch headers and the complete
+  bounded body, explicitly refuse redirects, and remain finite even when an
+  injected fetch ignores abort;
+- malformed retained control state blocks mutation for that controller
+  lifetime instead of being confused with absence;
+- start requires an active result, stop requires the exact requested ended
+  trace, and comparison count/evidence and trace-lifecycle relations are
+  rebound before publication; and
+- each refresh clears only its own abort controller, so an old completion
+  cannot detach or publish through a newer closed read.
+
+The remediation also canonicalizes response status, content type, and finite
+error prose, and adds exact listener `7/8/9`, cohort-horizon
+`before/equality/after`, report/page, wrong-result, stalled-body, and ABA
+schedules. The affected local finding count is now `P0=0`, `P1=0`, `P2=0`.
+E11 is not yet closed: the affected independent perspectives must re-review
+the remediation. E12 continues to own real-browser timing, deployed credential
+and process topology, supported device capacity, human usability,
+installation, restart, and cleanup evidence.
