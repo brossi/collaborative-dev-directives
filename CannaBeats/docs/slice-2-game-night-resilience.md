@@ -1108,6 +1108,9 @@ underruns. Real-client overhead and real-host measurements remain S2-F gates.
 
 ### S2-F: Real-environment rehearsal and closure
 
+Detailed specification packet:
+[E12 real-environment rehearsal](operations/s2-e-e12-real-environment-spec.md).
+
 - Restore fresh disposable application/source hosts from the retained Slice 1
   images; do not depend on persistent rehearsal Droplet IDs.
 - Exercise response loss, duplicate/concurrent actions, browser refresh/sleep,
@@ -1240,6 +1243,10 @@ E1-E10 boundary rather than being patched only in the view.
 Governing invariant: the locally closed Slice 2 contracts remain true on the
 few browsers, phones, source host, relay host, and audio hardware actually used
 for a game night.
+
+Status: the bounded rehearsal and closure matrix are designed; external
+provider execution and temporary Spotify authorization remain unauthorized
+until the operator approves the exact named resource manifest.
 
 Use fresh disposable hosts and the real controller/Spotify path. Measure CPU,
 memory, scheduling, startup, underrun delta, clock uncertainty, listener

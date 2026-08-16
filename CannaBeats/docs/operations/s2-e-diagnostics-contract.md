@@ -932,6 +932,11 @@ supported phones/browsers, relay timing, restart, installation, and cleanup.
 Failed real measurements return to the owning E1-E11 boundary rather than being
 waived in rehearsal notes.
 
+Detailed specification packet:
+[E12 real-environment rehearsal](s2-e-e12-real-environment-spec.md). Its
+external create/destroy and temporary Spotify authorization steps require a
+separate exact-resource operator approval before execution.
+
 ## Local acceptance gate
 
 S2-E is locally complete only when all of the following are executable:
