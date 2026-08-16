@@ -41,6 +41,7 @@ function renderedS2fCompose() {
       CANNABEATS_GAME_IMAGE: 'cannabeats/game:s2f-exact',
       S2F_EPHEMERAL_ROLE_MAP:
         '{"123e4567-e89b-42d3-a456-426614174000":"source"}',
+      S2F_TRACE_ID: '123e4567-e89b-42d3-a456-426614174001',
     },
   });
   if (result.error?.code === 'ENOENT') return null;
@@ -189,6 +190,8 @@ test('S2-F evidence profile attaches one private collector proxy with scoped Gam
   assert.equal(evidence.environment.CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN,
     'http://diagnostics:3020');
   assert.equal(evidence.environment.CANNABEATS_DIAGNOSTICS_MAINTENANCE_TOKEN_FILE, undefined);
+  assert.equal(evidence.environment.S2F_TRACE_ID,
+    '123e4567-e89b-42d3-a456-426614174001');
   assert.deepEqual(evidence.volumes.map((volume) => volume.target), [
     '/run/secrets/cannabeats/diagnostics-game-token',
   ]);
@@ -199,6 +202,11 @@ test('S2-F evidence profile attaches one private collector proxy with scoped Gam
   assert.match(dockerfile, /COPY --chown=node:node tools\/s2f-evidence\.mjs/);
   assert.match(dockerfile, /diagnostic-collector-client\.mjs/);
   const wrapper = readFileSync(resolve(repositoryRoot, 'tools/run-s2f-host-sample.sh'), 'utf8');
-  assert.match(wrapper, /--network none --pid host --read-only/);
+  assert.match(wrapper, /id -u/);
+  assert.match(wrapper, /\/usr\/bin\/python3/);
+  assert.doesNotMatch(wrapper, /docker run/);
   assert.match(wrapper, /S2F_ALLOWLISTED_PIDS_JSON/);
+  const companion = readFileSync(resolve(repositoryRoot, 'tools/s2f-host-sample.py'), 'utf8');
+  assert.match(companion, /os\.geteuid\(\) != 0/);
+  assert.match(companion, /os\.readlink/);
 });

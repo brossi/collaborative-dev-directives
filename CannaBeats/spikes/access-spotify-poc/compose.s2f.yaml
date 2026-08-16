@@ -15,6 +15,7 @@ services:
       CANNABEATS_DIAGNOSTICS_SERVICE_ORIGIN: http://diagnostics:3020
       CANNABEATS_DIAGNOSTICS_GAME_TOKEN_FILE: /run/secrets/cannabeats/diagnostics-game-token
       S2F_EPHEMERAL_ROLE_MAP: ${S2F_EPHEMERAL_ROLE_MAP:?Set the encrypted-manifest role map}
+      S2F_TRACE_ID: ${S2F_TRACE_ID:?Set the active rehearsal trace ID}
     volumes:
       - ${DIAGNOSTICS_GAME_TOKEN_HOST_FILE:-./secrets/diagnostics-game-token}:/run/secrets/cannabeats/diagnostics-game-token:ro
     entrypoint: ["node", "/app/tools/s2f-evidence.mjs"]

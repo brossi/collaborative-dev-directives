@@ -192,6 +192,11 @@ a finite result. Thresholds are not changed after the run.
    RP ID, internal routes, and firewall; and prove no value references a
    protected PoC endpoint.
 4. Install the candidate and generate new disposable credentials off-output.
+   Install the checked-in `tools/s2f-host-sample.py` and
+   `tools/run-s2f-host-sample.sh` root-owned with mode `0755` on both hosts; invoke the
+   wrapper as root so cross-UID `/proc/<pid>/exe` attestation is available.
+   This uses the already-required `/usr/bin/python3` and does not add Docker or
+   Node to the managed-source host.
    Install their exact modes/owners, run the three-way
    Game/relay/maintenance collision preflight over those actual values, then
    start Access, State, Game, collector, and relay base services with source
@@ -235,13 +240,19 @@ but never records
 request/response bodies, request IDs, trace/instance/sample IDs, credentials,
 URLs, addresses, or native errors. It may parse only the exact route identity
 fields in memory to bind attempts to the encrypted ephemeral role map. Proxy
-request arrival counts as an attempt; HTTP response status never counts as a
-successful synchronization.
+request arrival counts as an attempt only when its exact trace ID matches the
+encrypted run configuration; a foreign trace fails before forwarding/counting.
+HTTP response status never counts as a successful synchronization.
 
 The sampler transiently reads the complete collector trace through the
 production Game/E2 restoration seam. A synchronization success is one distinct
 restored E2 sample referenced by an accepted retained report for that producer;
 this is deliberately conservative when a successful sample produced no report.
+The auxiliary input declares exact five-minute mapped, proxy-monotonic, and
+per-host-monotonic intervals. Attempts and host samples outside their interval
+fail input validation; mapped report intervals are clipped to the declared
+mapped interval, and reports outside it remain fully validated but do not
+contribute to that run's sample/window/coverage totals.
 The sampler aggregates those distinct samples, unioned accepted interval
 duration, retained interval discontinuities, and last sequence by ephemeral
 producer/instance label. Coverage uses the midpoint of each restored E2 mapped
@@ -280,7 +291,7 @@ Its implementation matrix is:
 | Create | `structural`: four fixed producer roles and two fixed host roles are the only aggregate keys; the tool creates no authority or durable row. |
 | Update | `structural`: inputs are validated into a new frozen summary; retained summary values are not mutated. |
 | Delete | `not_applicable`: the tool owns no durable state; encrypted raw-input cleanup remains the mandatory E12 manifest operation. |
-| Omit | `runtime`: exact top-level fields, all four instance-label maps, trace binding, restored accepted samples, unioned interval coverage/discontinuities, gap inputs, and both host aggregates are required before output. |
+| Omit | `runtime`: exact top-level fields, one exact five-minute observation boundary in all three clock domains, all four instance-label maps, trace binding, restored accepted samples, unioned interval coverage/discontinuities, gap inputs, and both host aggregates are required before output. |
 | Duplicate | `runtime`: instance ownership is unique and duplicate report identity fails before aggregation; distinct sample IDs alone count as synchronization success. |
 | Reorder | `runtime`: proxy attempts must be monotonic within each role; proxy and one-shot host-sample processes use host monotonic time; host samples are ordered by that time and invalid/nonpositive deltas fail; report order does not alter aggregate totals. |
 | Replay | `structural`: summarization is pure; a fault profile consumes its one-shot mode once, and later requests pass through normally. |
@@ -288,18 +299,20 @@ Its implementation matrix is:
 | Concurrency | `structural`: one Node event loop atomically consumes the one-shot fault flag; the tool performs no concurrent durable mutation. |
 | Expiry | `not_applicable`: E2 restoration proves sample validity; the tool does not create or extend authority/retention. |
 | Restart | `not_applicable`: no tool state is claimed durable; restart re-creates a profile from the encrypted manifest and cannot count as response-loss evidence already in flight. |
-| Dependency failure | `runtime`: the deadline starts before inbound-body reading and bounds body, fetch, and response-body completion even when a dependency ignores abort; fault-proxy request/upstream bodies are capped at 8 KiB, production collector pages retain their existing 2 MiB cap, delay is capped at ten seconds, redirects/native failures normalize finitely, and peer disconnect cannot alter authority. |
+| Dependency failure | `runtime`: the deadline starts before inbound-body reading and bounds body, fetch, and response-body completion even when a dependency ignores abort; fault-proxy requests and ordinary responses are capped at 8 KiB, the exact collector trace-read response retains its production 2 MiB cap, delay is capped at ten seconds, redirects/native failures normalize finitely, broken evidence output is contained, and peer disconnect cannot alter authority. |
 | Corruption | `runtime`: exact E2 envelope restoration, trace/role relations, report identity, `/proc` scalar parsing, and fixed journal/browser inputs fail closed before a summary. |
 | Capacity | `runtime`: 4,096 reports, 16 collector pages, 512 attempts/notices, 512 host samples, at most 32 allowlisted processes in each host sample, 16 instances per role (64 total), an 8 KiB proxy body, a 2 MiB collector page, and a 32 MiB offline summary input are hard maxima. |
 
 Local verification is `node --test tools/s2f-evidence.test.mjs`,
+`python3 -m unittest tools/test_s2f_host_sample.py`,
 `node --check tools/s2f-evidence.mjs`, and `git diff --check`. Tests derive the
 accepted-sample false-pass, mapped successor overlap,
 foreign-trace/unmapped/duplicate/cross-role corruption, browser/journal gap
 allowlists, stable `/proc` roster projection, loopback/upstream/body/deadline
-bounds, exact 16-page cursor progression, nested collector identity
-attribution, multiplexed-route transparency, malformed output, and post-commit
-response-loss schedules from this matrix.
+bounds, exact 16-page cursor progression, nested collector identity and trace
+attribution, five-minute observation ownership, multiplexed-route/2-MiB read
+transparency, cross-UID host sampling, broken observer output, malformed
+output, and post-commit response-loss schedules from this matrix.
 
 The executable surfaces are deliberately small:
 
@@ -311,22 +324,26 @@ The executable surfaces are deliberately small:
 - `proxy` binds collector issuance identities through
   `S2F_EPHEMERAL_ROLE_MAP`, transparently forwards every other collector route,
   or runs a body-silent `passthrough` mutation profile;
-- `host-sample` reads only PIDs supplied through
-  `S2F_ALLOWLISTED_PIDS_JSON`; and
+- `host-sample` provides the Node owner seam; the root-only
+  `tools/run-s2f-host-sample.sh` invokes the matching bounded Python companion
+  on each real host so it can read cross-UID allowlisted `/proc` identities;
+  both accept only `S2F_ALLOWLISTED_PIDS_JSON`; and
 - `browser-gap` and `coverage-notices` accept only their fixed role/code forms.
 
-The two environment maps are removed from the tool process immediately after
-parsing. They and collector credentials are transient encrypted-manifest
-inputs, never command-line arguments or retained summary fields.
+The role, trace, and process environment inputs are removed from the tool
+process immediately after parsing. They and collector credentials are
+transient encrypted-manifest inputs, never command-line arguments or retained
+summary fields.
 
 The checked-in attachment is equally narrow. The production Game image copies
 the tool and only its E1/E2/collector-client dependencies. The
 `spikes/access-spotify-poc/compose.s2f.yaml` overlay runs that exact image in
 Game's network namespace, moves only Game's collector origin to loopback, and
 mounts only the Game-scoped collector credential; it publishes no port and has
-no maintenance credential. `tools/run-s2f-host-sample.sh` runs the same exact
-image with no network, a read-only filesystem, the host PID namespace, and the
-encrypted-manifest allowlist. Other passthrough placements remain explicit
+no maintenance credential. The root-only host wrapper and Python companion are
+installed directly from the exact candidate on each disposable host and use no
+network; stable executable/cgroup/start-time relations are rechecked on every
+sample. Other passthrough placements remain explicit
 per-schedule client-origin overrides recorded in the encrypted manifest; the
 tool is never described as transparently intercepting traffic without one.
 

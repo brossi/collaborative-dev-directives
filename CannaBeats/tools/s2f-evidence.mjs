@@ -11,6 +11,7 @@ import { createDiagnosticCollectorClient } from '../web/lib/server/diagnostic-co
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const MAX_INPUT_BYTES = 32 * 1024 * 1024;
 const MAX_PROXY_BODY_BYTES = 8192;
+const MAX_COLLECTOR_PAGE_BYTES = 2 * 1024 * 1024;
 const MAX_REPORTS = 4096;
 const MAX_ATTEMPTS = 512;
 const MAX_SAMPLES = 512;
@@ -30,6 +31,7 @@ const HOP_HEADERS = new Set([
 ]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const encoder = new TextEncoder();
+const OBSERVATION_DURATION_MS = 300_000;
 
 export class S2FEvidenceError extends Error {
   constructor(code) {
@@ -72,6 +74,28 @@ function role(value) {
   return value;
 }
 
+function observationInterval(value, startKey, endKey, exactShape = false) {
+  if (exactShape) exact(value, [startKey, endKey]);
+  else if (!Object.hasOwn(value, startKey) || !Object.hasOwn(value, endKey)) fail('evidence_invalid');
+  const startMs = finite(value[startKey]);
+  const endMs = finite(value[endKey]);
+  if (endMs - startMs !== OBSERVATION_DURATION_MS) fail('evidence_invalid');
+  return Object.freeze({ startMs, endMs });
+}
+
+function validateObservation(value) {
+  exact(value, ['mappedStartMs', 'mappedEndMs', 'attemptStartMs', 'attemptEndMs', 'hosts']);
+  exact(value.hosts, ['application', 'source']);
+  return Object.freeze({
+    mapped: observationInterval(value, 'mappedStartMs', 'mappedEndMs'),
+    attempts: observationInterval(value, 'attemptStartMs', 'attemptEndMs'),
+    hosts: Object.freeze({
+      application: observationInterval(value.hosts.application, 'startMs', 'endMs', true),
+      source: observationInterval(value.hosts.source, 'startMs', 'endMs', true),
+    }),
+  });
+}
+
 function percentile(values, fraction) {
   if (values.length === 0) return null;
   const ordered = [...values].sort((left, right) => left - right);
@@ -107,7 +131,7 @@ function validateRoleInstances(value) {
   return owner;
 }
 
-function validateAttempts(values) {
+function validateAttempts(values, observation) {
   if (!Array.isArray(values) || values.length > MAX_ATTEMPTS) fail('evidence_invalid');
   const counts = Object.fromEntries(PRODUCERS.map((producer) => [producer, 0]));
   const previous = Object.fromEntries(PRODUCERS.map((producer) => [producer, -1]));
@@ -118,6 +142,9 @@ function validateAttempts(values) {
       || value.action !== 'synchronize') fail('evidence_invalid');
     if (value.routeFamily !== 'collector-sync') fail('evidence_invalid');
     finite(value.monotonicMs);
+    if (value.monotonicMs < observation.startMs || value.monotonicMs > observation.endMs) {
+      fail('evidence_invalid');
+    }
     if (value.monotonicMs < previous[producer]) fail('evidence_invalid');
     previous[producer] = value.monotonicMs;
     counts[producer] += 1;
@@ -144,7 +171,7 @@ function validateCoverageNotices(values) {
   return Object.freeze(counts);
 }
 
-function validateReports(values, owners, traceId) {
+function validateReports(values, owners, traceId, observation) {
   if (!Array.isArray(values) || values.length > MAX_REPORTS) fail('evidence_invalid');
   const samples = Object.fromEntries(PRODUCERS.map((producer) => [producer, new Set()]));
   const windows = Object.fromEntries(PRODUCERS.map((producer) => [producer, 0]));
@@ -175,20 +202,26 @@ function validateReports(values, owners, traceId) {
     const identity = `${core.instanceId}:${core.sequence}`;
     if (identities.has(identity)) fail('report_duplicate');
     identities.add(identity);
+    const instance = instances[producer][label];
+    const mappedStart = (envelope.alignment.mappedStartEarliestMs
+      + envelope.alignment.mappedStartLatestMs) / 2;
+    const mappedEnd = (envelope.alignment.mappedEndEarliestMs
+      + envelope.alignment.mappedEndLatestMs) / 2;
+    const inObservation = core.kind.endsWith('_window')
+      ? mappedEnd > observation.startMs && mappedStart < observation.endMs
+      : mappedStart >= observation.startMs && mappedStart <= observation.endMs;
+    if (!inObservation) continue;
     samples[producer].add(envelope.alignment.sample.sampleId);
     const prior = lastSequence[producer];
     lastSequence[producer] = prior === null ? core.sequence : Math.max(prior, core.sequence);
-    const instance = instances[producer][label];
     instance.acceptedSampleIds.add(envelope.alignment.sample.sampleId);
     instance.lastSequence = instance.lastSequence === null
       ? core.sequence : Math.max(instance.lastSequence, core.sequence);
     if (core.kind.endsWith('_window')) {
       windows[producer] += 1;
       instance.acceptedWindowCount += 1;
-      const start = (envelope.alignment.mappedStartEarliestMs
-        + envelope.alignment.mappedStartLatestMs) / 2;
-      const end = (envelope.alignment.mappedEndEarliestMs
-        + envelope.alignment.mappedEndLatestMs) / 2;
+      const start = Math.max(mappedStart, observation.startMs);
+      const end = Math.min(mappedEnd, observation.endMs);
       if (end > start) instance.intervals.push([start, end]);
     }
   }
@@ -239,7 +272,7 @@ function validateReports(values, owners, traceId) {
   }));
 }
 
-function validateHostSamples(values) {
+function validateHostSamples(values, observations) {
   if (!Array.isArray(values) || values.length > MAX_SAMPLES) fail('evidence_invalid');
   const byHost = new Map();
   const rosterByHost = new Map();
@@ -247,6 +280,10 @@ function validateHostSamples(values) {
     exact(value, ['hostRole', 'monotonicMs', 'totalCpuTicks', 'processes']);
     if (!['application', 'source'].includes(value.hostRole)) fail('evidence_invalid');
     finite(value.monotonicMs);
+    const observation = observations[value.hostRole];
+    if (value.monotonicMs < observation.startMs || value.monotonicMs > observation.endMs) {
+      fail('evidence_invalid');
+    }
     safeInteger(value.totalCpuTicks);
     if (!Array.isArray(value.processes) || value.processes.length < 1 || value.processes.length > 32) {
       fail('evidence_invalid');
@@ -301,16 +338,17 @@ function validateHostSamples(values) {
 }
 
 export function summarizeEvidence(input) {
-  exact(input, ['version', 'traceId', 'reportCount', 'roleInstances', 'attempts', 'reports', 'browserGaps', 'coverageNotices', 'hostSamples']);
+  exact(input, ['version', 'traceId', 'observation', 'reportCount', 'roleInstances', 'attempts', 'reports', 'browserGaps', 'coverageNotices', 'hostSamples']);
   if (input.version !== 1 || typeof input.traceId !== 'string' || !UUID.test(input.traceId)) {
     fail('evidence_invalid');
   }
   safeInteger(input.reportCount);
   if (input.reportCount > MAX_REPORTS || !Array.isArray(input.reports)
     || input.reportCount !== input.reports.length) fail('evidence_invalid');
+  const observation = validateObservation(input.observation);
   const owners = validateRoleInstances(input.roleInstances);
-  const attempts = validateAttempts(input.attempts);
-  const reports = validateReports(input.reports, owners, input.traceId);
+  const attempts = validateAttempts(input.attempts, observation.attempts);
+  const reports = validateReports(input.reports, owners, input.traceId, observation.mapped);
   const browserGaps = validateBrowserGaps(input.browserGaps);
   const notices = validateCoverageNotices(input.coverageNotices);
   const producers = Object.create(null);
@@ -325,7 +363,8 @@ export function summarizeEvidence(input) {
   return Object.freeze({
     version: 1,
     producers: Object.freeze(producers),
-    hosts: validateHostSamples(input.hostSamples),
+    observationDurationMs: OBSERVATION_DURATION_MS,
+    hosts: validateHostSamples(input.hostSamples, observation.hosts),
   });
 }
 
@@ -385,7 +424,8 @@ export function coverageNoticeRecords(producer, lines) {
           'timestamp', 'level', 'service', 'environment', 'event', 'message',
           'applicationVersion', 'catalogVersion', 'reasonCode',
         ]);
-        accepted = parsed.level === 'warn'
+        accepted = line === JSON.stringify(parsed)
+          && parsed.level === 'warn'
           && parsed.service === 'managed-source-controller'
           && parsed.event === 'diagnostics.reporter_unavailable'
           && parsed.message === 'Source diagnostics evidence is incomplete'
@@ -446,6 +486,8 @@ export async function readHostSample({
   for (const [service, expected] of allowlistedProcesses) {
     if (typeof service !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(service)
       || !expected || typeof expected !== 'object' || Array.isArray(expected)
+      || Object.keys(expected).length !== 3
+      || !['pid', 'executable', 'cgroup'].every((key) => Object.hasOwn(expected, key))
       || !Number.isSafeInteger(expected.pid) || expected.pid < 1
       || typeof expected.executable !== 'string' || !expected.executable.startsWith('/')
       || typeof expected.cgroup !== 'string' || expected.cgroup.length < 1
@@ -486,7 +528,7 @@ function loopbackHost(hostname) {
 }
 
 function privateServiceHost(hostname) {
-  return loopbackHost(hostname) || /^[a-z0-9][a-z0-9-]{0,62}$/.test(hostname);
+  return loopbackHost(hostname) || hostname === 'diagnostics';
 }
 
 async function boundedBody(stream, maximum = MAX_PROXY_BODY_BYTES) {
@@ -544,6 +586,13 @@ async function boundedResponseBody(response, maximum = MAX_PROXY_BODY_BYTES) {
   return Buffer.concat(chunks, total);
 }
 
+function cancelBody(body) {
+  try {
+    const pending = body?.cancel();
+    if (pending && typeof pending.catch === 'function') void pending.catch(() => {});
+  } catch { /* finite cleanup */ }
+}
+
 export function createOneShotFaultProxy({
   upstreamOrigin,
   mode,
@@ -551,6 +600,7 @@ export function createOneShotFaultProxy({
   deadlineMs = 5000,
   routeFamily,
   identityRoleMap,
+  expectedTraceId = null,
   onAttempt = () => {},
   onResult = () => {},
   fetchImpl = fetch,
@@ -564,7 +614,8 @@ export function createOneShotFaultProxy({
   }
   const classifiesAttempt = routeFamily !== 'passthrough';
   if (!ROUTES.has(routeFamily) || (classifiesAttempt && (!(identityRoleMap instanceof Map)
-    || identityRoleMap.size < 1 || identityRoleMap.size > 32))) {
+    || identityRoleMap.size < 1 || identityRoleMap.size > 32
+    || typeof expectedTraceId !== 'string' || !UUID.test(expectedTraceId)))) {
     fail('configuration_invalid');
   }
   for (const [identity, producer] of identityRoleMap ?? []) {
@@ -604,6 +655,7 @@ export function createOneShotFaultProxy({
         try { parsed = JSON.parse(body.toString('utf8')); } catch { fail('request_invalid'); }
         let identity;
         exact(parsed, ['traceId', 'issuance'], 'request_invalid');
+        if (parsed.traceId !== expectedTraceId) fail('request_invalid');
         record(parsed.issuance, 'request_invalid');
         identity = parsed.issuance.instanceId;
         if (typeof identity !== 'string' || !UUID.test(identity)) fail('request_invalid');
@@ -628,9 +680,11 @@ export function createOneShotFaultProxy({
           method: 'POST', headers, body,
           redirect: 'manual', signal: controller.signal,
         }), remaining(), () => controller.abort());
+        const responseLimit = request.url === '/v1/game/trace/read'
+          ? MAX_COLLECTOR_PAGE_BYTES : MAX_PROXY_BODY_BYTES;
         upstreamBody = await boundedWait(
-          boundedResponseBody(upstreamResponse), remaining(),
-          () => { controller.abort(); try { void upstreamResponse.body?.cancel(); } catch { /* cleanup */ } },
+          boundedResponseBody(upstreamResponse, responseLimit), remaining(),
+          () => { controller.abort(); cancelBody(upstreamResponse.body); },
         );
         if (upstreamResponse.status < 100
           || upstreamResponse.status > 599 || (upstreamResponse.status >= 300 && upstreamResponse.status < 400)) {
@@ -671,6 +725,18 @@ async function stdinBytes() {
   return Buffer.concat(chunks, total);
 }
 
+function finiteWriter(stream) {
+  let available = true;
+  stream.on('error', () => { available = false; });
+  return (value) => {
+    if (!available || stream.destroyed) return;
+    try { stream.write(value); } catch { available = false; }
+  };
+}
+
+const writeStdout = finiteWriter(process.stdout);
+const writeStderr = finiteWriter(process.stderr);
+
 function argument(name) {
   const index = process.argv.indexOf(name);
   if (index < 0 || index + 1 >= process.argv.length) fail('configuration_invalid');
@@ -681,32 +747,40 @@ async function main() {
   const command = process.argv[2];
   if (command === 'summarize') {
     let input;
-    try { input = JSON.parse((await stdinBytes()).toString('utf8')); } catch { fail('evidence_invalid'); }
-    process.stdout.write(`${JSON.stringify(summarizeEvidence(input))}\n`);
+    try { input = JSON.parse((await stdinBytes()).toString('utf8')); }
+    catch (error) {
+      if (error instanceof S2FEvidenceError) throw error;
+      fail('evidence_invalid');
+    }
+    writeStdout(`${JSON.stringify(summarizeEvidence(input))}\n`);
     return;
   }
   if (command === 'summarize-live') {
     let input;
-    try { input = JSON.parse((await stdinBytes()).toString('utf8')); } catch { fail('evidence_invalid'); }
-    const expected = ['version', 'traceId', 'roleInstances', 'attempts',
+    try { input = JSON.parse((await stdinBytes()).toString('utf8')); }
+    catch (error) {
+      if (error instanceof S2FEvidenceError) throw error;
+      fail('evidence_invalid');
+    }
+    const expected = ['version', 'traceId', 'observation', 'roleInstances', 'attempts',
       'browserGaps', 'coverageNotices', 'hostSamples'];
     exact(input, expected);
     const reports = await readCompleteTrace({
       traceId: input.traceId, collector: createDiagnosticCollectorClient(),
     });
-    process.stdout.write(`${JSON.stringify(summarizeEvidence({
+    writeStdout(`${JSON.stringify(summarizeEvidence({
       ...input, reportCount: reports.length, reports,
     }))}\n`);
     return;
   }
   if (command === 'browser-gap') {
-    process.stdout.write(`${JSON.stringify(browserGapRecord(argument('--role'), Number(argument('--count'))))}\n`);
+    writeStdout(`${JSON.stringify(browserGapRecord(argument('--role'), Number(argument('--count'))))}\n`);
     return;
   }
   if (command === 'coverage-notices') {
     const producer = argument('--role');
     const lines = (await stdinBytes()).toString('utf8').split(/\r?\n/).filter((line) => line.length > 0);
-    process.stdout.write(`${JSON.stringify(coverageNoticeRecords(producer, lines))}\n`);
+    writeStdout(`${JSON.stringify(coverageNoticeRecords(producer, lines))}\n`);
     return;
   }
   if (command === 'host-sample') {
@@ -716,7 +790,7 @@ async function main() {
       allowlistedProcesses = new Map(Object.entries(record(parsed, 'configuration_invalid')));
     } catch { fail('configuration_invalid'); }
     delete process.env.S2F_ALLOWLISTED_PIDS_JSON;
-    process.stdout.write(`${JSON.stringify(await readHostSample({
+    writeStdout(`${JSON.stringify(await readHostSample({
       hostRole: argument('--host-role'), allowlistedProcesses,
     }))}\n`);
     return;
@@ -724,19 +798,23 @@ async function main() {
   if (command === 'proxy') {
     const routeFamily = argument('--route-family');
     let identityRoleMap = null;
+    let expectedTraceId = null;
     if (routeFamily !== 'passthrough') {
       try {
         const parsed = JSON.parse(process.env.S2F_EPHEMERAL_ROLE_MAP ?? '');
         identityRoleMap = new Map(Object.entries(record(parsed, 'configuration_invalid')));
+        expectedTraceId = process.env.S2F_TRACE_ID ?? null;
       } catch { fail('configuration_invalid'); }
     }
     delete process.env.S2F_EPHEMERAL_ROLE_MAP;
+    delete process.env.S2F_TRACE_ID;
     const server = createOneShotFaultProxy({
       upstreamOrigin: argument('--upstream'), mode: argument('--mode'),
       delayMs: Number(process.argv.includes('--delay-ms') ? argument('--delay-ms') : 0),
       routeFamily, identityRoleMap,
-      onAttempt: (value) => process.stdout.write(`${JSON.stringify(value)}\n`),
-      onResult: (value) => process.stdout.write(`${JSON.stringify(value)}\n`),
+      expectedTraceId,
+      onAttempt: (value) => writeStdout(`${JSON.stringify(value)}\n`),
+      onResult: (value) => writeStdout(`${JSON.stringify(value)}\n`),
     });
     server.on('error', () => { process.exitCode = 1; });
     server.listen(Number(argument('--port')), '127.0.0.1');
@@ -748,7 +826,7 @@ async function main() {
 if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1]) {
   main().catch((error) => {
     const code = error instanceof S2FEvidenceError ? error.code : 'unavailable';
-    process.stderr.write(`${code}\n`);
+    writeStderr(`${code}\n`);
     process.exitCode = 1;
   });
 }

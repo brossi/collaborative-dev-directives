@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import test from 'node:test';
@@ -121,6 +122,14 @@ function input(overrides = {}) {
   const value = {
     version: 1,
     traceId: TRACE,
+    observation: {
+      mappedStartMs: 0, mappedEndMs: 300_000,
+      attemptStartMs: 0, attemptEndMs: 300_000,
+      hosts: {
+        application: { startMs: 0, endMs: 300_000 },
+        source: { startMs: 0, endMs: 300_000 },
+      },
+    },
     roleInstances: Object.fromEntries(Object.entries(INSTANCES).map(([key, value]) => [key, { 'instance-01': value }])),
     attempts: [
       { role: 'listener-a', routeFamily: 'collector-sync', action: 'synchronize', monotonicMs: 1 },
@@ -167,7 +176,7 @@ test('sanitized summary counts restored accepted samples and fixed gap sources',
   assert.equal(result.producers.source.noticeCount, 1);
   assert.equal(result.hosts.application.cpuPercent.p95, 10);
   assert.equal(result.hosts.application.rssBytes.max, 1200);
-  assert.deepEqual(Object.keys(result), ['version', 'producers', 'hosts']);
+  assert.deepEqual(Object.keys(result), ['version', 'producers', 'observationDurationMs', 'hosts']);
   assert.equal(JSON.stringify(result).includes(INSTANCES['listener-a']), false);
   assert.equal(JSON.stringify(result).includes(TRACE), false);
 });
@@ -181,6 +190,27 @@ test('HTTP attempts cannot impersonate accepted E2 samples', () => {
   assert.equal(result.producers['listener-a'].attempts, 30);
   assert.equal(result.producers['listener-a'].acceptedSampleCount, 24);
   assert.equal(result.producers['listener-a'].acceptedCoverageMs, 240_000);
+});
+
+test('five-minute observation bounds own attempts, mapped reports, and host samples', () => {
+  const withOutsideReport = summarizeEvidence(input({
+    reports: [...input().reports, envelope('source', 40)],
+  }));
+  assert.equal(withOutsideReport.observationDurationMs, 300_000);
+  assert.equal(withOutsideReport.producers.source.acceptedWindowCount, 1);
+  assert.equal(withOutsideReport.producers.source.acceptedSampleCount, 1);
+  code('evidence_invalid', () => summarizeEvidence(input({
+    attempts: [{
+      role: 'source', routeFamily: 'collector-sync', action: 'synchronize',
+      monotonicMs: 300_001,
+    }],
+  })));
+  code('evidence_invalid', () => summarizeEvidence(input({
+    observation: { ...input().observation, mappedEndMs: 299_999 },
+  })));
+  const outsideHosts = structuredClone(input().hostSamples);
+  outsideHosts[1].monotonicMs = 300_001;
+  code('evidence_invalid', () => summarizeEvidence(input({ hostSamples: outsideHosts })));
 });
 
 test('instance labels keep retired and successor evidence separate without retaining UUIDs', () => {
@@ -287,16 +317,16 @@ test('fixed attempt, notice, host, and identity capacities reject max plus one',
 test('report and host-sample maxima accept max minus one and max and reject max plus one', () => {
   const reports = Array.from({ length: 4096 }, (_, sequence) => envelope('source', sequence));
   assert.equal(summarizeEvidence(input({ reports: reports.slice(0, 4095) }))
-    .producers.source.acceptedWindowCount, 4095);
+    .producers.source.acceptedWindowCount, 30);
   assert.equal(summarizeEvidence(input({ reports }))
-    .producers.source.acceptedWindowCount, 4096);
+    .producers.source.acceptedWindowCount, 30);
   code('evidence_invalid', () => summarizeEvidence(input({
     reports: [...reports, reports[0]], reportCount: 4097,
   })));
 
   const hostSamples = (count) => Array.from({ length: count }, (_, index) => ({
     hostRole: index < count - 2 ? 'application' : 'source',
-    monotonicMs: index < count - 2 ? index * 5000 : (index - (count - 2)) * 5000,
+    monotonicMs: index < count - 2 ? index * 500 : (index - (count - 2)) * 5000,
     totalCpuTicks: 1000 + (index * 100),
     processes: [{
       service: index < count - 2 ? 'game' : 'source',
@@ -331,6 +361,22 @@ test('per-host process roster accepts 31 and 32 and rejects 33', () => {
   code('evidence_invalid', () => summarizeEvidence(input({ hostSamples: samples(33) })));
 });
 
+test('offline input accepts 32 MiB minus one and 32 MiB reads and rejects one byte more', () => {
+  const script = new URL('./s2f-evidence.mjs', import.meta.url).pathname;
+  for (const length of [(32 * 1024 * 1024) - 1, 32 * 1024 * 1024]) {
+    const result = spawnSync(process.execPath, [script, 'summarize'], {
+      input: Buffer.alloc(length, 0x20), encoding: 'utf8', maxBuffer: 1024,
+    });
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, 'evidence_invalid\n');
+  }
+  const overflow = spawnSync(process.execPath, [script, 'summarize'], {
+    input: Buffer.alloc((32 * 1024 * 1024) + 1, 0x20), encoding: 'utf8', maxBuffer: 1024,
+  });
+  assert.equal(overflow.status, 1);
+  assert.equal(overflow.stderr, 'input_too_large\n');
+});
+
 test('browser gap input is fixed to listener roles and safe integers', () => {
   assert.deepEqual(browserGapRecord('listener-b', 3), { role: 'listener-b', gapCount: 3 });
   code('role_invalid', () => browserGapRecord('source', 0));
@@ -340,6 +386,7 @@ test('browser gap input is fixed to listener roles and safe integers', () => {
 test('journal filtering retains only exact source and relay coverage notices', () => {
   assert.deepEqual(coverageNoticeRecords('source', [
     'coverage_gap', 'unavailable', 'coverage_gap details',
+    '{"timestamp":"2026-08-16T00:00:00Z","level":"warn","service":"managed-source-controller","environment":"rehearsal","event":"diagnostics.reporter_unavailable","message":"Source diagnostics evidence is incomplete","applicationVersion":"test","catalogVersion":"test","reasonCode":"unavailable","reasonCode":"coverage_gap"}',
     JSON.stringify({
       timestamp: '2026-08-16T00:00:00Z', level: 'warn', service: 'managed-source-controller',
       environment: 'rehearsal', event: 'diagnostics.reporter_unavailable',
@@ -377,7 +424,8 @@ test('host sampler reads only allowlisted proc scalars and excludes pid and path
   });
   assert.equal(sample.hostRole, 'application');
   assert.equal(sample.totalCpuTicks, 550);
-  assert.match(sample.processes[0].identity, /^[0-9a-f]{64}$/);
+  assert.equal(sample.processes[0].identity,
+    '0b67cc57e0ee6938bc0ba3c3d85f9b953f227a762e1acde26831b4799b37faca');
   assert.deepEqual({ ...sample.processes[0], identity: 'redacted' }, {
     service: 'game', identity: 'redacted', cpuTicks: 25, rssBytes: 125952,
   });
@@ -423,6 +471,18 @@ test('complete trace reader follows the exact cursor snapshot and rejects metada
 
   let boundaryCalls = 0;
   const boundaryMetadata = { ...metadata, reportCount: 0 };
+  let belowBoundaryCalls = 0;
+  assert.deepEqual(await readCompleteTrace({
+    traceId: TRACE,
+    collector: { readTrace: async () => {
+      belowBoundaryCalls += 1;
+      return belowBoundaryCalls === 15
+        ? { status: 'found', complete: true, metadata: boundaryMetadata, reports: [], cursor: null }
+        : { status: 'found', complete: false, metadata: boundaryMetadata, reports: [],
+          cursor: { token: belowBoundaryCalls } };
+    } },
+  }), []);
+  assert.equal(belowBoundaryCalls, 15);
   assert.deepEqual(await readCompleteTrace({
     traceId: TRACE,
     collector: { readTrace: async () => {
@@ -471,6 +531,7 @@ test('one-shot malformed proxy is loopback-only, body-silent, and then forwards'
   const proxy = createOneShotFaultProxy({
     upstreamOrigin: `http://127.0.0.1:${upstreamPort}/`, mode: 'malformed',
     routeFamily: 'collector-sync', identityRoleMap: new Map([[INSTANCES['listener-a'], 'listener-a']]),
+    expectedTraceId: TRACE,
     onAttempt: (value) => { attempts.push(value); throw new Error('observer unavailable'); },
     onResult: (value) => results.push(value),
   });
@@ -501,6 +562,10 @@ test('proxy rejects non-loopback upstream and oversized request bodies', async (
   code('configuration_invalid', () => createOneShotFaultProxy({
     upstreamOrigin: 'https://example.com/', mode: 'forward',
     routeFamily: 'collector-sync', identityRoleMap: new Map([[INSTANCES.relay, 'relay']]),
+    expectedTraceId: TRACE,
+  }));
+  code('configuration_invalid', () => createOneShotFaultProxy({
+    upstreamOrigin: 'http://evil/', mode: 'forward', routeFamily: 'passthrough',
   }));
   let upstreamCalls = 0;
   const upstream = http.createServer(async (request, response) => {
@@ -529,6 +594,56 @@ test('proxy rejects non-loopback upstream and oversized request bodies', async (
     assert.equal(upstreamCalls, 1);
   } finally {
     await close(proxy);
+    await close(upstream);
+  }
+});
+
+test('closed CLI observer output cannot terminate forwarding or emit a native stack', async () => {
+  const upstream = http.createServer(async (request, response) => {
+    for await (const _chunk of request) { /* drain */ }
+    response.end('{"status":"accepted"}');
+  });
+  const upstreamPort = await listen(upstream);
+  const reservation = http.createServer();
+  const proxyPort = await listen(reservation);
+  await close(reservation);
+  const child = spawn(process.execPath, [
+    new URL('./s2f-evidence.mjs', import.meta.url).pathname,
+    'proxy', '--upstream', `http://127.0.0.1:${upstreamPort}`,
+    '--mode', 'forward', '--route-family', 'collector-sync', '--port', String(proxyPort),
+  ], {
+    env: {
+      ...process.env,
+      S2F_TRACE_ID: TRACE,
+      S2F_EPHEMERAL_ROLE_MAP: JSON.stringify({ [INSTANCES.source]: 'source' }),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let stderr = '';
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  const issue = async () => fetch(
+    `http://127.0.0.1:${proxyPort}/v1/game/synchronization/issue`,
+    { method: 'POST', body: JSON.stringify({
+      traceId: TRACE, issuance: { instanceId: INSTANCES.source },
+    }) },
+  );
+  try {
+    let first;
+    for (let retry = 0; retry < 50; retry += 1) {
+      try { first = await issue(); break; } catch { await new Promise((resolve) => setTimeout(resolve, 10)); }
+    }
+    assert.equal(first?.status, 200);
+    child.stdout.destroy();
+    assert.equal((await issue()).status, 200);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(child.exitCode, null);
+    assert.equal(stderr, '');
+  } finally {
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+      await new Promise((resolve) => child.once('exit', resolve));
+    }
     await close(upstream);
   }
 });
@@ -568,8 +683,10 @@ test('post-response loss is one-shot and passthrough preserves authentication wi
 });
 
 test('collector synchronization profile binds nested instance identity to role', async () => {
+  let upstreamCalls = 0;
   const upstream = http.createServer(async (request, response) => {
     for await (const _chunk of request) { /* drain */ }
+    upstreamCalls += 1;
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end('{"status":"accepted"}');
   });
@@ -579,6 +696,7 @@ test('collector synchronization profile binds nested instance identity to role',
     upstreamOrigin: `http://127.0.0.1:${upstreamPort}/`, mode: 'forward',
     routeFamily: 'collector-sync',
     identityRoleMap: new Map([[INSTANCES['listener-b'], 'listener-b']]),
+    expectedTraceId: TRACE,
     onAttempt: (value) => attempts.push(value),
   });
   const proxyPort = await listen(proxy);
@@ -603,6 +721,15 @@ test('collector synchronization profile binds nested instance identity to role',
     );
     assert.equal(wrong.status, 503);
     assert.equal(attempts.length, 1);
+    const foreign = await fetch(
+      `http://127.0.0.1:${proxyPort}/v1/game/synchronization/issue`,
+      { method: 'POST', body: JSON.stringify({
+        traceId: id(7778), issuance: { instanceId: INSTANCES['listener-b'] },
+      }) },
+    );
+    assert.equal(foreign.status, 503);
+    assert.equal(attempts.length, 1);
+    assert.equal(upstreamCalls, 2);
   } finally {
     await close(proxy);
     await close(upstream);
@@ -646,6 +773,36 @@ test('upstream deadline and response cap fail finitely', async () => {
     await close(bounded);
     await close(oversized);
   }
+
+
+  let pageCalls = 0;
+  const page = http.createServer(async (request, response) => {
+    for await (const _chunk of request) { /* drain */ }
+    pageCalls += 1;
+    response.end(Buffer.alloc(request.url === '/v1/game/trace/read'
+      ? (pageCalls === 1 ? 2 * 1024 * 1024 : (2 * 1024 * 1024) + 1) : 0));
+  });
+  const pagePort = await listen(page);
+  const collectorProxy = createOneShotFaultProxy({
+    upstreamOrigin: `http://127.0.0.1:${pagePort}/`, mode: 'forward',
+    routeFamily: 'collector-sync', expectedTraceId: TRACE,
+    identityRoleMap: new Map([[INSTANCES.source, 'source']]),
+  });
+  const collectorPort = await listen(collectorProxy);
+  try {
+    const response = await fetch(`http://127.0.0.1:${collectorPort}/v1/game/trace/read`, {
+      method: 'POST', body: '{}',
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.arrayBuffer()).byteLength, 2 * 1024 * 1024);
+    const overflow = await fetch(`http://127.0.0.1:${collectorPort}/v1/game/trace/read`, {
+      method: 'POST', body: '{}',
+    });
+    assert.equal(overflow.status, 503);
+  } finally {
+    await close(collectorProxy);
+    await close(page);
+  }
 });
 
 test('deadline bounds partial inbound bodies and abort-ignoring dependencies', async () => {
@@ -684,6 +841,24 @@ test('deadline bounds partial inbound bodies and abort-ignoring dependencies', a
     assert.equal(response.status, 503);
   } finally {
     await close(ignoring);
+  }
+
+
+  const locked = createOneShotFaultProxy({
+    upstreamOrigin: 'http://127.0.0.1:9/', mode: 'forward', routeFamily: 'passthrough',
+    deadlineMs: 20,
+    fetchImpl: async () => new Response(new ReadableStream({
+      pull: () => new Promise(() => {}),
+    }), { status: 200 }),
+  });
+  const lockedPort = await listen(locked);
+  try {
+    const response = await fetch(`http://127.0.0.1:${lockedPort}/locked`, {
+      method: 'POST', body: '{}',
+    });
+    assert.equal(response.status, 503);
+  } finally {
+    await close(locked);
   }
 });
 
