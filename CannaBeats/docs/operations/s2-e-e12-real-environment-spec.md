@@ -3,7 +3,7 @@
 ## Identity and status
 
 - Checkpoint: E12 / S2-F — real-environment proof
-- Status: `design audit remediation recorded; narrow re-review pending;
+- Status: `design closed; local evidence-tool implementation authorized;
   external execution not authorized`
 - Risk class: `C — irreversible/external`, because the rehearsal provisions
   provider resources, installs temporary credentials, exercises real Spotify
@@ -363,3 +363,18 @@ evidence passes, no P0/P1 remains, every failed measurement has returned to and
 closed at its owning checkpoint, the evidence scan passes, and all temporary
 resources are absent. Otherwise the status remains `rehearsal incomplete` with
 the exact blocker named.
+
+## Design closure record
+
+The initial design at `18ff7aefb2c9a52ef15a52804760fdbcf25d075d`
+received independent authority/lifecycle, topology/evidence, and HTTP/privacy
+review. Remediation was recorded through
+`2ebef5347a86deebc4815b9d0cde965d4bdf0dda`. Narrow re-review of the affected
+seams found `P0=0`, `P1=0`, and `P2=0`: action-specific browser ownership,
+accepted-sample evidence, cleanup/timer ordering, private jump-only firewall
+bootstrap, and user-owned ephemeral Tailscale verification are design-closed.
+
+This record authorizes only the checked-in local sampler/fault-proxy increment.
+It does not authorize provider, firewall, Tailscale, Spotify, browser-profile,
+credential, or destructive external mutations. Those remain behind the exact
+operator approval described above.
