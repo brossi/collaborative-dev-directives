@@ -57,20 +57,25 @@ Public IPv4 exists only
 for controlled outbound TCP `80/443` and the DNS/Tailscale UDP traffic required
 for enrollment and Spotify. Before either Droplet is created, the operator
 creates a unique provider tag and a rehearsal cloud firewall targeting that
-tag with no public inbound rules and only the approved outbound rules. Both
+tag with exactly one private inbound TCP `22` rule sourced from protected jump
+Droplet `559513055`, no public inbound rule, no other inbound rule, and only the
+approved outbound rules. Both
 Droplets are created with that tag. After creation, the union of every firewall
-effectively attached to each Droplet is enumerated and must still have no
-inbound rule; an unexpected attachment stops the rehearsal and destroys the
-new Droplets. Initial SSH uses the existing protected jump Droplet
+effectively attached to each Droplet is enumerated and must contain only that
+exact jump-sourced private SSH rule and no public or other inbound rule; an
+unexpected attachment stops the rehearsal and destroys the new Droplets.
+Initial SSH uses the existing protected jump Droplet
 `559513055` as an unmodified `ProxyJump` to each new VPC address. The operator's
 private key never enters the jump host.
 
 After bootstrap, both disposable hosts enroll as uniquely named, user-owned
 ephemeral Tailscale nodes using single-use auth keys. No Tailscale tag, ACL,
-grant, or `tagOwners` mutation is intended. Existing policy must already allow
-the operator's Mac and iPhone identities to reach only the exact application
-node on TCP `443`; preflight proves that path from both devices. If the path is
-not already allowed, or tailnet HTTPS is not already enabled, execution stops
+grant, or `tagOwners` mutation is intended. Pre-creation checks prove that the
+Mac and iPhone are enrolled and record existing MagicDNS, HTTPS, and policy
+state. After node enrollment, both devices must positively reach the exact
+application node on TCP `443` and must fail to reach the source node or a
+non-`443` application port. If that path is not already allowed, or tailnet
+HTTPS is not already enabled, execution stops
 for a separate exact policy/HTTPS approval rather than changing the tailnet.
 Mac and iPhone browsers reach only
 an exact `https://<rehearsal-node>.<tailnet>.ts.net/game` origin using a
@@ -168,18 +173,21 @@ a finite result. Thresholds are not changed after the run.
 
 ### 2. Fresh hosts and exact candidate
 
-1. Create the unique provider tag and zero-inbound firewall first, then create
+1. Create the unique provider tag and private-jump-only inbound firewall first,
+   then create
    the two tagged controlled-egress hosts from the retained provider snapshots,
    append IDs/private addresses to the encrypted manifest, copy it off-machine,
    and verify no IPv6, no Droplet agent, the union of all effectively attached
-   firewall rules has no public inbound rule, and only the approved outbound
-   rules. As the first bootstrap action on each host, install, arm, and verify
+   firewall rules contains only the exact private TCP `22` rule sourced from
+   protected jump Droplet `559513055`, has no public or other inbound rule, and
+   has only the approved outbound rules. As the first bootstrap action on each host, install, arm, and verify
    its pre-rendered eight-hour stop/sanitize timer. Every exit after this step enters the
    cleanup branch in section 6, including operator-machine or network failure.
 2. Transfer an archive of the exact candidate rather than the working tree.
 3. Enroll both hosts as the exact ephemeral user-owned Tailscale nodes through
-   the VPC jump path; verify the existing Mac/iPhone-to-application-node TCP
-   `443` policy without mutating ACLs or tags;
+   the VPC jump path; verify Mac and iPhone can reach only the application node
+   on TCP `443`, including negative source-node and non-`443` checks, without
+   mutating ACLs or tags;
    issue the exact Tailscale HTTPS certificate; render the disposable origin,
    RP ID, internal routes, and firewall; and prove no value references a
    protected PoC endpoint.
