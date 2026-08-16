@@ -156,8 +156,8 @@ a finite result. Thresholds are not changed after the run.
    image IDs, local build identities, tool versions, browser versions, provider
    account/context, VPC, protected resource IDs, and the intended disposable
    names.
-2. Create the sanitized rehearsal ledger and exact-ID cleanup script; verify
-   provider/Tailscale cleanup authority. The provider control plane, unique
+2. Create the sanitized rehearsal ledger and verify provider/Tailscale cleanup
+   authority. The provider control plane, unique
    resource prefix, and immediately recorded exact IDs are the recovery path.
    Obtain
    explicit operator authorization for Droplets, the unique provider tag and

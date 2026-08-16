@@ -5,7 +5,7 @@
 - Candidate commit: `f31a36c0d88f5e0d12f8f3fe7d2cf6f5df4c7871`
 - Candidate tree: `a2d74f3c9a3b58b4a5f148830ab6b09dec613118`
 - Pinned btaudio commit/tree: `42f1e1a5c8af8ae02bba175941b63fe4f0c647c6` / `ba787da3c377ac8660568e50f784f7b656586d92`
-- Application image digest: `REQUIRED`
+- Application image digest: `sha256:904113c683730ab08c148467328e6dad38b4a5b8809c07e8602a05f5443ee4a1`
 - Source release identity: pinned btaudio commit/tree above
 - Rehearsal start/end UTC: `2026-08-16T14:03:43Z` / `pending`
 - Operator: `operator-confirmed` (no account name retained)
@@ -41,13 +41,18 @@ If any item remains pending, stop before provider mutation.
 | --- | --- | --- |
 | Exact source | clean candidate commit/tree and sibling pin | `pass` |
 | Local closure | E12 design/local evidence P0/P1/P2 = 0 | `pass` |
-| Images | exact local image IDs and successful production build | `pending` |
+| Images | Game image `sha256:904113c683730ab08c148467328e6dad38b4a5b8809c07e8602a05f5443ee4a1`; production build passed | `pass` |
 | Protected inventory | protected provider resources recorded by ID and read-only | `pass` |
 | Recovery inventory | `cannabeats-s2f-20260816-01`; exact IDs recorded immediately; provider/Tailscale inventories recoverable | `pass` |
 | Cleanup authority | exact-ID provider/Tailscale cleanup access verified | `pass` |
 | Provider boundary | project/VPC/SSH key/snapshot/size/cost and requested names fixed | `pass` |
 | Tailnet boundary | Mac+iPhone enrolled; MagicDNS/HTTPS enabled; no policy mutation required | `pass` |
 | Browser/device boundary | macOS 26.5.1/Safari 26.5/Chrome 151.0.7922.138; iOS 26.6; audio operator-confirmed | `pass` |
+
+Local verification before provider mutation passed: Web `337/337`, Access
+`108/108`, managed-source `58/58`, source browser protocol `5/5`, State
+`67/67`, evidence `24/24`, host sampler `3/3`, btaudio `315/315`, and topology
+`5/5`. Diagnostics' complete package suite also passed.
 
 ## Sanitized resource inventory
 
