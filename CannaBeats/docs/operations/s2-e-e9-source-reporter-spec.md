@@ -1,6 +1,6 @@
 # S2-E E9 source diagnostics
 
-Status: `E9.1 locally verified; E9.2 implemented with audit remediation pending re-review`.
+Status: `E9.1 and E9.2 locally verified`.
 
 This packet applies the repository scale filter. There is one managed source,
 one `btaudio-push` process, one local controller, and one reporter task.
@@ -434,8 +434,7 @@ recorded boundary. E10 remains separate.
 
 ## E9.2 implementation checkpoint
 
-Status: implemented; first independent-review remediation complete; affected
-re-review pending. E10 is not authorized by this checkpoint.
+Status: locally verified. E10 may begin as a separate increment.
 
 The contained implementation adds `source_reporter.py`, attaches one daemon
 reporter thread to the existing controller, enables the exact pinned publisher
@@ -491,8 +490,13 @@ Local verification on the remediated implementation worktree:
 - Python compile, browser syntax, installer shell syntax, and diff check: pass;
 - retained btaudio pin/topology scheduler regression: `8/8` pass.
 
-Open local findings are `P0=0`, `P1=0`, `P2=0`; independent affected re-review
-is still pending. E10 still owns the relay
-adapter/reporter, E11 owns host projection and comparison presentation, and
-E12 owns real-host installation, real browser/Spotify timing, measured
-overhead, and cross-process failure rehearsal.
+Independent closure reviewed exact CannaBeats commit `cadabc9b1123ed2524077476f007e234f2398b1a`
+(tree `463a9d5d0cb88ddb6f73d8b7f93b5e4b2e1cc471`) and pinned sibling
+commit `8fa6c3469f9ccfa3bfe7f3d999605eb7403b082b` (tree
+`f156f6e7e1fc699f6a469fd2478736fa3b710863`). The authority/lifecycle,
+HTTP/privacy, and topology/evidence perspectives each found no remaining
+`P0`, `P1`, or `P2`; E9.2 is locally verified.
+
+E10 owns the relay adapter/reporter, E11 owns host projection and comparison
+presentation, and E12 owns real-host installation, real browser/Spotify
+timing, measured overhead, and cross-process failure rehearsal.
