@@ -2,7 +2,7 @@
 
 **Status:** Working document; not yet scheduled; not published
 **Purpose:** Group the validated product backlog into coherent development slices that maximize useful delivery while respecting dependencies and avoiding premature platform work.
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-15
 
 ## Relationship to other project artifacts
 
@@ -54,7 +54,6 @@ Includes:
 - Reconnection snapshots and accepted-action reporting
 - Guest seat reclaim and host-control recovery
 - Explicit managed-source states: available, busy, offline, and recovering
-- Local listener enablement, mute, and volume distinct from global pause/resume
 - Audio startup, latency, drift, loudness, clipping, underrun, and reconnection measurement
 - Per-listener buffer, network-delivery, AudioContext, suspension, and main-thread-stall profiling with bounded overhead
 - Graceful behavior after browser, network, relay, or audio-droplet interruption
@@ -233,7 +232,6 @@ Candidate scope:
 - Reclaim a guest's existing seat after refresh, phone sleep, or temporary disconnection
 - Recover Host control without creating a duplicate host or lobby
 - Present managed-source states and provide wait/retry or explicit local fallback when it is busy or recovering
-- Add per-device listener enablement, mute, and volume
 - Measure audio startup, interruption, recovery, loudness, clipping, and underruns
 - Add periodic per-listener summaries for stream timing, chunk gaps, buffer depth and trend, underruns, re-primes, overflows, resets, AudioContext state, and coarse platform/client context
 - Add correlated source and relay summaries for published frames, dropped uploads, listener delivery, interruption, and restart behavior
@@ -252,7 +250,6 @@ Acceptance outcomes:
 - A returning guest resumes the same seat and round without receiving hidden data.
 - A managed-source reboot or temporary network loss returns clients to one coherent game and playback state.
 - A second host cannot steal the managed source and receives an actionable explanation.
-- Local mute or volume changes never pause playback for the group.
 - A completed or abandoned game can be reconstructed chronologically through joins, start, track requests, placements, retractions, reveals, advances, skips, audio outcomes, and termination without relying on container logs.
 - The operator summary can explain whether playback was requested and acknowledged, why a command failed when known, and whether the session recovered.
 - Objective playtest timing and reliability facts can be derived from the event trail without requiring persistent player profiles.
