@@ -4,8 +4,8 @@
 
 - Checkpoint: E7 — isolated collector and physical store
 - Scope revision: `E7-spec-v1`
-- Status: `E7.2 locally verified`; E7.3 is implemented with independent closure
-  review pending
+- Status: `E7.1, E7.2, and E7.3 locally verified`; required independent
+  closure reviews complete
 - Risk class: `B — boundary-bearing` for durable replay, retention, and a
   disposable SQLite schema; whole-trace purge is the only destructive edge
 - Exact independently reviewed design target:
@@ -540,8 +540,8 @@ pressure admission including segment rotation, schema-level ordinary/cleanup
 WAL surrogate ceilings, cleanup under pressure, and pressure recovery. The
 implementation remains unwired. Targeted independent transaction/lifetime,
 retained-read/corruption, and physical-boundary reviews found no open P0/P1;
-the permitted status is `E7.2 closure review passed; checkpoint bookkeeping
-pending`. No HTTP, credential, Compose, authority-resolution, or operator-UI
+the status is `E7.2 locally verified`. No HTTP, credential, Compose,
+authority-resolution, or operator-UI
 claim is made.
 
 Post-matrix remediation verification: diagnostics `21/21`; combined E1/E2/E7

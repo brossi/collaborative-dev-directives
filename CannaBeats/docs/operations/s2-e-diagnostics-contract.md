@@ -2,13 +2,11 @@
 
 Status: the S2-E architecture and checkpoint framework use the small-deployment
 scale filter and each detailed checkpoint must pass its own closure gate.
-E1-E6 are locally verified at their recorded exact targets. E7.1 and E7.2
-implement the unwired collector store, and E7.2 has passed and recorded its targeted
-transaction, retained-read, corruption, lifetime, and physical-boundary closure
-reviews with no open P0/P1. E7.3 has passed its process, topology, disposal,
-and volume-identity closure reviews. E8.1's unwired collector credential
-boundary and E8.2's read-only State authority projections are implemented with
-independent closure review pending; E8.3-E12 remain open.
+E1-E10 are locally verified at their recorded exact targets and independently
+closed where their boundary risk required it. This includes E7's transactional
+store and isolated service, E8's fixed mediation/caller matrix, and the bounded
+E9/E10 source and relay reporters. E11 composition and E12/S2-F real-environment
+proof remain open.
 The earlier broad executable-contract and listener prototypes remain
 archived outside the active branch and supply no evidence.
 
@@ -879,6 +877,8 @@ State-derived authority mediation.
 
 ### E8 — Game/State mediation and consent routing
 
+Status: `E8.1, E8.2, E8.3a, E8.3b, and E8.3c locally verified`.
+
 The contained implementation sequence and current gate are maintained in
 [E8 diagnostic mediation](s2-e-e8-mediation-spec.md).
 
@@ -893,6 +893,8 @@ change gameplay or playback transactions.
 
 ### E9 — Source diagnostic interface and isolated reporter
 
+Status: `E9.1 and E9.2 locally verified`.
+
 Implement and pin the finite publisher snapshot interface, then attach one
 low-priority bounded reporter task using E8 authority. Audio and authority-poll
 paths do constant-time counter updates only and never wait for diagnostics.
@@ -902,6 +904,8 @@ restart, queue-bound, and no-free-form-output tests pass without changing source
 poll cadence, lease fail-close behavior, or publisher state.
 
 ### E10 — Relay diagnostic interface and isolated reporter
+
+Status: `E10.0, E10.1, and E10.2 independently closed`.
 
 Implement and pin the finite relay-generation snapshot interface and attach one
 low-priority bounded reporter task. Bind a generation once at start and never

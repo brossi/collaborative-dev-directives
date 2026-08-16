@@ -1,8 +1,8 @@
 # Slice 2: Game-night resilience
 
 - Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E E1-E9.1 are locally verified; E9.2-E12 and S2-F
-  real-environment proof remain open
+  verified; S2-E E1-E10 are locally verified and independently closed where
+  required; E11 and E12/S2-F real-environment proof remain open
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1051,9 +1051,10 @@ resolved-volume identity, and checked disposal have also passed targeted
 closure review. E8.1's collector credential boundary, E8.2's read-only State
 authority projections, and E8.3 host/listener/source/relay mediation are
 locally verified. E9.1's finite publisher snapshot interface is locally
-verified and pinned at `321c34d` with no open P0/P1/P2. E9.2 source
-reporting, E10 relay integration, E11 composition, and E12 real-device timing
-remain open.
+verified and pinned at `321c34d` with no open P0/P1/P2. E9.2 source reporting
+is locally verified at its recorded exact target. E10.0/E10.1/E10.2 relay
+integration is independently closed at the exact pinned target recorded in the
+E10 packet. E11 composition and E12 real-device timing remain open.
 
 - Diagnostics form a separate, non-authoritative plane. They cannot mutate
   State, block audio/gameplay, or share the authority database or backup.
