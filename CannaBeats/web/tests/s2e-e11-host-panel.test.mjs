@@ -127,6 +127,24 @@ test("one pending action fences duplicate controls and close aborts only the rea
   assert.equal(f.controller.snapshot().comparison,null);
 });
 
+test("closing the panel does not release an outcome-unknown mutation", async () => {
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  const f = fixture({ start: async (runId,requestId) => {
+    f.calls.push(["start",runId,requestId]);
+    await held;
+    return active(runId);
+  } });
+  f.controller.setOpen(true);
+  const pending = f.controller.start();
+  f.controller.setOpen(false);
+  assert.equal(f.controller.snapshot().busy,true);
+  assert.equal(await f.controller.start(),false);
+  assert.equal(f.calls.length,1);
+  release();
+  assert.equal(await pending,true);
+});
+
 test("malformed storage remains durably blocked across controller replacement", async () => {
   const f = fixture();
   f.storage.setItem(E11_HOST_STORAGE_KEY,"{bad");

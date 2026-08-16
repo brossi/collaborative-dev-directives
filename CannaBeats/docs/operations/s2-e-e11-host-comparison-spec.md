@@ -181,12 +181,12 @@ review:
 Local verification at this checkpoint:
 
 - focused route, selector, browser-controller, attachment, and composed suites:
-  `31/31`;
+  `32/32`;
 - the composed schedule launches real Access, State, and collector HTTP
   services, passes through the production Game mediation/route handler, and
   proves all five fixed classifications plus missing evidence, ended-trace
   reads, purge concealment, and collector-loss isolation;
-- production Next build and the complete Web suite: `336/336`;
+- production Next build and the complete Web suite: `337/337`;
 - ESLint: zero errors and one pre-existing E5 unused-parameter warning;
 - syntax checks and `git diff --check`: pass.
 
@@ -214,6 +214,8 @@ The remediation also canonicalizes response status, content type, and finite
 error prose, and adds exact listener `7/8/9`, cohort-horizon
 `before/equality/after`, report/page, wrong-result, stalled-body, durable
 malformed-storage, zero-evidence-positive, exact-media-type, and ABA schedules.
+Closing a read releases only that read's busy state; closing during an
+outcome-unknown mutation retains the one-action fence until it settles.
 The affected local finding count is now `P0=0`, `P1=0`, `P2=0`.
 E11 is not yet closed: the affected independent perspectives must re-review
 the remediation. E12 continues to own real-browser timing, deployed credential
