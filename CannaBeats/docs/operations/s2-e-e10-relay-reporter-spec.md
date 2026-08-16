@@ -1,6 +1,6 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.0 prerequisite and E10.1 locally verified; E10.2 design complete and implementation authorized`.
+Status: `E10.0/E10.1 independently closed; E10.2 implemented and locally verified, independent review pending`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
@@ -275,8 +275,11 @@ The reporter is enabled only when all of these are true:
 - one absolute relay credential file is supplied.
 
 An incomplete, malformed, unreadable, or insecure reporter configuration
-disables reporting with one finite `diagnostics_configuration_invalid` notice;
-it never blocks server creation. The credential is reread for every newly
+disables reporting with one finite `diagnostics_configuration_invalid` notice.
+The credential must be a root- or process-owned regular file with no
+other-user access and no group write/execute access; owner-only and
+group-read-only modes are allowed. Invalid configuration never blocks server
+creation. The credential is reread for every newly
 started HTTP transaction and is never retained in snapshots or output. The
 reporter derives the fixed paths `/api/diagnostics/relay-generation` and
 `/api/diagnostics/relay-report`; redirects are rejected. Requests and responses
@@ -286,11 +289,10 @@ exact finite shapes, and every error code is bound to its canonical HTTP status
 and fixed public message. Native, caller-authored, URL, token, path, peer, and
 lower-layer text is reduced to a finite reporter code.
 
-The synchronous standard-library HTTP operation runs through `asyncio.to_thread`.
-Only one transaction may be active. Cancellation or relay shutdown does not
-wait indefinitely for that thread: the network deadline is the owner, and the
-reporter task is cancelled and observed without becoming a server-exit
-condition.
+The synchronous standard-library HTTP operation runs in one daemon transaction
+thread. Only one transaction may be active. Cancellation fences its result
+immediately; the two-second network deadline bounds the detached operation, and
+the daemon cannot become a server-exit condition.
 
 ### Correlation and report lifecycle
 
@@ -324,7 +326,8 @@ The generation produces at most these transition reports:
 
 - `generation_started/observed` after its first successful synchronization;
 - `generation_fenced` only when the finalized fence counter increased, using
-  `generation_replaced/observed`; and
+  `generation_replaced/observed` only for that exact terminal reason and
+  `unknown/unknown` otherwise; and
 - `generation_stopped` from the immutable E10.1 terminal reason, with
   `unknown/unknown` for the unknown reason and `observed` otherwise.
 
@@ -455,3 +458,57 @@ Independent review of the final implementation target found `P0=0`, `P1=0`,
 `P2=0` after the matrix wording correction. E10.2 still owns Game credentials,
 binding, synchronization, uploads, retry/backoff, normal-output privacy cleanup,
 and collector failure isolation.
+
+## E10.2 implementation checkpoint
+
+Status: `implemented and locally verified; independent review pending`.
+
+The pinned sibling implementation is
+`ffc889b6fd719da5f0c7f0179787ffc09b0e18bf` (tree
+`9af390154dba95c042297c826e87e4c75f41f4ae`). It adds the strict
+`RelayGameClient`, the one-slot `RelayReporter`, optional relay CLI attachment,
+and fixed relay-mode operational output. `RelaySource`, `Hub`, and listener
+tasks do not call or await the reporter.
+
+Enforcement is split at three small boundaries:
+
+- `src/btaudio/relay_reporter.py` owns exact 8 KiB HTTP parsing, canonical
+  status/code relations, per-transaction credential reads, bind/synchronization
+  replay identity, original timing, bounded reporter state, sequence order,
+  retry/backoff, and exact E1 construction;
+- `src/btaudio/server.py` owns optional configuration, daemon-task lifecycle,
+  and fixed relay-mode output; and
+- E10.1 remains the sole owner of generation identity, counters, finalized
+  snapshots, and exact-ID consumption.
+
+The local counterexample pass added and closed:
+
+- a finalizing generation being mistaken for missing while listener cleanup
+  still made its finalized snapshot unavailable;
+- a terminally rejected active generation being immediately re-adopted;
+- a pre-existing finalized generation occupying the sole evidence slot;
+- a valid but request-unrelated synchronization sample being substituted;
+- a timeout retry relabeling the original synchronization exchange with retry
+  timestamps;
+- a cancelled default-executor request delaying process shutdown;
+- a publisher-close fence being mislabeled as `generation_replaced`; and
+- a malformed dependency error or redirect impersonating a finite terminal
+  result.
+
+Local verification at this checkpoint:
+
+- pinned sibling full suite: `301/301` pass;
+- focused reporter tests: `18/18` pass;
+- focused E10.0/E10.1 plus server/ingest regression: `101/101` pass;
+- affected Ruff and Python compileall: pass;
+- CannaBeats E1/E8 producer boundary: `28/28` pass;
+- managed-source pin/lifecycle discovery: `58/58` pass;
+- Access/State scheduler and exact runtime pin: `8/8` pass;
+- an actual reporter-produced relay window/transition pair validates through
+  E1 series validation; and
+- both repository diff checks: pass.
+
+The matrix intentionally does not claim installed relay-host credentials,
+systemd wiring, real network timing, or measured reporter overhead. E12 owns
+those fresh-host and real-host proofs. E10.2 closure requires an independent
+review of this exact pinned target with no open P0/P1.
