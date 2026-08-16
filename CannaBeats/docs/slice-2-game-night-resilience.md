@@ -1244,9 +1244,10 @@ Governing invariant: the locally closed Slice 2 contracts remain true on the
 few browsers, phones, source host, relay host, and audio hardware actually used
 for a game night.
 
-Status: the bounded rehearsal and closure matrix are designed; external
-provider execution and temporary Spotify authorization remain unauthorized
-until the operator approves the exact named resource manifest.
+Status: design-audit remediation is recorded and narrow re-review remains
+pending. External provider execution, Tailscale changes, and temporary Spotify
+authorization remain unauthorized until design closure and operator approval
+of the exact named resource manifest.
 
 Use fresh disposable hosts and the real controller/Spotify path. Measure CPU,
 memory, scheduling, startup, underrun delta, clock uncertainty, listener

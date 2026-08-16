@@ -3,7 +3,8 @@
 ## Identity and status
 
 - Checkpoint: E12 / S2-F — real-environment proof
-- Status: `designed; external execution not yet authorized`
+- Status: `design audit remediation recorded; narrow re-review pending;
+  external execution not authorized`
 - Risk class: `C — irreversible/external`, because the rehearsal provisions
   provider resources, installs temporary credentials, exercises real Spotify
   authorization, restores data, and destroys disposable hosts
@@ -31,8 +32,8 @@ The minimum supported matrix is deliberately small:
 
 | Role | Exact rehearsal target |
 | --- | --- |
-| Application and relay | one fresh private-only NYC3 host restored from retained image `240743050` |
-| Managed source | one fresh private-only NYC3 host restored from retained image `240743052`; a new disposable Spotify browser authorization is performed interactively and is never copied into evidence or an image |
+| Application and relay | one fresh NYC3 host with controlled public egress and no public inbound, restored from retained provider snapshot `240743050` |
+| Managed source | one fresh NYC3 host with controlled public egress and no public inbound, restored from retained provider snapshot `240743052`; a new disposable Spotify browser authorization is performed interactively and is never copied into evidence or an image |
 | Host browser | current operator Mac, macOS `26.5.1`, Safari `26.5` |
 | Listener A | the same Mac in Chrome `151.0.7922.110`, using a separate browser authority/session |
 | Listener B | one real iPhone Safari used for a game night; exact device-neutral iOS and Safari major versions are recorded before the first mutation |
@@ -47,10 +48,36 @@ The provider context is `cannabeats-p2e1`. Existing Droplets
 `559513055` (`bracket-challenge`) and `591348986`
 (`cannabeats-audio-source-poc`) are protected and read-only for this rehearsal.
 The two retained image IDs above are protected. New resources use a unique
-`cannabeats-s2f-YYYYMMDD-*` prefix, no public IPv4, no Droplet agent, the
-existing NYC3 VPC, and an eight-hour maximum planned lifetime. Resource IDs are
-recorded before any mutation and checked again before cleanup. No command may
-target a resource by a broad name filter alone.
+`cannabeats-s2f-YYYYMMDD-*` prefix, size `s-2vcpu-4gb` (two 4-GiB hosts,
+currently USD 24/month each; planned eight-hour compute below USD 1 total),
+project `6751c1ab-8303-490d-af5b-0f6ecf35d22c`, VPC
+`3d117cd8-9efc-4df5-9cc7-8ff1a2ee15f1`, operator SSH-key ID `29645296`, no
+public IPv6, no Droplet agent, and a hard eight-hour local-service lifetime.
+Public IPv4 exists only
+for controlled outbound TCP `80/443` and the DNS/Tailscale UDP traffic required
+for enrollment and Spotify; a rehearsal cloud firewall permits no public
+inbound traffic. Initial SSH uses the existing protected jump Droplet
+`559513055` as an unmodified `ProxyJump` to each new VPC address. The operator's
+private key never enters the jump host.
+
+After bootstrap, both disposable hosts enroll with single-use ephemeral
+Tailscale keys under a unique rehearsal tag. Mac and iPhone browsers reach only
+an exact `https://<rehearsal-node>.<tailnet>.ts.net/game` origin using a
+Tailscale certificate; the Access public origin, WebAuthn RP ID, cookies, Game,
+State, collector, source, and relay origins are rendered and checked against
+that disposable name before startup. No disposable default may reference the
+protected PoC origin. Spotify and package traffic use only the controlled
+public egress above. Tailscale node/key creation, public egress/firewall
+creation, certificate issuance, and Spotify authorization are included in the
+external approval boundary.
+
+Before creation, the manifest records requested names, unique tag, provider
+context, project, VPC, size, protected IDs, selected public SSH-key ID, and
+exact cleanup commands. Each assigned provider ID is appended immediately
+after its create call. The encrypted manifest is copied to a second
+operator-controlled location before the next mutation; if that handoff cannot
+be confirmed, the new resource is destroyed immediately. No command may target
+a resource by a broad name filter alone.
 
 ## Fixed acceptance thresholds
 
@@ -58,39 +85,42 @@ These thresholds are fixed before provisioning:
 
 | Measurement | Pass boundary and owner on failure |
 | --- | --- |
-| Synchronization | local RTT `<= 2,000 ms`; server receive/send ordered inside the retained exchange; otherwise return to E2/E8/E9/E10 |
-| Listener/source/relay windows | accepted windows are positive and `<= 10,000 ms`; delayed browser coverage becomes an explicit local gap, never split or fabricated; otherwise E5/E9/E10 |
+| Synchronization | during each five-minute foreground enabled run, each listener/source/relay producer attempts at least 30 exchanges and at least 27 succeed; every accepted local RTT is `<= 2,000 ms` and server receive/send is ordered inside the retained exchange; otherwise return to E2/E8/E9/E10 |
+| Listener/source/relay windows | each foreground producer contributes at least 240,000 ms of accepted coverage during five minutes; accepted windows are positive and `<= 10,000 ms`, total unlocalized gap time is `<= 30,000 ms`, and delayed browser coverage is one explicit local gap rather than split or fabricated; otherwise E5/E9/E10 |
 | Clock comparison | only E2-mapped intervals sharing the issued timebase may establish precedence; overlap remains insufficient; otherwise E2/E3 |
-| Playback non-interference | for one five-minute steady track before and after diagnostics enablement, diagnostics adds zero underrun, overflow, reconnect, or dropped-PCM events and PCM publication/listener continuity does not change; otherwise E4/E5/E9/E10 |
-| Browser resources | start, reset, stop, background/wake, and page teardown leave no live diagnostic timer, reader, AudioContext, worklet, observer, or pending action owned by the retired generation; otherwise E5/E6/E11 |
-| Producer isolation | stopping, timing out, corrupting, or withholding the collector leaves gameplay readiness, source authority polling, relay publication, listener fan-out, and audio continuation unchanged; otherwise E7-E10 |
-| Collector filesystem | database + WAL + SHM remain below `256 MiB`, measured free space remains at least `1 GiB`, replay/read/end/purge remain available under the documented pressure gates, and checked disposal removes only the diagnostic volume; otherwise E7 |
+| Playback non-interference | two sequential five-minute steady-track runs—upload disabled, then enabled—each show zero new underrun, overflow, reconnect, or dropped-PCM events and uninterrupted publication/listener playback; this is an observed parity gate, not a causal benchmark; otherwise E4/E5/E9/E10 |
+| Real-client usefulness | sampled every five seconds, enabled host CPU p95 may rise by at most 10 percentage points and resident memory by at most 128 MiB relative to the disabled run; neither host may OOM/restart, and the foreground coverage/synchronization gates above must hold. Portable iPhone CPU/RSS is not claimed. |
+| Browser lifecycle | the operator records app state and collector request/report counts before reset, stop, close, refresh, 30-second app-switch background, and 30-second screen lock. After retirement, counts remain unchanged for 30 seconds; after wake plus any explicitly requested user resume gesture, the same run/seat is visible within 15 seconds and a valid window or explicit gap appears within 20 seconds. Exact timer/reader/worklet enumeration remains E5 owner-test evidence. |
+| Producer isolation | collector stop, timeout, malformed response, and response loss leave gameplay readiness, source authority polling, relay publication, listener fan-out, and audio continuation unchanged. Access/State interruption must instead produce finite failure and expected readiness degradation; already-playing audio may continue but no new authority mutation may succeed. |
+| Collector filesystem | deployed database + WAL + SHM are measured below `256 MiB`, host free space remains at least `1 GiB`, service tmpfs/log/container caps render exactly, and checked disposal removes only the diagnostic volume. Threshold transition/recovery remains E7's injected owner evidence; E12 does not fill a real filesystem. |
 | Capacity | one host, two listeners, one active trace, the fixed reporter slots, and the existing service CPU/memory/PID limits complete without OOM, service restart, or an invented partial result; larger loads are not claimed |
-| Recovery | one response-loss retry returns the original result; source reboot, relay interruption, browser refresh/sleep, and network interruption converge to one current run/lease/generation without duplicate game/audio effects; otherwise the owning S2-D/E checkpoint |
-| Retention/privacy | stop blocks future listener upload, purge conceals the trace, 48-hour retention is not shortened or extended in the test clock, and reviewed logs/output contain no token, bearer, cookie, member name, IP/peer, filesystem path, native exception, raw PCM, or raw measurement object; otherwise E1/E6-E10 |
+| Recovery | one post-commit response-loss retry returns the original result; browser refresh within 15 seconds, relay restart within 30 seconds, source-service restart within 60 seconds, source-host reboot within 180 seconds, and application/collector restart within 60 seconds converge to one current run/lease/generation. Durable game effects are not duplicated; external audio retains S2-D's at-most-once `outcome_unknown`/quarantine rule rather than being retried blindly. |
+| Retention/privacy | listener stop and trace end block future upload; maintenance purge then conceals the trace. Exact 48-hour boundaries remain E7 owner-test evidence because deployed wall time is not altered. Retained logs/output contain no token, bearer, cookie, member name, IP/peer, native exception, raw PCM, or raw measurement object; sanitized command notation may name repository-relative paths while ephemeral encrypted manifests may contain private addresses and absolute paths. |
 | Backup/rollback | encrypted backup verifies and restores into an isolated target; the intentionally failed release restores exact prior image IDs and leaves an unrelated sentinel unchanged; otherwise S2-A/S2-B/Slice 1 protection |
 
-CPU, memory, scheduling latency, database bytes, synchronization RTT, mapping
-uncertainty, startup time, and cleanup duration are recorded as observations.
-They are not converted into new pass thresholds after the run. Existing
-container and protocol limits above remain the gates.
+Measurements use five-second samples and retain only count, minimum, maximum,
+median, and p95 aggregates. Mapping uncertainty and database bytes are recorded
+as observations under the gates above. Cleanup starts within five minutes of a
+terminal result or blocker and completes within 30 minutes unless the provider
+reports a still-running action; the exact action is then recorded and polled to
+a finite result. Thresholds are not changed after the run.
 
 ## Closure matrix
 
 | Dimension | Disposition and enforcement |
 | --- | --- |
-| Create | `runtime`: one reviewed manifest names every disposable Droplet, credential, release, browser session, data copy, Compose project, volume, and evidence file before creation; provider IDs replace requested names immediately after creation. |
+| Create | `runtime`: one reviewed manifest names every requested disposable Droplet, credential, release, browser session, data copy, Compose project, volume, and evidence file before creation; assigned provider IDs are appended immediately after each successful create. |
 | Update | `runtime`: only the exact disposable hosts and rehearsal database may receive the candidate, credentials, faults, or restored data; protected resources are checked by ID before every provider mutation. |
-| Delete | `runtime`: cleanup uses exact provider/container/volume identities, revokes disposable source registration and Spotify/Tailscale authorization first, sanitizes hosts, then destroys them and proves absence. |
+| Delete | `runtime`: cleanup uses exact provider/container/volume identities; listener consent and trace authority end while the owners are live, then source registration and Spotify/Tailscale authority are revoked, data/volumes are disposed, hosts are sanitized/destroyed, and absence is proved. |
 | Omit | `runtime`: the evidence ledger has one result or named blocker for every threshold and schedule; an unavailable real device or unexecuted destructive schedule remains open rather than being inferred from local tests. |
 | Duplicate | `runtime`: unique resource prefixes, exact request IDs, pairwise credential preflight, and provider-ID inventory prevent duplicate authority/resources; response-loss schedules verify one effect. |
 | Reorder | `runtime`: inventory and baseline precede faults; faults are cleared and health re-established before the next scenario; backup precedes failed release; credential revocation precedes host destruction. |
 | Replay | `runtime`: start/stop, listener consent, source/relay binding, report, and one representative game mutation commit then lose the response and retry the exact identity through the deployed route. |
 | Conflict | `runtime`: changed reuse of one retained request ID and all three pairwise diagnostic credential collisions fail before effect during disposable preflight. |
 | Concurrency | `runtime`: one duplicate/concurrent game action, one same-key diagnostic request, and two simultaneous listener reads exercise fixed serialization; no generalized load test is claimed. |
-| Expiry | `runtime`: before/equality/after remain owner-test evidence; the real run exercises browser sleep beyond one window, issuance/sample expiry, consent stop, and trace expiry or purge without changing wall clocks. |
+| Expiry | `runtime`: exact 48-hour and issuance equality remain owner-test evidence; the real run exercises browser sleep beyond one window, sample expiry, consent stop, trace end, and purge without changing wall clocks. |
 | Restart | `runtime`: application service restart, collector restart, source reboot, relay restart, and browser refresh restore only their documented durable or volatile state; exact IDs are recorded across each edge. |
-| Dependency failure | `runtime`: network interruption, collector stop/timeout/malformed response, Access/State unavailability, and Spotify/browser interruption return finite outcomes while the named unrelated planes remain unchanged. |
+| Dependency failure | `runtime`: a loopback-only one-shot fault proxy produces post-upstream-response loss, bounded delay, and malformed dependency output without logging bodies. Collector faults preserve unrelated planes; Access/State faults produce their documented readiness degradation; Spotify/browser interruption retains S2-D external-effect semantics. |
 | Corruption | `runtime`: real hosts rerun startup validation and one isolated restored-copy corruption check; production or protected data is never corrupted for evidence. |
 | Capacity | `runtime`: one manifest fixes two hosts, three browser contexts, two listeners, one trace, existing protocol maxima, the eight-hour lifetime, and cleanup reserve; no fleet extrapolation is made. |
 
@@ -102,59 +132,93 @@ container and protocol limits above remain the gates.
    image IDs, local build identities, tool versions, browser versions, provider
    account/context, VPC, protected resource IDs, and the intended disposable
    names.
-2. Obtain explicit operator authorization for the named provider create/destroy
-   actions and temporary Spotify authorization. No Droplet is created before
-   that approval.
-3. Render Compose/systemd configuration and run the three-way
-   Game/relay/maintenance credential preflight without printing values.
+2. Create the encrypted cleanup manifest and exact-ID cleanup script, verify a
+   second operator-controlled copy and provider/Tailscale cleanup authority,
+   and arm a host-local eight-hour service-stop/sanitize timer. Obtain explicit
+   operator authorization for Droplet, firewall, public-egress, Tailscale
+   node/key/certificate, temporary Spotify authorization, and final destructive
+   cleanup. No external mutation occurs before that approval.
+3. Build the loopback-only fault proxy used by the rehearsal and prove locally
+   that its three one-shot modes are body-silent and finite: forward the request
+   and discard only after the upstream response (post-commit response loss),
+   delay, or replace the upstream response with bounded malformed JSON.
 4. Run the complete local regression and every recorded Slice 1 protection
    gate. A failure stops the rehearsal before provider mutation.
 
 ### 2. Fresh hosts and exact candidate
 
-1. Create the two private-only hosts from the retained images, record IDs and
-   private addresses, and verify there is no public IPv4 or Droplet agent.
+1. Create the two controlled-egress hosts from the retained provider snapshots,
+   append IDs/private addresses to the encrypted manifest, copy it off-machine,
+   and verify no IPv6, no Droplet agent, no public inbound firewall rule, and
+   only the approved outbound rules. Every exit after this step enters the
+   cleanup branch in section 6, including operator-machine or network failure.
 2. Transfer an archive of the exact candidate rather than the working tree.
-3. Generate new disposable credentials off-output, install exact modes/owners,
-   register a disposable managed source, and authorize Spotify interactively.
-4. Install/start application, State, diagnostics, relay, source controller, and
-   reporter units. Validate schema, credentials, topology, readiness, socket
-   ownership, and fixed resource limits before creating a game.
+3. Enroll both hosts in the disposable tailnet tag through the VPC jump path;
+   issue the exact Tailscale HTTPS certificate; render the disposable origin,
+   RP ID, internal routes, and firewall; and prove no value references a
+   protected PoC endpoint.
+4. Install the candidate and generate new disposable credentials off-output.
+   Install their exact modes/owners, run the three-way
+   Game/relay/maintenance collision preflight over those actual values, then
+   start Access, State, Game, collector, and relay base services with source
+   controller/reporter stopped. Validate schema, topology, readiness, socket
+   ownership, and fixed resource limits.
+5. Create disposable host/browser authority, register the managed source
+   through live State, install its once-shown token, and start source
+   controller/relay publisher/reporters. Authorize Spotify interactively last.
+   Re-run readiness and record only finite status categories.
 
 ### 3. Baseline and enabled measurements
 
-1. Create one host run and two distinct listener sessions. Play one steady
-   track for five minutes with upload disabled, then five minutes with one
-   trace and both listeners opted in.
-2. Record scalar CPU/memory/PID/filesystem observations, source/relay/listener
-   counters, startup/re-prime/underrun/overflow deltas, RTT/uncertainty, and
+1. Create one host run and two distinct listener sessions. In each browser,
+   start audio with an explicit user gesture and confirm the selected output by
+   hearing it. Play one steady track for five minutes with upload disabled,
+   then five minutes with one trace and both listeners opted in.
+2. Record five-second scalar samples and retain only aggregates for
+   CPU/memory/PID/filesystem, source/relay/listener counters,
+   startup/re-prime/underrun/overflow deltas, RTT/uncertainty, coverage, and
    service restart counts. Do not record raw PCM, cookies, tokens, member names,
-   or full user agents.
+   full user agents, output-device names, or hardware identifiers.
 3. Verify local copy still works with collector stopped and the advanced host
    comparison is host-only and minimized.
+4. On the iPhone, separately exercise 30 seconds of app-switch background and
+   30 seconds of screen lock. Timestamp foreground/wake, apply only an explicit
+   browser-requested resume gesture, and evaluate the lifecycle/coverage
+   thresholds rather than inferring internal browser resources.
 
 ### 4. Failure and recovery schedules
 
 Run one schedule at a time, clear it, and prove one coherent owner before the
 next:
 
-- commit-and-lose-response for one game action and each deployed diagnostic
-  mutation family representative of browser, source, relay, and maintenance;
+- post-commit response loss through the one-shot fault proxy for one game
+  action and each deployed diagnostic mutation family representative of
+  browser, source, relay, and maintenance; ordinary pre-commit network loss is
+  recorded separately and cannot count as replay evidence;
 - duplicate/concurrent action, lease contention, and changed request conflict;
 - browser refresh, iPhone background/sleep beyond one window, wake, consent
   stop, diagnostic reset, and trace stop;
 - source service restart and full source-host reboot;
 - relay interruption, delayed old generation, listener disconnect/reconnect,
   and a bounded shaped-network interval;
-- collector timeout/stop/malformed response and Access/State interruption,
-  each with the documented unaffected gameplay/audio/readiness assertions;
+- collector timeout/stop/malformed response with unchanged
+  gameplay/audio/readiness; then separate Access and State interruptions with
+  finite route failures, expected readiness degradation, already-playing audio
+  observation, and refusal of new authority mutations;
 - host comparison for normal/missing evidence and one real injected
   source/relay/listener fault whose E3 result is checked without hand-authored
   evidence; and
 - collector restart, application restart, reconstruction, whole-trace purge,
   and post-purge concealment.
 
-### 5. Backup, failed release, restore, and cleanup
+The real-host corruption schedule operates only on a copied collector database
+inside an isolated disposable container: mutate one relationship, restart that
+copy, require finite degraded status, then delete the container and copy. The
+real filesystem schedule records deployed DB/WAL/SHM, free-space, tmpfs, log,
+memory, CPU, and PID values but does not manufacture pressure; E7's owner tests
+remain the threshold-transition evidence.
+
+### 5. Backup, failed release, and restore
 
 1. Create and verify one encrypted backup, copy it off the disposable host,
    restore it into an isolated target, and compare protected table counts,
@@ -162,16 +226,38 @@ next:
 2. Record exact current image IDs and an unrelated sentinel, inject one
    disposable readiness failure, run release, and prove automatic exact-image
    rollback plus unchanged sentinel identity/start time.
+3. Keep the isolated restore, off-host encrypted backup, and passphrase only
+   until their comparisons are recorded. Delete the restored container/volume,
+   every host/workstation backup copy, and the passphrase before authority
+   volumes or hosts are destroyed.
+
+### 6. Mandatory cleanup on success, failure, or interruption
+
+This branch is entered after every terminal result or blocker once the first
+external mutation has occurred. It is pre-rendered before creation and may be
+completed by another authorized operator from the off-machine manifest.
+
+1. While collector and State are available, stop listener consent, end the
+   trace, stop producer reporters, verify source/relay diagnostic grants can no
+   longer upload, disable the disposable managed-source registration (which
+   releases its lease), then purge the trace and verify concealment. There is no
+   invented source-grant revoke operation: trace end/expiry and reporter
+   restart make that volatile grant unusable.
+2. Revoke/remove Spotify authorization and the disposable Tailscale nodes and
+   auth keys; deleting a local browser profile alone is not called revocation.
+   Remove browser profiles, cookies, credentials, fault-proxy state, temporary
+   restore data, backup material, and passphrases.
 3. Stop and remove only the diagnostics container, run checked diagnostic
-   volume disposal, and prove authority volumes remain.
-4. Stop the trace, revoke listener/source grants, disable the disposable source
-   registration, log out of Spotify/Tailscale, remove browser profiles and
-   credentials, sanitize both hosts, and scan retained evidence for prohibited
-   fields.
-5. Destroy only the inventoried disposable Droplet IDs. Verify provider,
+   volume disposal, and prove authority volumes remain. Sanitize both hosts and
+   allow the pre-armed local timer to remain a fallback until destruction.
+4. Destroy only manifest-listed disposable Droplet and firewall IDs. If a host
+   is unreachable, use the provider IDs from the off-machine manifest; host
+   cleanup is not a prerequisite for provider deletion. Verify provider,
    Tailscale, Compose, volume, credential, local temporary-file, and browser
-   session inventories are empty. Retain no new image unless a separate review
-   explicitly authorizes its sanitized contents.
+   inventories are empty and disarm the local cleanup timer.
+5. Retain no new provider snapshot unless a separate review explicitly
+   authorizes its sanitized contents. Scan the final ledger and repository diff
+   before declaring cleanup complete.
 
 ## Evidence and closure
 
@@ -180,8 +266,12 @@ The execution record is
 tree and sibling pins; sanitized resource IDs; timestamps; commands and finite
 results; observed scalar measurements; before/after counters; rollback image
 IDs; cleanup proofs; and a threshold-by-threshold verdict. Secret values,
-account email, public IPs, cookies, device model/serial, Spotify identity, member
-names, raw reports, raw measurements, and PCM are excluded.
+account email, public/private IPs, absolute host paths, cookies, device
+model/serial, Spotify identity, member names, raw reports, raw measurements,
+and PCM are excluded. Commands are retained only as sanitized repository-
+relative notation. Private addresses, absolute paths, full commands, and
+temporary scalar samples may exist only in the encrypted manifest during the
+run; they are reduced to allowlisted aggregates and deleted during cleanup.
 
 E12 and Slice 2 close only when the matrix is complete, the local and real
 evidence passes, no P0/P1 remains, every failed measurement has returned to and
