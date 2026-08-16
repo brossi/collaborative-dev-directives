@@ -362,5 +362,6 @@ test("a closed read cannot publish when its dependency ignores abort", async () 
   resolve(comparison());
   assert.equal(await pending,false);
   assert.equal(f.controller.snapshot().open,false);
+  assert.equal(f.controller.snapshot().busy,false);
   assert.equal(f.controller.snapshot().comparison,null);
 });

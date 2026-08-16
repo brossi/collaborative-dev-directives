@@ -478,7 +478,7 @@ export function createE11HostPanelController({ transport,storage,randomUuid } = 
       if (!state.enabled) return;
       if (!open) {
         readAbort?.abort();
-        publish({ ...state,open: false,comparison: null });
+        publish({ ...state,open: false,busy: false,comparison: null });
       } else publish({ ...state,open: true });
     },
     start,refresh,stop,
