@@ -1,6 +1,6 @@
 # S2-E E9 source diagnostics
 
-Status: `E9.1 implemented and pinned; independent closure review pending`.
+Status: `E9.1 locally verified and pinned; E9.2 is next`.
 
 This packet applies the repository scale filter. There is one managed source,
 one `btaudio-push` process, one local controller, and one future reporter task.
@@ -214,7 +214,7 @@ between a public-name bind and its successful attestation. The final target
 binds inside a freshly created mode-`0700` private directory, attests that
 inode, atomically hard-links it into the absent public name, and only then
 hands the bound socket to asyncio. A competing public name makes publication
-fail without removing it. Final narrow re-review remains pending.
+fail without removing it.
 
 The final review also required the mode change to occur on the attested private
 inode before publication. After the atomic link, the implementation performs
@@ -237,5 +237,7 @@ Verification at this checkpoint:
 - source distribution and wheel build: pass; and
 - sibling and CannaBeats `git diff --check`: pass.
 
-Open local findings are `P0=0`, `P1=0`, `P2=0`. E9.1 remains unconsumable by
-E9.2 until targeted independent re-review closes the remediated boundary.
+Independent closure reviewed CannaBeats commit `9d3a590` and pinned sibling
+commit `321c34d` from the counter, protocol/privacy, and audio-isolation
+perspectives. Final findings are `P0=0`, `P1=0`, `P2=0`. E9.1 is locally
+verified; E9.2 may now consume only this pinned finite snapshot boundary.
