@@ -90,13 +90,15 @@ authorization, and their destructive cleanup are included in the external
 approval boundary. Tailnet/account identity is transient operator data and is
 not retained in the sanitized ledger.
 
-Before creation, the manifest records requested names, unique tag, provider
-context, project, VPC, size, protected IDs, selected public SSH-key ID, and
-exact cleanup commands. Each assigned provider ID is appended immediately
-after its create call. The encrypted manifest is copied to a second
-operator-controlled location before the next mutation; if that handoff cannot
-be confirmed, the new resource is destroyed immediately. No command may target
-a resource by a broad name filter alone.
+Before creation, the sanitized rehearsal ledger records requested names, the
+unique prefix and tag, provider context, project, VPC, size, protected IDs, and
+selected public SSH-key ID. Each assigned provider or Tailscale resource ID is
+appended immediately after its create call. The provider and Tailscale control
+planes remain the recovery inventory if the operator workstation is lost;
+every cleanup target is selected by its recorded exact ID, with the unique
+prefix used only to find and reconcile a missing ledger entry. Auth keys,
+tokens, addresses, passwords, and private paths are transient inputs and are
+never copied into the ledger or a second credential store.
 
 ## Fixed acceptance thresholds
 
@@ -114,7 +116,7 @@ These thresholds are fixed before provisioning:
 | Collector filesystem | deployed database + WAL + SHM are measured below `256 MiB`, host free space remains at least `1 GiB`, service tmpfs/log/container caps render exactly, and checked disposal removes only the diagnostic volume. Threshold transition/recovery remains E7's injected owner evidence; E12 does not fill a real filesystem. |
 | Capacity | one host, two listeners, one active trace, the fixed reporter slots, and the existing service CPU/memory/PID limits complete without OOM, service restart, or an invented partial result; larger loads are not claimed |
 | Recovery | one post-commit response-loss retry returns the original result; browser refresh within 15 seconds, relay restart within 30 seconds, source-service restart within 60 seconds, source-host reboot within 180 seconds, and application/collector restart within 60 seconds converge to one current run/lease/generation. Durable game effects are not duplicated; external audio retains S2-D's at-most-once `outcome_unknown`/quarantine rule rather than being retried blindly. |
-| Retention/privacy | listener stop and trace end block unseen/new upload; an exact retained report identity may still return its original replay result until maintenance purge, after which the trace is concealed. Exact 48-hour boundaries remain E7 owner-test evidence because deployed wall time is not altered. Retained logs/output contain no token, bearer, cookie, member name, IP/peer, native exception, raw PCM, or raw measurement object; sanitized command notation may name repository-relative paths while ephemeral encrypted manifests may contain private addresses and absolute paths. |
+| Retention/privacy | listener stop and trace end block unseen/new upload; an exact retained report identity may still return its original replay result until maintenance purge, after which the trace is concealed. Exact 48-hour boundaries remain E7 owner-test evidence because deployed wall time is not altered. Retained logs/output contain no token, bearer, cookie, member name, IP/peer, native exception, raw PCM, or raw measurement object; sanitized command notation may name repository-relative paths while transient mode-`0600` run files may contain private addresses and absolute paths until cleanup. |
 | Backup/rollback | encrypted backup verifies and restores into an isolated target; the intentionally failed release restores exact prior image IDs and leaves an unrelated sentinel unchanged; otherwise S2-A/S2-B/Slice 1 protection |
 
 Measurements use five-second samples and retain only count, minimum, maximum,
@@ -131,7 +133,7 @@ a finite result. Thresholds are not changed after the run.
 
 | Dimension | Disposition and enforcement |
 | --- | --- |
-| Create | `runtime`: one reviewed manifest names every requested disposable Droplet, credential, release, browser session, data copy, Compose project, volume, and evidence file before creation; assigned provider IDs are appended immediately after each successful create. |
+| Create | `runtime`: the sanitized ledger names every requested disposable resource, release, browser session, data copy, Compose project, volume, and evidence file before creation; assigned provider and Tailscale IDs are appended immediately after each successful create. Credentials remain transient and unrecorded. |
 | Update | `runtime`: only the exact disposable hosts and rehearsal database may receive the candidate, credentials, faults, or restored data; protected resources are checked by ID before every provider mutation. |
 | Delete | `runtime`: cleanup uses exact provider/container/volume identities; listener consent and trace authority end while the owners are live, then source registration and Spotify/Tailscale authority are revoked, data/volumes are disposed, hosts are sanitized/destroyed, and absence is proved. |
 | Omit | `runtime`: the evidence ledger has one result or named blocker for every threshold and schedule; an unavailable real device or unexecuted destructive schedule remains open rather than being inferred from local tests. |
@@ -144,7 +146,7 @@ a finite result. Thresholds are not changed after the run.
 | Restart | `runtime`: application service restart, collector restart, source reboot, relay restart, and browser refresh restore only their documented durable or volatile state; exact IDs are recorded across each edge. |
 | Dependency failure | `runtime`: a loopback-only one-shot fault proxy produces post-upstream-response loss, bounded delay, and malformed dependency output without logging bodies. Collector faults preserve unrelated planes; Access/State faults produce their documented readiness degradation; Spotify/browser interruption retains S2-D external-effect semantics. |
 | Corruption | `runtime`: real hosts rerun startup validation and one isolated restored-copy corruption check; production or protected data is never corrupted for evidence. |
-| Capacity | `runtime`: one manifest fixes two hosts, three browser contexts, two listeners, one trace, existing protocol maxima, the eight-hour lifetime, and cleanup reserve; no fleet extrapolation is made. |
+| Capacity | `runtime`: one ledger fixes two hosts, three browser contexts, two listeners, one trace, existing protocol maxima, the eight-hour lifetime, and cleanup reserve; no fleet extrapolation is made. |
 
 ## Ordered rehearsal
 
@@ -154,11 +156,11 @@ a finite result. Thresholds are not changed after the run.
    image IDs, local build identities, tool versions, browser versions, provider
    account/context, VPC, protected resource IDs, and the intended disposable
    names.
-2. Create the encrypted cleanup manifest, exact-ID cleanup script, and rendered
-   eight-hour host service-stop/sanitize timer; verify a second
-   operator-controlled copy and provider/Tailscale cleanup authority. The timer
-   cannot be armed until a host exists: exact provider IDs in the off-machine
-   manifest are the fallback during the creation-to-bootstrap interval. Obtain
+2. Create the sanitized rehearsal ledger, exact-ID cleanup script, and rendered
+   eight-hour host service-stop/sanitize timer; verify provider/Tailscale
+   cleanup authority. The timer cannot be armed until a host exists: during the
+   creation-to-bootstrap interval the provider control plane, unique resource
+   prefix, and immediately recorded exact IDs are the fallback. Obtain
    explicit operator authorization for Droplets, the unique provider tag and
    firewall, public egress, Tailscale ephemeral node/key/certificate and CT
    publication, temporary Spotify authorization, and final destructive
@@ -176,7 +178,8 @@ a finite result. Thresholds are not changed after the run.
 1. Create the unique provider tag and private-jump-only inbound firewall first,
    then create
    the two tagged controlled-egress hosts from the retained provider snapshots,
-   append IDs/private addresses to the encrypted manifest, copy it off-machine,
+   append their sanitized IDs to the ledger immediately while keeping addresses
+   only in a local mode-`0600` temporary run directory,
    and verify no IPv6, no Droplet agent, the union of all effectively attached
    firewall rules contains only the exact private TCP `22` rule sourced from
    protected jump Droplet `559513055`, has no public or other inbound rule, and
@@ -239,9 +242,9 @@ Each profile records route family, finite outcome/status, and monotonic time,
 but never records
 request/response bodies, request IDs, trace/instance/sample IDs, credentials,
 URLs, addresses, or native errors. It may parse only the exact route identity
-fields in memory to bind attempts to the encrypted ephemeral role map. Proxy
+fields in memory to bind attempts to the transient ephemeral role map. Proxy
 request arrival counts as an attempt only when its exact trace ID matches the
-encrypted run configuration; a foreign trace fails before forwarding/counting.
+transient run configuration; a foreign trace fails before forwarding/counting.
 HTTP response status never counts as a successful synchronization.
 
 The sampler transiently reads the complete collector trace through the
@@ -275,7 +278,8 @@ start-time field; only a hash of those facts, fixed service label, and
 allowlisted scalar counters enter the raw sample. The stable complete roster is
 required across the series before the tool emits fixed finite categories and
 count/min/max/median/p95 aggregates. Raw samples and the role-to-identity map
-remain only in the encrypted manifest and are deleted during cleanup.
+remain only in the local mode-`0600` temporary run directory and are deleted
+during cleanup.
 
 The local tool increment is governed by this invariant:
 
@@ -290,7 +294,7 @@ Its implementation matrix is:
 | --- | --- |
 | Create | `structural`: four fixed producer roles and two fixed host roles are the only aggregate keys; the tool creates no authority or durable row. |
 | Update | `structural`: inputs are validated into a new frozen summary; retained summary values are not mutated. |
-| Delete | `not_applicable`: the tool owns no durable state; encrypted raw-input cleanup remains the mandatory E12 manifest operation. |
+| Delete | `not_applicable`: the tool owns no durable state; temporary raw-input cleanup remains a mandatory E12 operation. |
 | Omit | `runtime`: exact top-level fields, one exact five-minute observation boundary in all three clock domains, all four instance-label maps, trace binding, restored accepted samples, unioned interval coverage/discontinuities, gap inputs, and both host aggregates are required before output. |
 | Duplicate | `runtime`: instance ownership is unique and duplicate report identity fails before aggregation; distinct sample IDs alone count as synchronization success. |
 | Reorder | `runtime`: proxy attempts must be monotonic within each role; proxy and one-shot host-sample processes use host monotonic time; host samples are ordered by that time and invalid/nonpositive deltas fail; report order does not alter aggregate totals. |
@@ -298,7 +302,7 @@ Its implementation matrix is:
 | Conflict | `runtime`: foreign trace, cross-role instance reuse, wrong route/identity, and unknown profile identity fail before output or forwarding. |
 | Concurrency | `structural`: one Node event loop atomically consumes the one-shot fault flag; the tool performs no concurrent durable mutation. |
 | Expiry | `not_applicable`: E2 restoration proves sample validity; the tool does not create or extend authority/retention. |
-| Restart | `not_applicable`: no tool state is claimed durable; restart re-creates a profile from the encrypted manifest and cannot count as response-loss evidence already in flight. |
+| Restart | `not_applicable`: no tool state is claimed durable; restart re-creates a profile from transient run configuration and cannot count as response-loss evidence already in flight. |
 | Dependency failure | `runtime`: the deadline starts before inbound-body reading and bounds body, fetch, and response-body completion even when a dependency ignores abort; fault-proxy requests and ordinary responses are capped at 8 KiB, the exact collector trace-read response retains its production 2 MiB cap, delay is capped at ten seconds, redirects/native failures normalize finitely, broken evidence output is contained, and peer disconnect cannot alter authority. |
 | Corruption | `runtime`: exact E2 envelope restoration, trace/role relations, report identity, `/proc` scalar parsing, and fixed journal/browser inputs fail closed before a summary. |
 | Capacity | `runtime`: 4,096 reports, 16 collector pages, 512 attempts/notices, 512 host samples, at most 32 allowlisted processes in each host sample, 16 instances per role (64 total), an 8 KiB proxy body, a 2 MiB collector page, and a 32 MiB offline summary input are hard maxima. |
@@ -321,7 +325,7 @@ The executable surfaces are deliberately small:
 - `summarize-live` reads auxiliary evidence from standard input, obtains every
   cursor-bound page with the production collector client and Game credential,
   restores E2 envelopes, and writes only the sanitized summary;
-- `summarize` performs the same aggregation over an encrypted-manifest export
+- `summarize` performs the same aggregation over a mode-`0600` temporary export
   for local/recovery verification;
 - `proxy` binds collector issuance identities through
   `S2F_EPHEMERAL_ROLE_MAP`, transparently forwards every other collector route,
@@ -334,8 +338,8 @@ The executable surfaces are deliberately small:
 
 The role, trace, and process environment inputs are removed from the tool
 process immediately after parsing. They and collector credentials are
-transient encrypted-manifest inputs, never command-line arguments or retained
-summary fields.
+transient mode-`0600` inputs, never command-line arguments or retained summary
+fields.
 
 The checked-in attachment is equally narrow. The production Game image copies
 the tool and only its E1/E2/collector-client dependencies. The
@@ -346,7 +350,7 @@ no maintenance credential. The root-only host wrapper and Python companion are
 installed directly from the exact candidate on each disposable host and use no
 network; stable executable/cgroup/start-time relations are rechecked on every
 sample. Other passthrough placements remain explicit
-per-schedule client-origin overrides recorded in the encrypted manifest; the
+per-schedule client-origin overrides held only in the temporary run directory; the
 tool is never described as transparently intercepting traffic without one.
 
 The browser action worksheet has one row per action and uses these exact
@@ -406,16 +410,17 @@ remain the threshold-transition evidence.
 2. Record exact current image IDs and an unrelated sentinel, inject one
    disposable readiness failure, run release, and prove automatic exact-image
    rollback plus unchanged sentinel identity/start time.
-3. Keep the isolated restore, off-host encrypted backup, and passphrase only
-   until their comparisons are recorded. Delete the restored container/volume,
-   every host/workstation backup copy, and the passphrase before authority
+3. Keep the isolated restore, off-host encrypted backup, and generated one-run
+   key only until their comparisons are recorded. Delete the restored
+   container/volume, every host/workstation backup copy, and the key before authority
    volumes or hosts are destroyed.
 
 ### 6. Mandatory cleanup on success, failure, or interruption
 
 This branch is entered after every terminal result or blocker once the first
-external mutation has occurred. It is pre-rendered before creation and may be
-completed by another authorized operator from the off-machine manifest.
+external mutation has occurred. It is pre-rendered before creation. The
+provider and Tailscale inventories plus the unique rehearsal prefix allow the
+operator to recover exact IDs if the local ledger cannot be reached.
 
 1. While collector and State are available, stop listener consent, end the
    trace, stop producer reporters, verify unseen/new source/relay/listener
@@ -427,13 +432,13 @@ completed by another authorized operator from the off-machine manifest.
 2. Revoke/remove Spotify authorization and the disposable Tailscale nodes and
    auth keys; deleting a local browser profile alone is not called revocation.
    Remove browser profiles, cookies, credentials, fault-proxy state, temporary
-   restore data, backup material, and passphrases.
+   restore data, backup material, and generated one-run keys.
 3. Stop and remove only the diagnostics container, run checked diagnostic
    volume disposal, and prove authority volumes remain. Sanitize both hosts and
    allow the pre-armed local timer to remain a fallback until destruction.
-4. Destroy and confirm absence of only the manifest-listed disposable Droplets
+4. Destroy and confirm absence of only the ledger-listed disposable Droplets
    before deleting the rehearsal firewall and provider tag. If a host
-   is unreachable, use the provider IDs from the off-machine manifest; host
+   is unreachable, use the ledger or provider-control-plane IDs; host
    cleanup is not a prerequisite for provider deletion. Verify provider,
    Tailscale, Compose, volume, credential, local temporary-file, and browser
    inventories are empty. Host destruction constitutes final timer disarm; if
@@ -454,8 +459,8 @@ account email, public/private IPs, absolute host paths, cookies, device
 model/serial, Spotify identity, member names, raw reports, raw measurements,
 and PCM are excluded. Commands are retained only as sanitized repository-
 relative notation. Private addresses, absolute paths, full commands, and
-temporary scalar samples may exist only in the encrypted manifest during the
-run; they are reduced to allowlisted aggregates and deleted during cleanup.
+temporary scalar samples may exist only in the local mode-`0600` temporary run
+directory; they are reduced to allowlisted aggregates and deleted during cleanup.
 
 E12 and Slice 2 close only when the matrix is complete, the local and real
 evidence passes, no P0/P1 remains, every failed measurement has returned to and

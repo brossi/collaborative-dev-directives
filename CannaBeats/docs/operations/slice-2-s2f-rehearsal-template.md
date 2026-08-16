@@ -13,8 +13,9 @@
 This ledger is the sanitized durable record. It must not contain credentials,
 cookies, account or member names, public/private addresses, absolute host paths,
 raw commands, raw reports/measurements, PCM, device identifiers, or native
-errors. Those values may exist only in the encrypted temporary manifest and
-must be deleted during cleanup.
+errors. Those values may exist only in a local mode-`0600` temporary run
+directory and must be deleted during cleanup. Auth keys and tokens are used
+once and are never written to this ledger or a second credential store.
 
 ## Risk-C authorization
 
@@ -42,9 +43,9 @@ If any item remains pending, stop before provider mutation.
 | Local closure | E12 design/local evidence P0/P1/P2 = 0 | `pending` |
 | Images | exact local image IDs and successful production build | `pending` |
 | Protected inventory | protected provider resources recorded by ID and read-only | `pending` |
-| Private manifest | encrypted primary + second operator-controlled copy | `pending` |
+| Recovery inventory | unique prefix plus immediately recorded exact IDs; provider/Tailscale control planes reconciled | `pending` |
 | Cleanup authority | exact-ID provider/Tailscale cleanup access verified | `pending` |
-| Eight-hour fallback | timer rendered before creation; off-machine provider fallback ready | `pending` |
+| Eight-hour fallback | timer rendered before creation; provider inventory and unique-prefix recovery ready | `pending` |
 | Provider boundary | project/VPC/SSH key/snapshot/size/cost and requested names fixed | `pending` |
 | Tailnet boundary | devices enrolled; MagicDNS/HTTPS/policy state recorded; no policy mutation required | `pending` |
 | Browser/device boundary | exact browser versions and physical audio availability recorded | `pending` |
@@ -134,7 +135,7 @@ Run one row at a time and restore health before the next.
 | Isolated restore passed schema/catalog/table counts/integrity/FK/mode checks | `pending` |
 | Disposable readiness failure triggered exact-image rollback | `pending` |
 | Unrelated sentinel identity/start time unchanged | `pending` |
-| Restore target, every backup copy, and passphrase removed | `pending` |
+| Restore target, every backup copy, and generated one-run key removed | `pending` |
 
 ## Mandatory cleanup
 
@@ -145,11 +146,11 @@ Cleanup runs on success, failure, or interruption after the first mutation.
 | 1 | listener consent stopped; trace ended; reporters stopped; unseen uploads refused; exact replay semantics checked | `pending` |
 | 2 | source registration disabled and lease released; trace purged/concealed | `pending` |
 | 3 | Spotify authorization and Tailscale nodes/keys revoked | `pending` |
-| 4 | browser profiles, cookies, credentials, proxy state, restores, backups, passphrases removed | `pending` |
+| 4 | browser profiles, cookies, credentials, proxy state, restores, backups, and generated one-run keys removed | `pending` |
 | 5 | diagnostics container removed; checked diagnostics volume disposal; authority volumes unchanged | `pending` |
 | 6 | both Droplets absent before firewall/tag deletion | `pending` |
 | 7 | provider, Tailscale, Compose, volume, credential, temp-file, browser inventories empty | `pending` |
-| 8 | encrypted manifest copies and raw scalar inputs deleted; timer ended by verified host destruction | `pending` |
+| 8 | temporary run directory and raw scalar inputs deleted; timer ended by verified host destruction | `pending` |
 
 ## Final privacy and completion audit
 
@@ -161,4 +162,3 @@ Cleanup runs on success, failure, or interruption after the first mutation.
 - [ ] Slice 2 status is updated only after the evidence above proves completion.
 
 Final verdict: `rehearsal incomplete`
-
