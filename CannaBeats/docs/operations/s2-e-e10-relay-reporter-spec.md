@@ -1,6 +1,6 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.0/E10.1 independently closed; E10.2 audit remediation implemented and locally verified, narrow re-review pending`.
+Status: `E10.0/E10.1/E10.2 independently closed`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
@@ -463,7 +463,7 @@ and collector failure isolation.
 
 ## E10.2 implementation checkpoint
 
-Status: `audit remediation implemented and locally verified; narrow affected-seam re-review pending`.
+Status: `independently closed`.
 
 The pinned sibling implementation is
 `42f1e1a5c8af8ae02bba175941b63fe4f0c647c6` (tree
@@ -530,7 +530,16 @@ Local verification at this checkpoint:
 
 The matrix intentionally does not claim installed relay-host credentials,
 systemd wiring, real network timing, or measured reporter overhead. E12 owns
-those fresh-host and real-host proofs. E10.2 closure requires only a narrow
-re-review of the affected timing, terminal, omission, dependency, and cleanup
-seams on this exact pinned target; unchanged authority/topology surfaces do not
-require another broad audit.
+those fresh-host and real-host proofs.
+
+The final narrow independent re-review found `P0=0` and `P1=0`. It reproduced
+the synchronization timing, omitted-generation, exact-final-consumption,
+fenced-then-stopped, stale-window gap, dependency deadline, logger, shutdown,
+and output-privacy schedules; focused reporter tests passed `30/30` and the
+full sibling suite passed `315/315`. E10.2 therefore closes under the repository
+closure rule. Two bounded P2 precision items remain accepted for later cleanup:
+a syntactically nonnumeric URL port is reported per transaction as
+`unavailable` rather than once as configuration-invalid, and report-time
+correlation loss abandons the affected evidence without an additional local
+`coverage_gap` notice. Neither changes relay audio, authority, retained state,
+or cleanup, and neither is carried into a later checkpoint as a required gate.
