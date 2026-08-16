@@ -186,8 +186,8 @@ collector failure remain explicitly outside this increment.
 ## E9.1 implementation checkpoint
 
 The pinned sibling target is
-`796099d0dd1e5dc56667935410dcc6872e05f402` (tree
-`6d22f2425b9ccc58dde34afb5cab620ae0643f56`) on the sibling branch
+`321c34d0a3babd29a017cbf7f89841045f66223e` (tree
+`31efb3f1ce4045be3f27461a73209668b9abd6e5`) on the sibling branch
 `feature/s2-e-publisher-diagnostics`. It adds `btaudio` version `0.4.0`, the
 finite Unix-socket interface, capture/publisher scalar provenance, exact
 rotation/replay, finite operational output, and no reporter or network
@@ -221,10 +221,16 @@ inode before publication. After the atomic link, the implementation performs
 no public-path mutation except identity-checked cleanup, so a later pathname
 substitution is neither chmodded nor removed.
 
+Private staging cleanup revalidates the freshly created directory's owner and
+mode, so even a failure before socket-inode attestation removes the contained
+socket and directory without guessing about any public pathname.
+Cleanup filesystem failures are contained as the same finite setup failure;
+they never replace that outcome with a native exception.
+
 Verification at this checkpoint:
 
-- Python 3.12 full sibling suite: `256/256` pass;
-- focused publisher interface and pusher suite: `50/50` pass;
+- Python 3.12 full sibling suite: `257/257` pass;
+- focused publisher interface and pusher suite: `51/51` pass;
 - Ruff check of `src/btaudio/diagnostics.py`, `src/btaudio/capture.py`,
   `src/btaudio/relay.py`, and `tests/test_publisher_diagnostics.py`: pass;
 - compileall: pass;
