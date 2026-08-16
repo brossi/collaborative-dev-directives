@@ -65,7 +65,7 @@ may be retained; addresses, keys, tokens, and provider/account identity may not.
 | Rehearsal firewall | `cannabeats-s2f-20260816-01-firewall` | `6eab8e28-44be-49cd-9cda-44b1649d2c7d` | `2026-08-16T14:08:30Z` | `pending` | `pending` |
 | Application Droplet | `cannabeats-s2f-20260816-01-app` | `592821441` | `2026-08-16T14:09:46Z` | `pending` | `pending` |
 | Source Droplet | `cannabeats-s2f-20260816-01-source` | `592821570` | `2026-08-16T14:10:14Z` | `pending` | `pending` |
-| Application Tailscale node | `cannabeats-s2f-20260816-01-app` | `pending` | `pending` | `pending` | `pending` |
+| Application Tailscale node | `cannabeats-s2f-20260816-01-app` | `cannabeats-s2f-20260816-01-app` | `2026-08-16T15:08:01Z` | `pending` | `pending` |
 | Source Tailscale node | `cannabeats-s2f-20260816-01-source` | `cannabeats-s2f-20260816-01-source` | `2026-08-16T15:05:38Z` | `pending` | `pending` |
 | Diagnostics Compose project/volume | `cannabeats-s2f-20260816-01` | `pending` | `pending` | `pending` | `pending` |
 | Isolated restore target | `cannabeats-s2f-20260816-01-restore` | `pending` | `pending` | `pending` | `pending` |
