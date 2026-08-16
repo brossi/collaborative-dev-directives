@@ -1,6 +1,6 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.1 design complete; implementation authorized`.
+Status: `E10.1 remediation implemented; independent re-review pending`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
@@ -39,7 +39,7 @@ rebinds. Source disconnect finalizes it. The next successful claim creates a
 new identity even when format and peer happen to match. A refused source never
 creates a generation.
 
-The owner retains only:
+The report interface retains only:
 
 - one active generation; and
 - one prior generation in `ending` or immutable `finalized` state awaiting
@@ -51,10 +51,11 @@ the process-scoped `coverageLossCount` increments once, and the next generation
 starts normally. Neither retained generation is overwritten or relabeled.
 E10.2 observes that scalar and may record only a finite local coverage-loss
 notice; it retries only already-owned evidence and never creates a generation
-queue. Any omitted generation record is detached from the report interface and
-retained only by its still-closing generation-bound clients; no additional
-record is created beyond the Client objects the Hub already owns, and the last
-close releases the detached counter record.
+queue. Any omitted generation record is detached from the report interface in
+a generation-keyed map. It exists only while at least one of the fixed eight
+generation-bound clients is closing or one already-scheduled Hub ingress
+commit is pending. The last close/commit releases it; this is not a reportable
+or unbounded generation history.
 
 ## Exact snapshot
 
@@ -78,12 +79,12 @@ close releases the detached counter record.
     "ingressGapCount":"safe integer >=0",
     "rejectedIngressCount":"safe integer >=0",
     "droppedIngressCount":"safe integer >=0",
-    "acceptedListenerCount":"safe integer >=0",
+    "acceptedListenerCount":"integer 0..8",
     "closedListenerCount":"safe integer >=0",
     "deliveredBytes":"safe integer >=0",
     "backpressureClosureCount":"safe integer >=0",
     "generationFenceDisconnectCount":"safe integer >=0",
-    "activeListenerCount":"safe integer >=0"
+    "activeListenerCount":"integer 0..8"
   }
 }
 ```
@@ -112,11 +113,17 @@ Exact relations:
 
 ## Counter provenance
 
-- `ingressFrames/Bytes` advance only for complete s16le frames accepted by
-  `RelaySource.feed` and handed to the Hub callback. Network fragmentation is
-  reconciled with a bounded carry of at most `channels*2-1` bytes; a terminal
-  partial frame increments `droppedIngressCount` once and is not counted as
-  ingress.
+- Complete-frame normalization is a structural `RelaySource` behavior whether
+  diagnostics are enabled or disabled. Network fragmentation is reconciled
+  with a bounded carry of at most `channels*2-1` bytes; a terminal partial is
+  never delivered, increments `droppedIngressCount` when observed, and is not
+  counted as ingress. Diagnostics therefore cannot change callback chunking,
+  listener queue pressure, delivered PCM, or terminal-partial handling.
+- `ingressFrames/Bytes` reserve the captured generation and feed timestamp,
+  but advance only in `Hub._broadcast` after the Hub commits the same complete
+  payload to `total_bytes`. A pending reservation keeps an ending generation
+  reachable until that scheduled commit completes; snapshots never expose the
+  bytes early.
 - `ingressGapCount` increments when accepted feed callbacks in one generation
   are separated by strictly more than twice the later callback's nominal audio
   duration. Equality is not a gap; lifecycle boundaries are not gaps.
@@ -126,9 +133,10 @@ Exact relations:
   generation is known and are deliberately not attributed.
 - `droppedIngressCount` counts one malformed accepted chunk stream or one
   terminal partial-frame carry, at most once per generation.
-- `acceptedListenerCount` increments only after stream response headers are
-  sent and the listener is inserted into `Hub.clients` with its immutable
-  generation ID.
+- A listener reserves one of eight slots and captures the exact format and
+  generation before sending headers. After the header await, a changed or
+  absent generation aborts admission. `acceptedListenerCount` increments only
+  after the listener is inserted into `Hub.clients` with that captured ID.
 - `closedListenerCount` increments exactly once on that client's retained
   generation when it is removed, regardless of EOF, transport failure,
   cancellation, or fence. It never consults whichever generation is current.
@@ -177,15 +185,15 @@ parent privacy disclosure covers normal relay output as well as reports.
 | Delete | `runtime`: exact-ID `take_finalized` removes only the one immutable finalized snapshot; audio lifecycle cleanup is unchanged. |
 | Omit | `runtime`: exact constructor emits every required field or finite `unavailable`; partial frames become one explicit drop and excess finalized evidence increments `coverageLossCount`. |
 | Duplicate | `structural`: one active and one finalized object; generation UUID is assigned once and cannot be copied into a new claim. |
-| Reorder | `runtime`: creation precedes feed/admission; each client retains its generation; delivery increments after drain; close/fence increments precede finalization. |
+| Reorder | `runtime`: creation precedes feed/admission; Hub byte commit precedes ingress observation; each client retains its generation; delivery increments after drain; close/fence increments precede finalization. |
 | Replay | `structural`: snapshot is read-only and repeated reads return the same scalar state until a named relay effect occurs. |
 | Conflict | `runtime`: finalized consumption requires the exact generation ID; wrong reuse is effect-free. |
-| Concurrency | `structural`: relay mutations and snapshot/consume run on the single asyncio event loop; capture handoff schedules existing callbacks only. |
+| Concurrency | `runtime`: relay mutations and snapshot/consume run on one asyncio event loop; pending-ingress reservations preserve identity across scheduling, and a listener reservation plus post-header generation check makes admission atomic across its only await. |
 | Expiry | `not_applicable`: generations end by publisher lifecycle, not wall-clock expiry. |
 | Restart | `structural`: no durable E10.1 state; restart creates a new generation ID and cannot reuse prior counters. |
 | Dependency failure | `not_applicable`: E10.1 has no network, credential, Game, State, or collector dependency. |
 | Corruption | `runtime`: exact snapshot construction rejects non-finite, out-of-range, impossible, or unknown state without partial output. |
-| Capacity | `runtime`: one active plus one prior reportable generation, no diagnostic listener queue beyond Hub's existing Client objects, and fixed scalar fields; the supported game trace remains eight listeners. |
+| Capacity | `runtime`: `Server.stream` admits at most eight live plus in-flight listener slots; the snapshot owner independently rejects a ninth. One active plus one prior generation are reportable, and the bounded detached map exists only for those fixed clients or already-scheduled ingress commits. |
 
 ## E10.1 matrix-derived verification
 
@@ -234,9 +242,9 @@ in the E10.2 matrix after E10.1 is pinned; they are not E10.1 evidence.
 Status: `implemented; local counterexample pass complete; independent review pending`.
 E10.2 is not authorized by this checkpoint.
 
-The pinned sibling target is
-`91a1fc54aee13dbdc83838986aeb40946dc3ec58` (tree
-`9e4eed464b1cb5847113605aebda218606deedf6`). It adds the exact
+The remediated pinned sibling target is
+`7fab3edf7be087855d79660ec8f13584c2ba85ba` (tree
+`d8cbc2b4925cbd95201c3deb9f220d8477249ba7`). It adds the exact
 `RelayDiagnostics` owner, generation creation at successful claim, bounded
 frame carry, generation-bound listener attribution, and scalar hooks at the
 existing ingress/drain/fence/cleanup commit points. It performs no network or
@@ -251,19 +259,25 @@ The local counterexample pass closed these schedules before review:
 - a rapid handoff overwriting an older finalized generation;
 - diagnostic failure with a partial-frame carry dropping PCM that the
   pre-instrumentation relay would have delivered; and
-- repeated fencing or cleanup incrementing a listener terminal counter twice.
+- repeated fencing or cleanup incrementing a listener terminal counter twice;
+- one-byte fragmentation changing queue pressure when diagnostics are enabled;
+- a Hub ingress snapshot becoming visible before the same payload commits;
+- publisher handoff or disconnect during the listener header drain rebinding
+  or silently omitting that listener; and
+- a ninth listener entering through an in-flight admission race.
 
 Enforcement lives in `src/btaudio/relay_diagnostics.py`; `RelaySource` owns
-claim/feed/release identity and bounded carry; `Hub` and `Server.stream` pass
-the immutable client generation to delivery/fence/close updates. The current
-and prior generations are the only reportable objects. A coverage-lost
-generation can remain referenced only by an already-existing closing Client
-and disappears on its final close.
+claim/feed/release identity and structural bounded carry; `Hub` commits bytes
+before ingress observation; and `Server.stream` owns the eight-slot reservation
+and post-header generation check. The immutable client generation continues to
+own delivery/fence/close updates. The current and prior generations are the
+only reportable objects; bounded detached records disappear on their final
+client cleanup or already-scheduled ingress commit.
 
 Local verification:
 
-- focused relay diagnostics: `8/8` pass;
-- full pinned sibling suite: `267/267` pass;
+- focused relay diagnostics: `18/18` pass;
+- full pinned sibling suite: `277/277` pass;
 - affected Ruff: pass;
 - compileall and sibling/CannaBeats diff checks: pass; and
 - the exact CannaBeats pin assertion: pass as part of managed-source discovery.
