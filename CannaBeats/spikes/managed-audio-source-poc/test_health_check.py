@@ -115,6 +115,13 @@ class ProvisioningContractTests(unittest.TestCase):
             tmpfiles.strip(),
             "d /run/cannabeats-diagnostics 0750 cannabeats-relay cannabeats-diagnostics -",
         )
+        sibling_pin = (
+            root.parent / "access-spotify-poc" / "deploy" / "btaudio-runtime.version"
+        ).read_text(encoding="utf-8").strip()
+        self.assertEqual(
+            sibling_pin,
+            "972211e89900fb6abd27da831c5ae05cf52daccf",
+        )
 
 
 class ControllerReadinessTests(unittest.TestCase):
@@ -135,6 +142,7 @@ class ControllerReadinessTests(unittest.TestCase):
                 "spotifyAuthorization": "authorized",
                 "player": "ready",
                 "playbackObservation": "playing",
+                "playbackObservationAgeMs": 0,
             })
             public = controller.public_state()
         self.assertEqual(public["gameApi"], {
@@ -150,6 +158,7 @@ class ControllerReadinessTests(unittest.TestCase):
                 "spotifyAuthorization": "not_authorized",
                 "player": "not_ready",
                 "playbackObservation": "unknown",
+                "playbackObservationAgeMs": None,
             })
             public = controller.public_state()
         self.assertEqual(public["browserReadiness"]["spotifyAuthorization"], {
@@ -160,6 +169,7 @@ class ControllerReadinessTests(unittest.TestCase):
                 "spotifyAuthorization": "raw private provider error",
                 "player": "ready",
                 "playbackObservation": "unknown",
+                "playbackObservationAgeMs": None,
             })
 
 

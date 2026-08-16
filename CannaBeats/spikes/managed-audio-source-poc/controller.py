@@ -106,7 +106,11 @@ def record_browser_readiness(payload):
     authorization = payload.get("spotifyAuthorization")
     player = payload.get("player")
     playback = payload.get("playbackObservation")
-    if set(payload) != {"spotifyAuthorization", "player", "playbackObservation"}:
+    playback_age = payload.get("playbackObservationAgeMs")
+    if set(payload) != {
+        "spotifyAuthorization", "player", "playbackObservation",
+        "playbackObservationAgeMs",
+    }:
         raise ValueError("Browser readiness payload is invalid")
     if authorization not in {"authorized", "not_authorized", "error", "unknown"}:
         raise ValueError("Spotify authorization state is invalid")
@@ -114,21 +118,39 @@ def record_browser_readiness(payload):
         raise ValueError("Player readiness state is invalid")
     if playback not in {"playing", "paused", "error", "unknown"}:
         raise ValueError("Playback observation is invalid")
+    if playback == "unknown":
+        if playback_age is not None:
+            raise ValueError("Playback observation age is invalid")
+    elif isinstance(playback_age, bool) or not isinstance(playback_age, int) \
+            or not 0 <= playback_age <= int(BROWSER_REPORT_STALE_SECONDS * 1000):
+        raise ValueError("Playback observation age is invalid")
+    if playback in {"playing", "paused"} \
+            and (authorization != "authorized" or player != "ready"):
+        raise ValueError("Playback observation is incoherent")
+    if playback == "error" and authorization != "error" and player != "error":
+        raise ValueError("Playback observation is incoherent")
+    reported_at = time.monotonic()
     with lock:
         state["browserReport"] = {
             "spotifyAuthorization": authorization,
             "player": player,
             "playbackObservation": playback,
-            "reportedAt": time.monotonic(),
+            "playbackObservedAt": None if playback_age is None
+            else reported_at - playback_age / 1000,
+            "reportedAt": reported_at,
         }
 
 
 def controller_playback_snapshot():
     with lock:
         browser = state.get("browserReport")
-        if not browser or time.monotonic() - browser["reportedAt"] > BROWSER_REPORT_STALE_SECONDS:
+        now = time.monotonic()
+        if not browser or now - browser["reportedAt"] > BROWSER_REPORT_STALE_SECONDS:
             return "unknown"
         value = browser.get("playbackObservation")
+        observed_at = browser.get("playbackObservedAt")
+        if observed_at is None or now - observed_at > BROWSER_REPORT_STALE_SECONDS:
+            return "unknown"
     return value if value in {"playing", "paused", "error", "unknown"} else "unknown"
 
 

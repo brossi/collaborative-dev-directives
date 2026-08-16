@@ -1,9 +1,9 @@
 # S2-E E9 source diagnostics
 
-Status: `E9.1 locally verified and pinned; E9.2 is next`.
+Status: `E9.1 locally verified; E9.2 implemented with audit remediation pending re-review`.
 
 This packet applies the repository scale filter. There is one managed source,
-one `btaudio-push` process, one local controller, and one future reporter task.
+one `btaudio-push` process, one local controller, and one reporter task.
 There is no general metrics agent, remote-management surface, event journal, or
 log scraper.
 
@@ -277,12 +277,16 @@ The browser readiness heartbeat gains one exact field:
 ```json
 {"spotifyAuthorization":"authorized|not_authorized|error|unknown",
  "player":"ready|not_ready|error|unknown",
- "playbackObservation":"playing|paused|error|unknown"}
+ "playbackObservation":"playing|paused|error|unknown",
+ "playbackObservationAgeMs":"null|integer 0..15000"}
 ```
 
 The Spotify SDK `player_state_changed` event supplies only `playing` or
 `paused`; the existing finite player error listeners supply `error`; absent,
 not-ready, disconnected, or older-than-15-second evidence supplies `unknown`.
+The browser reports the event age rather than refreshing the observation on
+each heartbeat. `playing|paused` requires authorized/ready and `error` requires
+an authorization or player error; incoherent combinations are rejected.
 No track, artist, URI, device ID, provider error, token, or browser object is
 retained or exposed. `controller_playback_snapshot()` is an O(1) locked read
 returning only the enum. Publisher state is never substituted for playback.
@@ -299,7 +303,7 @@ For one publisher instance, the reporter performs this finite cycle:
 
 1. read and validate the E9.1 snapshot;
 2. open/replay the E8 source grant with a UUIDv5 request ID derived from the
-   publisher instance;
+   publisher instance and local correlation generation;
 3. synchronize using a UUIDv5 request ID derived from instance and report
    sequence while recording local monotonic send/receive milliseconds;
 4. start the measurement interval at the successful synchronization receive
@@ -324,8 +328,12 @@ advances beyond its prior reports; a machine restart also restarts `btaudio`
 and supplies a new publisher instance. The representation remains within the
 E1 safe-integer range for more than seventy years of boot uptime. This avoids a
 durable reporter journal without allowing controller restart to reuse an E1
-identity. The deterministic open request ID makes a lost open response replay
-the original grant across controller restart.
+identity. One unknown-result open retains its exact request ID. A known
+terminal correlation loss advances the scalar in-memory correlation
+generation before reopening, so retained old authority cannot replay forever.
+Publisher instance replacement resets that generation. Controller restart may
+replay a retained open for the same publisher instance; a terminal stale
+result then advances and reopens from current authority without a journal.
 
 ## Pending work and finite outcomes
 
@@ -336,7 +344,9 @@ finite result arrives; newer evidence cannot replace an outcome-unknown
 request. Reports are sent in sequence order and at most one transition is sent
 per second. A timed-out Game call retains its one daemon helper transaction;
 later exact retries observe that same transaction and never create a second
-helper while it is unresolved.
+helper while it is unresolved. Synchronization retains the original local send
+time and the helper's actual completion time, so a retry cannot relabel an old
+server sample with a new local exchange.
 
 The single transition slot has fixed priority:
 
@@ -352,54 +362,61 @@ emitted because E9.1 exposes no separate capture lifecycle state.
 
 `accepted` and `replayed` retire the pending report. `quota_exhausted` retires
 that evidence and continues after backoff. `stale_correlation`,
-`trace_inactive`, and `source_session_lost` retire reports bound to the old
-correlation, clear the local grant/sample, and reopen from current State
-authority. `report_conflict` retires the conflicting item and advances to a
+`trace_inactive`, `source_session_lost`, and credential-scoped
+`diagnostic_not_found` retire reports bound to the old correlation, clear the
+local grant/sample, advance the local open generation, and reopen from current
+State authority. `report_conflict` retires the conflicting item and advances to a
 fresh sequence without altering publisher identity. A finite `report_invalid`
 also retires only that locally malformed evidence. Timeout, connection loss,
 malformed response, `collector_busy`, and diagnostic unavailability retain the
 one exact outcome-unknown item and back off. Native or lower-layer text is
-never logged; operational output uses only finite local reason codes.
+never logged; operational output uses only finite local reason codes. HTTP
+failures become terminal codes only when their body is at most 8 KiB, has the
+exact canonical `{error,code}` shape, and matches the route's status/code pair;
+otherwise the pending evidence remains outcome-unknown.
 
 ## E9.2 closure matrix
 
 | Dimension | Disposition and enforcement |
 | --- | --- |
-| Create | `runtime`: one shared reporter state machine opens one deterministic grant per publisher instance and creates only exact E1 reports. |
+| Create | `runtime`: one shared reporter state machine opens one deterministic grant per publisher-instance/correlation generation and creates only exact E1 reports. |
 | Update | `runtime`: one owner advances grant, sample, sequence, pending slots, and backoff; publisher/controller snapshots are read-only. |
 | Delete | `runtime`: finite terminal outcomes retire only their bound pending item; correlation loss clears only diagnostic grant/sample state. |
 | Omit | `runtime`: exact E9.1 and playback validators reject missing fields; delayed intervals become a finite local coverage gap, not a fabricated report. |
 | Duplicate | `runtime`: deterministic request IDs and exact report identity make response-loss retries replay; one window and one transition slot bound memory. |
 | Reorder | `runtime`: pending reports are sent by increasing sequence; a later report cannot pass outcome-unknown earlier work. |
-| Replay | `runtime`: open, synchronization, and report retries retain exact request/core/sample values until the original finite result returns. |
+| Replay | `runtime`: open, synchronization, and report retries retain exact request/core/sample values and original exchange timing until the original finite result returns. |
 | Conflict | `runtime`: changed response identity or report conflict fails before current-state adoption and advances only by an explicit fresh sequence. |
 | Concurrency | `structural`: one reporter thread owns its state; poll/browser/audio paths only expose O(1) snapshot reads and never enter reporter transactions. |
 | Expiry | `runtime`: local RTT is at most two seconds, report start is sample receive, duration is at most ten seconds, and stale grants/samples reopen finitely. |
 | Restart | `runtime`: deterministic open identity plus monotonic-microsecond report sequences avoid same-instance reuse; publisher restart supplies a new instance and transition. |
-| Dependency failure | `structural`: all socket/HTTP waits occur only on the reporter thread with fixed deadlines and backoff; no authority/audio future is shared. |
+| Dependency failure | `runtime`: all socket/HTTP waits occur only on the reporter thread with fixed deadlines and backoff; optional publisher-diagnostics startup failure is contained and publication continues. |
 | Corruption | `runtime`: exact response/core validators and finite error mapping reject malformed, excess, contradictory, or native dependency output. |
 | Capacity | `runtime`: one grant, one sample, one window, one transition, one in-flight request, 8-KiB I/O, and 1..30-second backoff are fixed constants. |
 
 ## E9.2 matrix-derived verification
 
-Local verification must cover:
+Local closure evidence is intentionally split between focused owner tests and
+E12 real-host measurement. E9.2 local verification covers:
 
 - exact playback heartbeat and stale/missing/error mapping without provider
   fields;
-- exact E9.1 response shape, counter relations, 512/2048-byte boundaries,
-  timeout, missing socket, and instance change;
+- exact E9.1 response shape and counter relations, corrupt framing, timeout,
+  missing socket, and instance change; E9.1 owns its exhaustive 512-byte
+  request and sub-2-KiB response boundaries;
 - open/synchronize/report success, exact response loss replay, credential
   rotation, malformed/oversized response, and two-second timeout;
-- nine-second window, ten-second equality, greater-than-ten gap, sample RTT
-  before/equality/after, and publisher change during a window;
+- nine-second window, ten-second equality, greater-than-ten gap, server-work
+  versus local-RTT rejection, retained original exchange timing, and publisher
+  change during a window;
 - one window/one transition capacity, transition priority, increasing report
   order, outcome-unknown retention, quota drop, correlation reset, and fresh
   sequence after conflict;
-- controller restart with the same publisher instance and machine restart with
-  a new instance;
-- held reporter socket/Game calls while the real poll loop retains its cadence,
-  25-second lease fail-close remains effective, browser completion remains
-  responsive, and publisher state/PCM are unchanged; and
+- correlation-generation reopen after a terminal stale/credential result and
+  publisher-instance replacement;
+- structural separation showing held reporter calls do not enter the poll,
+  browser-command, capture, or publication owners, plus a real pinned-publisher
+  test showing diagnostic activation failure still starts publication; and
 - operational-output scans for token, path, provider/native error, track,
   artist, URI, device, peer, and arbitrary response reflection.
 
@@ -411,8 +428,8 @@ recorded boundary. E10 remains separate.
 
 ## E9.2 implementation checkpoint
 
-Status: implemented; local counterexample pass complete; independent closure
-review pending. E10 is not authorized by this checkpoint.
+Status: implemented; first independent-review remediation complete; affected
+re-review pending. E10 is not authorized by this checkpoint.
 
 The contained implementation adds `source_reporter.py`, attaches one daemon
 reporter thread to the existing controller, enables the exact pinned publisher
@@ -435,7 +452,12 @@ before review:
 - a valid synchronization response substituting another trace timebase; and
 - a reused audio group granting the controller unnecessary access to the raw
   PulseAudio socket; the final runtime uses a distinct tmpfiles-owned
-  diagnostics directory and group.
+  diagnostics directory and group;
+- a retained old grant reopening forever after trace or credential rotation;
+- a lost synchronization response being relabeled with retry-local timing;
+- a heartbeat refreshing stale or incoherent playback evidence indefinitely;
+- an oversized/noncanonical HTTP error impersonating a terminal outcome; and
+- optional diagnostic-socket setup failure preventing PCM publication.
 
 Enforcement locations are the exact publisher/client validators and the
 single-owner `SourceReporter` state machine in
@@ -444,15 +466,24 @@ finite logger are in `controller.py`; the browser classifier is the pure
 `classifyPlaybackObservation` helper in `source-ui/protocol.mjs`; Unix-socket
 access and installation are fixed by the source systemd/install artifacts.
 
-Local verification on the implementation worktree:
+The E9.2 isolation remediation advances the pinned sibling to
+`972211e89900fb6abd27da831c5ae05cf52daccf` (tree
+`377f356e320e373c2575d508beee7c8f946da110`). The change is deliberately
+small: publisher diagnostics activation is best-effort and its finite setup
+failure is cleaned up before normal publication continues.
+
+Local verification on the remediated implementation worktree:
 
 - affected Python Ruff: pass;
-- managed-source Python discovery: `51/51` pass;
-- browser protocol tests: `4/4` pass;
+- managed-source Python discovery: `55/55` pass;
+- browser protocol tests: `5/5` pass;
+- pinned sibling full suite: `258/258` pass;
+- focused pinned publisher diagnostics suite: `27/27` pass;
 - Python compile, browser syntax, installer shell syntax, and diff check: pass;
 - retained btaudio pin/topology scheduler regression: `8/8` pass.
 
-Open local findings are `P0=0`, `P1=0`, `P2=0`. E10 still owns the relay
+Open local findings are `P0=0`, `P1=0`, `P2=0`; independent affected re-review
+is still pending. E10 still owns the relay
 adapter/reporter, E11 owns host projection and comparison presentation, and
 E12 owns real-host installation, real browser/Spotify timing, measured
 overhead, and cross-process failure rehearsal.

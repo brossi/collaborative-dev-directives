@@ -29,10 +29,25 @@ RETRYABLE = {
     "collector_busy", "collector_degraded", "collector_unavailable",
     "diagnostic_unavailable", "request_timeout", "response_invalid", "unavailable",
 }
-CORRELATION_LOST = {"stale_correlation", "trace_inactive", "source_session_lost"}
+CORRELATION_LOST = {
+    "diagnostic_not_found", "stale_correlation", "trace_inactive", "source_session_lost",
+}
 FINITE_REPORT = {
     "accepted", "replayed", "quota_exhausted", "report_conflict", "report_invalid",
     *CORRELATION_LOST,
+}
+HTTP_FAILURES = {
+    "authentication_required": 401, "not_authorized": 403,
+    "request_invalid": 400, "request_timeout": 408,
+    "diagnostic_not_found": 404, "request_conflict": 409, "trace_busy": 409,
+    "read_expired": 409, "stale_correlation": 409, "trace_inactive": 409,
+    "grant_lost": 409, "sharing_disabled": 409, "source_session_lost": 409,
+    "relay_generation_unbound": 409, "report_conflict": 409,
+    "report_invalid": 400, "rate_limited": 429, "collector_busy": 503,
+    "collector_degraded": 503, "quota_exhausted": 503,
+    "schema_incompatible": 503, "collector_response_invalid": 502,
+    "state_response_invalid": 502, "collector_unavailable": 503,
+    "diagnostic_unavailable": 503,
 }
 
 
@@ -121,14 +136,14 @@ class PublisherSnapshotClient:
             connection.connect(str(self.path))
             connection.sendall(request)
             data = bytearray()
-            while b"\n" not in data:
+            while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise SourceReporterError("unavailable")
                 connection.settimeout(remaining)
                 chunk = connection.recv(PUBLISHER_RESPONSE_BYTES + 1 - len(data))
                 if not chunk:
-                    raise SourceReporterError("response_invalid")
+                    break
                 data.extend(chunk)
                 if len(data) > PUBLISHER_RESPONSE_BYTES:
                     raise SourceReporterError("response_invalid")
@@ -139,7 +154,9 @@ class PublisherSnapshotClient:
         finally:
             connection.close()
         try:
-            response = json.loads(bytes(data).split(b"\n", 1)[0].decode("utf-8"))
+            if data.count(b"\n") != 1 or not data.endswith(b"\n"):
+                raise SourceReporterError("response_invalid")
+            response = json.loads(bytes(data[:-1]).decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise SourceReporterError("response_invalid") from error
         response = _exact(response, {"status", "snapshot"})
@@ -156,7 +173,29 @@ class SourceGameClient:
         self.opener = opener or urllib.request.urlopen
         self._inflight = None
 
-    def _perform_request(self, body, result):
+    @staticmethod
+    def _http_failure(error):
+        try:
+            raw = error.read(GAME_BODY_BYTES + 1)
+            if len(raw) > GAME_BODY_BYTES:
+                raise SourceReporterError("response_invalid")
+            parsed = json.loads(raw.decode("utf-8"))
+            parsed = _exact(parsed, {"error", "code"})
+            code = parsed["code"]
+            expected_message = (
+                "Diagnostic trace not found." if code == "diagnostic_not_found"
+                else "Sign in required." if code == "authentication_required"
+                else "Diagnostics are temporarily unavailable."
+            )
+            if HTTP_FAILURES.get(code) != error.code or parsed["error"] != expected_message:
+                raise SourceReporterError("response_invalid")
+            return SourceReporterError(code)
+        except SourceReporterError as failure:
+            return failure
+        except Exception:
+            return SourceReporterError("response_invalid")
+
+    def _perform_request(self, body, result, timing_clock):
         try:
             request = urllib.request.Request(self.url, data=body, headers={
                 "Authorization": f"Bearer {self.token_reader()}",
@@ -169,13 +208,7 @@ class SourceGameClient:
                     raise SourceReporterError("response_invalid")
                 value = json.loads(raw.decode("utf-8"))
         except urllib.error.HTTPError as error:
-            try:
-                raw = error.read(GAME_BODY_BYTES + 1)
-                parsed = json.loads(raw.decode("utf-8"))
-                code = parsed.get("code") if isinstance(parsed, dict) else None
-            except Exception:
-                code = None
-            result["error"] = SourceReporterError(code or "unavailable")
+            result["error"] = self._http_failure(error)
         except SourceReporterError as error:
             result["error"] = error
         except Exception:
@@ -183,9 +216,14 @@ class SourceGameClient:
         else:
             result["value"] = value
         finally:
+            if timing_clock is not None:
+                try:
+                    result["timing"]["localReceiveMs"] = timing_clock()
+                except Exception:
+                    result["error"] = SourceReporterError("unavailable")
             result["done"].set()
 
-    def _request(self, value):
+    def _request(self, value, timing_clock=None):
         try:
             fingerprint = json.dumps(value, separators=(",", ":")).encode("utf-8")
         except Exception as error:
@@ -196,10 +234,18 @@ class SourceGameClient:
             raise SourceReporterError("unavailable")
         if self._inflight is None:
             result = {"done": threading.Event()}
+            if timing_clock is not None:
+                try:
+                    result["timing"] = {"localSendMs": timing_clock()}
+                except Exception as error:
+                    raise SourceReporterError("unavailable") from error
             self._inflight = {"fingerprint": fingerprint, "result": result}
             threading.Thread(
-                target=self._perform_request, args=(fingerprint, result), daemon=True,
+                target=self._perform_request,
+                args=(fingerprint, result, timing_clock), daemon=True,
             ).start()
+        elif ("timing" in self._inflight["result"]) != (timing_clock is not None):
+            raise SourceReporterError("unavailable")
         result = self._inflight["result"]
         if not result["done"].wait(self.timeout):
             raise SourceReporterError("request_timeout")
@@ -209,7 +255,7 @@ class SourceGameClient:
         response = result.get("value")
         if not isinstance(response, dict):
             raise SourceReporterError("response_invalid")
-        return response
+        return (response, result.get("timing")) if timing_clock is not None else response
 
     def open(self, request_id, instance_id):
         value = _exact(self._request({
@@ -223,11 +269,11 @@ class SourceGameClient:
         return value
 
     def synchronize(self, request_id, grant_id, instance_id, monotonic_ms):
-        local_send = monotonic_ms()
-        value = self._request({
+        value, timing = self._request({
             "action": "synchronize", "requestId": request_id, "sourceGrantId": grant_id,
-        })
-        local_receive = monotonic_ms()
+        }, timing_clock=monotonic_ms)
+        local_send = timing["localSendMs"]
+        local_receive = timing["localReceiveMs"]
         value = _exact(value, {
             "status", "sourceGrantId", "sampleId", "timebaseId", "instanceId",
             "serverReceiveMs", "serverSendMs",
@@ -295,6 +341,8 @@ class SourceReporter:
         self.backoff_seconds = 1
         self.retry_needed = False
         self.deferred_transition = None
+        self.open_generation = 0
+        self.pending_open_request_id = None
 
     def _sequence(self):
         # Four identities per monotonic microsecond leave room for the bounded
@@ -306,7 +354,7 @@ class SourceReporter:
             raise SourceReporterError("unavailable")
         return self.last_sequence
 
-    def _clear_correlation(self):
+    def _clear_correlation(self, *, advance_open=False):
         self.grant = None
         self.sample = None
         self.observation = None
@@ -316,12 +364,23 @@ class SourceReporter:
         self.pending_window = None
         self.pending_transition = None
         self.deferred_transition = None
+        self.pending_open_request_id = None
+        if advance_open:
+            self.open_generation += 1
 
     def _open(self, snapshot, restarted=False):
         instance_id = snapshot["instanceId"]
+        if self.instance_id is not None and instance_id != self.instance_id:
+            self.open_generation = 0
+            self.pending_open_request_id = None
+        if self.pending_open_request_id is None:
+            self.pending_open_request_id = _request_id(
+                f"source-open:{instance_id}:{self.open_generation}"
+            )
         self.grant = self.game.open(
-            _request_id(f"source-open:{instance_id}"), instance_id,
+            self.pending_open_request_id, instance_id,
         )
+        self.pending_open_request_id = None
         self.instance_id = instance_id
         self.previous_snapshot = snapshot
         self.previous_playback = self._playback()
@@ -460,7 +519,7 @@ class SourceReporter:
         }:
             self._retire(pending)
         elif code in CORRELATION_LOST:
-            self._clear_correlation()
+            self._clear_correlation(advance_open=True)
         else:
             self.logger("response_invalid")
             return
@@ -518,7 +577,7 @@ class SourceReporter:
             self.retry_needed = True
             self.logger(error.code)
             if error.code in CORRELATION_LOST:
-                self._clear_correlation()
+                self._clear_correlation(advance_open=True)
 
     def run(self, stop_event: threading.Event):
         while not stop_event.is_set():

@@ -1,3 +1,4 @@
+import io
 import json
 import pathlib
 import socket
@@ -6,6 +7,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import urllib.error
 import uuid
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -180,8 +182,48 @@ class PublisherContractTests(unittest.TestCase):
             hold.set()
             thread.join(0.2)
 
+            path.unlink(missing_ok=True)
+            valid = json.dumps({"status": "ok", "snapshot": snapshot()}).encode()
+            thread = serve(path, valid + b"\n{}")
+            with self.assertRaisesRegex(SourceReporterError, "response_invalid"):
+                PublisherSnapshotClient(path).snapshot()
+            thread.join(0.2)
+
 
 class GameClientBoundaryTests(unittest.TestCase):
+    def test_http_errors_require_bounded_exact_canonical_code_status_pairs(self):
+        def failure(status, body):
+            return urllib.error.HTTPError(
+                "https://example.invalid", status, "ignored", {}, io.BytesIO(body),
+            )
+
+        canonical = json.dumps({
+            "error": "Diagnostics are temporarily unavailable.",
+            "code": "report_invalid",
+        }).encode()
+        self.assertEqual(
+            SourceGameClient._http_failure(failure(400, canonical)).code,
+            "report_invalid",
+        )
+        malformed = [
+            canonical + b" " * (8193 - len(canonical)),
+            json.dumps({
+                "error": "Diagnostics are temporarily unavailable.",
+                "code": "report_invalid", "extra": "private",
+            }).encode(),
+            json.dumps({
+                "error": "Diagnostics are temporarily unavailable.",
+                "code": "report_invalid",
+            }).encode(),
+        ]
+        statuses = (400, 400, 503)
+        for status, body in zip(statuses, malformed):
+            with self.subTest(status=status, size=len(body)):
+                self.assertEqual(
+                    SourceGameClient._http_failure(failure(status, body)).code,
+                    "response_invalid",
+                )
+
     def test_each_new_transaction_reads_the_current_source_credential(self):
         seen = []
         tokens = iter(("a" * 32, "b" * 32))
@@ -244,6 +286,45 @@ class GameClientBoundaryTests(unittest.TestCase):
         self.assertTrue(client._inflight["result"]["done"].wait(1))
         self.assertEqual(client.open(request_id, INSTANCE_A)["status"], "opened")
         self.assertEqual(len(calls), 1)
+
+    def test_synchronization_retry_keeps_original_exchange_timestamps(self):
+        release = threading.Event()
+        current = [100.0]
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self, _amount):
+                return json.dumps({
+                    "status": "accepted", "sourceGrantId": GRANT, "sampleId": SAMPLE,
+                    "timebaseId": TRACE, "instanceId": INSTANCE_A,
+                    "serverReceiveMs": 10, "serverSendMs": 11,
+                }).encode()
+
+        def opener(*_args, **_kwargs):
+            release.wait()
+            return Response()
+
+        client = SourceGameClient(
+            "https://example.invalid", lambda: "a" * 32,
+            timeout=0.01, opener=opener,
+        )
+        request_id = str(uuid.uuid4())
+        with self.assertRaisesRegex(SourceReporterError, "request_timeout"):
+            client.synchronize(request_id, GRANT, INSTANCE_A, lambda: current[0])
+        current[0] = 150.0
+        release.set()
+        self.assertTrue(client._inflight["result"]["done"].wait(1))
+        current[0] = 1000.0
+        _sample, observation = client.synchronize(
+            request_id, GRANT, INSTANCE_A, lambda: current[0],
+        )
+        self.assertEqual(observation["localSendMs"], 100.0)
+        self.assertEqual(observation["localReceiveMs"], 150.0)
 
     def test_synchronization_rejects_server_work_beyond_local_rtt(self):
         class Response:
@@ -433,7 +514,21 @@ class ReporterLifecycleTests(unittest.TestCase):
         self.assertIsNone(owner.pending_window)
         owner.tick()
         self.assertEqual(len(game.opens), 2)
+        self.assertNotEqual(game.opens[0][0], game.opens[1][0])
         self.assertIsNone(owner.deferred_transition)
+
+    def test_credential_scope_loss_reopens_with_a_fresh_request_generation(self):
+        clock = Clock()
+        game = Game(clock)
+        game.outcomes = [SourceReporterError("diagnostic_not_found")]
+        owner = reporter(Publisher(snapshot(), snapshot()), game, clock)
+        owner.tick()
+        clock.advance(9000)
+        owner.tick()
+        self.assertIsNone(owner.grant)
+        owner.tick()
+        self.assertEqual(len(game.opens), 2)
+        self.assertNotEqual(game.opens[0][0], game.opens[1][0])
 
     def test_locally_invalid_report_result_is_dropped_instead_of_retried_forever(self):
         clock = Clock()

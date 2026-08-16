@@ -25,3 +25,22 @@ export function classifyPlaybackObservation(playback) {
   }
   return playback.paused ? "paused" : "playing";
 }
+
+export function diagnosticReadinessSnapshot(readiness, playbackObservedAt, now) {
+  let playbackObservation = readiness.playbackObservation;
+  const coherent = playbackObservation === "error"
+    ? readiness.player === "error" || readiness.spotifyAuthorization === "error"
+    : readiness.player === "ready" && readiness.spotifyAuthorization === "authorized";
+  const age = now - playbackObservedAt;
+  if (playbackObservation === "unknown" || !coherent
+      || !Number.isFinite(playbackObservedAt) || !Number.isFinite(now)
+      || age < 0 || age > 15_000) {
+    playbackObservation = "unknown";
+  }
+  return {
+    spotifyAuthorization: readiness.spotifyAuthorization,
+    player: readiness.player,
+    playbackObservation,
+    playbackObservationAgeMs: playbackObservation === "unknown" ? null : Math.ceil(age),
+  };
+}

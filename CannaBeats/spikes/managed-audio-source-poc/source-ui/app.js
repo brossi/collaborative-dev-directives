@@ -1,5 +1,6 @@
 import {
-  classifyManagedCommandFailure,classifyPlaybackObservation,reconcileManagedProviderObservation,
+  classifyManagedCommandFailure,classifyPlaybackObservation,diagnosticReadinessSnapshot,
+  reconcileManagedProviderObservation,
   shouldExecuteManagedControllerCommand,
 } from './protocol.mjs';
 
@@ -21,6 +22,7 @@ const state = {
     player: 'not_ready',
     playbackObservation: 'unknown',
   },
+  playbackObservedAt: null,
 };
 const byId = (id) => document.getElementById(id);
 
@@ -32,8 +34,15 @@ async function reportReadiness() {
   await fetch('http://127.0.0.1:4782/readiness', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(state.readiness),
+    body: JSON.stringify(diagnosticReadinessSnapshot(
+      state.readiness,state.playbackObservedAt,performance.now(),
+    )),
   });
+}
+
+function setPlaybackObservation(value) {
+  state.playbackObservedAt = value === 'unknown' ? null : performance.now();
+  setReadiness('playbackObservation', value);
 }
 
 function setReadiness(name, value) {
@@ -164,6 +173,7 @@ function loadSdk() {
 async function startPlayer() {
   log('Starting Spotify browser player…');
   setReadiness('player', 'not_ready');
+  setPlaybackObservation('unknown');
   await loadSdk();
   state.player?.disconnect();
   const player = new Spotify.Player({
@@ -181,27 +191,27 @@ async function startPlayer() {
   player.addListener('not_ready', () => {
     state.deviceId = null;
     setReadiness('player', 'not_ready');
-    setReadiness('playbackObservation', 'unknown');
+    setPlaybackObservation('unknown');
     render();
   });
   player.addListener('player_state_changed', (playback) => {
-    setReadiness('playbackObservation', classifyPlaybackObservation(playback));
+    setPlaybackObservation(classifyPlaybackObservation(playback));
   });
   player.addListener('initialization_error', ({ message }) => {
-    setReadiness('player', 'error'); setReadiness('playbackObservation', 'error');
+    setReadiness('player', 'error'); setPlaybackObservation('error');
     log(`Initialization error: ${message}`);
   });
   player.addListener('authentication_error', ({ message }) => {
     setReadiness('spotifyAuthorization', 'error'); setReadiness('player', 'error');
-    setReadiness('playbackObservation', 'error');
+    setPlaybackObservation('error');
     log(`Authentication error: ${message}`);
   });
   player.addListener('account_error', ({ message }) => {
-    setReadiness('player', 'error'); setReadiness('playbackObservation', 'error');
+    setReadiness('player', 'error'); setPlaybackObservation('error');
     log(`Account error: ${message}`);
   });
   player.addListener('playback_error', ({ message }) => {
-    setReadiness('player', 'error'); setReadiness('playbackObservation', 'error');
+    setReadiness('player', 'error'); setPlaybackObservation('error');
     log(`Playback error: ${message}`);
   });
   player.addListener('autoplay_failed', () => log('Autoplay was blocked. Press Resume once in this private session.'));
@@ -429,7 +439,7 @@ byId('disconnect').addEventListener('click', () => {
   state.deviceId = null;
   setReadiness('spotifyAuthorization', 'not_authorized');
   setReadiness('player', 'not_ready');
-  setReadiness('playbackObservation', 'unknown');
+  setPlaybackObservation('unknown');
   log('Spotify authorization removed from this browser profile.');
   render();
 });

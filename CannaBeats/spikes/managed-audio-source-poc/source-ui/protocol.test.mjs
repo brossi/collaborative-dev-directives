@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  classifyManagedCommandFailure,classifyPlaybackObservation,reconcileManagedProviderObservation,
+  classifyManagedCommandFailure,classifyPlaybackObservation,diagnosticReadinessSnapshot,
+  reconcileManagedProviderObservation,
   shouldExecuteManagedControllerCommand,
 } from "./protocol.mjs";
 
@@ -10,6 +11,23 @@ test("playback diagnostics retain only the finite playback observation", () => {
   assert.equal(classifyPlaybackObservation({ paused: true,device_id: "private" }),"paused");
   assert.equal(classifyPlaybackObservation(null),"unknown");
   assert.equal(classifyPlaybackObservation({ paused: "false" }),"unknown");
+});
+
+test("diagnostic heartbeat expires the event and rejects incoherent playback", () => {
+  const ready = { spotifyAuthorization: "authorized",player: "ready",
+    playbackObservation: "playing" };
+  assert.deepEqual(diagnosticReadinessSnapshot(ready,100,15100),{
+    spotifyAuthorization: "authorized",player: "ready",
+    playbackObservation: "playing",playbackObservationAgeMs: 15000,
+  });
+  assert.deepEqual(diagnosticReadinessSnapshot(ready,100,15100.1),{
+    spotifyAuthorization: "authorized",player: "ready",
+    playbackObservation: "unknown",playbackObservationAgeMs: null,
+  });
+  assert.deepEqual(diagnosticReadinessSnapshot({ ...ready,player: "not_ready" },100,101),{
+    spotifyAuthorization: "authorized",player: "not_ready",
+    playbackObservation: "unknown",playbackObservationAgeMs: null,
+  });
 });
 
 test("provider authorization and execution ambiguity remain fail closed", () => {

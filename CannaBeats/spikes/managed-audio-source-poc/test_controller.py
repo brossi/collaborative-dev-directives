@@ -22,14 +22,20 @@ class SourceDiagnosticsObservationTests(unittest.TestCase):
             "spotifyAuthorization": "authorized",
             "player": "ready",
             "playbackObservation": "playing",
+            "playbackObservationAgeMs": 0,
         })
         self.assertEqual(controller.controller_playback_snapshot(), "playing")
         for invalid in (
             {"spotifyAuthorization": "authorized", "player": "ready"},
             {"spotifyAuthorization": "authorized", "player": "ready",
-             "playbackObservation": "playing", "track": "private"},
+             "playbackObservation": "playing", "playbackObservationAgeMs": 0,
+             "track": "private"},
             {"spotifyAuthorization": "authorized", "player": "ready",
-             "playbackObservation": "buffering"},
+             "playbackObservation": "buffering", "playbackObservationAgeMs": 0},
+            {"spotifyAuthorization": "authorized", "player": "not_ready",
+             "playbackObservation": "playing", "playbackObservationAgeMs": 0},
+            {"spotifyAuthorization": "authorized", "player": "ready",
+             "playbackObservation": "playing", "playbackObservationAgeMs": 15001},
         ):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 controller.record_browser_readiness(invalid)
@@ -40,6 +46,7 @@ class SourceDiagnosticsObservationTests(unittest.TestCase):
                 "spotifyAuthorization": "authorized",
                 "player": "ready",
                 "playbackObservation": "paused",
+                "playbackObservationAgeMs": 0,
             })
         with patch.object(
             controller.time, "monotonic",
@@ -53,6 +60,17 @@ class SourceDiagnosticsObservationTests(unittest.TestCase):
             self.assertEqual(controller.controller_playback_snapshot(), "unknown")
         with controller.lock:
             self.assertEqual(controller.state["browserReport"]["playbackObservation"], "paused")
+
+    def test_fresh_heartbeat_cannot_refresh_an_old_playback_event(self):
+        with patch.object(controller.time, "monotonic", return_value=100.0):
+            controller.record_browser_readiness({
+                "spotifyAuthorization": "authorized",
+                "player": "ready",
+                "playbackObservation": "playing",
+                "playbackObservationAgeMs": 15000,
+            })
+        with patch.object(controller.time, "monotonic", return_value=100.001):
+            self.assertEqual(controller.controller_playback_snapshot(), "unknown")
 
     def test_reporter_log_maps_arbitrary_text_to_one_finite_reason(self):
         controller.last_reporter_error = None
