@@ -386,15 +386,17 @@ not reporter input.
 
 ### E10.2 matrix-derived verification
 
-Focused tests cover bind success/exact response loss/conflict; synchronization
-original timing and 1,999/2,000/2,001 ms; window 9,999/10,000/10,001 ms;
-accepted/replayed/terminal/retryable report outcomes; generation substitution;
-active-to-final handoff; final consumption ordering; occupied-slot coverage
-loss; reporter cancellation; malformed, duplicate-key, oversized, redirect,
-credential, and timeout responses; one-window/one-transition capacity; and
-fixed operational-output scans. One integration schedule holds Game indefinitely
-while publisher ingest and listener fan-out continue and relay shutdown returns
-normally.
+Focused tests cover bind success and exact response loss; synchronization
+accepted-versus-replayed timing and 1,999/2,000/2,001 ms; window
+9,999/10,000/10,001 ms; exact report retry and finite correlation loss;
+generation substitution; active-to-final handoff; fenced-then-stopped terminal
+ordering; exact final consumption and successor adoption; occupied-slot and
+omitted-generation coverage loss; reporter cancellation; malformed,
+duplicate-key, oversized, redirect, credential, logger, and outer-timeout
+failures; and fixed operational-output scans. One integration schedule holds
+Game indefinitely while publisher ingest and listener fan-out continue and
+relay shutdown returns normally. E8 owner tests, rather than this focused file,
+own the complete finite report-outcome and request-conflict domains.
 
 The local counterexample question is: what smallest preserved generation,
 request, sample, sequence, or pending-state substitution could cause evidence
@@ -464,8 +466,8 @@ and collector failure isolation.
 Status: `audit remediation implemented and locally verified; narrow affected-seam re-review pending`.
 
 The pinned sibling implementation is
-`c9f99fe0f3aee64f7cbe6cc3f82bea69644e1665` (tree
-`0708123bc9d0584b3c4ccf96a2acb9dc2c021db2`). It adds the strict
+`42f1e1a5c8af8ae02bba175941b63fe4f0c647c6` (tree
+`ba787da3c377ac8660568e50f784f7b656586d92`). It adds the strict
 `RelayGameClient`, the one-slot `RelayReporter`, optional relay CLI attachment,
 and fixed relay-mode operational output. `RelaySource`, `Hub`, and listener
 tasks do not call or await the reporter.
@@ -509,12 +511,14 @@ The local counterexample pass added and closed:
 - malformed URL, oversized credential, and dependency calls that ignore their
   socket timeout escaping the optional-plane boundary; and
 - operational logger failure terminating the reporter task and obstructing
-  relay cleanup.
+  relay cleanup; and
+- exact final consumption leaving an ignored-generation marker that blocked
+  successor adoption, both before synchronization and after correlation loss.
 
 Local verification at this checkpoint:
 
-- pinned sibling full suite: `313/313` pass;
-- focused reporter tests: `28/28` pass;
+- pinned sibling full suite: `315/315` pass;
+- focused reporter tests: `30/30` pass;
 - focused E10.0/E10.1 plus server/ingest regression: `102/102` pass;
 - affected Ruff and Python compileall: pass;
 - CannaBeats E1/E8 producer boundary: `28/28` pass;
