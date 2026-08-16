@@ -365,7 +365,9 @@ that evidence and continues after backoff. `stale_correlation`,
 `trace_inactive`, `source_session_lost`, and credential-scoped
 `diagnostic_not_found` retire reports bound to the old correlation, clear the
 local grant/sample, advance the local open generation, and reopen from current
-State authority. `report_conflict` retires the conflicting item and advances to a
+State authority. A canonical open `request_conflict` likewise advances only the
+open generation, covering controller restart across credential rotation.
+`report_conflict` retires the conflicting item and advances to a
 fresh sequence without altering publisher identity. A finite `report_invalid`
 also retires only that locally malformed evidence. Timeout, connection loss,
 malformed response, `collector_busy`, and diagnostic unavailability retain the
@@ -374,6 +376,8 @@ never logged; operational output uses only finite local reason codes. HTTP
 failures become terminal codes only when their body is at most 8 KiB, has the
 exact canonical `{error,code}` shape, and matches the route's status/code pair;
 otherwise the pending evidence remains outcome-unknown.
+JSON duplicate member names are malformed at every publisher and Game parse
+boundary; last-key-wins parsing cannot select a terminal result.
 
 ## E9.2 closure matrix
 
@@ -449,15 +453,18 @@ before review:
   only one bounded helper transaction behind a strict reporter deadline;
 - a correlation reopen emitting a false second publisher-start transition;
 - same-instance cumulative counter regression reaching the E1 boundary;
-- a valid synchronization response substituting another trace timebase; and
+- a valid synchronization response substituting another trace timebase;
 - a reused audio group granting the controller unnecessary access to the raw
   PulseAudio socket; the final runtime uses a distinct tmpfiles-owned
   diagnostics directory and group;
 - a retained old grant reopening forever after trace or credential rotation;
 - a lost synchronization response being relabeled with retry-local timing;
 - a heartbeat refreshing stale or incoherent playback evidence indefinitely;
-- an oversized/noncanonical HTTP error impersonating a terminal outcome; and
-- optional diagnostic-socket setup failure preventing PCM publication.
+- an oversized/noncanonical HTTP error impersonating a terminal outcome;
+- optional diagnostic-socket setup failure preventing PCM publication;
+- a completed helper for a superseded instance blocking all later requests;
+  and
+- duplicate JSON members selecting a terminal result.
 
 Enforcement locations are the exact publisher/client validators and the
 single-owner `SourceReporter` state machine in
@@ -467,18 +474,18 @@ finite logger are in `controller.py`; the browser classifier is the pure
 access and installation are fixed by the source systemd/install artifacts.
 
 The E9.2 isolation remediation advances the pinned sibling to
-`972211e89900fb6abd27da831c5ae05cf52daccf` (tree
-`377f356e320e373c2575d508beee7c8f946da110`). The change is deliberately
+`8fa6c3469f9ccfa3bfe7f3d999605eb7403b082b` (tree
+`f156f6e7e1fc699f6a469fd2478736fa3b710863`). The change is deliberately
 small: publisher diagnostics activation is best-effort and its finite setup
 failure is cleaned up before normal publication continues.
 
 Local verification on the remediated implementation worktree:
 
 - affected Python Ruff: pass;
-- managed-source Python discovery: `55/55` pass;
+- managed-source Python discovery: `57/57` pass;
 - browser protocol tests: `5/5` pass;
-- pinned sibling full suite: `258/258` pass;
-- focused pinned publisher diagnostics suite: `27/27` pass;
+- pinned sibling full suite: `259/259` pass;
+- focused pinned publisher diagnostics suite: `28/28` pass;
 - Python compile, browser syntax, installer shell syntax, and diff check: pass;
 - retained btaudio pin/topology scheduler regression: `8/8` pass.
 

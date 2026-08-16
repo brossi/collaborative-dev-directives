@@ -189,6 +189,13 @@ class PublisherContractTests(unittest.TestCase):
                 PublisherSnapshotClient(path).snapshot()
             thread.join(0.2)
 
+            path.unlink(missing_ok=True)
+            duplicate = b'{"status":"unavailable","status":"ok","snapshot":{}}\n'
+            thread = serve(path, duplicate)
+            with self.assertRaisesRegex(SourceReporterError, "response_invalid"):
+                PublisherSnapshotClient(path).snapshot()
+            thread.join(0.2)
+
 
 class GameClientBoundaryTests(unittest.TestCase):
     def test_http_errors_require_bounded_exact_canonical_code_status_pairs(self):
@@ -215,8 +222,10 @@ class GameClientBoundaryTests(unittest.TestCase):
                 "error": "Diagnostics are temporarily unavailable.",
                 "code": "report_invalid",
             }).encode(),
+            b'{"error":"Diagnostics are temporarily unavailable.",'
+            b'"code":"diagnostic_unavailable","code":"report_invalid"}',
         ]
-        statuses = (400, 400, 503)
+        statuses = (400, 400, 503, 400)
         for status, body in zip(statuses, malformed):
             with self.subTest(status=status, size=len(body)):
                 self.assertEqual(
@@ -325,6 +334,45 @@ class GameClientBoundaryTests(unittest.TestCase):
         )
         self.assertEqual(observation["localSendMs"], 100.0)
         self.assertEqual(observation["localReceiveMs"], 150.0)
+
+    def test_completed_superseded_helper_does_not_block_new_instance(self):
+        release = threading.Event()
+        calls = []
+
+        class Response:
+            def __init__(self, instance_id):
+                self.instance_id = instance_id
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self, _amount):
+                return json.dumps({
+                    "status": "opened", "sourceGrantId": GRANT, "traceId": TRACE,
+                    "sourceInstanceId": self.instance_id, "expiresAtMs": 100,
+                }).encode()
+
+        def opener(request, **_kwargs):
+            body = json.loads(request.data)
+            calls.append(body["sourceInstanceId"])
+            if len(calls) == 1:
+                release.wait()
+            return Response(body["sourceInstanceId"])
+
+        client = SourceGameClient(
+            "https://example.invalid", lambda: "a" * 32,
+            timeout=0.01, opener=opener,
+        )
+        with self.assertRaisesRegex(SourceReporterError, "request_timeout"):
+            client.open(str(uuid.uuid4()), INSTANCE_A)
+        release.set()
+        self.assertTrue(client._inflight["result"]["done"].wait(1))
+        result = client.open(str(uuid.uuid4()), INSTANCE_B)
+        self.assertEqual(result["sourceInstanceId"], INSTANCE_B)
+        self.assertEqual(calls, [INSTANCE_A, INSTANCE_B])
 
     def test_synchronization_rejects_server_work_beyond_local_rtt(self):
         class Response:
@@ -528,6 +576,26 @@ class ReporterLifecycleTests(unittest.TestCase):
         self.assertIsNone(owner.grant)
         owner.tick()
         self.assertEqual(len(game.opens), 2)
+        self.assertNotEqual(game.opens[0][0], game.opens[1][0])
+
+    def test_restart_credential_conflict_advances_only_open_generation(self):
+        class ConflictOnceGame(Game):
+            def open(self, request_id, instance_id):
+                self.opens.append((request_id, instance_id))
+                if len(self.opens) == 1:
+                    raise SourceReporterError("request_conflict")
+                return {
+                    "status": "opened", "sourceGrantId": GRANT, "traceId": TRACE,
+                    "sourceInstanceId": instance_id, "expiresAtMs": 100000,
+                }
+
+        clock = Clock()
+        game = ConflictOnceGame(clock)
+        owner = reporter(Publisher(snapshot()), game, clock)
+        owner.tick()
+        self.assertIsNone(owner.grant)
+        owner.tick()
+        self.assertIsNotNone(owner.grant)
         self.assertNotEqual(game.opens[0][0], game.opens[1][0])
 
     def test_locally_invalid_report_result_is_dropped_instead_of_retried_forever(self):

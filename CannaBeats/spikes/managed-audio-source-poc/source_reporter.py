@@ -34,6 +34,7 @@ CORRELATION_LOST = {
 }
 FINITE_REPORT = {
     "accepted", "replayed", "quota_exhausted", "report_conflict", "report_invalid",
+    "request_conflict",
     *CORRELATION_LOST,
 }
 HTTP_FAILURES = {
@@ -70,6 +71,23 @@ def _uuid(value, *, version=None) -> str:
             or str(parsed) != value:
         raise SourceReporterError("response_invalid")
     return value
+
+
+def _json(raw):
+    def exact_pairs(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise SourceReporterError("response_invalid")
+            value[key] = item
+        return value
+
+    try:
+        return json.loads(raw.decode("utf-8"), object_pairs_hook=exact_pairs)
+    except SourceReporterError:
+        raise
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise SourceReporterError("response_invalid") from error
 
 
 def _number(value, *, integer=False, minimum=0, maximum=MAX_SAFE_INTEGER):
@@ -153,12 +171,9 @@ class PublisherSnapshotClient:
             raise SourceReporterError("unavailable") from error
         finally:
             connection.close()
-        try:
-            if data.count(b"\n") != 1 or not data.endswith(b"\n"):
-                raise SourceReporterError("response_invalid")
-            response = json.loads(bytes(data[:-1]).decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
-            raise SourceReporterError("response_invalid") from error
+        if data.count(b"\n") != 1 or not data.endswith(b"\n"):
+            raise SourceReporterError("response_invalid")
+        response = _json(bytes(data[:-1]))
         response = _exact(response, {"status", "snapshot"})
         if response["status"] != "ok":
             raise SourceReporterError("unavailable")
@@ -179,7 +194,7 @@ class SourceGameClient:
             raw = error.read(GAME_BODY_BYTES + 1)
             if len(raw) > GAME_BODY_BYTES:
                 raise SourceReporterError("response_invalid")
-            parsed = json.loads(raw.decode("utf-8"))
+            parsed = _json(raw)
             parsed = _exact(parsed, {"error", "code"})
             code = parsed["code"]
             expected_message = (
@@ -206,7 +221,7 @@ class SourceGameClient:
                 raw = response.read(GAME_BODY_BYTES + 1)
                 if len(raw) > GAME_BODY_BYTES:
                     raise SourceReporterError("response_invalid")
-                value = json.loads(raw.decode("utf-8"))
+                value = _json(raw)
         except urllib.error.HTTPError as error:
             result["error"] = self._http_failure(error)
         except SourceReporterError as error:
@@ -231,7 +246,9 @@ class SourceGameClient:
         if len(fingerprint) > GAME_BODY_BYTES:
             raise SourceReporterError("response_invalid")
         if self._inflight is not None and self._inflight["fingerprint"] != fingerprint:
-            raise SourceReporterError("unavailable")
+            if not self._inflight["result"]["done"].is_set():
+                raise SourceReporterError("unavailable")
+            self._inflight = None
         if self._inflight is None:
             result = {"done": threading.Event()}
             if timing_clock is not None:
@@ -377,9 +394,15 @@ class SourceReporter:
             self.pending_open_request_id = _request_id(
                 f"source-open:{instance_id}:{self.open_generation}"
             )
-        self.grant = self.game.open(
-            self.pending_open_request_id, instance_id,
-        )
+        try:
+            self.grant = self.game.open(
+                self.pending_open_request_id, instance_id,
+            )
+        except SourceReporterError as error:
+            if error.code == "request_conflict":
+                self.pending_open_request_id = None
+                self.open_generation += 1
+            raise
         self.pending_open_request_id = None
         self.instance_id = instance_id
         self.previous_snapshot = snapshot
