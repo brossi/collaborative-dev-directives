@@ -186,8 +186,8 @@ collector failure remain explicitly outside this increment.
 ## E9.1 implementation checkpoint
 
 The pinned sibling target is
-`5704f4a3ca3a56940ff0beaefe40a63cd5985e12` (tree
-`e370a342276d08f0a05c10f5f37d054dde02214d`) on the sibling branch
+`d0b21c9776f485e2cbb3c677d5dbbbb1f2b008ee` (tree
+`cb7732d459bb0036cf0380ae18e04d9500fe50ac`) on the sibling branch
 `feature/s2-e-publisher-diagnostics`. It adds `btaudio` version `0.4.0`, the
 finite Unix-socket interface, capture/publisher scalar provenance, exact
 rotation/replay, finite operational output, and no reporter or network
@@ -209,14 +209,17 @@ write and close failures. It also records socket ownership before mode changes
 and exercises the real capture callback with diagnostics both disabled and
 enabled. The first targeted re-review found one bounded cleanup substitution:
 a pre-attestation failure could make cleanup guess that a replacement socket
-was owned. The final target binds the socket itself, records its exact inode
-before handing it to asyncio, and never unlinks an unattested or substituted
-path. Final narrow re-review remains pending.
+was owned. A subsequent narrow review exposed the same substitution window
+between a public-name bind and its successful attestation. The final target
+binds inside a freshly created mode-`0700` private directory, attests that
+inode, atomically hard-links it into the absent public name, and only then
+hands the bound socket to asyncio. A competing public name makes publication
+fail without removing it. Final narrow re-review remains pending.
 
 Verification at this checkpoint:
 
-- Python 3.12 full sibling suite: `254/254` pass;
-- focused publisher interface and pusher suite: `48/48` pass;
+- Python 3.12 full sibling suite: `255/255` pass;
+- focused publisher interface and pusher suite: `49/49` pass;
 - Ruff check of `src/btaudio/diagnostics.py`, `src/btaudio/capture.py`,
   `src/btaudio/relay.py`, and `tests/test_publisher_diagnostics.py`: pass;
 - compileall: pass;
