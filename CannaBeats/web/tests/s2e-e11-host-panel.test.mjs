@@ -367,17 +367,32 @@ test("a stale refresh cannot clear or publish through a newer read owner", async
 test("a closed read cannot publish when its dependency ignores abort", async () => {
   const f = fixture();
   await f.controller.start();
-  let resolve;
+  let resolveRead;
   let signal;
   f.transport.compare = (_traceId,currentSignal) => new Promise((done) => {
     signal = currentSignal;
-    resolve = done;
+    resolveRead = done;
   });
   f.controller.setOpen(true);
   const pending = f.controller.refresh();
   f.controller.setOpen(false);
   assert.equal(signal.aborted,true);
-  resolve(comparison());
+  let resolveStop;
+  let stopCalls = 0;
+  f.transport.stop = async () => {
+    stopCalls += 1;
+    await new Promise((done) => { resolveStop = done; });
+    return ended();
+  };
+  f.controller.setOpen(true);
+  const stopping = f.controller.stop();
+  f.controller.setOpen(false);
+  assert.equal(f.controller.snapshot().busy,true);
+  assert.equal(await f.controller.stop(),false);
+  assert.equal(stopCalls,1);
+  resolveStop();
+  assert.equal(await stopping,true);
+  resolveRead(comparison());
   assert.equal(await pending,false);
   assert.equal(f.controller.snapshot().open,false);
   assert.equal(f.controller.snapshot().busy,false);
