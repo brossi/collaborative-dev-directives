@@ -1,6 +1,6 @@
 # S2-E E10 relay diagnostics
 
-Status: `E10.0 prerequisite and E10.1 locally verified; E10.2 remains unauthorized`.
+Status: `E10.0 prerequisite and E10.1 locally verified; E10.2 design complete and implementation authorized`.
 
 This packet applies the repository scale filter: one relay process, one active
 publisher, at most eight listeners, and one low-priority reporter task. It does
@@ -251,25 +251,152 @@ interleaving preserves every currently checked total but attributes a byte,
 listener, closure, or generation to the wrong publisher? Any valid answer is
 added to this matrix before E10.1 audit.
 
-## E10.2 boundary preview
+## E10.2 isolated relay reporter
 
-E10.2 will add one low-priority coroutine to the same relay process. For one
-observable generation it will:
+### Governing invariant
 
-1. bind with a deterministic request ID derived from the generation;
-2. retain that exact bind across response loss;
-3. synchronize with original local exchange timing;
-4. emit exact E1 `relay_window` and finite relay transitions at a nine-second
-   target; and
-5. retain at most one outcome-unknown report and one transition.
+> One low-priority reporter may bind, synchronize, and upload exact evidence
+> for one relay generation, but reporter state, credentials, Game behavior,
+> collector behavior, and reporter failure can neither change nor delay relay
+> ingest, fan-out, fencing, readiness, cleanup, or process exit.
 
-Binding replay is evaluated before current authority. A fresh generation never
-reuses an old bind identity, and delayed finalized reports use only their
-immutable retained binding. Credential reads occur per new HTTP transaction.
-Malformed/hung Game or collector behavior can lose diagnostics but cannot
-change ingress, fencing, fan-out, listener delivery, readiness, or service
-exit. Exact route outcomes, reporter capacity, restart, and privacy are closed
-in the E10.2 matrix after E10.1 is pinned; they are not E10.1 evidence.
+The reporter is an optional coroutine in the relay process. It reads only the
+exact E10.1 object boundary and calls only the two E8.3c relay routes. It never
+reads `/healthz`, client objects, peer addresses, stdout, or journal text. No
+reporter process, local socket, journal, database, or generalized queue is
+introduced.
+
+### Configuration and HTTP boundary
+
+The reporter is enabled only when all of these are true:
+
+- relay mode and `--disconnect-listeners-on-source-disconnect` are active;
+- one HTTPS Game base URL is supplied; and
+- one absolute relay credential file is supplied.
+
+An incomplete, malformed, unreadable, or insecure reporter configuration
+disables reporting with one finite `diagnostics_configuration_invalid` notice;
+it never blocks server creation. The credential is reread for every newly
+started HTTP transaction and is never retained in snapshots or output. The
+reporter derives the fixed paths `/api/diagnostics/relay-generation` and
+`/api/diagnostics/relay-report`; redirects are rejected. Requests and responses
+are UTF-8 JSON, at most 8,192 bytes, under a two-second deadline. JSON objects
+reject duplicate member names recursively. Success and error responses have
+exact finite shapes, and every error code is bound to its canonical HTTP status
+and fixed public message. Native, caller-authored, URL, token, path, peer, and
+lower-layer text is reduced to a finite reporter code.
+
+The synchronous standard-library HTTP operation runs through `asyncio.to_thread`.
+Only one transaction may be active. Cancellation or relay shutdown does not
+wait indefinitely for that thread: the network deadline is the owner, and the
+reporter task is cancelled and observed without becoming a server-exit
+condition.
+
+### Correlation and report lifecycle
+
+The reporter owns one observable generation at a time. A deterministic
+lowercase UUIDv5 bind request ID is derived from the fixed label and exact
+`relayGenerationId`; no other generation can reuse it. The same canonical bind
+command remains pending across timeout or response loss. A canonical
+`request_conflict` is terminal for that generation because the deterministic
+identity cannot be advanced safely. `stale_correlation`,
+`relay_generation_unbound`, and `trace_inactive` abandon only that generation's
+diagnostic coverage.
+
+Synchronization uses a fresh UUIDv4 request ID. Its retained transaction owns
+the original local send time and the helper-completion local receive time;
+retry harvests that same exchange rather than relabeling it with retry time.
+The exact response must bind the requested generation, derived sample ID,
+trace timebase, server interval, and local round trip. Both intervals are
+ordered, the server interval is at most the local round trip, and the local
+round trip is at most 2,000 ms. An unknown synchronization outcome retries the
+same request. A terminal correlation result abandons that generation.
+
+After synchronization, the reporter targets a window close at nine seconds.
+It publishes only when elapsed time is positive and at most 10,000 ms. A later
+tick records one finite local `coverage_gap` and starts a fresh synchronization;
+it never fabricates or splits counters. The exact E1 `relay_window` copies the
+ten cumulative E10.1 counters and the fixed format directly from the closing
+snapshot. `monotonicStartMs` is the acknowledged local receive time and
+`durationMs` is the measured elapsed browser-independent monotonic interval.
+
+The generation produces at most these transition reports:
+
+- `generation_started/observed` after its first successful synchronization;
+- `generation_fenced` only when the finalized fence counter increased, using
+  `generation_replaced/observed`; and
+- `generation_stopped` from the immutable E10.1 terminal reason, with
+  `unknown/unknown` for the unknown reason and `observed` otherwise.
+
+Sequences are strictly increasing safe integers derived from process-monotonic
+microseconds with room for the bounded window/transition pair. The reporter
+keeps at most one outcome-unknown window and one outcome-unknown transition.
+It always sends the lower sequence first. Exact retry retains the same
+measurement core and sample observation. `accepted`, `replayed`,
+`report_conflict`, `report_invalid`, and `quota_exhausted` retire that one item;
+the latter three lose evidence but create no second effect. Correlation-loss
+results abandon the generation. Retryable dependency results retain evidence
+with exponential backoff capped at 30 seconds.
+
+When a generation finalizes, its immutable binding, issuance observation, and
+pending reports remain attached to that generation. The reporter calls
+`take_finalized(expectedGenerationId)` only after every owned item reaches a
+finite terminal outcome or the generation is deliberately abandoned. A new
+active generation may continue serving PCM while this happens. If it cannot be
+adopted because the one reporter slot is occupied, its evidence may be omitted;
+E10.1's bounded `coverageLossCount` is observed once and logged as the finite
+`coverage_gap` code. There is no generation backlog.
+
+Process restart reconstructs no reporter state. It creates a new E10.1 process
+and generation identity; retained E8 bind/report identities still prevent a
+different generation from taking ownership of prior evidence. Losing an
+in-memory outcome-unknown report at process loss is an honest diagnostic gap,
+not a replay or authority transfer.
+
+### Operational-output privacy
+
+Before E10.2 closes, relay-mode normal output is reduced to fixed event codes
+and bounded scalar counts. Startup never prints listen or ingest bearer values.
+Source/listener connect, disconnect, framing, and reporter messages never print
+peer/IP, request path, URL, token, filesystem path, native exception, or
+caller-authored text. Authenticated operator endpoints remain unchanged and are
+not reporter input.
+
+### E10.2 closure matrix
+
+| Dimension | Disposition and enforcement |
+| --- | --- |
+| Create | `runtime`: one exact active E10.1 generation may create one correlation; bind and synchronization identities are generated once and retained with their canonical command. |
+| Update | `runtime`: one reporter state machine changes only its own scalar/canonical evidence after exact owner snapshots and exact HTTP results. |
+| Delete | `runtime`: exact-generation finalized consumption occurs only after all owned evidence is terminal or deliberately abandoned; wrong-generation consumption is effect-free. |
+| Omit | `runtime`: an occupied reporter slot, a >10-second interval, unavailable correlation, or E10.1 coverage loss emits only a finite local gap and never invents a report. |
+| Duplicate | `structural`: one correlation slot, one pending window, and one pending transition; deterministic bind identity and retained canonical report bytes prevent duplicate effects. |
+| Reorder | `runtime`: bind precedes synchronize; synchronization precedes reports; pending reports send by sequence; finalized consumption follows terminal outcomes. |
+| Replay | `runtime`: response loss retains the exact bind/sync/report command and original timing; E8 returns the original result before current authority. |
+| Conflict | `runtime`: request ID, generation, response fields, core, and observation are rebound exactly; finite conflict retires or abandons only the affected evidence as specified above. |
+| Concurrency | `structural`: one event-loop reporter task and one HTTP transaction; relay work never awaits it, and the fixed pending slots admit no concurrent mutation. |
+| Expiry | `runtime`: the reporter exercises valid synchronization at before/equality/after 2,000 ms and windows at before/equality/after 10,000 ms; E8 owns trace/issuance expiry. |
+| Restart | `structural`: reporter state is intentionally volatile; UUID generation identity and retained E8 replay/conflict rules prevent cross-restart rebinding. |
+| Dependency failure | `runtime`: timeout, malformed/oversized output, response loss, credential failure, and unexpected reporter exceptions become finite codes/backoff and never alter the relay task set or exit result. |
+| Corruption | `runtime`: one shared strict JSON/response validator rejects duplicate keys, extra/missing fields, unsafe numbers, wrong UUIDs, wrong status/code relations, and cross-generation substitution before state change. |
+| Capacity | `structural`: one generation correlation, one pending window, one pending transition, one transaction, 8 KiB bodies, two-second deadline, and 30-second maximum backoff. |
+
+### E10.2 matrix-derived verification
+
+Focused tests cover bind success/exact response loss/conflict; synchronization
+original timing and 1,999/2,000/2,001 ms; window 9,999/10,000/10,001 ms;
+accepted/replayed/terminal/retryable report outcomes; generation substitution;
+active-to-final handoff; final consumption ordering; occupied-slot coverage
+loss; reporter cancellation; malformed, duplicate-key, oversized, redirect,
+credential, and timeout responses; one-window/one-transition capacity; and
+fixed operational-output scans. One integration schedule holds Game indefinitely
+while publisher ingest and listener fan-out continue and relay shutdown returns
+normally.
+
+The local counterexample question is: what smallest preserved generation,
+request, sample, sequence, or pending-state substitution could cause evidence
+to be uploaded under another relay generation or cause relay work to wait? Any
+valid answer is added to this matrix before requesting independent review.
 
 ## E10.1 implementation checkpoint
 
