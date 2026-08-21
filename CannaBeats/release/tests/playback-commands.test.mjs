@@ -63,6 +63,23 @@ function setupGame() {
   const setup = { deviceId, gameId, hostToken, now: 2_100, path, store };
   hostAction(setup, 'add_host_player', { playerId: randomUUID(), name: 'Host Player' });
   hostAction(setup, 'start_game');
+  setup.audioSessionId = randomUUID();
+  setup.audioConnectionId = randomUUID();
+  setup.store.openAudioSession({
+    applicationSessionToken: hostToken, gameId,
+    audioSessionId: setup.audioSessionId, requestId: randomUUID(), now: setup.now + 1,
+  });
+  setup.store.claimAudioIngest({
+    applicationSessionToken: hostToken, gameId,
+    audioSessionId: setup.audioSessionId, connectionId: setup.audioConnectionId,
+    now: setup.now + 2,
+  });
+  setup.store.activateAudioIngest({
+    applicationSessionToken: hostToken, gameId,
+    audioSessionId: setup.audioSessionId, connectionId: setup.audioConnectionId,
+    now: setup.now + 3,
+  });
+  setup.now += 3;
   return setup;
 }
 

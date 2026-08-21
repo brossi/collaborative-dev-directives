@@ -95,6 +95,16 @@ export function createReleaseRuntime({
     applyParticipantGameAction(input) { return owner().applyParticipantGameAction(input); },
     nextPlaybackCommand(input) { return owner().nextPlaybackCommand(input); },
     transitionPlaybackCommand(input) { return owner().transitionPlaybackCommand(input); },
+    openAudioSession(input) { return owner().openAudioSession(input); },
+    currentAudioSession(input) { return owner().currentAudioSession(input); },
+    claimAudioIngest(input) { return owner().claimAudioIngest(input); },
+    activateAudioIngest(input) { return owner().activateAudioIngest(input); },
+    interruptAudioIngest(input) { return owner().interruptAudioIngest(input); },
+    endAudioSession(input) { return owner().endAudioSession(input); },
+    authorizeAudioHostStream(input) { return owner().authorizeAudioHostStream(input); },
+    authorizeAudioParticipantStream(input) {
+      return owner().authorizeAudioParticipantStream(input);
+    },
   });
 }
 

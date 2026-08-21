@@ -170,6 +170,7 @@ function countLive(database, sql, values) {
 
 export function createHostAuthority(database, {
   transaction, validate, origin = 'https://play.cannabeats.social',
+  onDeviceRevoked = () => {},
 } = {}) {
   function accepted(work) {
     try {
@@ -459,6 +460,7 @@ export function createHostAuthority(database, {
           WHERE issued_by_device_id=? AND revoked_at IS NULL AND redeemed_at IS NULL`).run(
           now, targetDeviceId,
         );
+        onDeviceRevoked({ deviceId: targetDeviceId, now });
         const result = { code: 'device_revoked', deviceId: targetDeviceId, revokedAt: now };
         storeReceipt(database, identity, operation, requestText, result, now);
         validate();

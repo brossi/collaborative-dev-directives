@@ -380,16 +380,57 @@ BEGIN SELECT RAISE(ABORT, 'playback transitions are immutable'); END;
 CREATE TABLE audio_sessions (
   audio_session_id TEXT PRIMARY KEY CHECK (length(audio_session_id) = 36),
   game_id TEXT NOT NULL REFERENCES games(game_id) ON DELETE RESTRICT,
+  request_id TEXT NOT NULL CHECK (length(request_id) = 36),
   generation INTEGER NOT NULL CHECK (generation > 0),
-  state TEXT NOT NULL CHECK (state IN ('starting','active','interrupted','ended')),
-  started_at INTEGER NOT NULL CHECK (started_at > 0),
-  updated_at INTEGER NOT NULL CHECK (updated_at >= started_at),
-  ended_at INTEGER CHECK (ended_at IS NULL OR ended_at >= started_at),
+  state TEXT NOT NULL CHECK (state IN ('starting','connecting','active','interrupted','ended')),
+  connection_id TEXT CHECK (connection_id IS NULL OR length(connection_id) = 36),
+  created_at INTEGER NOT NULL CHECK (created_at > 0),
+  updated_at INTEGER NOT NULL CHECK (updated_at >= created_at),
+  ended_at INTEGER CHECK (ended_at IS NULL OR ended_at >= created_at),
+  UNIQUE (game_id,request_id),
   UNIQUE (game_id,generation),
+  CHECK ((state IN ('connecting','active')) = (connection_id IS NOT NULL)),
   CHECK ((state='ended') = (ended_at IS NOT NULL))
 );
 CREATE UNIQUE INDEX audio_sessions_one_open_per_game ON audio_sessions(game_id)
 WHERE state <> 'ended';
+CREATE TRIGGER audio_sessions_identity_immutable BEFORE UPDATE ON audio_sessions
+WHEN NEW.audio_session_id <> OLD.audio_session_id OR NEW.game_id <> OLD.game_id
+  OR NEW.request_id <> OLD.request_id OR NEW.generation <> OLD.generation
+  OR NEW.created_at <> OLD.created_at
+BEGIN SELECT RAISE(ABORT, 'audio session identity is immutable'); END;
+CREATE TRIGGER audio_sessions_immutable_delete BEFORE DELETE ON audio_sessions
+BEGIN SELECT RAISE(ABORT, 'audio sessions are retained'); END;
+
+CREATE TABLE audio_session_transitions (
+  audio_session_id TEXT NOT NULL REFERENCES audio_sessions(audio_session_id) ON DELETE RESTRICT,
+  sequence INTEGER NOT NULL CHECK (sequence > 0),
+  from_state TEXT,
+  to_state TEXT NOT NULL CHECK (to_state IN ('starting','connecting','active','interrupted','ended')),
+  connection_id TEXT CHECK (connection_id IS NULL OR length(connection_id) = 36),
+  request_id TEXT CHECK (request_id IS NULL OR length(request_id) = 36),
+  reason_code TEXT CHECK (reason_code IS NULL OR reason_code IN (
+    'connect_requested','relay_connected','relay_unavailable','ingest_lost',
+    'malformed_relay','process_restart','host_stopped','host_revoked','game_ended','recovery_exhausted'
+  )),
+  occurred_at INTEGER NOT NULL CHECK (occurred_at > 0),
+  PRIMARY KEY (audio_session_id,sequence),
+  UNIQUE (audio_session_id,request_id),
+  CHECK ((to_state='starting' AND from_state IS NULL AND connection_id IS NULL
+      AND request_id IS NOT NULL AND reason_code IS NULL)
+    OR (to_state='connecting' AND connection_id IS NOT NULL
+      AND request_id IS NULL AND reason_code='connect_requested')
+    OR (to_state='active' AND connection_id IS NOT NULL
+      AND request_id IS NULL AND reason_code='relay_connected')
+    OR (to_state='interrupted' AND request_id IS NULL
+      AND reason_code IN ('relay_unavailable','ingest_lost','malformed_relay','process_restart'))
+    OR (to_state='ended' AND reason_code IN (
+      'host_stopped','host_revoked','game_ended','recovery_exhausted')))
+);
+CREATE TRIGGER audio_session_transitions_immutable_update BEFORE UPDATE ON audio_session_transitions
+BEGIN SELECT RAISE(ABORT, 'audio session transitions are immutable'); END;
+CREATE TRIGGER audio_session_transitions_immutable_delete BEFORE DELETE ON audio_session_transitions
+BEGIN SELECT RAISE(ABORT, 'audio session transitions are immutable'); END;
 
 CREATE TABLE game_results (
   result_id TEXT PRIMARY KEY CHECK (length(result_id) = 36),

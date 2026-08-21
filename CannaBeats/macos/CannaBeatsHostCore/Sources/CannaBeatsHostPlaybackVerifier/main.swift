@@ -475,6 +475,19 @@ private func verifyAmbiguityAndFailureResponsesFailClosed() async throws {
         // Exact finite response was retained.
     }
 
+    let audioNotReady = StaticTransport(
+        data: Data(#"{"ok":false,"code":"audio_not_ready"}"#.utf8), status: 409
+    )
+    let audioNotReadyClient = PlaybackCommandClient(
+        transport: { await audioNotReady.send($0) }, loadSession: { "retained-session" }
+    )
+    do {
+        _ = try await audioNotReadyClient.next(gameID: gameID)
+        preconditionFailure("audio readiness failure was accepted")
+    } catch PlaybackCommandClientError.server(.audioNotReady) {
+        // Playback remains gated by the exact finite server result.
+    }
+
     let commandID = UUID()
     let generation = UUID()
     let outcome = readback(.playing)

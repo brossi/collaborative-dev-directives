@@ -16,6 +16,7 @@ import {
   uuid, RELEASE_SESSION_KEY, ReleaseClientError, type ReleaseActionIntent, type ReleaseGameState,
   type ReleasePlayer, type ReleaseSession,
 } from "../lib/release-game-client";
+import { useReleaseAudioStream } from "../lib/use-release-audio-stream";
 
 const PLAYER_NAME_KEY = "cannabeats-player-name";
 const POLL_MS = 1_500;
@@ -153,6 +154,10 @@ export default function Home() {
   const [pending, setPending] = useState<ReleaseActionIntent | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
+  const [audioSessionId, setAudioSessionId] = useState<string | null>(null);
+  const sharedAudio = useReleaseAudioStream({
+    gameId: session?.gameId ?? "", audioSessionId,
+  });
 
   const selected = selection && selection.round === state?.round ? selection.index : null;
   const activePlayer = state?.players.find(({ id }) => id === state.activePlayerId) ?? null;
@@ -163,12 +168,14 @@ export default function Home() {
   const winner = state?.players.find(({ id }) => id === state.winnerId) ?? null;
 
   const acceptSnapshot = useCallback((snapshot: {
+    audio?: { audioSessionId: string; generation: number; state: "active" } | null;
     lifecycle: "lobby" | "active" | "completed" | "abandoned";
     state: ReleaseGameState;
   }) => {
     setState((current) => !current || snapshot.state.revision >= current.revision
       ? snapshot.state : current);
     setLifecycle(snapshot.lifecycle);
+    if (snapshot.audio !== undefined) setAudioSessionId(snapshot.audio?.audioSessionId ?? null);
   }, []);
 
   const acceptActionState = useCallback((next: ReleaseGameState) => {
@@ -314,6 +321,7 @@ export default function Home() {
       const created = await createReleaseGame(readiness.catalogVersion, rules);
       const next = { gameId: created.gameId, role: "host" as const };
       saveReleaseSession(localStorage, next); setSession(next);
+      setAudioSessionId(null);
       const snapshot = created.state
         ? { lifecycle: "lobby" as const, state: created.state } : await hostSnapshot(created.gameId);
       acceptSnapshot(snapshot); setInviteUrl(""); setQrCodeUrl("");
@@ -368,6 +376,7 @@ export default function Home() {
       await terminateReleaseGame(state.gameId, state.revision);
       localStorage.removeItem(RELEASE_SESSION_KEY);
       setSession(null); setState(null); setLifecycle(null); setInviteUrl("");
+      setAudioSessionId(null);
     } catch (reason) { setError(message(reason)); }
     finally { setBusy(false); }
   }
@@ -431,6 +440,21 @@ export default function Home() {
       <h1>{winner ? `${winner.name} wins!` : `${activePlayer?.name ?? "Player"}’s turn`}</h1></div>
       {session.role === "host" && lifecycle !== "completed" && <button className="text-button"
         disabled={busy} onClick={() => void endGame()}>End game</button>}</header>
+    {session.role === "participant" && lifecycle === "active" && <section
+      className="shared-audio-panel compact" aria-label="Shared audio controls">
+      <div><p className="step-label">Game audio</p><strong><i className={
+        sharedAudio.status === "playing" ? "ready" : ""
+      } />{sharedAudio.label}</strong><small>{audioSessionId
+        ? "Audio starts only when you tap the button."
+        : "Waiting for the Host to start shared audio."}</small></div>
+      <button className="secondary-button" type="button" disabled={!audioSessionId}
+        onClick={() => {
+          if (["connecting", "buffering", "playing"].includes(sharedAudio.status)) {
+            sharedAudio.stop();
+          } else void sharedAudio.start();
+        }}>{["connecting", "buffering", "playing"].includes(sharedAudio.status)
+          ? "Stop audio" : sharedAudio.status === "error" ? "Reconnect" : "Start audio"}</button>
+    </section>}
     {session.role === "host" && state.phase !== "finished" && <section className="host-round-bar" aria-label="Current round controls">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="host-brand-icon" src={cannabeatsPath("/cannabeats-logo-640.jpg")}

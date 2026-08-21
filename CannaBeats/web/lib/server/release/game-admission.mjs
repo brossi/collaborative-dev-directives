@@ -436,7 +436,8 @@ export function createGameAdmission(database, {
         WHERE host_device_id=? AND lifecycle IN ('lobby','active') ORDER BY created_at DESC LIMIT 1`)
         .get(host.deviceId);
       return Object.freeze({ game: game ? {
-        gameId: game.game_id, lifecycle: game.lifecycle, revision: game.revision,
+        code: 'snapshot', gameId: game.game_id,
+        lifecycle: game.lifecycle, revision: game.revision,
         state: parsed(game.state),
       } : null });
     },

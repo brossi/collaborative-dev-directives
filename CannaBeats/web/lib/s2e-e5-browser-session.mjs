@@ -13,9 +13,12 @@ function frozen(value) {
 }
 
 function formatFrom(response) {
-  const sampleRate = Number(response?.headers?.get?.('x-audio-rate'));
-  const channels = Number(response?.headers?.get?.('x-audio-channels'));
-  const encoding = response?.headers?.get?.('x-audio-encoding');
+  const sampleRate = Number(response?.headers?.get?.('x-cannabeats-audio-rate')
+    ?? response?.headers?.get?.('x-audio-rate'));
+  const channels = Number(response?.headers?.get?.('x-cannabeats-audio-channels')
+    ?? response?.headers?.get?.('x-audio-channels'));
+  const encoding = response?.headers?.get?.('x-cannabeats-audio-encoding')
+    ?? response?.headers?.get?.('x-audio-encoding');
   if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 192000
     || ![1, 2].includes(channels) || encoding !== 's16le') return null;
   return frozen({ sourceSampleRate: sampleRate, sourceChannels: channels });
@@ -32,7 +35,10 @@ function canonicalUuid(value) {
 }
 
 export class E5BrowserSession {
-  constructor({ streamUrl, workletUrl = '/s2e-e4-worklet.js', client, dependencies, onStatus = (_status) => {} }) {
+  constructor({
+    streamUrl, workletUrl = '/s2e-e4-worklet.js', client, dependencies,
+    onStatus = (status) => { void status; },
+  }) {
     if (typeof streamUrl !== 'string' || !streamUrl
       || typeof workletUrl !== 'string' || !workletUrl.startsWith('/')
       || !client || !dependencies

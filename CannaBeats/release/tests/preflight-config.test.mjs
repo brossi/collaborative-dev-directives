@@ -92,4 +92,9 @@ test('the release identity contains no PoC or destroyed-rehearsal locator', () =
   assert.equal(RELEASE_CONFIG.CANNABEATS_PUBLIC_ORIGIN, 'https://play.cannabeats.social');
   assert.equal(RELEASE_CONFIG.CANNABEATS_MAX_ACTIVE_GAMES, '1');
   assert.equal(RELEASE_CONFIG.CANNABEATS_MAX_PARTICIPANTS, '8');
+  assert.equal(RELEASE_CONFIG.CANNABEATS_RELAY_ORIGIN, 'http://relay:8080');
+  assert.equal(RELEASE_CONFIG.CANNABEATS_RELAY_INGEST_SECRET_FILE,
+    '/run/secrets/cannabeats-relay-ingest');
+  assert.equal(RELEASE_CONFIG.CANNABEATS_RELAY_LISTEN_SECRET_FILE,
+    '/run/secrets/cannabeats-relay-listen');
 });

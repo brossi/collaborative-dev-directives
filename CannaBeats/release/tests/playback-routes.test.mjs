@@ -88,7 +88,8 @@ test('playback routes reject missing bearer, incompatible clients, and expanded 
 
 test('every playback failure is finite and native error text is never reflected', async () => {
   const cases = [
-    ['stale_claim', 409], ['command_not_found', 404], ['game_ended', 410],
+    ['audio_not_ready', 409], ['stale_claim', 409],
+    ['command_not_found', 404], ['game_ended', 410],
     ['database_corrupt', 503],
   ];
   for (const [code, status] of cases) {

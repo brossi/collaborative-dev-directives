@@ -163,7 +163,7 @@ function validateTransitionInput({ targetState, claimGeneration, outcome, outcom
 }
 
 export function createPlaybackCommands(database, {
-  transaction, validate, retainHost, authorizeHost,
+  transaction, validate, retainHost, authorizeHost, audioReady = () => true,
 }) {
   function retainedIdentity(token) {
     return retainHost({ token, kind: 'application' });
@@ -224,6 +224,10 @@ export function createPlaybackCommands(database, {
         authorizeHost({ token: applicationSessionToken, kind: 'application', now });
         if (['completed', 'abandoned'].includes(game.lifecycle)) reject('game_ended');
         if (TERMINAL_STATES.has(command.state)) reject('operation_rejected');
+        if (((targetState === 'claimed' && command.execution_ambiguous === 0)
+            || targetState === 'executing') && !audioReady(gameId)) {
+          reject('audio_not_ready');
+        }
         let permitted = false;
         if (targetState === 'claimed') permitted = OPEN_STATES.has(command.state);
         else if (command.claim_generation === claimGeneration) {

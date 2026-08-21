@@ -477,14 +477,14 @@ test('restart rejects every unlinked event and a coherently forged creation acto
   }
 });
 
-test('later-checkpoint rows remain inert until their shared owner exists', () => {
+test('later-checkpoint diagnostic rows remain inert until their shared owner exists', () => {
   const setup = setupHostStore();
   const game = createGame(setup.store, setup.hostDeviceId);
   setup.store.close();
   const database = new DatabaseSync(setup.path);
-  database.prepare(`INSERT INTO audio_sessions
-    (audio_session_id,game_id,generation,state,started_at,updated_at)
-    VALUES (?,?,1,'active',?,?)`).run(randomUUID(), game.gameId, 3_000, 3_000);
+  database.prepare(`INSERT INTO diagnostic_records
+    (record_id,game_id,kind,payload,occurred_at,expires_at)
+    VALUES (?,?,'audio','{}',?,?)`).run(randomUUID(), game.gameId, 3_000, 4_000);
   database.close();
   expectCode(() => createReleaseStore(setup.path, { catalog }), 'database_corrupt');
 });

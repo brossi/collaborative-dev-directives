@@ -20,6 +20,8 @@
 	<string>14.2</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>CannaBeats controls the Spotify desktop app to play, pause, and select tracks for your private game.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>CannaBeats captures Spotify audio so the people admitted to your private game can hear the same music.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

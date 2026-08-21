@@ -7,6 +7,7 @@ public enum HostCredentials {
     private static let sessionAccount = "host-application-session"
     private static let pendingEnrollmentAccount = "host-pending-enrollment"
     private static let pendingProofAccount = "host-pending-proof"
+    private static let pendingAudioEndAccount = "host-pending-audio-end"
 
     public static func deviceID() throws -> UUID {
         if let data = try load(account: deviceAccount),
@@ -35,6 +36,7 @@ public enum HostCredentials {
         try delete(account: sessionAccount)
         try delete(account: pendingEnrollmentAccount)
         try delete(account: pendingProofAccount)
+        try delete(account: pendingAudioEndAccount)
     }
 
     public static func pendingEnrollment() throws -> HostPendingEnrollment? {
@@ -67,6 +69,22 @@ public enum HostCredentials {
 
     public static func clearPendingProof() throws {
         try delete(account: pendingProofAccount)
+    }
+
+    public static func pendingAudioEnd() throws -> HostPendingAudioEnd? {
+        guard let data = try load(account: pendingAudioEndAccount) else { return nil }
+        guard let value = try? JSONDecoder().decode(HostPendingAudioEnd.self, from: data) else {
+            throw DeviceKeyError.invalidStoredKey
+        }
+        return value
+    }
+
+    public static func savePendingAudioEnd(_ intent: HostPendingAudioEnd) throws {
+        try save(JSONEncoder().encode(intent), account: pendingAudioEndAccount)
+    }
+
+    public static func clearPendingAudioEnd() throws {
+        try delete(account: pendingAudioEndAccount)
     }
 
     private static func load(account: String) throws -> Data? {
@@ -126,4 +144,20 @@ public struct HostPendingProof: Codable, Equatable, Sendable {
     let proofRequestId: String
     let sessionToken: String
     let signature: String
+}
+
+public struct HostPendingAudioEnd: Codable, Equatable, Sendable {
+    public let gameID: UUID
+    public let audioSessionID: UUID
+    public let requestID: UUID
+    public let mayBeAbsent: Bool
+
+    public init(
+        gameID: UUID, audioSessionID: UUID, requestID: UUID, mayBeAbsent: Bool
+    ) {
+        self.gameID = gameID
+        self.audioSessionID = audioSessionID
+        self.requestID = requestID
+        self.mayBeAbsent = mayBeAbsent
+    }
 }

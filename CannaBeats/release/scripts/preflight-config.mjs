@@ -25,6 +25,9 @@ export const RELEASE_CONFIG = Object.freeze({
   CANNABEATS_RELAY_LISTEN_TOKEN_HOST_FILE:
     '/etc/cannabeats/secrets/relay-listen-token',
   CANNABEATS_RELAY_ORIGIN: 'http://relay:8080',
+  CANNABEATS_RELAY_PORT: '8080',
+  CANNABEATS_RELAY_INGEST_SECRET_FILE: '/run/secrets/cannabeats-relay-ingest',
+  CANNABEATS_RELAY_LISTEN_SECRET_FILE: '/run/secrets/cannabeats-relay-listen',
 });
 
 const NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;

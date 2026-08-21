@@ -13,6 +13,10 @@ import {
   reduceGameJourneyCommand,
 } from './game-journey.mjs';
 import { createInitialGameState, normalizeRules, validateGameState } from './game-state.mjs';
+import {
+  createAudioSessions, endOpenAudioSession, interruptAudioSessionsOnStartup,
+  validateAudioSessions,
+} from './audio-sessions.mjs';
 import { createGameAdmission, validateGameAdmission } from './game-admission.mjs';
 import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
 import {
@@ -444,7 +448,7 @@ function validateIdentityColumns(database) {
 }
 
 function validateDeferredTablesEmpty(database) {
-  const tables = ['audio_sessions', 'diagnostic_records'];
+  const tables = ['diagnostic_records'];
   for (const table of tables) {
     if (database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count !== 0) {
       fail('database_corrupt');
@@ -497,6 +501,7 @@ export function validateReleaseDatabase(database, { currentCatalog }) {
       validateTerminalProjection(database, game);
     }
     validatePlaybackCommands(database);
+    validateAudioSessions(database);
     return Object.freeze({ status: 'valid', games: games.length });
   } catch (error) {
     if (error instanceof ReleaseStoreError) throw error;
@@ -542,6 +547,7 @@ export class ReleaseStore {
   #statfs;
   #hostAuthority;
   #gameAdmission;
+  #audioSessions;
   #playbackCommands;
 
   constructor(database, { catalog, databasePath, statfs = statfsSync }) {
@@ -558,6 +564,13 @@ export class ReleaseStore {
         }
       }),
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+      onDeviceRevoked: ({ deviceId, now }) => {
+        const games = this.#database.prepare(`SELECT game_id FROM games
+          WHERE host_device_id=? AND lifecycle IN ('lobby','active')`).all(deviceId);
+        for (const game of games) {
+          endOpenAudioSession(this.#database, game.game_id, now, 'host_revoked');
+        }
+      },
     });
     this.#gameAdmission = createGameAdmission(database, {
       transaction: (work) => this.#transaction(() => {
@@ -566,9 +579,19 @@ export class ReleaseStore {
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
       authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
       retainHost: (input) => this.#hostAuthority.retainedSession(input),
-      onGameTerminal: ({ gameId, now }) => cancelOpenPlaybackCommands(
-        this.#database, gameId, now, 'game_ended',
-      ),
+      onGameTerminal: ({ gameId, now }) => {
+        cancelOpenPlaybackCommands(this.#database, gameId, now, 'game_ended');
+        endOpenAudioSession(this.#database, gameId, now, 'game_ended');
+      },
+    });
+    this.#audioSessions = createAudioSessions(database, {
+      transaction: (work) => this.#transaction(() => {
+        try { return work(); } catch (error) { fail(error?.message ?? 'database_unavailable'); }
+      }),
+      validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+      authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
+      retainHost: (input) => this.#hostAuthority.retainedSession(input),
+      authorizeParticipant: (input) => this.#gameAdmission.authorizeParticipant(input),
     });
     this.#playbackCommands = createPlaybackCommands(database, {
       transaction: (work) => this.#transaction(() => {
@@ -577,6 +600,8 @@ export class ReleaseStore {
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
       authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
       retainHost: (input) => this.#hostAuthority.retainedSession(input),
+      audioReady: (gameId) => Boolean(this.#database.prepare(`SELECT 1 FROM audio_sessions
+        WHERE game_id=? AND state='active'`).get(gameId)),
     });
   }
 
@@ -732,6 +757,38 @@ export class ReleaseStore {
     return this.#playbackCall(() => this.#playbackCommands.transition(input));
   }
 
+  openAudioSession(input) {
+    return this.#audioCall(() => this.#audioSessions.open(input));
+  }
+
+  currentAudioSession(input) {
+    return this.#audioCall(() => this.#audioSessions.current(input));
+  }
+
+  claimAudioIngest(input) {
+    return this.#audioCall(() => this.#audioSessions.claimIngest(input));
+  }
+
+  activateAudioIngest(input) {
+    return this.#audioCall(() => this.#audioSessions.activateIngest(input));
+  }
+
+  interruptAudioIngest(input) {
+    return this.#audioCall(() => this.#audioSessions.interruptIngest(input));
+  }
+
+  endAudioSession(input) {
+    return this.#audioCall(() => this.#audioSessions.end(input));
+  }
+
+  authorizeAudioHostStream(input) {
+    return this.#audioCall(() => this.#audioSessions.authorizeHostStream(input));
+  }
+
+  authorizeAudioParticipantStream(input) {
+    return this.#audioCall(() => this.#audioSessions.authorizeParticipantStream(input));
+  }
+
   authorizeParticipantSession(input) {
     return this.#admissionCall(() => this.#gameAdmission.authorizeParticipant(input));
   }
@@ -741,15 +798,36 @@ export class ReleaseStore {
   }
 
   participantSnapshot(input) {
-    return this.#admissionCall(() => this.#gameAdmission.participantSnapshot(input));
+    return this.#admissionCall(() => {
+      const snapshot = this.#gameAdmission.participantSnapshot(input);
+      return Object.freeze({ ...snapshot, audio: this.#activeAudioProjection(input.gameId) });
+    });
   }
 
   hostGameSnapshot(input) {
-    return this.#admissionCall(() => this.#gameAdmission.hostSnapshot(input));
+    return this.#admissionCall(() => {
+      const snapshot = this.#gameAdmission.hostSnapshot(input);
+      return Object.freeze({ ...snapshot, audio: this.#activeAudioProjection(input.gameId) });
+    });
+  }
+
+  #activeAudioProjection(gameId) {
+    const session = this.#database.prepare(`SELECT audio_session_id,generation,state
+      FROM audio_sessions WHERE game_id=? AND state='active'`).get(gameId);
+    return session ? Object.freeze({
+      audioSessionId: session.audio_session_id,
+      generation: session.generation,
+      state: session.state,
+    }) : null;
   }
 
   recoverHostGame(input) {
-    return this.#admissionCall(() => this.#gameAdmission.hostRecovery(input));
+    return this.#admissionCall(() => {
+      const result = this.#gameAdmission.hostRecovery(input);
+      return Object.freeze({ game: result.game ? Object.freeze({
+        ...result.game, audio: this.#activeAudioProjection(result.game.gameId),
+      }) : null });
+    });
   }
 
   #journeyCall(work) {
@@ -770,7 +848,20 @@ export class ReleaseStore {
       const code = error?.message;
       if (['invalid_request', 'unauthorized', 'request_conflict', 'game_ended',
         'command_not_found', 'operation_rejected', 'stale_claim', 'playback_capacity',
-        'transition_capacity', 'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
+        'transition_capacity', 'audio_not_ready', 'database_unavailable',
+        'database_corrupt'].includes(code)) fail(code);
+      fail('database_unavailable');
+    }
+  }
+
+  #audioCall(work) {
+    try { return work(); } catch (error) {
+      if (error instanceof ReleaseStoreError) throw error;
+      const code = error?.message;
+      if (['invalid_request', 'unauthorized', 'request_conflict', 'game_inactive',
+        'audio_session_open', 'audio_session_not_found', 'audio_busy', 'audio_capacity',
+        'stale_generation', 'operation_rejected', 'transition_capacity',
+        'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
       fail('database_unavailable');
     }
   }
@@ -1055,6 +1146,9 @@ export class ReleaseStore {
       } else if (lifecycle === 'completed') {
         cancelOpenPlaybackCommands(this.#database, gameId, now, 'game_ended');
       }
+      if (lifecycle === 'completed') {
+        endOpenAudioSession(this.#database, gameId, now, 'game_ended');
+      }
       validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog });
       return Object.freeze(result);
     });
@@ -1119,6 +1213,8 @@ export function createReleaseStore(path, {
     }
     validateSchema(database);
     registerCatalog(database, catalog, now);
+    validateReleaseDatabase(database, { currentCatalog: catalog });
+    interruptAudioSessionsOnStartup(database, now);
     validateReleaseDatabase(database, { currentCatalog: catalog });
     database.exec('COMMIT');
     ownershipLocks.set(database, releaseOwnership);

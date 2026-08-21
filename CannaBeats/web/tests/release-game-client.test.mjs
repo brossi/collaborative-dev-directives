@@ -7,7 +7,7 @@ import {
   RELEASE_PENDING_ACTION_KEY, ReleaseClientError, acceptReleaseAction,
   clearPendingReleaseAction,
   loadPendingReleaseAction, loadPendingReleaseRecovery, savePendingReleaseAction,
-  saveReleaseSession, sendReleaseAction,
+  participantSnapshot, saveReleaseSession, sendReleaseAction,
 } from "../lib/release-game-client.ts";
 
 const originalFetch = globalThis.fetch;
@@ -125,6 +125,23 @@ test("pending action storage retains only a parseable complete intent", () => {
   savePendingReleaseAction(storage, action);
   clearPendingReleaseAction(storage);
   assert.equal(values.size, 0);
+});
+
+test("participant snapshots accept only the bounded active-audio projection", async () => {
+  const action = intent();
+  const audioSessionId = randomUUID();
+  const snapshot = {
+    audio: { audioSessionId, generation: 2, state: "active" },
+    code: "snapshot", gameId: action.gameId, lifecycle: "active",
+    participantId: randomUUID(), revision: 5, state: state(action),
+  };
+  globalThis.fetch = async () => new Response(JSON.stringify(snapshot), { status: 200 });
+  assert.deepEqual((await participantSnapshot(action.gameId)).audio, snapshot.audio);
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ...snapshot, audio: { ...snapshot.audio, relayToken: "forbidden" },
+  }), { status: 200 });
+  await assert.rejects(() => participantSnapshot(action.gameId), (error) =>
+    error instanceof ReleaseClientError && error.code === "invalid_response");
 });
 
 test("reload recovers and exactly replays a saved terminal action before active-game discovery", async () => {

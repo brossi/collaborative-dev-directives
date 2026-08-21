@@ -34,6 +34,7 @@ public enum PlaybackServerFailure: String, Equatable, Sendable {
     case requestConflict = "request_conflict"
     case gameEnded = "game_ended"
     case commandNotFound = "command_not_found"
+    case audioNotReady = "audio_not_ready"
     case operationRejected = "operation_rejected"
     case staleClaim = "stale_claim"
     case playbackCapacity = "playback_capacity"
@@ -222,7 +223,7 @@ public actor PlaybackCommandClient {
         case .unauthorized: status == 401
         case .commandNotFound: status == 404
         case .gameEnded: status == 410
-        case .requestConflict, .operationRejected, .staleClaim, .playbackCapacity,
+        case .requestConflict, .audioNotReady, .operationRejected, .staleClaim, .playbackCapacity,
              .transitionCapacity, .incompatibleClient: status == 409
         case .databaseUnavailable, .databaseCorrupt: status == 503
         }

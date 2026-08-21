@@ -44,6 +44,11 @@ export type ReleaseGameState = {
 };
 
 export type ReleaseSnapshot = {
+  audio: {
+    audioSessionId: string;
+    generation: number;
+    state: "active";
+  } | null;
   code: "snapshot";
   gameId: string;
   lifecycle: "lobby" | "active" | "completed" | "abandoned";
@@ -135,6 +140,14 @@ function releaseSnapshot(value: unknown, role: ReleaseRole): ReleaseSnapshot {
   if (!validRecord(value) || value.code !== "snapshot" || typeof value.gameId !== "string"
       || !["lobby", "active", "completed", "abandoned"].includes(String(value.lifecycle))
       || !Number.isSafeInteger(value.revision)) throw new ReleaseClientError("invalid_response", 502);
+  const audio = value.audio;
+  if (!(audio === null || (validRecord(audio)
+      && Object.keys(audio).sort().join("\0") === "audioSessionId\0generation\0state"
+      && typeof audio.audioSessionId === "string"
+      && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
+        .test(audio.audioSessionId)
+      && Number.isSafeInteger(audio.generation) && Number(audio.generation) > 0
+      && audio.state === "active"))) throw new ReleaseClientError("invalid_response", 502);
   const state = releaseState(value.state, role);
   if (state.gameId !== value.gameId || state.revision !== value.revision
       || (role === "participant" && typeof value.participantId !== "string")) {

@@ -12,13 +12,30 @@ let package = Package(
             name: "CannaBeatsHostPlaybackVerifier",
             targets: ["CannaBeatsHostPlaybackVerifier"]
         ),
+        .executable(
+            name: "CannaBeatsHostAudioVerifier",
+            targets: ["CannaBeatsHostAudioVerifier"]
+        ),
     ],
     targets: [
-        .target(name: "CannaBeatsHostCore"),
+        .target(
+            name: "AudioTapBridge",
+            publicHeadersPath: "include",
+            linkerSettings: [
+                .linkedFramework("AppKit"),
+                .linkedFramework("AudioToolbox"),
+                .linkedFramework("CoreAudio"),
+            ]
+        ),
+        .target(name: "CannaBeatsHostCore", dependencies: ["AudioTapBridge"]),
         .executableTarget(name: "CannaBeatsHostCoreVerifier", dependencies: ["CannaBeatsHostCore"]),
         .executableTarget(
             name: "CannaBeatsHostPlaybackVerifier",
             dependencies: ["CannaBeatsHostCore"]
+        ),
+        .executableTarget(
+            name: "CannaBeatsHostAudioVerifier",
+            dependencies: ["AudioTapBridge", "CannaBeatsHostCore"]
         ),
     ]
 )

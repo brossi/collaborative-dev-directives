@@ -1,6 +1,6 @@
 # CannaBeats first-release plan
 
-- **Status:** FR-0 through FR-5 complete; FR-6 is next
+- **Status:** FR-0 through FR-5 complete; FR-6 is in implementation
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -34,7 +34,7 @@ Apple signing, notarization, stapling, and Gatekeeper checks.
 - `play.cannabeats.social` is the new release hostname. Existing PoC hostnames
   and retained snapshots remain untouched until release acceptance.
 - One DigitalOcean Droplet runs exactly three Compose services: Caddy, one
-  Node.js web/API process, and the existing `btaudio` relay.
+  Node.js web/API process, and one small private Node PCM relay.
 - The Node process serves the Next.js browser application, is the only writable
   SQLite owner, and implements access, game, command, diagnostic,
   and operator routes. There is no separately deployed Access, State,
@@ -147,10 +147,10 @@ the following interfaces and authority direction are not optional:
   the embedded web view consumes it into an HttpOnly Host cookie.
 - `/api/games/{gameId}/*` owns lifecycle, invitations, participants, snapshots,
   actions, playback commands, results, and bounded diagnostics.
-- `/api/games/{gameId}/audio/ingest` accepts audio only from the Host session
-  owning the active game and pipes it to the private relay.
-- `/api/games/{gameId}/audio/stream` accepts only the owning Host or an admitted
-  participant and pipes the private relay stream without exposing its token.
+- `/api/games/{gameId}/audio/sessions/*` owns the retained audio generation;
+  its ingest route accepts only the Host application session owning the active
+  game, and its listen route accepts only that Host or an admitted participant.
+  Both proxy the private relay without exposing either relay token.
 - Every retryable mutation carries a UUID request ID. Conflicting reuse fails
   before current-state evaluation; exact replay returns the original finite
   result without a second effect.
@@ -375,6 +375,12 @@ consent and restart proof because that evidence requires its production bundle.
 
 ### FR-6 — Authenticated shared-audio path
 
+**Status:** Complete. Independent closure review and narrow remediation
+re-audit report no open P0, P1, or P2 findings.
+
+Checkpoint specification and closure matrix:
+[FR-6 authenticated shared audio](operations/fr-6-authenticated-shared-audio.md).
+
 **Invariant:** Only the active game's Host can publish Spotify audio and only
 its admitted clients can listen; interruption or reconnect never exposes relay
 credentials or binds a client to another game generation.
@@ -401,9 +407,12 @@ Matrix focus: concurrency, restart, dependency failure, corruption/malformed
 stream headers, capacity, stale generation, and revocation during an open
 stream.
 
-Gate: unauthorized ingest/listen and stale generations fail; eight listeners
-plus the Host remain within measured CPU/memory bounds; relay and Node restarts
-recover to one coherent stream; direct and relayed audio are not heard twice.
+Gate: unauthorized ingest/listen and stale generations fail; a paced local
+composition carries eight participants plus the Host within measured
+CPU/memory bounds; relay restart drops all prior publisher/listener authority;
+and native recovery retains one fenced generation. FR-10 owns deployed
+Node/relay restart recovery and audible proof that direct and relayed audio are
+not heard twice.
 
 ### FR-7 — Unified Host experience and bounded diagnostics
 
@@ -416,6 +425,10 @@ Tasks:
 - Build the production SwiftUI shell around the authenticated `WKWebView` with
   first-run setup, returning-game reopen, Spotify readiness, audio readiness,
   game status, and Settings/Advanced surfaces.
+- Compose `SharedAudioOwner.playbackGate` with `PlaybackPollingOwner` in the
+  production app owner so playback cannot claim work until shared audio is
+  active and is fenced synchronously on interruption or stop; the default
+  no-op callback is never a production wiring choice.
 - Expose one readiness checklist with finite states for server compatibility,
   device enrollment, Spotify availability, Automation permission, audio-capture
   permission, relay reachability, and active-game ownership. Every disabled

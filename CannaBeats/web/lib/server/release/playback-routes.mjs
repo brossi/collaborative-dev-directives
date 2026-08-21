@@ -7,7 +7,7 @@ export const PLAYBACK_CLIENT_HEADER = 'x-cannabeats-playback-contract';
 
 const FINITE_CODES = new Set([
   'invalid_request', 'unauthorized', 'request_conflict', 'game_ended',
-  'command_not_found', 'operation_rejected', 'stale_claim', 'playback_capacity',
+  'command_not_found', 'audio_not_ready', 'operation_rejected', 'stale_claim', 'playback_capacity',
   'transition_capacity', 'incompatible_client', 'database_unavailable',
   'database_corrupt',
 ]);
@@ -17,7 +17,7 @@ function failure(code) {
     : code === 'unauthorized' ? 401
       : code === 'command_not_found' ? 404
         : code === 'game_ended' ? 410
-          : ['request_conflict', 'operation_rejected', 'stale_claim',
+          : ['request_conflict', 'audio_not_ready', 'operation_rejected', 'stale_claim',
             'playback_capacity', 'transition_capacity', 'incompatible_client'].includes(code)
             ? 409 : 503;
   return Response.json({ ok: false, code }, {
