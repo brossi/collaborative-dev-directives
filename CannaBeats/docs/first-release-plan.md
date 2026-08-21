@@ -1,6 +1,7 @@
 # CannaBeats first-release plan
 
-- **Status:** FR-0 through FR-5 complete; FR-6 is in implementation
+- **Status:** FR-0 through FR-7 complete; FR-8.1 and FR-8.2 complete;
+  FR-8.3 is next
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -459,8 +460,8 @@ diagnostics pass secret and privacy scans.
 
 ### FR-8 — Reproducible deployment, backup, and recovery
 
-**Status:** In progress. Split into FR-8.1 topology/secrets, FR-8.2 immutable
-release/rollback, and FR-8.3 backup/restore/operator boundaries. See
+**Status:** In progress. FR-8.1 topology/secrets and FR-8.2 immutable
+release/rollback are complete; FR-8.3 backup/restore/operator is next. See
 [FR-8 reproducible deployment, backup, and recovery](operations/fr-8-reproducible-deployment.md).
 
 **Invariant:** A clean Droplet can be built, updated, backed up, restored, and

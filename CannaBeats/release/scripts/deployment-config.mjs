@@ -1,4 +1,4 @@
-const DIGEST_IMAGE = /^[a-z0-9]+(?:[._/-][a-z0-9]+)*(?::[a-zA-Z0-9._-]+)?@sha256:[0-9a-f]{64}$/u;
+const DIGEST_IMAGE = /^(?:sha256:[0-9a-f]{64}|[a-z0-9]+(?:[._/-][a-z0-9]+)*(?::[a-zA-Z0-9._-]+)?@sha256:[0-9a-f]{64})$/u;
 
 export const DEPLOYMENT_PATHS = Object.freeze({
   CANNABEATS_CADDY_DATA_DIR: '/var/lib/cannabeats-caddy/data',

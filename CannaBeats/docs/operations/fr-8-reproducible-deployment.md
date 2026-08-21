@@ -1,6 +1,6 @@
 # FR-8 reproducible deployment, backup, and recovery
 
-**Status:** FR-8.1 complete. FR-8.2 and FR-8.3 pending.
+**Status:** FR-8.1 and FR-8.2 complete. FR-8.3 pending.
 
 FR-8 is intentionally split into three closure-sized boundaries. The product
 remains one privately operated Droplet, one public origin, one active game, and
@@ -44,20 +44,100 @@ only its tokens. Caddy sees neither the database nor application secrets.
 
 | Dimension | Disposition |
 | --- | --- |
-| Create | `runtime`: one immutable release directory is created from a safe release ID and exact image digests. |
-| Update | `structural`: release records are immutable; only the `current` and `previous` symlinks switch by atomic rename. |
-| Delete | `runtime`: release pruning excludes current, previous, and every backup-referenced release. |
-| Omit | `runtime`: manifest validation requires images, source revision, catalog identity, schema generation, and configuration checksum. |
+| Create | `runtime`: one immutable release directory and one independently retained identity receipt are created from a safe release ID and exact image digests. |
+| Update | `runtime`: release records and identity receipts are immutable; only the bounded state authority and its projection change through fsynced atomic rename. |
+| Delete | `deferred`: FR-8.3 owns the only prune command and must preserve current, previous, every backup-referenced record, and all 64 identity receipts. FR-8.2 exposes no deletion. |
+| Omit | `runtime`: full-domain validation requires the exact record, identity-ledger, identity-file, and state domains; manifest validation requires images, source revision, catalog identity, schema generation, and configuration checksum. |
 | Duplicate | `runtime`: a used release ID with identical content replays; different content is `release_conflict`. |
-| Reorder | `runtime`: lock, preflight, pre-release backup, candidate start, health, then atomic record switch is the only accepted order. |
+| Reorder | `runtime`: lock, preflight, pre-release backup, durable pending authority, candidate start, schema/health proof, then final authority publication is the only accepted order. |
 | Replay | `runtime`: retry of the active identical release returns `already_active` without another backup or restart. |
 | Conflict | `runtime`: release-ID reuse with different manifest bytes fails before current-state evaluation. |
 | Concurrency | `runtime`: the shared host lock permits one deployment/rollback/restore/backup mutation at a time. |
 | Expiry | `not_applicable`: immutable release identity has no time expiry. |
-| Restart | `runtime`: reconciliation reads only validated current/previous records and resumes the recorded exact images. |
+| Restart | `runtime`: monotonic state authority records an exact pending candidate before convergence; reconciliation stops that retained first candidate or restores current, proves its schema, and only then clears pending. |
 | Dependency failure | `runtime`: build, backup, Compose, health, or atomic-switch failure leaves or restores the prior active record and services. |
-| Corruption | `runtime`: manifest checksum, safe-path, schema, and Compose validation fail closed before switch-over. |
-| Capacity | `runtime`: bounded release retention preserves current and previous plus a fixed rollback reserve. |
+| Corruption | `runtime`: one shared full-domain validator checks every retained record, identity copy, ledger ordinal, state transition, checksum, safe path, and bounded regular file before state use. |
+| Capacity | `runtime`: identity history accepts 64 immutable receipts, record storage accepts 16 complete bundles, manifests accept 16 KiB, Caddy configuration 64 KiB, and Compose configuration 128 KiB; FR-8.3 owns safe record pruning. |
+
+### FR-8.2 implementation status
+
+**Status:** Closed; independent re-audit reports P0=0, P1=0, P2=0.
+
+Enforcement:
+
+- `release/scripts/prepare-release.mjs` requires a clean committed source tree
+  and constructs one bundle bound to source revision, catalog digest, schema
+  generation 1, exact image IDs/digests, and the exact Compose/Caddy bytes.
+- `release/scripts/release-state.mjs` owns immutable release identities and
+  records, full-domain canonical validation, 64/16 capacity, fixed byte bounds,
+  schema/rollback compatibility, pre-change backup ordering, durable pending
+  ownership, post-start schema proof, failure reconvergence, rollback, and
+  restart reconciliation. A monotonic `state-authority.json` commit precedes
+  its `state.json` projection; restart repairs only the one valid interrupted
+  transition. File and parent-directory fsyncs precede publication.
+- `release/scripts/release-operations.mjs` is the sole deploy/rollback/reconcile
+  CLI. It holds the same process-bound operations lock for the full command,
+  reads schema generation from the real SQLite owner, uses only the retained
+  Compose record and manifest images, and normalizes every failure to a finite
+  code. Its fixed backup command intentionally fails closed until FR-8.3
+  supplies the complete backup owner.
+
+Local verification:
+
+- `node --test release/tests/release-state.test.mjs
+  release/tests/release-operations.test.mjs
+  release/tests/prepare-release.test.mjs` — 33/33 passed.
+- A disposable Debian container acquired the production Node FD/flock owner;
+  a second ordinary `flock` on the same path failed while the callback ran,
+  proving the lock persists after the helper subprocess exits.
+- `node --test --test-concurrency=1 release/tests/*.test.mjs` — 186/186 passed.
+- `git diff --check` — passed.
+
+The local FR-8.2 counterexample pass and first independent review found and
+remediated eleven valid mutations:
+
+1. recording image identities without Compose/Caddy bytes could make rollback
+   use newer configuration; every record now retains and validates those exact
+   deployment files;
+2. a fresh candidate could start with an unexpected schema and remain running
+   without release authority; post-start schema proof now stops an unrecorded
+   first candidate or reconverges the recorded current release;
+3. failure of the atomic state rename after healthy convergence could leave
+   candidate services ahead of retained authority; publication failure now
+   reconverges current (or stops the first candidate);
+4. extra or symlinked record files could preserve all checked payload bytes
+   while changing the retained record domain; restart validation now requires
+   the exact regular-file set; and
+5. successful writes without parent-directory fsync could disappear across a
+   power-loss boundary; identity, record, and state publication now fsync file
+   and directory order before returning success;
+6. process loss after first candidate health but before initial state could
+   leave unowned services, so pending candidate identity is now durable before
+   convergence and restart can stop it from its retained record;
+7. validation of only current and previous ignored corrupt older evidence and
+   allowed pruned IDs to be reused, so every operation validates every record
+   plus a redundant 64-entry identity ledger/file domain;
+8. rollback could publish after the target changed SQLite incompatibly, so it
+   now proves the exact target generation after convergence and restores the
+   recorded current release on mismatch;
+9. unbounded or symlinked bundle inputs could escape the advertised finite
+   storage boundary, so input and retained domains require exact regular-file
+   sets with fixed byte maxima and max-1/max/max+1 evidence; and
+10. deleting or resetting the sole state projection could make an initialized
+    host appear fresh, so a monotonic authority copy commits first and only one
+    valid interrupted projection transition is repairable; and
+11. reconstructing an omitted ledger entry could reorder otherwise immutable
+    receipt ordinals, so both identity copies now retain ordinal, release ID,
+    and manifest digest and permit only exact contiguous-tail reconstruction.
+
+The first independent review reported P0=0, three P1 groups (unowned first
+candidate after process loss, incomplete retained-domain validation, and
+missing rollback/reconcile schema proof), and two P2 groups (unbounded bundle
+shape and stale symlink/capacity documentation). The first narrow re-audit
+closed every P1 and left one P2 for identity-ordinal precision. After retaining
+and testing the ordinal in both identity copies, the final affected-perspective
+re-audit reported P0=0, P1=0, and P2=0 and reran the 33 focused tests. FR-8.2
+has no open finding; FR-8.3 remains the named backup/pruning deferral.
 
 ## FR-8.3 — Backup, restore, and operator boundary
 
