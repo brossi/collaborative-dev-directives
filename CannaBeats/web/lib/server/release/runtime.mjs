@@ -91,6 +91,8 @@ export function createReleaseRuntime({
     participantSnapshot(input) { return owner().participantSnapshot(input); },
     hostGameSnapshot(input) { return owner().hostGameSnapshot(input); },
     recoverHostGame(input) { return owner().recoverHostGame(input); },
+    applyHostGameAction(input) { return owner().applyHostGameAction(input); },
+    applyParticipantGameAction(input) { return owner().applyParticipantGameAction(input); },
   });
 }
 

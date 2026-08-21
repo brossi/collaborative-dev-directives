@@ -8,6 +8,10 @@ import {
   canonicalJson, parseCanonicalJson, sha256,
 } from './canonical.mjs';
 import { finiteCatalogSong } from './catalog.mjs';
+import {
+  GAME_JOURNEY_OPERATIONS, compactGameResult, normalizeGameJourneyCommand, projectGameState,
+  reduceGameJourneyCommand,
+} from './game-journey.mjs';
 import { createInitialGameState, normalizeRules, validateGameState } from './game-state.mjs';
 import { createGameAdmission, validateGameAdmission } from './game-admission.mjs';
 import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
@@ -50,6 +54,11 @@ function requestValue(work) {
     if (error instanceof ReleaseStoreError) throw error;
     fail('invalid_request');
   }
+}
+
+function exactKeys(value, keys) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 }
 
 function acquireLock(path) {
@@ -177,6 +186,93 @@ function storedCatalogSongs(database, catalogVersion) {
     .map((entry) => [entry.uri, assertCanonical(entry.song)]));
 }
 
+const JOURNEY_OPERATIONS = new Set(GAME_JOURNEY_OPERATIONS);
+
+function stateAtRevision(state, revision) {
+  return { ...structuredClone(state), revision };
+}
+
+function validateStateChain(database, receipts, game, catalogSongs) {
+  let priorState = null;
+  let finalLifecycle = null;
+  for (const receipt of receipts.toSorted((left, right) => left.revision - right.revision)) {
+    const request = assertCanonical(receipt.request);
+    const result = assertCanonical(receipt.result);
+    if (receipt.revision === 0) {
+      if (receipt.operation !== 'create_game') fail('database_corrupt');
+      const expected = createInitialGameState({
+        gameId: game.game_id, catalogVersion: game.catalog_version, rules: request.rules,
+      });
+      if (canonicalJson(result.state) !== canonicalJson(expected)) fail('database_corrupt');
+      priorState = result.state;
+      finalLifecycle = 'lobby';
+      continue;
+    }
+    if (!priorState || priorState.revision !== receipt.revision - 1) fail('database_corrupt');
+    let expectedState;
+    let expectedEvents = null;
+    if (JOURNEY_OPERATIONS.has(receipt.operation)) {
+      let reduced;
+      try {
+        reduced = reduceGameJourneyCommand({
+          state: structuredClone(priorState), operation: receipt.operation,
+          payload: request.payload,
+          actor: { id: receipt.actor_id, type: receipt.actor_type },
+          catalogSongs, requestId: receipt.request_id,
+        });
+      } catch {
+        fail('database_corrupt');
+      }
+      expectedState = stateAtRevision(reduced.state, receipt.revision);
+      expectedEvents = reduced.events;
+      finalLifecycle = reduced.lifecycle;
+    } else if (receipt.operation === 'join_participant') {
+      const player = {
+        control: 'phone', id: request.payload.participantId,
+        name: request.payload.displayName, timeline: [],
+      };
+      expectedState = stateAtRevision({
+        ...priorState,
+        players: [...priorState.players, player].sort((left, right) => {
+          const order = (candidate) => candidate.control === 'host' ? 0
+            : database.prepare(`SELECT join_order FROM participants
+              WHERE game_id=? AND participant_id=?`).get(game.game_id, candidate.id)?.join_order;
+          return order(left) - order(right);
+        }),
+      }, receipt.revision);
+      finalLifecycle = 'lobby';
+    } else if (receipt.operation === 'remove_participant') {
+      expectedState = stateAtRevision({
+        ...priorState,
+        players: priorState.players.filter(({ id }) => id !== request.payload.targetParticipantId),
+      }, receipt.revision);
+      finalLifecycle = 'lobby';
+    } else if (['issue_invitation', 'revoke_invitation'].includes(receipt.operation)) {
+      expectedState = stateAtRevision(priorState, receipt.revision);
+      finalLifecycle = 'lobby';
+    } else if (receipt.operation === 'terminate_game') {
+      expectedState = stateAtRevision(priorState, receipt.revision);
+      finalLifecycle = 'abandoned';
+    } else {
+      fail('database_corrupt');
+    }
+    if (canonicalJson(result.state) !== canonicalJson(expectedState)) fail('database_corrupt');
+    if (expectedEvents !== null) {
+      const actualPrefix = result.events.slice(0, expectedEvents.length);
+      const tail = result.events.slice(expectedEvents.length);
+      const permittedCapacityClosure = receipt.operation === 'add_host_player'
+        && expectedState.players.length === 8 && tail.length === 1
+        && tail[0].type === 'invitation_closed' && tail[0].outcome === 'accepted'
+        && exactKeys(tail[0].detail, ['inviteHash']) && SHA256_PATTERN.test(tail[0].detail.inviteHash);
+      if (canonicalJson(actualPrefix) !== canonicalJson(expectedEvents)
+          || (tail.length !== 0 && !permittedCapacityClosure)) fail('database_corrupt');
+    }
+    priorState = result.state;
+  }
+  if (!priorState || canonicalJson(priorState) !== game.state
+      || finalLifecycle !== game.lifecycle) fail('database_corrupt');
+}
+
 function validateEventsAndReceipts(database, game, catalogSongs) {
   const events = database.prepare(`SELECT sequence,revision,event_type,outcome,actor_type,
     actor_id,request_id,detail,occurred_at FROM game_events WHERE game_id=? ORDER BY sequence`).all(
@@ -210,7 +306,7 @@ function validateEventsAndReceipts(database, game, catalogSongs) {
 
   const receipts = database.prepare(`SELECT actor_type,actor_id,request_id,operation,request,
     request_hash,result,revision,accepted_at FROM action_receipts
-    WHERE game_id=? ORDER BY accepted_at,actor_type,actor_id,request_id`).all(game.game_id);
+    WHERE game_id=? ORDER BY revision`).all(game.game_id);
   if (receipts.length !== game.revision + 1
       || new Set(receipts.map(({ revision }) => revision)).size !== receipts.length) {
     fail('database_corrupt');
@@ -221,6 +317,9 @@ function validateEventsAndReceipts(database, game, catalogSongs) {
   if (events.some((event) => !receiptKeys.has([
     event.actor_type, event.actor_id, event.request_id, event.revision, event.occurred_at,
   ].join('\0')))) fail('database_corrupt');
+  if (receipts[0]?.revision !== 0 || receipts[0].accepted_at !== game.created_at
+      || receipts.at(-1)?.revision !== game.revision
+      || receipts.at(-1).accepted_at !== game.updated_at) fail('database_corrupt');
   let headMatchesState = false;
   for (const receipt of receipts) {
     if (!['host', 'participant', 'system'].includes(receipt.actor_type)
@@ -287,17 +386,22 @@ function validateEventsAndReceipts(database, game, catalogSongs) {
     if (!receiptRevisions.has(revision)) fail('database_corrupt');
   }
   if (!headMatchesState) fail('database_corrupt');
+  validateStateChain(database, receipts, game, catalogSongs);
 }
 
 function validateTerminalProjection(database, game) {
   const result = database.prepare(`SELECT result_id,final_revision,projection,created_at
     FROM game_results WHERE game_id=?`).get(game.game_id);
   if (game.lifecycle === 'completed') {
-    if (!result || !UUID_PATTERN.test(result.result_id)
+    if (!result || !UUID_PATTERN.test(result.result_id) || result.result_id !== game.game_id
         || result.final_revision !== game.revision || result.created_at !== game.terminal_at) {
       fail('database_corrupt');
     }
-    assertCanonical(result.projection);
+    const projection = assertCanonical(result.projection);
+    const state = assertCanonical(game.state);
+    if (canonicalJson(projection) !== canonicalJson(compactGameResult(state))) {
+      fail('database_corrupt');
+    }
   } else if (result) {
     fail('database_corrupt');
   }
@@ -338,7 +442,7 @@ function validateIdentityColumns(database) {
 function validateDeferredTablesEmpty(database) {
   const tables = [
     'playback_commands', 'playback_command_transitions',
-    'audio_sessions', 'game_results', 'diagnostic_records',
+    'audio_sessions', 'diagnostic_records',
   ];
   for (const table of tables) {
     if (database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count !== 0) {
@@ -458,7 +562,7 @@ export class ReleaseStore {
       }),
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
       authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
-      retainHost: (input) => this.#hostAuthority.retainedApplicationSession(input),
+      retainHost: (input) => this.#hostAuthority.retainedSession(input),
     });
   }
 
@@ -570,12 +674,17 @@ export class ReleaseStore {
     }
   }
 
-  createAuthorizedGame({ applicationSessionToken, ...input }) {
-    const authority = this.#hostAuthority.retainedApplicationSession({ token: applicationSessionToken });
+  createAuthorizedGame({
+    applicationSessionToken, hostSessionToken = applicationSessionToken,
+    hostSessionKind = 'application', ...input
+  }) {
+    const authority = this.#hostAuthority.retainedSession({
+      token: hostSessionToken, kind: hostSessionKind,
+    });
     return this.createGame({
       ...input, hostDeviceId: authority.deviceId,
       _authorize: () => this.authorizeHostSession({
-        token: applicationSessionToken, now: input.now,
+        token: hostSessionToken, kind: hostSessionKind, now: input.now,
       }),
     });
   }
@@ -604,6 +713,10 @@ export class ReleaseStore {
     return this.#admissionCall(() => this.#gameAdmission.authorizeParticipant(input));
   }
 
+  retainedParticipantSession(input) {
+    return this.#admissionCall(() => this.#gameAdmission.retainedParticipant(input));
+  }
+
   participantSnapshot(input) {
     return this.#admissionCall(() => this.#gameAdmission.participantSnapshot(input));
   }
@@ -614,6 +727,68 @@ export class ReleaseStore {
 
   recoverHostGame(input) {
     return this.#admissionCall(() => this.#gameAdmission.hostRecovery(input));
+  }
+
+  #journeyCall(work) {
+    try { return work(); } catch (error) {
+      if (error instanceof ReleaseStoreError) throw error;
+      const code = error?.message;
+      if (['invalid_request', 'unauthorized', 'request_conflict', 'capacity_reached',
+        'duplicate_name', 'game_ended', 'stale_state', 'operation_rejected',
+        'catalog_exhausted', 'database_unavailable', 'database_corrupt']
+        .includes(code)) fail(code);
+      fail('invalid_request');
+    }
+  }
+
+  applyHostGameAction({
+    applicationSessionToken, hostSessionToken = applicationSessionToken,
+    hostSessionKind = 'application', operation, payload, ...input
+  }) {
+    return this.#journeyCall(() => {
+      const authority = this.#hostAuthority.retainedSession({
+        token: hostSessionToken, kind: hostSessionKind,
+      });
+      const command = normalizeGameJourneyCommand(operation, payload);
+      const result = this.mutateGame({
+        ...input, actorId: authority.deviceId, actorType: 'host',
+        operation: command.operation, payload: command.payload,
+        _authorize: () => this.#hostAuthority.authorizeSession({
+          token: hostSessionToken, kind: hostSessionKind, now: input.now,
+        }),
+        reducer: (state, normalizedPayload, context) => reduceGameJourneyCommand({
+          state, operation: command.operation, payload: normalizedPayload,
+          actor: { id: authority.deviceId, type: 'host' },
+          catalogSongs: context.catalogSongs, requestId: input.requestId,
+        }),
+      });
+      return Object.freeze({ ...result, state: projectGameState(result.state, 'host') });
+    });
+  }
+
+  applyParticipantGameAction({ participantSessionToken, operation, payload, ...input }) {
+    return this.#journeyCall(() => {
+      const authority = this.#gameAdmission.retainedParticipant({
+        token: participantSessionToken, gameId: input.gameId,
+      });
+      const command = normalizeGameJourneyCommand(operation, payload);
+      const result = this.mutateGame({
+        ...input, actorId: authority.participantId, actorType: 'participant',
+        operation: command.operation, payload: command.payload,
+        _authorize: () => this.#gameAdmission.authorizeParticipant({
+          token: participantSessionToken, gameId: input.gameId, now: input.now,
+        }),
+        reducer: (state, normalizedPayload, context) => reduceGameJourneyCommand({
+          state, operation: command.operation, payload: normalizedPayload,
+          actor: { id: authority.participantId, type: 'participant' },
+          catalogSongs: context.catalogSongs, requestId: input.requestId,
+        }),
+      });
+      return Object.freeze({
+        code: result.code, gameId: result.gameId, revision: result.revision,
+        state: projectGameState(result.state, 'participant'),
+      });
+    });
   }
 
   createGame({ gameId, requestId, hostDeviceId, catalogVersion, rules, now, _authorize = null }) {
@@ -693,6 +868,7 @@ export class ReleaseStore {
 
   mutateGame({
     gameId, actorType, actorId, requestId, operation, payload = {}, expectedRevision, now, reducer,
+    _authorize = null,
   }) {
     requestValue(() => {
       assertUuid(gameId, 'invalid_request');
@@ -704,6 +880,7 @@ export class ReleaseStore {
         || !/^[a-z][a-z0-9_]{0,63}$/u.test(operation)
         || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0
         || typeof reducer !== 'function') fail('invalid_request');
+    if (!JOURNEY_OPERATIONS.has(operation)) fail('operation_rejected');
     const request = requestValue(() => canonicalJson({
       actorId, actorType, expectedRevision, gameId, operation, payload, requestId,
     }));
@@ -716,6 +893,12 @@ export class ReleaseStore {
       const game = this.#database.prepare(`SELECT game_id,host_device_id,catalog_version,
         lifecycle,state,revision FROM games WHERE game_id=?`).get(gameId);
       if (!game) fail('game_not_found');
+      try { _authorize?.(); } catch (error) {
+        if (['unauthorized', 'expired', 'database_corrupt'].includes(error?.message)) {
+          fail(error.message === 'expired' ? 'unauthorized' : error.message);
+        }
+        fail('database_unavailable');
+      }
       if (actorType === 'host') this.#authorizedHost(actorId, game);
       if (actorType === 'participant') {
         const participant = this.#database.prepare(`SELECT removed_at FROM participants
@@ -726,8 +909,13 @@ export class ReleaseStore {
       if (game.revision !== expectedRevision) fail('stale_state');
       let reduced;
       try {
-        reduced = reducer(structuredClone(assertCanonical(game.state)), structuredClone(payload));
-      } catch {
+        reduced = reducer(
+          structuredClone(assertCanonical(game.state)), structuredClone(payload),
+          { catalogSongs: storedCatalogSongs(this.#database, game.catalog_version) },
+        );
+      } catch (error) {
+        if (['invalid_request', 'unauthorized', 'request_conflict', 'capacity_reached',
+          'duplicate_name', 'catalog_exhausted'].includes(error?.message)) fail(error.message);
         fail('operation_rejected');
       }
       if (!reduced || typeof reduced !== 'object' || Array.isArray(reduced)
@@ -739,7 +927,6 @@ export class ReleaseStore {
       if (!['lobby', 'active', 'completed', 'abandoned'].includes(lifecycle)) {
         fail('operation_rejected');
       }
-      if (lifecycle === 'completed') fail('operation_rejected');
       const nextState = { ...reduced.state, revision };
       try {
         validateGameState(nextState, {
@@ -786,6 +973,26 @@ export class ReleaseStore {
         this.#database.prepare(`UPDATE game_invites SET closed_at=?,close_reason=?
           WHERE game_id=? AND closed_at IS NULL`).run(
           now, lifecycle === 'active' ? 'started' : 'revoked', gameId,
+        );
+      }
+      if (operation === 'add_host_player' && nextState.players.length === 8) {
+        const openInvite = this.#database.prepare(`SELECT invite_hash FROM game_invites
+          WHERE game_id=? AND closed_at IS NULL`).get(gameId);
+        if (openInvite) {
+          this.#database.prepare(`UPDATE game_invites SET closed_at=?,close_reason='capacity'
+            WHERE invite_hash=?`).run(now, openInvite.invite_hash);
+          events.push({
+            detail: { inviteHash: openInvite.invite_hash }, outcome: 'accepted',
+            type: 'invitation_closed',
+          });
+          result.events = events;
+          resultText = canonicalJson(result);
+        }
+      }
+      if (lifecycle === 'completed') {
+        this.#database.prepare(`INSERT INTO game_results
+          (result_id,game_id,final_revision,projection,created_at) VALUES (?,?,?,?,?)`).run(
+          gameId, gameId, revision, canonicalJson(compactGameResult(nextState)), now,
         );
       }
       this.#database.prepare(`INSERT INTO action_receipts

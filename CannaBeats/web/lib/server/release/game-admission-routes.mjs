@@ -1,4 +1,5 @@
 import { ReleaseStoreError } from './store.mjs';
+import { HOST_COOKIE } from './host-routes.mjs';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const BODY_TIMEOUT_MS = 2_000;
@@ -88,6 +89,21 @@ function participantCookie(request) {
   return token;
 }
 
+function hostCredential(request) {
+  const hasAuthorization = request.headers.has('authorization');
+  const matches = (request.headers.get('cookie') ?? '').split(';').map((part) => part.trim())
+    .filter((part) => part.startsWith(`${HOST_COOKIE}=`));
+  if (hasAuthorization === (matches.length > 0) || matches.length > 1) {
+    throw new ReleaseStoreError('unauthorized');
+  }
+  if (hasAuthorization) {
+    return { hostSessionKind: 'application', hostSessionToken: bearer(request) };
+  }
+  const token = matches[0].slice(HOST_COOKIE.length + 1);
+  if (!/^[A-Za-z0-9_-]{22,128}$/u.test(token)) throw new ReleaseStoreError('unauthorized');
+  return { hostSessionKind: 'web', hostSessionToken: token };
+}
+
 function owner(runtime) {
   return typeof runtime === 'function' ? runtime() : runtime;
 }
@@ -105,7 +121,7 @@ export function gameCreateRoute(request, runtime, now = Date.now()) {
   return route(async () => {
     const input = exact(await body(request), ['catalogVersion', 'gameId', 'requestId', 'rules']);
     const result = owner(runtime).createAuthorizedGame({
-      ...input, applicationSessionToken: bearer(request), now,
+      ...input, ...hostCredential(request), now,
     });
     return success(result, { status: result.code === 'created' ? 201 : 200 });
   });
@@ -113,7 +129,7 @@ export function gameCreateRoute(request, runtime, now = Date.now()) {
 
 export function hostGameRecoveryRoute(request, runtime, now = Date.now()) {
   return route(async () => success(owner(runtime).recoverHostGame({
-    applicationSessionToken: bearer(request), now,
+    ...hostCredential(request), now,
   })));
 }
 
@@ -121,7 +137,7 @@ export function invitationIssueRoute(request, runtime, gameId, now = Date.now())
   return route(async () => {
     const input = exact(await body(request), ['expectedRevision', 'inviteToken', 'requestId']);
     return success(owner(runtime).issueGameInvitation({
-      ...input, applicationSessionToken: bearer(request), gameId, now,
+      ...input, ...hostCredential(request), gameId, now,
     }), { status: 201 });
   });
 }
@@ -130,7 +146,7 @@ export function invitationRevokeRoute(request, runtime, gameId, now = Date.now()
   return route(async () => {
     const input = exact(await body(request), ['expectedRevision', 'requestId']);
     return success(owner(runtime).revokeGameInvitation({
-      ...input, applicationSessionToken: bearer(request), gameId, now,
+      ...input, ...hostCredential(request), gameId, now,
     }));
   });
 }
@@ -154,9 +170,19 @@ export function participantSnapshotRoute(request, runtime, gameId, now = Date.no
   });
 }
 
+export function participantRecoveryRoute(request, runtime, now = Date.now()) {
+  return route(async () => {
+    const token = participantCookie(request);
+    const authority = owner(runtime).authorizeParticipantSession({ token, now });
+    return success(owner(runtime).participantSnapshot({
+      token, gameId: authority.gameId, now,
+    }), { cookieToken: token });
+  });
+}
+
 export function hostGameSnapshotRoute(request, runtime, gameId, now = Date.now()) {
   return route(async () => success(owner(runtime).hostGameSnapshot({
-    applicationSessionToken: bearer(request), gameId, now,
+    ...hostCredential(request), gameId, now,
   })));
 }
 
@@ -164,7 +190,7 @@ export function participantRemoveRoute(request, runtime, gameId, participantId, 
   return route(async () => {
     const input = exact(await body(request), ['expectedRevision', 'requestId']);
     return success(owner(runtime).removeParticipant({
-      ...input, applicationSessionToken: bearer(request), gameId,
+      ...input, ...hostCredential(request), gameId,
       targetParticipantId: participantId, now,
     }));
   });
@@ -174,7 +200,7 @@ export function gameTerminateRoute(request, runtime, gameId, now = Date.now()) {
   return route(async () => {
     const input = exact(await body(request), ['expectedRevision', 'requestId']);
     return success(owner(runtime).terminateGame({
-      ...input, applicationSessionToken: bearer(request), gameId, now,
+      ...input, ...hostCredential(request), gameId, now,
     }));
   });
 }

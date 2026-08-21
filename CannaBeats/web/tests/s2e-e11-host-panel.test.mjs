@@ -183,10 +183,11 @@ test("late prior-run completion cannot overwrite a newer run intent", async () =
   assert.equal(f.controller.snapshot().runId,RUN_2);
 });
 
-test("production attachment is host-only and does not enter gameplay audio or readiness", () => {
+test("the unified release page leaves retired managed-source diagnostics detached", () => {
   const page = readFileSync(new URL("../app/page.tsx",import.meta.url),"utf8");
-  assert.match(page,/room\.isHost && audio\.selection === "managed"/);
-  assert.equal((page.match(/<HostDiagnosticsPanel runId=\{room\.runId\} \/>/g) ?? []).length,2);
+  assert.doesNotMatch(page,/room\.isHost && audio\.selection === "managed"/);
+  assert.doesNotMatch(page,/HostDiagnosticsPanel|use-managed-audio-stream/);
+  assert.match(page,/Spotify playback is performed by the CannaBeats Host app/);
   for (const relative of [
     "../lib/use-managed-audio-stream.ts",
     "../app/api/game/state-route.ts",

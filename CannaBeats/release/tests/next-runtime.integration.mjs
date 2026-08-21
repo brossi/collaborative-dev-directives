@@ -11,6 +11,7 @@ import { createServer } from 'node:net';
 import test from 'node:test';
 
 import { loadCatalogArtifacts } from '../../web/lib/server/release/catalog.mjs';
+import { DEFAULT_RULES } from '../../web/lib/server/release/game-state.mjs';
 import { hostProofBytes } from '../../web/lib/server/release/host-authority.mjs';
 import { createReleaseStore } from '../../web/lib/server/release/store.mjs';
 
@@ -153,8 +154,89 @@ test('the standalone Next process owns unified health and readiness', async () =
     });
     const exchangeBody = await exchange.json();
     assert.equal(exchange.status, 200, JSON.stringify(exchangeBody));
-    assert.match(exchange.headers.get('set-cookie'),
+    const hostSetCookie = exchange.headers.get('set-cookie');
+    assert.match(hostSetCookie,
       /^__Host-cannabeats-host=.*; Path=\/; Max-Age=\d+; Secure; HttpOnly; SameSite=Strict$/u);
+    const hostCookie = hostSetCookie.split(';', 1)[0];
+
+    const gameId = randomUUID();
+    const create = await fetch(`${origin}/api/games`, {
+      method: 'POST', headers: { cookie: hostCookie, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        catalogVersion: sourceCatalog.version, gameId, requestId: randomUUID(),
+        rules: DEFAULT_RULES,
+      }),
+    });
+    const createBody = await create.json();
+    assert.equal(create.status, 201, JSON.stringify(createBody));
+    assert.equal(createBody.gameId, gameId);
+    assert.equal(createBody.revision, 0);
+
+    const inviteToken = randomBytes(24).toString('base64url');
+    const invitation = await fetch(`${origin}/api/games/${gameId}/invitations`, {
+      method: 'POST', headers: { cookie: hostCookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedRevision: 0, inviteToken, requestId: randomUUID() }),
+    });
+    const invitationBody = await invitation.json();
+    assert.equal(invitation.status, 201, JSON.stringify(invitationBody));
+    assert.equal(JSON.stringify(invitationBody).includes(inviteToken), false);
+
+    const participantId = randomUUID();
+    const participantToken = randomBytes(24).toString('base64url');
+    const admission = await fetch(`${origin}/api/games/${gameId}/participants`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        displayName: 'Standalone Player', inviteToken, participantId,
+        requestId: randomUUID(), sessionToken: participantToken,
+      }),
+    });
+    const admissionBody = await admission.json();
+    assert.equal(admission.status, 201, JSON.stringify(admissionBody));
+    const participantSetCookie = admission.headers.get('set-cookie');
+    assert.match(participantSetCookie,
+      /^__Host-cannabeats-participant=.*; Path=\/; Max-Age=34560000; Secure; HttpOnly; SameSite=Strict$/u);
+    const participantCookie = participantSetCookie.split(';', 1)[0];
+
+    async function action(role, cookie, expectedRevision, operation, payload = {}) {
+      const response = await fetch(`${origin}/api/games/${gameId}/actions`, {
+        method: 'POST',
+        headers: {
+          cookie, 'content-type': 'application/json',
+          'x-cannabeats-client-contract': '3', 'x-cannabeats-game-role': role,
+        },
+        body: JSON.stringify({ expectedRevision, operation, payload, requestId: randomUUID() }),
+      });
+      const value = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(value));
+      return value;
+    }
+
+    const started = await action('host', hostCookie, 2, 'start_game');
+    assert.equal(started.state.phase, 'ready');
+    const preReveal = await fetch(`${origin}/api/games/${gameId}/snapshot`, {
+      headers: { cookie: participantCookie },
+    });
+    const preRevealBody = await preReveal.json();
+    assert.equal(preReveal.status, 200, JSON.stringify(preRevealBody));
+    assert.equal('currentSong' in preRevealBody.state, false);
+    assert.equal('placement' in preRevealBody.state, false);
+    assert.equal('result' in preRevealBody.state, false);
+
+    const begun = await action('host', hostCookie, started.revision, 'begin_round');
+    const placed = await action('participant', participantCookie, begun.revision, 'place_song', {
+      index: 0,
+    });
+    assert.equal('currentSong' in placed.state, false);
+    const revealed = await action('host', hostCookie, placed.revision, 'reveal_answer');
+    assert.equal(revealed.state.phase, 'revealed');
+    const recovered = await fetch(`${origin}/api/games/participant-recovery`, {
+      headers: { cookie: participantCookie },
+    });
+    const recoveredBody = await recovered.json();
+    assert.equal(recovered.status, 200, JSON.stringify(recoveredBody));
+    assert.equal(recoveredBody.gameId, gameId);
+    assert.equal(recoveredBody.participantId, participantId);
+    assert.equal(recoveredBody.state.currentSong.uri, revealed.state.currentSong.uri);
   } finally {
     child.kill('SIGTERM');
     if (child.exitCode === null) await new Promise((resolveExit) => child.once('exit', resolveExit));

@@ -2,7 +2,8 @@ import {
   CATALOG_VERSION_PATTERN, SHA256_PATTERN, UUID_PATTERN, assertTimestamp, assertUuid, canonicalJson,
   parseCanonicalJson, sha256,
 } from './canonical.mjs';
-import { normalizeRules } from './game-state.mjs';
+import { MAX_GAME_PLAYERS, normalizePlayerName, normalizeRules } from './game-state.mjs';
+import { projectGameState } from './game-journey.mjs';
 import { bearerHash } from './host-authority.mjs';
 
 export const ADMISSION_LIMITS = Object.freeze({
@@ -25,12 +26,7 @@ function parsed(text) {
 }
 
 export function normalizeParticipantName(value) {
-  if (typeof value !== 'string') throw new Error('invalid_request');
-  const displayName = value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
-  const length = [...displayName].length;
-  if (length < 1 || length > 24 || /[\p{Cc}\p{Cf}\p{Cs}]/gu.test(displayName)) {
-    throw new Error('invalid_request');
-  }
+  const displayName = normalizePlayerName(value);
   return Object.freeze({ displayName, normalizedName: displayName.toLocaleLowerCase('en-US') });
 }
 
@@ -68,6 +64,14 @@ function activeParticipantSession(database, token, gameId = null) {
   if (!row || row.revoked_at !== null || row.removed_at !== null
       || ['completed', 'abandoned'].includes(row.lifecycle)
       || (gameId !== null && row.game_id !== gameId)) throw new Error('unauthorized');
+  return row;
+}
+
+function retainedParticipantSession(database, token, gameId = null) {
+  const sessionHash = bearerHash(token);
+  const row = database.prepare(`SELECT session_hash,game_id,participant_id,revoked_at
+    FROM participant_sessions WHERE session_hash=?`).get(sessionHash);
+  if (!row || (gameId !== null && row.game_id !== gameId)) throw new Error('unauthorized');
   return row;
 }
 
@@ -137,32 +141,33 @@ export function createGameAdmission(database, {
       return result;
     });
   }
-  function hostIdentity(applicationSessionToken, gameId, requestId) {
-    const host = retainHost({ token: applicationSessionToken });
+  function hostIdentity(hostSessionToken, hostSessionKind, gameId, requestId) {
+    const host = retainHost({ token: hostSessionToken, kind: hostSessionKind });
     return { actorId: host.deviceId, actorType: 'host', gameId, requestId };
   }
   return Object.freeze({
     issueInvitation({
-      applicationSessionToken, gameId, inviteToken, requestId, expectedRevision, now,
+      applicationSessionToken, hostSessionToken = applicationSessionToken,
+      hostSessionKind = 'application', gameId, inviteToken, requestId, expectedRevision, now,
     }) {
       assertUuid(gameId, 'invalid_request'); assertUuid(requestId, 'invalid_request');
       assertTimestamp(now, 'invalid_request');
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new Error('invalid_request');
       const inviteHash = bearerHash(inviteToken);
-      const identity = hostIdentity(applicationSessionToken, gameId, requestId);
+      const identity = hostIdentity(hostSessionToken, hostSessionKind, gameId, requestId);
       const operation = 'issue_invitation';
       const text = requestText({ identity, operation, expectedRevision, payload: { inviteHash } });
       return run(() => {
         const prior = replay(database, identity, operation, sha256(text));
         if (prior) return prior;
-        authorizeHost({ token: applicationSessionToken, now });
+        authorizeHost({ token: hostSessionToken, kind: hostSessionKind, now });
         const game = gameRow(database, gameId);
         if (game.host_device_id !== identity.actorId) throw new Error('unauthorized');
         if (game.lifecycle !== 'lobby') throw new Error('game_started');
         if (game.revision !== expectedRevision) throw new Error('stale_state');
-        if (database.prepare(`SELECT COUNT(*) AS count FROM participants
-          WHERE game_id=? AND removed_at IS NULL`).get(gameId).count
-          >= ADMISSION_LIMITS.participants) throw new Error('capacity_reached');
+        if (parsed(game.state).players.length >= MAX_GAME_PLAYERS) {
+          throw new Error('capacity_reached');
+        }
         if (database.prepare('SELECT 1 FROM game_invites WHERE invite_hash=?').get(inviteHash)) {
           throw new Error('request_conflict');
         }
@@ -192,17 +197,20 @@ export function createGameAdmission(database, {
       });
     },
 
-    revokeInvitation({ applicationSessionToken, gameId, requestId, expectedRevision, now }) {
+    revokeInvitation({
+      applicationSessionToken, hostSessionToken = applicationSessionToken,
+      hostSessionKind = 'application', gameId, requestId, expectedRevision, now,
+    }) {
       assertUuid(gameId, 'invalid_request'); assertUuid(requestId, 'invalid_request');
       assertTimestamp(now, 'invalid_request');
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new Error('invalid_request');
-      const identity = hostIdentity(applicationSessionToken, gameId, requestId);
+      const identity = hostIdentity(hostSessionToken, hostSessionKind, gameId, requestId);
       const operation = 'revoke_invitation';
       const text = requestText({ identity, operation, expectedRevision, payload: {} });
       return run(() => {
         const prior = replay(database, identity, operation, sha256(text));
         if (prior) return prior;
-        authorizeHost({ token: applicationSessionToken, now });
+        authorizeHost({ token: hostSessionToken, kind: hostSessionKind, now });
         const game = gameRow(database, gameId);
         if (game.host_device_id !== identity.actorId) throw new Error('unauthorized');
         if (game.lifecycle !== 'lobby') throw new Error('game_started');
@@ -250,17 +258,18 @@ export function createGameAdmission(database, {
           throw new Error(currentInvite.close_reason === 'capacity' ? 'capacity_reached' : 'unauthorized');
         }
         if (now >= currentInvite.expires_at) throw new Error('expired');
-        if (database.prepare(`SELECT 1 FROM participants
-          WHERE game_id=? AND normalized_name=? AND removed_at IS NULL`).get(
-          gameId, names.normalizedName,
-        )) throw new Error('duplicate_name');
+        const state = parsed(game.state);
+        if (state.players.some(({ name }) =>
+          normalizePlayerName(name).toLocaleLowerCase('en-US') === names.normalizedName)) {
+          throw new Error('duplicate_name');
+        }
         const active = database.prepare(`SELECT join_order FROM participants
           WHERE game_id=? AND removed_at IS NULL ORDER BY join_order`).all(gameId);
-        if (active.length >= ADMISSION_LIMITS.participants) throw new Error('capacity_reached');
+        if (active.length >= ADMISSION_LIMITS.participants
+            || state.players.length >= MAX_GAME_PLAYERS) throw new Error('capacity_reached');
         const used = new Set(active.map(({ join_order: order }) => order));
         const joinOrder = Array.from({ length: ADMISSION_LIMITS.participants }, (_, index) => index + 1)
           .find((order) => !used.has(order));
-        const state = parsed(game.state);
         const players = [...state.players, {
           control: 'phone', id: participantId, name: names.displayName, timeline: [],
         }].sort((left, right) => {
@@ -272,7 +281,7 @@ export function createGameAdmission(database, {
               WHERE game_id=? AND participant_id=?`).get(gameId, right.id)?.join_order ?? 0;
           return leftOrder - rightOrder;
         });
-        const closes = active.length + 1 === ADMISSION_LIMITS.participants;
+        const closes = state.players.length + 1 === MAX_GAME_PLAYERS;
         return accept(database, {
           game, identity, operation, requestText: text, nextState: { ...state, players }, now,
           events: [
@@ -299,19 +308,21 @@ export function createGameAdmission(database, {
     },
 
     removeParticipant({
-      applicationSessionToken, gameId, targetParticipantId, requestId, expectedRevision, now,
+      applicationSessionToken, hostSessionToken = applicationSessionToken,
+      hostSessionKind = 'application', gameId, targetParticipantId, requestId,
+      expectedRevision, now,
     }) {
       assertUuid(gameId, 'invalid_request'); assertUuid(targetParticipantId, 'invalid_request');
       assertUuid(requestId, 'invalid_request'); assertTimestamp(now, 'invalid_request');
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new Error('invalid_request');
-      const identity = hostIdentity(applicationSessionToken, gameId, requestId);
+      const identity = hostIdentity(hostSessionToken, hostSessionKind, gameId, requestId);
       const operation = 'remove_participant';
       const text = requestText({ identity, operation, expectedRevision,
         payload: { targetParticipantId } });
       return run(() => {
         const prior = replay(database, identity, operation, sha256(text));
         if (prior) return prior;
-        authorizeHost({ token: applicationSessionToken, now });
+        authorizeHost({ token: hostSessionToken, kind: hostSessionKind, now });
         const game = gameRow(database, gameId);
         if (game.host_device_id !== identity.actorId) throw new Error('unauthorized');
         if (game.lifecycle !== 'lobby') throw new Error('game_started');
@@ -338,17 +349,20 @@ export function createGameAdmission(database, {
       });
     },
 
-    terminateGame({ applicationSessionToken, gameId, requestId, expectedRevision, now }) {
+    terminateGame({
+      applicationSessionToken, hostSessionToken = applicationSessionToken,
+      hostSessionKind = 'application', gameId, requestId, expectedRevision, now,
+    }) {
       assertUuid(gameId, 'invalid_request'); assertUuid(requestId, 'invalid_request');
       assertTimestamp(now, 'invalid_request');
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new Error('invalid_request');
-      const identity = hostIdentity(applicationSessionToken, gameId, requestId);
+      const identity = hostIdentity(hostSessionToken, hostSessionKind, gameId, requestId);
       const operation = 'terminate_game';
       const text = requestText({ identity, operation, expectedRevision, payload: {} });
       return run(() => {
         const prior = replay(database, identity, operation, sha256(text));
         if (prior) return prior;
-        authorizeHost({ token: applicationSessionToken, now });
+        authorizeHost({ token: hostSessionToken, kind: hostSessionKind, now });
         const game = gameRow(database, gameId);
         if (game.host_device_id !== identity.actorId) throw new Error('unauthorized');
         if (['completed', 'abandoned'].includes(game.lifecycle)) throw new Error('game_ended');
@@ -373,31 +387,33 @@ export function createGameAdmission(database, {
       return Object.freeze({ gameId: row.game_id, participantId: row.participant_id });
     },
 
+    retainedParticipant({ token, gameId = null }) {
+      const row = retainedParticipantSession(database, token, gameId);
+      return Object.freeze({
+        gameId: row.game_id, participantId: row.participant_id,
+        revoked: row.revoked_at !== null,
+      });
+    },
+
     participantSnapshot({ token, gameId, now }) {
       assertUuid(gameId, 'invalid_request'); assertTimestamp(now, 'invalid_request');
       const authority = activeParticipantSession(database, token, gameId);
       validate();
       const game = gameRow(database, gameId);
       const state = parsed(game.state);
-      const revealed = ['revealed', 'finished'].includes(state.phase);
       return Object.freeze({
         code: 'snapshot', gameId, lifecycle: game.lifecycle,
         participantId: authority.participant_id, revision: game.revision,
-        state: {
-          activePlayerId: state.activePlayerId,
-          phase: state.phase,
-          players: state.players,
-          round: state.round,
-          ...(revealed ? {
-            currentSong: state.currentSong, placement: state.placement, result: state.result,
-          } : {}),
-        },
+        state: projectGameState(state, 'participant'),
       });
     },
 
-    hostSnapshot({ applicationSessionToken, gameId, now }) {
+    hostSnapshot({
+      applicationSessionToken, hostSessionToken = applicationSessionToken,
+      hostSessionKind = 'application', gameId, now,
+    }) {
       assertUuid(gameId, 'invalid_request'); assertTimestamp(now, 'invalid_request');
-      const host = authorizeHost({ token: applicationSessionToken, now });
+      const host = authorizeHost({ token: hostSessionToken, kind: hostSessionKind, now });
       validate();
       const game = gameRow(database, gameId);
       if (game.host_device_id !== host.deviceId) throw new Error('unauthorized');
@@ -407,8 +423,11 @@ export function createGameAdmission(database, {
       });
     },
 
-    hostRecovery({ applicationSessionToken, now }) {
-      const host = authorizeHost({ token: applicationSessionToken, now });
+    hostRecovery({
+      applicationSessionToken, hostSessionToken = applicationSessionToken,
+      hostSessionKind = 'application', now,
+    }) {
+      const host = authorizeHost({ token: hostSessionToken, kind: hostSessionKind, now });
       validate();
       const game = database.prepare(`SELECT game_id,lifecycle,revision,state FROM games
         WHERE host_device_id=? AND lifecycle IN ('lobby','active') ORDER BY created_at DESC LIMIT 1`)
@@ -495,10 +514,11 @@ export function validateGameAdmission(database) {
     if (issuedEvent.length !== 1) throw new Error('database_corrupt');
     const causes = admissionEvents.flatMap((eventRow) => {
       if (eventRow.game_id !== row.game_id || eventRow.sequence <= issuedEvent[0].sequence) return [];
-      const linked = receipts.find((candidate) => candidate.game_id === eventRow.game_id
-        && candidate.revision === eventRow.revision && candidate.actor_type === eventRow.actor_type
-        && candidate.actor_id === eventRow.actor_id && candidate.request_id === eventRow.request_id
-        && candidate.accepted_at === eventRow.occurred_at);
+      const linked = database.prepare(`SELECT operation FROM action_receipts WHERE game_id=?
+        AND revision=? AND actor_type=? AND actor_id=? AND request_id=? AND accepted_at=?`).get(
+        eventRow.game_id, eventRow.revision, eventRow.actor_type, eventRow.actor_id,
+        eventRow.request_id, eventRow.occurred_at,
+      );
       if (eventRow.event_type === 'invitation_revoked'
           && canonicalJson(eventRow.detailValue) === canonicalJson({ inviteHash: row.invite_hash })
           && ['issue_invitation', 'revoke_invitation'].includes(linked?.operation)) {
@@ -506,7 +526,7 @@ export function validateGameAdmission(database) {
       }
       if (eventRow.event_type === 'invitation_closed'
           && canonicalJson(eventRow.detailValue) === canonicalJson({ inviteHash: row.invite_hash })
-          && linked?.operation === 'join_participant') {
+          && ['join_participant', 'add_host_player'].includes(linked?.operation)) {
         return [{ at: eventRow.occurred_at, reason: 'capacity', sequence: eventRow.sequence }];
       }
       if (eventRow.event_type === 'game_started') {
@@ -522,9 +542,8 @@ export function validateGameAdmission(database) {
         || (cause && (row.closed_at !== cause.at || row.close_reason !== cause.reason))) {
       throw new Error('database_corrupt');
     }
-    const activeCount = database.prepare(`SELECT COUNT(*) AS count FROM participants
-      WHERE game_id=? AND removed_at IS NULL`).get(row.game_id).count;
-    if ((game.lifecycle !== 'lobby' || activeCount >= ADMISSION_LIMITS.participants)
+    const playerCount = parsed(game.state).players.length;
+    if ((game.lifecycle !== 'lobby' || playerCount >= MAX_GAME_PLAYERS)
         && row.closed_at === null) throw new Error('database_corrupt');
   }
   const participants = database.prepare(`SELECT participant_id,game_id,admitted_invite_hash,

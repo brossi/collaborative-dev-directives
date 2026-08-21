@@ -10,6 +10,8 @@ export const DEFAULT_RULES = Object.freeze({
   catalogScope: 'all',
 });
 
+export const MAX_GAME_PLAYERS = 8;
+
 const STATE_KEYS = Object.freeze([
   'activePlayerId', 'activePlayerIndex', 'catalogVersion', 'currentSong', 'gameId',
   'phase', 'placement', 'players', 'result', 'retractionUsed', 'revision', 'round',
@@ -38,6 +40,15 @@ export function normalizeRules(value) {
       .includes(candidate.preset) ? candidate.preset : 'custom',
     targetScore: boundedInteger(candidate.targetScore, DEFAULT_RULES.targetScore, 3, 20),
   };
+}
+
+export function normalizePlayerName(value) {
+  if (typeof value !== 'string') throw new Error('invalid_request');
+  const name = value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
+  if ([...name].length < 1 || [...name].length > 24 || /[\p{Cc}\p{Cf}\p{Cs}]/gu.test(name)) {
+    throw new Error('invalid_request');
+  }
+  return name;
 }
 
 function validSong(song, rules, catalogSongs) {
@@ -94,7 +105,8 @@ export function validateGameState(state, {
       || state.schemaVersion !== 1 || !Number.isSafeInteger(state.revision) || state.revision < 0
       || (revision !== undefined && state.revision !== revision)
       || !['lobby', 'ready', 'playing', 'placed', 'revealed', 'finished'].includes(state.phase)
-      || !Array.isArray(state.players) || !Number.isSafeInteger(state.activePlayerIndex)
+      || !Array.isArray(state.players) || state.players.length > MAX_GAME_PLAYERS
+      || !Number.isSafeInteger(state.activePlayerIndex)
       || state.activePlayerIndex < 0 || !Number.isSafeInteger(state.round) || state.round < 0
       || typeof state.retractionUsed !== 'boolean' || !Array.isArray(state.usedUris)) {
     throw new Error('invalid_game_state');
@@ -102,19 +114,28 @@ export function validateGameState(state, {
   const normalized = normalizeRules(state.rules);
   if (canonicalJson(normalized) !== canonicalJson(state.rules)) throw new Error('invalid_game_state');
   const playerIds = new Set();
-  const retainedSongUris = [];
+  const normalizedNames = new Set();
+  const timelineSongUris = [];
   for (const player of state.players) {
+    let normalizedName;
+    try { normalizedName = normalizePlayerName(player?.name).toLocaleLowerCase('en-US'); } catch {
+      throw new Error('invalid_game_state');
+    }
     if (!player || typeof player !== 'object' || Array.isArray(player)
         || Object.keys(player).sort().join('\0') !== ['control', 'id', 'name', 'timeline'].join('\0')
-        || !/^.{1,24}$/u.test(player.name) || !['host', 'phone'].includes(player.control)
+        || normalizePlayerName(player.name) !== player.name
+        || normalizedNames.has(normalizedName) || !['host', 'phone'].includes(player.control)
         || !Array.isArray(player.timeline)
-        || !player.timeline.every((song) => validSong(song, normalized, catalogSongs))) {
+        || !player.timeline.every((song) => validSong(song, normalized, catalogSongs))
+        || player.timeline.some((song, index) => index > 0
+          && player.timeline[index - 1].year > song.year)) {
       throw new Error('invalid_game_state');
     }
     assertUuid(player.id, 'invalid_game_state');
     if (playerIds.has(player.id)) throw new Error('invalid_game_state');
     playerIds.add(player.id);
-    retainedSongUris.push(...player.timeline.map(({ uri }) => uri));
+    normalizedNames.add(normalizedName);
+    timelineSongUris.push(...player.timeline.map(({ uri }) => uri));
   }
   if (new Set(state.usedUris).size !== state.usedUris.length
       || state.usedUris.some((uri) => typeof uri !== 'string'
@@ -125,9 +146,9 @@ export function validateGameState(state, {
   if (state.currentSong !== null && !validSong(state.currentSong, normalized, catalogSongs)) {
     throw new Error('invalid_game_state');
   }
-  if (state.currentSong) retainedSongUris.push(state.currentSong.uri);
-  if (new Set(retainedSongUris).size !== retainedSongUris.length
-      || retainedSongUris.some((uri) => !state.usedUris.includes(uri))) {
+  if (new Set(timelineSongUris).size !== timelineSongUris.length
+      || timelineSongUris.some((uri) => !state.usedUris.includes(uri))
+      || (state.currentSong !== null && !state.usedUris.includes(state.currentSong.uri))) {
     throw new Error('invalid_game_state');
   }
   if (state.placement !== null && (!Number.isSafeInteger(state.placement) || state.placement < 0)) {
@@ -142,13 +163,25 @@ export function validateGameState(state, {
   if (state.phase === 'lobby') {
     if (state.activePlayerId !== null || state.activePlayerIndex !== 0
         || state.round !== 0 || state.currentSong !== null
-        || state.placement !== null || state.result !== null || state.winnerId !== null) {
+        || state.placement !== null || state.result !== null || state.winnerId !== null
+        || state.retractionUsed || state.usedUris.length !== 0
+        || state.players.some(({ timeline }) => timeline.length !== 0)) {
       throw new Error('invalid_game_state');
     }
   } else {
     if (!state.players.length || !playerIds.has(state.activePlayerId)
         || state.players[state.activePlayerIndex]?.id !== state.activePlayerId
-        || !state.currentSong || state.round < 1) throw new Error('invalid_game_state');
+        || !state.currentSong || state.round < 1
+        || state.players.some(({ timeline }) => timeline.length < 1)
+        || state.usedUris.length !== state.players.length + state.round) {
+      throw new Error('invalid_game_state');
+    }
+    const player = state.players[state.activePlayerIndex];
+    const currentOccurrences = state.players.reduce((count, candidate) => count
+      + candidate.timeline.filter(({ uri }) => uri === state.currentSong.uri).length, 0);
+    if (state.phase === 'ready' && (state.round !== 1 || state.placement !== null
+        || state.result !== null || state.winnerId !== null || state.retractionUsed
+        || currentOccurrences !== 0)) throw new Error('invalid_game_state');
     if (state.phase === 'playing' && (state.placement !== null || state.result !== null)) {
       throw new Error('invalid_game_state');
     }
@@ -157,7 +190,34 @@ export function validateGameState(state, {
     }
     if (['revealed', 'finished'].includes(state.phase)
         && (state.placement === null || state.result === null)) throw new Error('invalid_game_state');
-    if (state.phase === 'finished' && state.winnerId === null) throw new Error('invalid_game_state');
+    if (state.placement !== null) {
+      const insertionPresent = ['revealed', 'finished'].includes(state.phase)
+        && state.result?.correct === true;
+      const priorTimeline = insertionPresent
+        ? player.timeline.filter((_, index) => index !== state.placement)
+        : player.timeline;
+      if (state.placement > priorTimeline.length
+          || currentOccurrences !== (insertionPresent ? 1 : 0)
+          || (insertionPresent && player.timeline[state.placement]?.uri !== state.currentSong.uri)) {
+        throw new Error('invalid_game_state');
+      }
+      if (state.result !== null) {
+        const previous = priorTimeline[state.placement - 1];
+        const following = priorTimeline[state.placement];
+        const correct = (!previous || previous.year <= state.currentSong.year)
+          && (!following || state.currentSong.year <= following.year);
+        if (state.result.index !== state.placement || state.result.correct !== correct) {
+          throw new Error('invalid_game_state');
+        }
+      }
+    } else if (currentOccurrences !== 0) throw new Error('invalid_game_state');
+    const won = state.result?.correct === true && player.timeline.length >= state.rules.targetScore;
+    if ((state.winnerId !== null) !== won
+        || (won && state.winnerId !== state.activePlayerId)
+        || (state.winnerId !== null && !['revealed', 'finished'].includes(state.phase))
+        || (state.phase === 'finished' && state.winnerId === null)) {
+      throw new Error('invalid_game_state');
+    }
   }
   if (lifecycle === 'lobby' && state.phase !== 'lobby') throw new Error('invalid_game_state');
   if (lifecycle === 'active' && !['ready', 'playing', 'placed', 'revealed'].includes(state.phase)) {

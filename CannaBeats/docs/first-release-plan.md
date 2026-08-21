@@ -1,6 +1,6 @@
 # CannaBeats first-release plan
 
-- **Status:** FR-0 through FR-3 complete; FR-4 is next
+- **Status:** FR-0 through FR-4 complete; FR-5 is next
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -304,9 +304,14 @@ snapshots contain no pre-reveal answer fields.
 
 ### FR-4 — Shared game journey and durable actions
 
+**Status:** Complete; independently reviewed with no open P0/P1/P2.
+
 **Invariant:** Every accepted Host or participant action advances one game
 revision at most once and returns a role-filtered authoritative snapshot that
 can be reconstructed after restart.
+
+Checkpoint specification and closure matrix:
+[FR-4 shared game journey](operations/fr-4-shared-game-journey.md).
 
 Tasks:
 

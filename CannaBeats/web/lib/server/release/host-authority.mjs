@@ -477,6 +477,12 @@ export function createHostAuthority(database, {
       return Object.freeze({ deviceId: session.device_id, kind: session.kind });
     },
 
+    retainedSession({ token, kind = 'application' }) {
+      if (!['application', 'web'].includes(kind)) throw new Error('unauthorized');
+      const session = retainedSession(database, token, kind);
+      return Object.freeze({ deviceId: session.device_id, kind: session.kind });
+    },
+
     listDevices({ applicationSessionToken, now }) {
       assertTimestamp(now, 'invalid_request');
       activeSession(database, applicationSessionToken, now);

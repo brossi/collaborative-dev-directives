@@ -14,108 +14,106 @@ async function textFilesWithin(directory) {
   return nested.flat();
 }
 
-test("entry screen contains the host and player paths", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /CannaBeats/);
+async function releaseSources() {
+  return Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/release-game-client.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/release/game-journey.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/release/game-state.mjs", import.meta.url), "utf8"),
+  ]);
+}
+
+test("the unified entry screen exposes only Host authorization and invitation admission", async () => {
+  const [page, client] = await releaseSources();
+  assert.match(page, /A family music timeline game/);
   assert.match(page, /Host a game/);
-  assert.match(page, /Join a game/);
-  assert.match(page, /Lock placement/);
-  assert.match(page, /Scan to join/);
-  assert.match(page, /joinUrl\.pathname = cannabeatsPath\(`\/join\/\$\{room\.code\}`\)/);
+  assert.match(page, /Join the game/);
+  assert.match(page, /Open this screen from the CannaBeats Host app/);
+  assert.match(page, /new URLSearchParams\(window\.location\.hash\.replace\(\/\^#\/u, ""\)\)/);
+  assert.match(page, /url\.hash = new URLSearchParams\(\{ invite: issued\.inviteToken \}\)/);
+  assert.match(client, /exchangeHostTicket/);
+  assert.match(client, /"\/api\/host\/web-tickets\/exchange"/);
+  assert.doesNotMatch(page, /managed source|VNC|Tailscale/i);
 });
 
-test("QR players get a focused name entry page", async () => {
-  const join = await readFile(new URL("../app/join/[code]/join-room.tsx", import.meta.url), "utf8");
-
-  assert.match(join, /What should we call you\?/);
-  assert.match(join, /action: invitation \? "joinGuest" : "join"/);
-  assert.match(join, /createActionId: actionUuid/);
-  assert.match(join, /actionId: intent\.actionId/);
-  assert.match(join, /sessionStorage\.setItem\(SESSION_KEY/);
-  assert.match(join, /window\.location\.replace\(cannabeatsPath\("\/"\)\)/);
-  assert.doesNotMatch(join, /Host a game/);
-});
-
-test("player names persist locally and an in-flight admission freezes its identity", async () => {
-  const [join, session, page] = await Promise.all([
-    readFile(new URL("../app/join/[code]/join-room.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../lib/session.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(session, /PLAYER_NAME_KEY = "cannabeats-player-name"/);
-  assert.match(join, /localStorage\.getItem\(PLAYER_NAME_KEY\)/);
-  assert.match(join, /localStorage\.setItem\(PLAYER_NAME_KEY, intent\.name\)/);
-  assert.match(join, /disabled=\{lockedName !== null\}/);
-  assert.match(join, /onChange=\{\(event\) => setName\(event\.target\.value\)\}/);
+test("participant identity and unfinished-game recovery survive ordinary browser restarts", async () => {
+  const [page, client] = await releaseSources();
   assert.match(page, /localStorage\.getItem\(PLAYER_NAME_KEY\)/);
-  assert.match(page, /localStorage\.setItem\(PLAYER_NAME_KEY, chosenName\)/);
+  assert.match(page, /localStorage\.setItem\(PLAYER_NAME_KEY, name\.trim\(\)\)/);
+  assert.match(page, /recoverParticipantGame/);
+  assert.match(page, /recoverHostGame/);
+  assert.match(client, /"\/api\/games\/participant-recovery"/);
+  assert.match(client, /"\/api\/games\/recovery"/);
+  assert.doesNotMatch(page, /game timeout|inactive|expires in/i);
 });
 
-test("lobby game sessions survive reloads and transient connection gaps", async () => {
-  const [page, playLan] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../scripts/play-lan.mjs", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(page, /recoverSession\(preferredCode\)/);
-  assert.match(page, /clientContractVersion: GAME_CLIENT_CONTRACT_VERSION/);
-  assert.match(page, /Choose a game to resume/);
-  assert.match(page, /chooseRecovery\(choice\.code\)/);
-  assert.match(page, /pendingActionLobbyCode/);
-  assert.match(page, /setSession\(next\)/);
-  assert.match(page, /Rejoining the game…/);
-  assert.match(page, /Your place is saved\. We’ll reconnect automatically\./);
-  assert.match(page, /temporarily unavailable\. Retrying…/);
-  assert.doesNotMatch(page, /refresh\(restored\)\.catch\(\(\) => sessionStorage\.removeItem/);
-  assert.match(playLan, /const persistentState = resolve\(projectRoot, "\.wrangler\/state"\)/);
-  assert.match(playLan, /"--persist-to", persistentState/);
+test("retryable journey commands retain one exact revision-bound action", async () => {
+  const [page, client] = await releaseSources();
+  assert.match(page, /savePendingReleaseAction\(localStorage, intent\)/);
+  assert.match(page, /loadPendingReleaseAction\(localStorage\)/);
+  assert.match(page, /reconcile\(pending\)/);
+  assert.match(client, /expectedRevision, gameId: session\.gameId, operation, payload/);
+  assert.match(client, /body: JSON\.stringify\(\{\s*expectedRevision: intent\.expectedRevision/);
+  assert.match(client, /\[RELEASE_GAME_ROLE_HEADER\]: intent\.role/);
+  assert.ok(page.indexOf("if (pendingRecovery)")
+    < page.indexOf("if (gameId && inviteToken)"));
 });
 
-test("retryable player intents carry authoritative game context", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-
-  assert.match(page, /requestGame\(cannabeatsPath\("\/api\/game"\), body, options\)/);
-  assert.match(page, /expectedRunId: room\.runId/);
-  assert.match(page, /expectedRunGeneration: room\.runGeneration/);
-  assert.match(page, /expectedRevision: room\.revision/);
-  assert.match(page, /reason\.pendingRequest/);
-  assert.match(page, /savePendingGameIntent\(sessionStorage, reason\.pendingRequest\)/);
-  assert.match(page, /loadPendingGameIntent\(sessionStorage\)/);
-  assert.match(page, /clearPendingGameIntent\(sessionStorage\)/);
-  assert.match(page, /onRequestPrepared: \(request\) => savePendingGameIntent\(sessionStorage, request\)/);
-  assert.match(page, /reconcilePendingGameRequest\(pending, gameRequest/);
-  assert.match(page, /const sameLobby = pendingCode === session\.code/);
-  assert.match(page, /if \(sameLobby\) \{\s*const sequence = beginRoomRequest\(\)/);
-  assert.doesNotMatch(page, /Resolve the pending action for lobby/);
-  assert.match(page, /keepBlocked = true/);
-  assert.match(page, /setBlockedOutcome\(keepBlocked\)/);
-  assert.match(page, /if \(!blockedOutcome\) setError\(""\)/);
-  assert.match(page, /if \(!keepBlocked\) setBusy\(false\)/);
-  assert.match(page, /if \(!await act\(\{ action: "abandon" \}\)\) return/);
-  assert.doesNotMatch(page, /void gameRequest\(\{\s*action: "audioRelease"/);
-});
-
-test("the player game view prioritizes the timeline", async () => {
-  const [page, styles] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(page, /className="player-header"/);
+test("the participant journey prioritizes placement and its retained timeline", async () => {
+  const [page] = await releaseSources();
   assert.match(page, /Place the mystery song/);
-  assert.match(page, /Earlier than \$\{player\.timeline\[0\]\.year\}/);
-  assert.match(page, /Later than \$\{player\.timeline\[index - 1\]\.year\}/);
+  assert.match(page, /Earlier than \$\{player\.timeline\[0\]/);
+  assert.match(page, /Later than \$\{player\.timeline\[index - 1\]/);
   assert.match(page, /Between \$\{player\.timeline\[index - 1\]\.year\} and \$\{player\.timeline\[index\]\.year\}/);
-  assert.doesNotMatch(page, /\+ Place here/);
-  assert.match(styles, /\.timeline-gap \{[^}]*color: var\(--green\)/);
-  assert.doesNotMatch(styles, /\.timeline-gap \{[^}]*color: transparent/);
-  assert.match(page, /Room \$\{room\.code\} · Leave/);
-  assert.doesNotMatch(page, /<p className="step-label">Your timeline<\/p>/);
-  assert.doesNotMatch(page, /Listen closely — you’re up later/);
+  assert.match(page, /act\("place_song", \{ index: selected \}\)/);
+  assert.match(page, /act\("retract_placement"\)/);
+  assert.match(page, /session\.role === "participant" && currentPlayer/);
 });
 
-test("starter preview metadata and UI are gone", async () => {
+test("Host setup and mixed-control lobby use the fixed release journey", async () => {
+  const [page, client, journey] = await releaseSources();
+  assert.match(page, /Advanced settings/);
+  assert.match(page, /className="host-player-form"/);
+  assert.match(page, /className="join-invite"/);
+  assert.match(page, /add_host_player/);
+  assert.match(page, /remove_host_player/);
+  assert.match(page, /start_game/);
+  assert.match(page, /begin_round/);
+  assert.match(page, /skip_track/);
+  assert.match(journey, /configure_game/);
+  assert.match(journey, /control: 'host'/);
+  assert.match(client, /control: "host" \| "phone"/);
+  assert.doesNotMatch(page, /room\.inputMode|managedPlaybackActive/);
+});
+
+test("answer metadata appears only in reveal-aware UI and projections", async () => {
+  const [page, client, journey] = await releaseSources();
+  assert.match(page, /state\.phase === "placed"/);
+  assert.match(page, /Reveal answer/);
+  assert.match(page, /state\.phase === "revealed"/);
+  assert.match(page, /state\.currentSong\.year/);
+  assert.match(client, /role === "participant"/);
+  assert.match(client, /const answerKeys = \["currentSong", "placement", "result"\]/);
+  assert.match(journey, /function projectGameState/);
+  assert.match(journey, /const revealed = \['revealed', 'finished'\]\.includes\(state\.phase\)/);
+});
+
+test("playback authority is honestly assigned to the native Host app", async () => {
+  const [page] = await releaseSources();
+  assert.match(page, /Spotify playback is performed by the CannaBeats Host app/);
+  assert.doesNotMatch(page, /spotify\.play|useSpotifyPlayer|HostDiagnosticsPanel/);
+});
+
+test("completion names the winner and creates a fresh game instead of reusing identity", async () => {
+  const [page, client] = await releaseSources();
+  assert.match(page, /That’s the timeline/);
+  assert.match(page, /\{winner\.name\} wins!/);
+  assert.match(page, /createGame\(state\.rules\)/);
+  assert.match(page, /Play again/);
+  assert.match(client, /gameId: uuid\(\), requestId: uuid\(\)/);
+});
+
+test("starter preview metadata and UI are absent", async () => {
   const [page, layout] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -124,11 +122,10 @@ test("starter preview metadata and UI are gone", async () => {
   assert.doesNotMatch(layout, /codex-preview/);
 });
 
-test("the song catalogue remains in the server bundle", async () => {
+test("the song catalogue remains server-only in the production bundle", async () => {
   const clientDirectory = fileURLToPath(new URL("../.next/static/", import.meta.url));
   const clientFiles = await textFilesWithin(clientDirectory);
   const clientBundle = (await Promise.all(clientFiles.map((file) => readFile(file, "utf8")))).join("\n");
-
   assert.equal(clientFiles.some((file) => basename(file) === "catalog.json"), false);
   assert.doesNotMatch(clientBundle, /spotify:track:/);
   assert.doesNotMatch(clientBundle, /The playable catalogue is exhausted/);
@@ -138,220 +135,4 @@ test("the song catalogue remains in the server bundle", async () => {
   const serverBundle = (await Promise.all(serverFiles.map((file) => readFile(file, "utf8")))).join("\n");
   assert.match(serverBundle, /spotify:track:/);
   assert.match(serverBundle, /The playable catalogue is exhausted/);
-});
-
-test("blind song data is removed from player room views", async () => {
-  const route = await readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8");
-
-  assert.match(route, /const \{ usedUris: _usedUris, \.\.\.view \} = state/);
-  assert.match(route, /const mayRevealSong = isHost \|\| state\.phase === "revealed" \|\| state\.phase === "finished"/);
-  assert.match(route, /currentSong: mayRevealSong \? state\.currentSong : null/);
-});
-
-test("either side of a matching year is accepted", async () => {
-  const route = await readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8");
-
-  assert.match(route, /previous\.year <= state\.currentSong\.year/);
-  assert.match(route, /state\.currentSong\.year <= next\.year/);
-  assert.match(route, /case "reveal"[\s\S]*revealPlacement\(state\)/);
-});
-
-test("the host displays the answer after the retraction window closes", async () => {
-  const [page, route, styles] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(route, /case "place"[\s\S]*state\.phase = "placed"/);
-  assert.match(route, /case "reveal"[\s\S]*revealPlacement\(state\)/);
-  assert.match(route, /function revealPlacement[\s\S]*state\.phase = "revealed"/);
-  assert.match(page, /room\.phase === "placed"[\s\S]*Reveal answer/);
-  assert.match(page, /room\.phase === "revealed" && room\.currentSong/);
-  assert.match(page, /host-answer-card/);
-  assert.match(page, /room\.currentSong\.year/);
-  assert.match(page, /room\.currentSong\.title/);
-  assert.match(page, /room\.currentSong\.artist/);
-  assert.match(styles, /\.host-answer-card/);
-  assert.match(page, /Retract placement/);
-  assert.match(page, /Change placement/);
-});
-
-test("host game setup retains persisted presets and uses weighted era selection", async () => {
-  const [page, route, game, rules, session, styles] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/rules.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/session.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(game, /rules: GameRules/);
-  assert.match(rules, /family: \{/);
-  assert.match(rules, /early: 5, midcentury: 10, classics: 25, millennial: 30, current: 30/);
-  assert.match(rules, /"all-eras"/);
-  assert.match(rules, /modern:/);
-  assert.match(rules, /younger:/);
-  assert.match(rules, /name: "Broadway, TV, and Movies"/);
-  assert.match(rules, /catalogScope: "broadway-tv-movies"/);
-  assert.match(page, /function GameSetup/);
-  assert.match(page, /Advanced settings/);
-  assert.match(page, /Relative era weighting/);
-  assert.match(page, /Apply custom rules/);
-  assert.match(page, /function normalizeNumberDisplay/);
-  assert.equal(page.match(/onBlur=\{\(event\) => normalizeNumberDisplay/g)?.length, 3);
-  assert.match(session, /HOST_RULES_KEY = "cannabeats-host-rules"/);
-  assert.match(page, /localStorage\.setItem\(HOST_RULES_KEY, hostRules\)/);
-  assert.match(page, /Lobby creation is restricted to an authorized Host app/);
-  assert.match(styles, /\.preset-grid/);
-  assert.match(route, /rules: normalizeRules\(rules \?\? DEFAULT_GAME_RULES\)/);
-  assert.match(route, /case "rules"/);
-  assert.match(route, /Rules are locked after the game starts/);
-  assert.match(route, /song\.year >= state\.rules\.minYear/);
-  assert.match(route, /film-soundtracks/);
-  assert.match(route, /tony-musicals/);
-  assert.match(route, /tv-soundtracks/);
-  assert.match(route, /state\.rules\.catalogScope === "all"/);
-  assert.match(route, /state\.rules\.eraWeights\[era\.id\]/);
-  assert.match(route, /Math\.random\(\) \* totalWeight/);
-  assert.match(route, /player\.timeline\.length >= state\.rules\.targetScore/);
-});
-
-test("a random player starts each game", async () => {
-  const route = await readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8");
-
-  assert.match(route, /state\.activePlayerIndex = Math\.floor\(Math\.random\(\) \* state\.players\.length\)/);
-  assert.match(route, /state\.activePlayerId = state\.players\[state\.activePlayerIndex\]\.id/);
-  assert.doesNotMatch(route, /state\.activePlayerIndex = 0/);
-});
-
-test("the first round waits for the host before playback", async () => {
-  const [page, route, game] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(game, /"lobby" \| "ready" \| "playing"/);
-  assert.match(route, /case "start"[\s\S]*state\.phase = "ready"/);
-  assert.match(route, /case "begin"[\s\S]*state\.phase = "playing"/);
-  assert.match(page, /Set up game/);
-  assert.match(page, /Start first song/);
-  assert.match(page, /action: "start", hostToken: session\.hostToken \}\)/);
-  assert.match(page, /action: "begin", hostToken: session\.hostToken \}, true/);
-  assert.match(page, /goes first/);
-});
-
-test("managed source reservation is an explicit journaled action", async () => {
-  const [page, route] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
-  ]);
-  assert.match(page, /Reserve managed source/);
-  assert.match(page, /act\(\{ action: "audioAcquire" \}\)/);
-  assert.doesNotMatch(route, /selectedAudioView\(code, callerIsHost/);
-  assert.match(route, /audio: selectedAudioView\(code\)/);
-});
-
-test("every game supports phone and host-controlled players", async () => {
-  const [page, route, game, styles] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/game/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/game.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(game, /export type PlayerControl = "phone" \| "host"/);
-  assert.match(game, /control: PlayerControl/);
-  assert.doesNotMatch(game, /export type InputMode/);
-  assert.doesNotMatch(game, /inputMode: InputMode/);
-  assert.match(route, /player\.control = normalizePlayerControl\(player\.control, state\.inputMode\)/);
-  assert.match(route, /delete state\.inputMode/);
-  assert.doesNotMatch(route, /inputMode: normalizeInputMode\(payload\.inputMode\)/);
-  assert.match(route, /case "addPlayer"/);
-  assert.match(route, /case "removePlayer"/);
-  assert.match(route, /control: "phone" as const/);
-  assert.match(route, /control: "host"/);
-  assert.match(route, /const hostIsPlacing = player\?\.control === "host"/);
-  assert.match(route, /const activePlayerIsPlacing = player\?\.control === "phone"/);
-  assert.match(route, /const hostIsRetracting = player\?\.control === "host"/);
-  assert.match(route, /case "skip"[\s\S]*state\.round \+= 1/);
-  assert.match(page, /Start in the CannaBeats Host app/);
-  assert.doesNotMatch(page, /Mix phones \+ this screen/);
-  assert.doesNotMatch(page, /room\.inputMode/);
-  assert.match(page, /className="host-player-form"/);
-  assert.match(page, /className="join-invite"/);
-  assert.match(page, /player-control-badge/);
-  assert.match(page, /hostControlsActivePlayer/);
-  assert.match(page, /className=\{`host-placement-gap/);
-  assert.match(page, /action: "place", hostToken: session\.hostToken/);
-  assert.match(page, /Change placement/);
-  assert.match(styles, /\.host-placement-gap/);
-  assert.match(page, /className="host-row-lock"/);
-  assert.match(styles, /\.host-row-lock/);
-  assert.doesNotMatch(page, /host-placement-controls/);
-  assert.doesNotMatch(styles, /\.host-placement-controls/);
-});
-
-test("the host scoreboard shows chronological Spotify timeline rows", async () => {
-  const [page, styles, spotify] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-    readFile(new URL("../lib/use-spotify-player.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(page, /function HostScoreboard/);
-  assert.match(page, /players\.map\(\(player\)/);
-  assert.doesNotMatch(page, /Earlier <span aria-hidden="true">→<\/span> Later/);
-  assert.match(page, /<span>Round \{round\}<\/span>/);
-  assert.match(page, /className="host-round-bar"/);
-  assert.match(page, /className="host-brand-icon"/);
-  assert.match(page, /activeTrackRef/);
-  assert.match(page, /track\.scrollTo/);
-  assert.doesNotMatch(page, /Spotify ↗/);
-  assert.match(page, /artwork\.imageUrl/);
-  assert.match(page, /\{song\.title\}/);
-  assert.match(page, /\{song\.artist\}/);
-  assert.match(page, /\{song\.year\}/);
-  assert.match(styles, /\.host-timeline-track \{[^}]*display: flex/);
-  assert.match(styles, /\.host-round-bar \{[^}]*grid-template-columns: 104px/);
-  assert.match(styles, /\.host-round-bar \{[^}]*position: sticky/);
-  assert.match(styles, /\.host-song-card \{[^}]*scroll-snap-align: center/);
-  assert.match(styles, /\.host-song-art img \{[^}]*object-fit: contain/);
-  assert.match(spotify, /https:\/\/api\.spotify\.com\/v1\/tracks\/\$\{encodeURIComponent\(trackId\)\}/);
-  assert.doesNotMatch(spotify, /\/v1\/tracks\?ids=/);
-});
-
-test("the host round header keeps stable detail and action slots", async () => {
-  const [page, styles] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(page, /className={`host-round-detail/);
-  assert.match(page, /className="host-round-secondary-actions"/);
-  assert.match(styles, /\.host-round-detail \{[^}]*min-height:/);
-  assert.match(styles, /\.host-round-secondary-actions \{[^}]*min-height:/);
-  assert.match(styles, /\.host-round-secondary-actions \.text-button \{[^}]*margin-top: 0/);
-});
-
-test("the host uses blind in-browser Spotify playback", async () => {
-  const [page, player] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../lib/use-spotify-player.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.doesNotMatch(page, /Open in Spotify/);
-  assert.match(page, /aria-label={`\$\{playbackLabel\} mystery song`}/);
-  assert.match(page, /managedPlaybackActive \? "Pause" : "Resume"/);
-  assert.match(page, /spotify\.play\(acceptedRoom\.currentSong\.uri\)/);
-  assert.match(player, /https:\/\/sdk\.scdn\.co\/spotify-player\.js/);
-  assert.match(player, /enableMediaSession: false/);
-  assert.match(player, /\/v1\/me\/player\/play\?device_id=/);
-  assert.match(player, /\/v1\/me\/player\/pause\?device_id=/);
-  assert.match(player, /keepalive: true/);
-  assert.match(player, /addEventListener\("pagehide", handlePageExit\)/);
-  assert.match(page, /if \(room\?\.isHost\) \{/);
-  assert.match(page, /else \{\s+void spotify\.stop\(\)/);
 });

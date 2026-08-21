@@ -254,20 +254,11 @@ test('start closes admission, participant projection hides the answer, and termi
   const setup = setupGame();
   const invite = issueInvite(setup);
   const joined = joinParticipant(setup, invite.inviteToken, 'Listener', 3_100);
-  const song = catalog.songs.find(({ year }) => year >= 1920 && year <= 2026);
   const current = setup.store.gameSnapshot(setup.gameId);
-  setup.store.mutateGame({
-    gameId: setup.gameId, actorType: 'host', actorId: setup.deviceId,
+  const started = setup.store.applyHostGameAction({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
     requestId: randomUUID(), operation: 'start_game', payload: {},
     expectedRevision: current.revision, now: 3_200,
-    reducer: (state) => ({
-      lifecycle: 'active',
-      state: {
-        ...state, activePlayerId: joined.participantId, activePlayerIndex: 0,
-        currentSong: song, phase: 'ready', round: 1, usedUris: [song.uri],
-      },
-      events: [{ type: 'game_started', outcome: 'accepted', detail: {} }],
-    }),
   });
   expectCode(() => joinParticipant(setup, invite.inviteToken, 'Too Late', 3_201), 'game_started');
   const snapshot = setup.store.participantSnapshot({
@@ -277,7 +268,7 @@ test('start closes admission, participant projection hides the answer, and termi
   for (const key of ['currentSong', 'placement', 'result']) {
     assert.equal(key in snapshot.state, false);
   }
-  assert.equal(JSON.stringify(snapshot).includes(song.title), false);
+  assert.equal(JSON.stringify(snapshot).includes(started.state.currentSong.title), false);
   const recovered = setup.store.recoverHostGame({
     applicationSessionToken: setup.hostToken, now: 3_203,
   }).game;
@@ -315,18 +306,11 @@ test('invitation closure remains bound to its earliest causal event', () => {
   const first = issueInvite(setup, 3_000);
   const second = issueInvite(setup, 3_100);
   const joined = joinParticipant(setup, second.inviteToken, 'Listener', 3_200);
-  const song = catalog.songs.find(({ year }) => year >= 1920 && year <= 2026);
   const current = setup.store.gameSnapshot(setup.gameId);
-  setup.store.mutateGame({
-    gameId: setup.gameId, actorType: 'host', actorId: setup.deviceId,
+  setup.store.applyHostGameAction({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
     requestId: randomUUID(), operation: 'start_game', payload: {},
     expectedRevision: current.revision, now: 3_300,
-    reducer: (state) => ({
-      lifecycle: 'active',
-      state: { ...state, activePlayerId: joined.participantId, activePlayerIndex: 0,
-        currentSong: song, phase: 'ready', round: 1, usedUris: [song.uri] },
-      events: [{ type: 'game_started', outcome: 'accepted', detail: {} }],
-    }),
   });
   setup.store.close();
   const database = new DatabaseSync(setup.path);

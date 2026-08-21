@@ -102,6 +102,17 @@ function createGame(store, hostDeviceId, overrides = {}) {
   });
 }
 
+function hostJourneyAction(setup, gameId, operation, payload = {}, overrides = {}) {
+  setup.hostToken ??= hostSession(setup);
+  return setup.store.applyHostGameAction({
+    applicationSessionToken: setup.hostToken, gameId,
+    requestId: overrides.requestId ?? randomUUID(), operation, payload,
+    expectedRevision: overrides.expectedRevision
+      ?? setup.store.gameSnapshot(gameId).revision,
+    now: overrides.now ?? 3_000,
+  });
+}
+
 function replacementCatalog() {
   const catalogText = JSON.stringify([{
     title: 'Replacement Song', artist: 'Replacement Artist', year: 2001,
@@ -112,13 +123,6 @@ function replacementCatalog() {
     schemaVersion: 1, catalogVersion: version, sourceVersion: version,
     songCount: 1, moduleCount: 1,
   }));
-}
-
-function configureReducer(state, payload) {
-  return {
-    state: { ...state, rules: normalizeRules(payload.rules) },
-    events: [{ type: 'game_configured', outcome: 'accepted', detail: {} }],
-  };
 }
 
 test('a clean store records the exact schema and current catalog before readiness', () => {
@@ -279,28 +283,26 @@ test('mutation response loss replays before authority and stale-state checks aft
   const applicationSessionToken = hostSession(setup);
   const created = createGame(setup.store, setup.hostDeviceId);
   const action = {
+    applicationSessionToken,
     gameId: created.gameId,
-    actorType: 'host',
-    actorId: setup.hostDeviceId,
     requestId: randomUUID(),
     operation: 'configure_game',
-    payload: { rules: { preset: 'modern', minYear: 1980 } },
+    payload: { rules: normalizeRules({ preset: 'modern', minYear: 1980 }) },
     expectedRevision: 0,
     now: 3_000,
-    reducer: configureReducer,
   };
-  const accepted = setup.store.mutateGame(action);
+  const accepted = setup.store.applyHostGameAction(action);
   setup.store.revokeHostDevice({
     applicationSessionToken, targetDeviceId: setup.hostDeviceId,
     requestId: randomUUID(), now: 3_001,
   });
   setup.store.close();
   const reopened = createReleaseStore(setup.path, { catalog });
-  assert.deepEqual(reopened.mutateGame(action), accepted);
-  expectCode(() => reopened.mutateGame({
-    ...action, payload: { rules: { preset: 'younger' } }, expectedRevision: 999,
+  assert.deepEqual(reopened.applyHostGameAction(action), accepted);
+  expectCode(() => reopened.applyHostGameAction({
+    ...action, payload: { rules: normalizeRules({ preset: 'younger' }) }, expectedRevision: 999,
   }), 'request_conflict');
-  expectCode(() => reopened.mutateGame({
+  expectCode(() => reopened.applyHostGameAction({
     ...action, requestId: randomUUID(), expectedRevision: 0, now: 3_002,
   }), 'unauthorized');
   reopened.close();
@@ -308,21 +310,11 @@ test('mutation response loss replays before authority and stale-state checks aft
 
 test('terminal abandonment releases only the removable one-active-game policy', () => {
   const setup = setupHostStore();
+  const applicationSessionToken = hostSession(setup);
   const first = createGame(setup.store, setup.hostDeviceId);
-  const abandoned = setup.store.mutateGame({
-    gameId: first.gameId,
-    actorType: 'host',
-    actorId: setup.hostDeviceId,
-    requestId: randomUUID(),
-    operation: 'abandon_game',
-    payload: {},
-    expectedRevision: 0,
-    now: 3_000,
-    reducer: (state) => ({
-      state,
-      lifecycle: 'abandoned',
-      events: [{ type: 'game_abandoned', outcome: 'abandoned', detail: {} }],
-    }),
+  const abandoned = setup.store.terminateGame({
+    applicationSessionToken, gameId: first.gameId, requestId: randomUUID(),
+    expectedRevision: 0, now: 3_000,
   });
   assert.equal(abandoned.revision, 1);
   const second = createGame(setup.store, setup.hostDeviceId, { now: 3_001 });
@@ -369,11 +361,8 @@ test('state relationship and canonical-byte corruption fail on restart', () => {
 test('an event gap remains detectable after restoring the immutable trigger', () => {
   const setup = setupHostStore();
   const game = createGame(setup.store, setup.hostDeviceId);
-  setup.store.mutateGame({
-    gameId: game.gameId,
-    actorType: 'host', actorId: setup.hostDeviceId, requestId: randomUUID(),
-    operation: 'configure_game', payload: { rules: { preset: 'modern' } },
-    expectedRevision: 0, now: 3_000, reducer: configureReducer,
+  hostJourneyAction(setup, game.gameId, 'configure_game', {
+    rules: normalizeRules({ preset: 'modern' }),
   });
   setup.store.close();
   const database = new DatabaseSync(setup.path);
@@ -459,11 +448,8 @@ test('restart rejects every unlinked event and a coherently forged creation acto
   {
     const setup = setupHostStore();
     const game = createGame(setup.store, setup.hostDeviceId);
-    setup.store.mutateGame({
-      gameId: game.gameId,
-      actorType: 'host', actorId: setup.hostDeviceId, requestId: randomUUID(),
-      operation: 'configure_game', payload: { rules: { preset: 'modern' } },
-      expectedRevision: 0, now: 3_000, reducer: configureReducer,
+    hostJourneyAction(setup, game.gameId, 'configure_game', {
+      rules: normalizeRules({ preset: 'modern' }),
     });
     setup.store.close();
     const forgedActor = randomUUID();
@@ -503,41 +489,20 @@ test('later-checkpoint rows remain inert until their shared owner exists', () =>
   expectCode(() => createReleaseStore(setup.path, { catalog }), 'database_corrupt');
 });
 
-test('completion is explicitly deferred without corrupting an otherwise valid active game', () => {
+test('generic reducers cannot fabricate terminal state outside the fixed journey owner', () => {
   const setup = setupHostStore();
   const game = createGame(setup.store, setup.hostDeviceId);
-  const song = structuredClone(catalog.songs.find(({ year }) => year >= 1920 && year <= 2026));
-  const playerId = randomUUID();
-  const active = setup.store.mutateGame({
-    gameId: game.gameId,
-    actorType: 'host', actorId: setup.hostDeviceId, requestId: randomUUID(),
-    operation: 'start_game', payload: {}, expectedRevision: 0, now: 3_000,
-    reducer: (state) => ({
-      lifecycle: 'active',
-      state: {
-        ...state, phase: 'ready', round: 1, currentSong: song, usedUris: [song.uri],
-        activePlayerId: playerId,
-        players: [{ id: playerId, name: 'Host', control: 'host', timeline: [] }],
-      },
-      events: [{ type: 'game_started', outcome: 'accepted', detail: {} }],
-    }),
-  });
   expectCode(() => setup.store.mutateGame({
     gameId: game.gameId,
     actorType: 'host', actorId: setup.hostDeviceId, requestId: randomUUID(),
-    operation: 'complete_game', payload: {}, expectedRevision: 1, now: 4_000,
+    operation: 'complete_game', payload: {}, expectedRevision: 0, now: 4_000,
     reducer: (state) => ({
       lifecycle: 'completed',
-      state: {
-        ...state, phase: 'finished', placement: 0,
-        result: { correct: true, index: 0 }, winnerId: playerId,
-      },
+      state,
       events: [{ type: 'game_completed', outcome: 'completed', detail: {} }],
     }),
   }), 'operation_rejected');
-  assert.deepEqual(setup.store.gameSnapshot(game.gameId), {
-    gameId: game.gameId, lifecycle: 'active', revision: 1, state: active.state,
-  });
+  assert.equal(setup.store.gameSnapshot(game.gameId).revision, 0);
   setup.store.close();
 });
 
@@ -603,11 +568,8 @@ test('valid-looking head, event, and request mutations preserve schema but fail 
   for (const corrupt of corruptions) {
     const setup = setupHostStore();
     const game = createGame(setup.store, setup.hostDeviceId);
-    setup.store.mutateGame({
-      gameId: game.gameId,
-      actorType: 'host', actorId: setup.hostDeviceId, requestId: randomUUID(),
-      operation: 'configure_game', payload: { rules: { preset: 'modern' } },
-      expectedRevision: 0, now: 3_000, reducer: configureReducer,
+    hostJourneyAction(setup, game.gameId, 'configure_game', {
+      rules: normalizeRules({ preset: 'modern' }),
     });
     setup.store.close();
     const database = new DatabaseSync(setup.path);
@@ -621,11 +583,8 @@ test('valid-looking head, event, and request mutations preserve schema but fail 
 test('event chronology cannot be reordered while counts and revisions stay unchanged', () => {
   const setup = setupHostStore();
   const game = createGame(setup.store, setup.hostDeviceId);
-  setup.store.mutateGame({
-    gameId: game.gameId,
-    actorType: 'host', actorId: setup.hostDeviceId, requestId: randomUUID(),
-    operation: 'configure_game', payload: { rules: { preset: 'modern' } },
-    expectedRevision: 0, now: 3_000, reducer: configureReducer,
+  hostJourneyAction(setup, game.gameId, 'configure_game', {
+    rules: normalizeRules({ preset: 'modern' }),
   });
   setup.store.close();
   const database = new DatabaseSync(setup.path);
@@ -635,6 +594,20 @@ test('event chronology cannot be reordered while counts and revisions stay uncha
   database.prepare('UPDATE game_events SET occurred_at=? WHERE game_id=? AND sequence=1')
     .run(3_001, game.gameId);
   database.exec(trigger);
+  assert.equal(canonicalSchemaDigest(database), RELEASE_SCHEMA_DIGEST);
+  database.close();
+  expectCode(() => createReleaseStore(setup.path, { catalog }), 'database_corrupt');
+});
+
+test('game head timestamps remain reconstructible from the immutable receipt chain', () => {
+  const setup = setupHostStore();
+  const game = createGame(setup.store, setup.hostDeviceId);
+  hostJourneyAction(setup, game.gameId, 'configure_game', {
+    rules: normalizeRules({ preset: 'modern' }),
+  });
+  setup.store.close();
+  const database = new DatabaseSync(setup.path);
+  database.prepare('UPDATE games SET updated_at=updated_at+1 WHERE game_id=?').run(game.gameId);
   assert.equal(canonicalSchemaDigest(database), RELEASE_SCHEMA_DIGEST);
   database.close();
   expectCode(() => createReleaseStore(setup.path, { catalog }), 'database_corrupt');

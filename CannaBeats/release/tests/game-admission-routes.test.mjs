@@ -5,8 +5,9 @@ import test from 'node:test';
 import {
   PARTICIPANT_COOKIE, PARTICIPANT_COOKIE_MAX_AGE, gameCreateRoute,
   hostGameSnapshotRoute, invitationIssueRoute, participantAdmissionRoute,
-  participantSnapshotRoute,
+  participantRecoveryRoute, participantSnapshotRoute,
 } from '../../web/lib/server/release/game-admission-routes.mjs';
+import { HOST_COOKIE } from '../../web/lib/server/release/host-routes.mjs';
 import { ReleaseStoreError } from '../../web/lib/server/release/store.mjs';
 
 function token() { return randomBytes(24).toString('base64url'); }
@@ -39,7 +40,9 @@ test('Host game and invitation routes forward only their bounded authenticated i
     },
   }, 10_000);
   assert.equal(created.status, 201);
-  assert.deepEqual(createdInput, { ...gameInput, applicationSessionToken: hostToken, now: 10_000 });
+  assert.deepEqual(createdInput, {
+    ...gameInput, hostSessionKind: 'application', hostSessionToken: hostToken, now: 10_000,
+  });
 
   const inviteToken = token();
   const inviteInput = { expectedRevision: 0, inviteToken, requestId: randomUUID() };
@@ -55,7 +58,8 @@ test('Host game and invitation routes forward only their bounded authenticated i
   );
   assert.equal(issued.status, 201);
   assert.deepEqual(issuedInput, {
-    ...inviteInput, applicationSessionToken: hostToken, gameId, now: 11_000,
+    ...inviteInput, hostSessionKind: 'application', hostSessionToken: hostToken,
+    gameId, now: 11_000,
   });
   assert.equal((await issued.text()).includes(inviteToken), false);
 });
@@ -95,6 +99,32 @@ test('admission installs a persistent game credential and snapshot refreshes its
   assert.equal(snapshot.headers.get('set-cookie'), expectedCookie);
 });
 
+test('participant cookie alone recovers its retained game without elapsed-time expiry', async () => {
+  const gameId = randomUUID();
+  const participantId = randomUUID();
+  const sessionToken = token();
+  const calls = [];
+  const response = await participantRecoveryRoute(request(undefined, {
+    cookie: `${PARTICIPANT_COOKIE}=${sessionToken}`, method: 'GET',
+  }), {
+    authorizeParticipantSession(value) {
+      calls.push(['authorize', value]);
+      return { gameId, participantId };
+    },
+    participantSnapshot(value) {
+      calls.push(['snapshot', value]);
+      return { code: 'snapshot', gameId, participantId, revision: 7, state: {} };
+    },
+  }, 20 * 24 * 60 * 60 * 1_000);
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [
+    ['authorize', { token: sessionToken, now: 20 * 24 * 60 * 60 * 1_000 }],
+    ['snapshot', { token: sessionToken, gameId, now: 20 * 24 * 60 * 60 * 1_000 }],
+  ]);
+  assert.equal(response.headers.get('set-cookie'),
+    `${PARTICIPANT_COOKIE}=${sessionToken}; Path=/; Max-Age=${PARTICIPANT_COOKIE_MAX_AGE}; Secure; HttpOnly; SameSite=Strict`);
+});
+
 test('Host snapshot uses the application bearer and returns the owner projection', async () => {
   const gameId = randomUUID();
   const hostToken = token();
@@ -107,10 +137,20 @@ test('Host snapshot uses the application bearer and returns the owner projection
   } }, gameId, 40_000);
   assert.equal(response.status, 200);
   assert.deepEqual(received, {
-    applicationSessionToken: hostToken, gameId, now: 40_000,
+    hostSessionKind: 'application', hostSessionToken: hostToken, gameId, now: 40_000,
   });
   assert.deepEqual(await response.json(), {
     code: 'snapshot', gameId, lifecycle: 'lobby', revision: 2, state: { players: [] },
+  });
+  const webResponse = await hostGameSnapshotRoute(request(undefined, {
+    cookie: `${HOST_COOKIE}=${hostToken}`, method: 'GET',
+  }), { hostGameSnapshot(value) {
+    received = value;
+    return { code: 'snapshot', gameId, lifecycle: 'lobby', revision: 2, state: { players: [] } };
+  } }, gameId, 40_001);
+  assert.equal(webResponse.status, 200);
+  assert.deepEqual(received, {
+    hostSessionKind: 'web', hostSessionToken: hostToken, gameId, now: 40_001,
   });
 });
 
