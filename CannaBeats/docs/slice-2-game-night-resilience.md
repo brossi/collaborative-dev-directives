@@ -1,8 +1,9 @@
 # Slice 2: Game-night resilience
 
-- Status: single-writer S2-A/S2-B/S2-C foundation and S2-D local closure
-  verified; S2-E E1-E11 are locally verified and independently closed where
-  required; only E12/S2-F real-environment proof remains open
+- Status: retained implementation evidence; its former S2-F deployment rehearsal
+  is superseded by the [first-release plan](first-release-plan.md). Verified
+  action, restart, recovery, and diagnostic invariants remain candidates for
+  reuse in the consolidated release.
 - Started: 2026-08-11
 - Branch: `feature/slice-2-game-night-resilience`
 - Parent checkpoint: Slice 1 closure `b8820d9`
@@ -1107,6 +1108,11 @@ resource bounds hold; and deterministic instrumentation adds no
 underruns. Real-client overhead and real-host measurements remain S2-F gates.
 
 ### S2-F: Real-environment rehearsal and closure
+
+> **Superseded:** Do not execute this former managed-source rehearsal. Its
+> applicable failure schedules move to FR-10 in the
+> [first-release plan](first-release-plan.md), using the unified Mac Host and
+> consolidated server topology.
 
 Detailed specification packet:
 [E12 real-environment rehearsal](operations/s2-e-e12-real-environment-spec.md).

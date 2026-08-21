@@ -1,17 +1,23 @@
 # CannaBeats Development Slices
 
-**Status:** Working document; not yet scheduled; not published
+**Status:** Legacy planning reference; superseded for release sequencing
 **Purpose:** Group the validated product backlog into coherent development slices that maximize useful delivery while respecting dependencies and avoiding premature platform work.
-**Last updated:** 2026-08-15
+**Last updated:** 2026-08-21
 
 ## Relationship to other project artifacts
 
+- [First-release plan](first-release-plan.md) is the active execution roadmap
+  for convergence on one macOS Host, one small server, and browser participants.
+  It supersedes the deployment topology and sequencing proposed by the initial
+  five slices while preserving their applicable verified invariants.
 - [Product backlog](product-backlog.md) records unresolved product and technical opportunities without implying priority.
 - [ADR 0001](architecture/0001-lobby-orchestrates-game-runs.md) defines the accepted lobby/game-run lifecycle and ownership boundaries.
 - [Slice 1 plan](slice-1-baseline-protection.md) turns the first recommended slice into implementation checkpoints and acceptance criteria, including the thin observability foundation.
 - This document groups backlog work by shared implementation seams and describes an efficient delivery shape. It does not replace feature-level acceptance criteria or implementation plans.
 
-Before starting a slice, confirm its current scope against playtest evidence and create a focused issue or design note with exact acceptance criteria. Completing a slice does not require implementing every future idea in its associated workstream.
+Before starting a legacy slice, confirm whether the work remains applicable to
+the active first-release plan. Completing a slice does not require implementing
+every future idea in its associated workstream.
 
 ## Grouping principles
 
