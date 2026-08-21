@@ -112,6 +112,9 @@ CREATE TABLE host_web_tickets (
   ticket_hash TEXT PRIMARY KEY CHECK (length(ticket_hash) = 64),
   device_id TEXT NOT NULL REFERENCES host_devices(device_id) ON DELETE RESTRICT,
   application_session_hash TEXT NOT NULL REFERENCES host_sessions(session_hash) ON DELETE RESTRICT,
+  host_contract TEXT NOT NULL CHECK (
+    length(host_contract) BETWEEN 1 AND 8 AND host_contract NOT GLOB '*[^0-9]*'
+  ),
   issued_at INTEGER NOT NULL CHECK (issued_at > 0),
   expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
   revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at),
@@ -120,8 +123,9 @@ CREATE TABLE host_web_tickets (
   CHECK ((consumed_at IS NULL) = (web_session_hash IS NULL))
 );
 CREATE TRIGGER host_web_tickets_identity_immutable BEFORE UPDATE ON host_web_tickets
-WHEN NEW.ticket_hash <> OLD.ticket_hash OR NEW.device_id <> OLD.device_id
+  WHEN NEW.ticket_hash <> OLD.ticket_hash OR NEW.device_id <> OLD.device_id
   OR NEW.application_session_hash <> OLD.application_session_hash
+  OR NEW.host_contract <> OLD.host_contract
   OR NEW.issued_at <> OLD.issued_at OR NEW.expires_at <> OLD.expires_at
 BEGIN SELECT RAISE(ABORT, 'host web ticket identity is immutable'); END;
 CREATE TRIGGER host_web_tickets_immutable_delete BEFORE DELETE ON host_web_tickets
@@ -447,12 +451,20 @@ BEGIN SELECT RAISE(ABORT, 'game results are immutable'); END;
 CREATE TABLE diagnostic_records (
   record_id TEXT PRIMARY KEY CHECK (length(record_id) = 36),
   game_id TEXT NOT NULL REFERENCES games(game_id) ON DELETE RESTRICT,
-  kind TEXT NOT NULL CHECK (kind IN ('host','listener','relay','game','audio')),
-  payload TEXT NOT NULL CHECK (json_valid(payload)),
+  kind TEXT NOT NULL CHECK (kind IN ('host','game','audio')),
+  code TEXT NOT NULL CHECK (code IN (
+    'readiness_blocked','playback_failed','playback_outcome_unknown',
+    'audio_interrupted','audio_recovered','buffer_dropped','export_created'
+  )),
+  metric_value INTEGER NOT NULL CHECK (metric_value BETWEEN 0 AND 1000000000),
   occurred_at INTEGER NOT NULL CHECK (occurred_at > 0),
-  expires_at INTEGER NOT NULL CHECK (expires_at > occurred_at)
+  expires_at INTEGER NOT NULL CHECK (expires_at = occurred_at + 604800000)
 );
 CREATE INDEX diagnostic_records_expiry ON diagnostic_records(expires_at,record_id);
+CREATE INDEX diagnostic_records_game_order
+ON diagnostic_records(game_id,occurred_at,record_id);
+CREATE TRIGGER diagnostic_records_immutable_update BEFORE UPDATE ON diagnostic_records
+BEGIN SELECT RAISE(ABORT, 'diagnostic records are immutable'); END;
 `;
 
 export function canonicalSchemaDigest(database) {

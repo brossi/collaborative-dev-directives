@@ -3,7 +3,8 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import {
-  HOST_COOKIE, challengeIssueRoute, enrollmentIssueRoute, webTicketExchangeRoute,
+  HOST_CLIENT_HEADER, HOST_COOKIE, challengeIssueRoute, enrollmentIssueRoute,
+  webTicketExchangeRoute, webTicketIssueRoute,
 } from '../../web/lib/server/release/host-routes.mjs';
 import { ReleaseStoreError } from '../../web/lib/server/release/store.mjs';
 
@@ -54,6 +55,32 @@ test('ticket exchange sets the exact host-only cookie without a Domain attribute
   assert.match(cookie, new RegExp(`^${HOST_COOKIE}=${ticket}; Path=/; Max-Age=44000;`));
   assert.match(cookie, /; Secure; HttpOnly; SameSite=Strict$/u);
   assert.doesNotMatch(cookie, /Domain=/iu);
+});
+
+test('web ticket issuance requires the exact Host contract before authority or mutation', async () => {
+  const token = bearer();
+  const input = { ticket: bearer(), requestId: randomUUID() };
+  let calls = 0;
+  const runtime = { issueHostWebTicket(value) {
+    calls += 1;
+    assert.deepEqual(value, {
+      ...input, applicationSessionToken: token, hostContract: '1', now: 5_000,
+    });
+    return { code: 'ticket_issued', expiresAt: 65_000 };
+  } };
+  for (const value of [undefined, '0', '1, 2']) {
+    const response = await webTicketIssueRoute(request(input, {
+      token, headers: value === undefined ? {} : { [HOST_CLIENT_HEADER]: value },
+    }), runtime, 5_000);
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), { ok: false, code: 'upgrade_required' });
+  }
+  assert.equal(calls, 0);
+  const response = await webTicketIssueRoute(request(input, {
+    token, headers: { [HOST_CLIENT_HEADER]: '1' },
+  }), runtime, 5_000);
+  assert.equal(response.status, 201);
+  assert.equal(calls, 1);
 });
 
 test('route failures are finite and never reflect supplied or native content', async () => {

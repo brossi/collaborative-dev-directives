@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.macOS("14.2")],
     products: [
         .library(name: "CannaBeatsHostCore", targets: ["CannaBeatsHostCore"]),
+        .executable(name: "CannaBeatsHost", targets: ["CannaBeatsHost"]),
         .executable(name: "CannaBeatsHostCoreVerifier", targets: ["CannaBeatsHostCoreVerifier"]),
         .executable(
             name: "CannaBeatsHostPlaybackVerifier",
@@ -28,6 +29,7 @@ let package = Package(
             ]
         ),
         .target(name: "CannaBeatsHostCore", dependencies: ["AudioTapBridge"]),
+        .executableTarget(name: "CannaBeatsHost", dependencies: ["CannaBeatsHostCore"]),
         .executableTarget(name: "CannaBeatsHostCoreVerifier", dependencies: ["CannaBeatsHostCore"]),
         .executableTarget(
             name: "CannaBeatsHostPlaybackVerifier",

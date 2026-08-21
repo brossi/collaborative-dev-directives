@@ -8,6 +8,8 @@ public enum HostAuthorityProtocolError: Error, Equatable {
 
 public enum HostAuthorityProtocol {
     public static let productionOrigin = URL(string: "https://play.cannabeats.social")!
+    public static let hostContractHeader = "x-cannabeats-host-contract"
+    public static let hostContract = "1"
 
     public static func randomBearer(byteCount: Int = 24) throws -> String {
         precondition(byteCount >= 16)

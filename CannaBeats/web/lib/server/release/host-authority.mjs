@@ -3,6 +3,7 @@ import { createPublicKey, verify as verifySignature } from 'node:crypto';
 import {
   SHA256_PATTERN, UUID_PATTERN, assertTimestamp, assertUuid, canonicalJson, parseCanonicalJson, sha256,
 } from './canonical.mjs';
+import { HOST_CLIENT_CONTRACT } from './host-contract.mjs';
 
 export const HOST_LIMITS = Object.freeze({
   enrollmentTtl: 15 * 60 * 1_000,
@@ -107,6 +108,11 @@ function activeSession(database, token, now, requiredKind = 'application') {
       FROM host_sessions WHERE session_hash=?`).get(session.parent_session_hash);
     if (!parent || parent.kind !== 'application' || parent.device_id !== session.device_id
         || parent.revoked_at !== null || now >= parent.expires_at) throw new Error('unauthorized');
+    const ticket = database.prepare(`SELECT host_contract FROM host_web_tickets
+      WHERE web_session_hash=?`).get(session.session_hash);
+    if (!ticket || ticket.host_contract !== HOST_CLIENT_CONTRACT) {
+      throw new Error('upgrade_required');
+    }
   }
   return session;
 }
@@ -368,7 +374,10 @@ export function createHostAuthority(database, {
       });
     },
 
-    issueWebTicket({ applicationSessionToken, ticket, requestId, now }) {
+    issueWebTicket({
+      applicationSessionToken, ticket, requestId, now,
+      hostContract = HOST_CLIENT_CONTRACT,
+    }) {
       assertUuid(requestId, 'invalid_request');
       assertTimestamp(now, 'invalid_request');
       const ticketHash = bearerHash(ticket);
@@ -376,8 +385,10 @@ export function createHostAuthority(database, {
       const operation = 'issue_web_ticket';
       const identity = { actorType: 'session', actorId: session.session_hash, requestId };
       const requestText = canonicalRequest({
-        applicationSessionHash: session.session_hash, operation, requestId, ticketHash,
+        applicationSessionHash: session.session_hash, hostContract,
+        operation, requestId, ticketHash,
       });
+      if (hostContract !== HOST_CLIENT_CONTRACT) throw new Error('upgrade_required');
       return accepted(() => {
         const prior = replay(database, identity, operation, sha256(requestText));
         if (prior) return prior;
@@ -394,9 +405,9 @@ export function createHostAuthority(database, {
         const expiresAt = Math.min(now + HOST_LIMITS.webTicketTtl, current.expires_at);
         if (expiresAt <= now) throw new Error('expired');
         database.prepare(`INSERT INTO host_web_tickets
-          (ticket_hash,device_id,application_session_hash,issued_at,expires_at)
-          VALUES (?,?,?,?,?)`).run(
-          ticketHash, current.device_id, current.session_hash, now, expiresAt,
+          (ticket_hash,device_id,application_session_hash,host_contract,issued_at,expires_at)
+          VALUES (?,?,?,?,?,?)`).run(
+          ticketHash, current.device_id, current.session_hash, hostContract, now, expiresAt,
         );
         const result = { code: 'ticket_issued', expiresAt };
         storeReceipt(database, identity, operation, requestText, result, now);
@@ -674,11 +685,12 @@ export function validateHostAuthority(database) {
   }
 
   const tickets = database.prepare(`SELECT ticket_hash,device_id,application_session_hash,
-    issued_at,expires_at,revoked_at,consumed_at,web_session_hash FROM host_web_tickets
+    host_contract,issued_at,expires_at,revoked_at,consumed_at,web_session_hash FROM host_web_tickets
     ORDER BY ticket_hash`).all();
   for (const row of tickets) {
     const parent = sessionMap.get(row.application_session_hash);
     if (!SHA256_PATTERN.test(row.ticket_hash) || !parent || parent.kind !== 'application'
+        || !/^\d{1,8}$/u.test(row.host_contract)
         || parent.device_id !== row.device_id
         || row.expires_at - row.issued_at > HOST_LIMITS.webTicketTtl
         || row.expires_at > parent.expires_at
@@ -689,7 +701,8 @@ export function validateHostAuthority(database) {
     }
     const issued = parsedReceipts.find(({ operation, actor_id: id, request, result }) =>
       operation === 'issue_web_ticket' && id === row.application_session_hash
-      && request.ticketHash === row.ticket_hash && result.expiresAt === row.expires_at);
+      && request.ticketHash === row.ticket_hash && request.hostContract === row.host_contract
+      && result.expiresAt === row.expires_at);
     if (!issued) throw new Error('database_corrupt');
     if (row.web_session_hash !== null) {
       const web = sessionMap.get(row.web_session_hash);
@@ -735,7 +748,9 @@ export function validateHostAuthority(database) {
                 : exactKeys(result, ['code', 'deviceId', 'expiresAt'])
                   && result.code === 'session_created')
             : row.operation === 'issue_web_ticket'
-              ? exactKeys(request, ['applicationSessionHash', 'operation', 'requestId', 'ticketHash'])
+              ? exactKeys(request, [
+                'applicationSessionHash', 'hostContract', 'operation', 'requestId', 'ticketHash',
+              ]) && /^\d{1,8}$/u.test(request.hostContract)
                 && exactKeys(result, ['code', 'expiresAt']) && result.code === 'ticket_issued'
               : row.operation === 'revoke_device'
                 ? exactKeys(request, ['operation', 'requestId', 'targetDeviceId'])
@@ -782,6 +797,7 @@ export function validateHostAuthority(database) {
       const ticket = tickets.find(({ ticket_hash: hash }) => hash === request.ticketHash);
       effect = row.actor_type === 'session' && row.actor_id === request.applicationSessionHash
         && Boolean(ticket && ticket.application_session_hash === request.applicationSessionHash
+          && ticket.host_contract === request.hostContract
           && ticket.issued_at === row.accepted_at && ticket.expires_at === result.expiresAt);
     } else if (row.operation === 'revoke_device') {
       const device = deviceMap.get(request.targetDeviceId);

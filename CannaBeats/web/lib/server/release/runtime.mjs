@@ -105,6 +105,8 @@ export function createReleaseRuntime({
     authorizeAudioParticipantStream(input) {
       return owner().authorizeAudioParticipantStream(input);
     },
+    recordDiagnostic(input) { return owner().recordDiagnostic(input); },
+    exportDiagnostics(input) { return owner().exportDiagnostics(input); },
   });
 }
 

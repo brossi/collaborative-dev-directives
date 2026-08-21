@@ -27,6 +27,88 @@ public struct HostWebTicket: Equatable, Sendable {
     public let expiresAt: Int64
 }
 
+public struct HostActiveGame: Codable, Equatable, Sendable {
+    public let gameId: UUID
+    public let lifecycle: String
+    public let revision: Int
+}
+
+public struct HostRelayReadiness: Codable, Equatable, Sendable {
+    public let state: String
+    public let reason: String
+}
+
+public struct HostServerReadiness: Codable, Equatable, Sendable {
+    public let code: String
+    public let hostContract: String
+    public let relay: HostRelayReadiness
+    public let activeGame: HostActiveGame?
+}
+
+public enum HostDiagnosticKind: String, Codable, Equatable, Sendable {
+    case host, game, audio
+}
+
+public enum HostDiagnosticCode: String, Codable, Equatable, Sendable {
+    case readinessBlocked = "readiness_blocked"
+    case playbackFailed = "playback_failed"
+    case playbackOutcomeUnknown = "playback_outcome_unknown"
+    case audioInterrupted = "audio_interrupted"
+    case audioRecovered = "audio_recovered"
+    case bufferDropped = "buffer_dropped"
+    case exportCreated = "export_created"
+}
+
+public struct HostDiagnosticRecord: Codable, Equatable, Sendable {
+    public let recordId: UUID
+    public let gameId: UUID
+    public let kind: HostDiagnosticKind
+    public let code: HostDiagnosticCode
+    public let metricValue: Int
+    public let occurredAt: Int64
+    public let expiresAt: Int64
+}
+
+public struct HostDiagnosticEvent: Codable, Equatable, Sendable {
+    public let sequence: Int
+    public let revision: Int
+    public let type: String
+    public let outcome: String
+    public let occurredAt: Int64
+}
+
+public struct HostDiagnosticTransition: Codable, Equatable, Sendable {
+    public let sequence: Int
+    public let state: String
+    public let reasonCode: String?
+    public let occurredAt: Int64
+    public let commandOrdinal: Int?
+    public let generation: Int?
+}
+
+public struct HostDiagnosticEntry: Codable, Equatable, Sendable {
+    public let kind: HostDiagnosticKind
+    public let code: HostDiagnosticCode
+    public let metricValue: Int
+    public let occurredAt: Int64
+    public let expiresAt: Int64
+}
+
+public struct HostDiagnosticGame: Codable, Equatable, Sendable {
+    public let lifecycle: String
+    public let revision: Int
+}
+
+public struct HostDiagnosticExport: Codable, Equatable, Sendable {
+    public let code: String
+    public let generatedAt: Int64
+    public let game: HostDiagnosticGame
+    public let gameEvents: [HostDiagnosticEvent]
+    public let playback: [HostDiagnosticTransition]
+    public let audio: [HostDiagnosticTransition]
+    public let diagnostics: [HostDiagnosticEntry]
+}
+
 public struct HostDeviceProofIdentity: Sendable {
     public let deviceID: UUID
     public let publicKeyDER: Data
@@ -233,10 +315,66 @@ public actor HostAuthorityClient {
         let result: ExpiringResponse = try await mutation(
             "/api/host/web-tickets/issue",
             TicketRequest(requestId: wire(UUID()), ticket: ticket),
-            bearer: try requiredSession()
+            bearer: try requiredSession(), hostContract: true
         )
         guard result.code == "ticket_issued" else { throw HostAuthorityClientError.invalidResponse }
         return HostWebTicket(value: ticket, expiresAt: result.expiresAt)
+    }
+
+    public func hostReadiness() async throws -> HostServerReadiness {
+        var request = URLRequest(url: try endpoint("/api/host/readiness"))
+        request.setValue("Bearer \(try requiredSession())", forHTTPHeaderField: "Authorization")
+        request.setValue(
+            HostAuthorityProtocol.hostContract,
+            forHTTPHeaderField: HostAuthorityProtocol.hostContractHeader
+        )
+        let result: HostServerReadiness = try await send(request)
+        guard result.code == "host_readiness",
+              result.hostContract == HostAuthorityProtocol.hostContract,
+              ["ready", "blocked"].contains(result.relay.state),
+              ["ready", "relay_unavailable"].contains(result.relay.reason),
+              (result.relay.state == "ready") == (result.relay.reason == "ready"),
+              result.activeGame.map({
+                  ["lobby", "active"].contains($0.lifecycle) && $0.revision >= 0
+              }) ?? true else {
+            throw HostAuthorityClientError.invalidResponse
+        }
+        return result
+    }
+
+    public func recordDiagnostic(
+        gameID: UUID, recordID: UUID = UUID(), kind: HostDiagnosticKind,
+        code: HostDiagnosticCode, metricValue: Int
+    ) async throws -> HostDiagnosticRecord {
+        let result: DiagnosticRecordResponse = try await mutation(
+            "/api/games/\(wire(gameID))/diagnostics",
+            DiagnosticRecordRequest(
+                recordId: wire(recordID), kind: kind, code: code, metricValue: metricValue
+            ),
+            bearer: try requiredSession(), hostContract: true
+        )
+        guard result.code == "diagnostic_recorded", result.record.recordId == recordID,
+              result.record.gameId == gameID, result.record.kind == kind,
+              result.record.code == code, result.record.metricValue == metricValue else {
+            throw HostAuthorityClientError.invalidResponse
+        }
+        return result.record
+    }
+
+    public func exportDiagnostics(gameID: UUID) async throws -> HostDiagnosticExport {
+        var request = URLRequest(
+            url: try endpoint("/api/games/\(wire(gameID))/diagnostics/export")
+        )
+        request.setValue("Bearer \(try requiredSession())", forHTTPHeaderField: "Authorization")
+        request.setValue(
+            HostAuthorityProtocol.hostContract,
+            forHTTPHeaderField: HostAuthorityProtocol.hostContractHeader
+        )
+        let result: HostDiagnosticExport = try await send(request)
+        guard result.code == "diagnostic_export" else {
+            throw HostAuthorityClientError.invalidResponse
+        }
+        return result
     }
 
     public func devices() async throws -> [HostDevice] {
@@ -264,7 +402,8 @@ public actor HostAuthorityClient {
     }
 
     private func mutation<Request: Encodable, Response: Decodable>(
-        _ path: String, _ body: Request, bearer: String? = nil
+        _ path: String, _ body: Request, bearer: String? = nil,
+        hostContract: Bool = false
     ) async throws -> Response {
         var request = URLRequest(url: try endpoint(path))
         request.httpMethod = "POST"
@@ -273,6 +412,12 @@ public actor HostAuthorityClient {
         request.httpBody = try encoder.encode(body)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let bearer { request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization") }
+        if hostContract {
+            request.setValue(
+                HostAuthorityProtocol.hostContract,
+                forHTTPHeaderField: HostAuthorityProtocol.hostContractHeader
+            )
+        }
         // Both attempts contain identical caller-generated IDs and secrets, so a lost response
         // cannot create a second effect.
         do { return try await send(request) }
@@ -332,6 +477,16 @@ private struct ProofRequest: Codable {
     let sessionToken: String; let signature: String
 }
 private struct TicketRequest: Codable { let requestId: String; let ticket: String }
+private struct DiagnosticRecordRequest: Codable {
+    let recordId: String
+    let kind: HostDiagnosticKind
+    let code: HostDiagnosticCode
+    let metricValue: Int
+}
+private struct DiagnosticRecordResponse: Codable {
+    let code: String
+    let record: HostDiagnosticRecord
+}
 private struct CodeResponse: Codable { let code: String }
 private struct ExpiringResponse: Codable { let code: String; let expiresAt: Int64 }
 private struct EnrollResponse: Codable {

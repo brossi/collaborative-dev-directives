@@ -12,7 +12,7 @@ import { loadCatalogArtifacts } from '../../web/lib/server/release/catalog.mjs';
 import {
   HOST_LIMITS, bearerHash, hostProofBytes, hostReceiptCapacityAllows,
 } from '../../web/lib/server/release/host-authority.mjs';
-import { canonicalJson } from '../../web/lib/server/release/canonical.mjs';
+import { canonicalJson, sha256 } from '../../web/lib/server/release/canonical.mjs';
 import { RELEASE_SCHEMA_DIGEST, canonicalSchemaDigest } from '../../web/lib/server/release/schema.mjs';
 import {
   ReleaseStoreError, createReleaseStore,
@@ -242,7 +242,7 @@ test('a colliding session token fails before proof and leaves the challenge usab
   setup.store.close();
 });
 
-test('a web ticket creates a parent-bounded HttpOnly session identity exactly once', () => {
+test('a web ticket creates one parent and contract-bounded session identity', () => {
   const setup = enrolled();
   const session = createSession(setup);
   const ticket = bearer();
@@ -259,6 +259,29 @@ test('a web ticket creates a parent-bounded HttpOnly session identity exactly on
   });
   expectCode(() => setup.store.exchangeHostWebTicket({ ticket, now: 4_002 }), 'already_used');
   setup.store.close();
+
+  const database = new DatabaseSync(setup.path);
+  const ticketTrigger = database.prepare(`SELECT sql FROM sqlite_schema
+    WHERE type='trigger' AND name='host_web_tickets_identity_immutable'`).get().sql;
+  const receiptTrigger = database.prepare(`SELECT sql FROM sqlite_schema
+    WHERE type='trigger' AND name='host_action_receipts_immutable_update'`).get().sql;
+  database.exec('DROP TRIGGER host_web_tickets_identity_immutable');
+  database.exec('DROP TRIGGER host_action_receipts_immutable_update');
+  const receipt = database.prepare(`SELECT rowid,request FROM host_action_receipts
+    WHERE operation='issue_web_ticket'`).get();
+  const oldRequest = { ...JSON.parse(receipt.request), hostContract: '0' };
+  const oldText = canonicalJson(oldRequest);
+  database.prepare(`UPDATE host_action_receipts SET request=?,request_hash=? WHERE rowid=?`)
+    .run(oldText, sha256(oldText), receipt.rowid);
+  database.prepare(`UPDATE host_web_tickets SET host_contract='0' WHERE ticket_hash=?`)
+    .run(bearerHash(ticket));
+  database.exec(ticketTrigger);
+  database.exec(receiptTrigger);
+  database.close();
+  const reopened = createReleaseStore(setup.path, { catalog, now: 4_002 });
+  expectCode(() => reopened.authorizeHostSession({ token: ticket, now: 4_003, kind: 'web' }),
+    'upgrade_required');
+  reopened.close();
 });
 
 test('device revocation cascades and exact replay precedes revoked issuer authority', () => {

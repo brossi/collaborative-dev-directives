@@ -416,6 +416,12 @@ not heard twice.
 
 ### FR-7 — Unified Host experience and bounded diagnostics
 
+**Status:** Complete. Independent closure review and narrow remediation
+re-audit found P0=0, P1=0, and P2=0.
+
+Checkpoint specification and closure matrix:
+[FR-7 unified Host experience and bounded diagnostics](operations/fr-7-unified-host-diagnostics.md).
+
 **Invariant:** The foreground Mac application presents one truthful readiness
 and game journey, and optional diagnostics can fail or expire without changing
 gameplay or audio authority.

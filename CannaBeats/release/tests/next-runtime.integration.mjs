@@ -126,6 +126,18 @@ test('the standalone Next process owns unified health and readiness', async () =
     assert.equal(challengeProve.status, 201, JSON.stringify(proofBody));
     assert.equal(proofBody.code, 'session_created');
 
+    const hostReadiness = await fetch(`${origin}/api/host/readiness`, {
+      headers: {
+        authorization: `Bearer ${sessionToken}`, 'x-cannabeats-host-contract': '1',
+      },
+    });
+    const hostReadinessBody = await hostReadiness.json();
+    assert.equal(hostReadiness.status, 200, JSON.stringify(hostReadinessBody));
+    assert.deepEqual(hostReadinessBody, {
+      code: 'host_readiness', hostContract: '1', activeGame: null,
+      relay: { state: 'blocked', reason: 'relay_unavailable' },
+    });
+
     const devices = await fetch(`${origin}/api/host/devices`, {
       headers: { authorization: `Bearer ${sessionToken}` },
     });
@@ -143,6 +155,7 @@ test('the standalone Next process owns unified health and readiness', async () =
       method: 'POST',
       headers: {
         authorization: `Bearer ${sessionToken}`, 'content-type': 'application/json',
+        'x-cannabeats-host-contract': '1',
       },
       body: JSON.stringify({ ticket, requestId: randomUUID() }),
     });
@@ -171,6 +184,32 @@ test('the standalone Next process owns unified health and readiness', async () =
     assert.equal(create.status, 201, JSON.stringify(createBody));
     assert.equal(createBody.gameId, gameId);
     assert.equal(createBody.revision, 0);
+
+    const diagnosticId = randomUUID();
+    const diagnostic = await fetch(`${origin}/api/games/${gameId}/diagnostics`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${sessionToken}`, 'content-type': 'application/json',
+        'x-cannabeats-host-contract': '1',
+      },
+      body: JSON.stringify({
+        recordId: diagnosticId, kind: 'host', code: 'readiness_blocked', metricValue: 1,
+      }),
+    });
+    const diagnosticBody = await diagnostic.json();
+    assert.equal(diagnostic.status, 201, JSON.stringify(diagnosticBody));
+    assert.equal(diagnosticBody.record.recordId, diagnosticId);
+    const diagnosticExport = await fetch(
+      `${origin}/api/games/${gameId}/diagnostics/export`,
+      { headers: {
+        authorization: `Bearer ${sessionToken}`, 'x-cannabeats-host-contract': '1',
+      } },
+    );
+    const diagnosticExportText = await diagnosticExport.text();
+    assert.equal(diagnosticExport.status, 200, diagnosticExportText);
+    assert.equal(diagnosticExportText.includes(gameId), false);
+    assert.equal(diagnosticExportText.includes(deviceId), false);
+    assert.equal(diagnosticExportText.includes(sessionToken), false);
 
     const inviteToken = randomBytes(24).toString('base64url');
     const invitation = await fetch(`${origin}/api/games/${gameId}/invitations`, {

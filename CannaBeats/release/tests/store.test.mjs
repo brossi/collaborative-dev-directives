@@ -477,16 +477,20 @@ test('restart rejects every unlinked event and a coherently forged creation acto
   }
 });
 
-test('later-checkpoint diagnostic rows remain inert until their shared owner exists', () => {
+test('finite diagnostic rows are validated by the shared release owner', () => {
   const setup = setupHostStore();
   const game = createGame(setup.store, setup.hostDeviceId);
+  const applicationSessionToken = hostSession(setup);
+  setup.store.recordDiagnostic({
+    applicationSessionToken, gameId: game.gameId, recordId: randomUUID(),
+    kind: 'audio', code: 'audio_interrupted', metricValue: 1, now: 3_000,
+  });
   setup.store.close();
-  const database = new DatabaseSync(setup.path);
-  database.prepare(`INSERT INTO diagnostic_records
-    (record_id,game_id,kind,payload,occurred_at,expires_at)
-    VALUES (?,?,'audio','{}',?,?)`).run(randomUUID(), game.gameId, 3_000, 4_000);
-  database.close();
-  expectCode(() => createReleaseStore(setup.path, { catalog }), 'database_corrupt');
+  setup.store = createReleaseStore(setup.path, { catalog, now: 3_001 });
+  assert.equal(setup.store.exportDiagnostics({
+    applicationSessionToken, gameId: game.gameId, now: 3_001,
+  }).diagnostics.length, 1);
+  setup.store.close();
 });
 
 test('generic reducers cannot fabricate terminal state outside the fixed journey owner', () => {

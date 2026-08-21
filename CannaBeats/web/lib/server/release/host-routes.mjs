@@ -1,4 +1,7 @@
 import { ReleaseStoreError } from './store.mjs';
+import { HOST_CLIENT_CONTRACT, HOST_CLIENT_HEADER } from './host-contract.mjs';
+
+export { HOST_CLIENT_CONTRACT, HOST_CLIENT_HEADER } from './host-contract.mjs';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const BODY_TIMEOUT_MS = 2_000;
@@ -9,7 +12,8 @@ function failure(code) {
     : code === 'unauthorized' || code === 'proof_rejected' ? 401
       : code === 'expired' ? 410
         : code === 'capacity_reached' ? 429
-          : code === 'request_conflict' || code === 'already_used' ? 409
+          : code === 'request_conflict' || code === 'already_used'
+              || code === 'upgrade_required' ? 409
             : code === 'database_corrupt' ? 500 : 503;
   return Response.json({ ok: false, code }, {
     status, headers: { 'Cache-Control': 'no-store' },
@@ -69,6 +73,13 @@ function bearer(request) {
   return match[1];
 }
 
+export function requireHostContract(request) {
+  if (request.headers.get(HOST_CLIENT_HEADER) !== HOST_CLIENT_CONTRACT) {
+    throw new ReleaseStoreError('upgrade_required');
+  }
+  return HOST_CLIENT_CONTRACT;
+}
+
 async function route(work) {
   try {
     return await work();
@@ -77,6 +88,7 @@ async function route(work) {
     return failure([
       'invalid_request', 'unauthorized', 'request_conflict', 'expired', 'already_used',
       'capacity_reached', 'proof_rejected', 'database_unavailable', 'database_corrupt',
+      'upgrade_required',
     ].includes(code) ? code : 'database_unavailable');
   }
 }
@@ -122,9 +134,10 @@ export function challengeProveRoute(request, runtime, now = Date.now()) {
 
 export function webTicketIssueRoute(request, runtime, now = Date.now()) {
   return route(async () => {
+    const hostContract = requireHostContract(request);
     const input = exact(await body(request), ['requestId', 'ticket']);
     return success(owner(runtime).issueHostWebTicket({
-      ...input, applicationSessionToken: bearer(request), now,
+      ...input, applicationSessionToken: bearer(request), hostContract, now,
     }), { status: 201 });
   });
 }

@@ -9,7 +9,7 @@ export const PARTICIPANT_COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
 const FINITE_CODES = new Set([
   'invalid_request', 'unauthorized', 'request_conflict', 'expired', 'already_used',
   'capacity_reached', 'duplicate_name', 'game_started', 'game_ended', 'stale_state',
-  'database_unavailable', 'database_corrupt', 'catalog_incompatible',
+  'upgrade_required', 'database_unavailable', 'database_corrupt', 'catalog_incompatible',
 ]);
 
 function failure(code) {
@@ -17,7 +17,8 @@ function failure(code) {
     : code === 'unauthorized' ? 401
       : code === 'expired' || code === 'game_ended' ? 410
         : ['request_conflict', 'already_used', 'capacity_reached', 'duplicate_name',
-          'game_started', 'stale_state', 'catalog_incompatible'].includes(code) ? 409
+          'game_started', 'stale_state', 'catalog_incompatible',
+          'upgrade_required'].includes(code) ? 409
           : 503;
   return Response.json({ ok: false, code }, {
     status, headers: { 'Cache-Control': 'no-store' },

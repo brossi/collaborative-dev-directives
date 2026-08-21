@@ -185,4 +185,10 @@ test('route failures are finite, reject ambiguous cookies, and never reflect sec
   }), { admitParticipant: () => { throw new ReleaseStoreError('duplicate_name'); } }, gameId);
   assert.equal(finite.status, 409);
   assert.deepEqual(await finite.json(), { ok: false, code: 'duplicate_name' });
+
+  const staleHost = await hostGameSnapshotRoute(request(undefined, {
+    cookie: `${HOST_COOKIE}=${secret}`, method: 'GET',
+  }), { hostGameSnapshot: () => { throw new ReleaseStoreError('upgrade_required'); } }, gameId);
+  assert.equal(staleHost.status, 409);
+  assert.deepEqual(await staleHost.json(), { ok: false, code: 'upgrade_required' });
 });

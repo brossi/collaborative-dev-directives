@@ -36,6 +36,7 @@ const ERROR_TEXT: Record<string, string> = {
   request_conflict: "This action no longer matches its retained request identity.",
   stale_state: "The game changed on another device. The latest state has been restored.",
   unauthorized: "This device no longer has access to that game.",
+  upgrade_required: "Install the current CannaBeats Host release before continuing.",
 };
 
 function message(error: unknown) {

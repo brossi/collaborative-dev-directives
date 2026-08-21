@@ -18,6 +18,9 @@ import {
   validateAudioSessions,
 } from './audio-sessions.mjs';
 import { createGameAdmission, validateGameAdmission } from './game-admission.mjs';
+import {
+  createDiagnostics, purgeExpiredDiagnostics, validateDiagnostics,
+} from './diagnostics.mjs';
 import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
 import {
   appendTrackPlaybackCommand, cancelOpenPlaybackCommands, createPlaybackCommands,
@@ -447,15 +450,6 @@ function validateIdentityColumns(database) {
   }
 }
 
-function validateDeferredTablesEmpty(database) {
-  const tables = ['diagnostic_records'];
-  for (const table of tables) {
-    if (database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count !== 0) {
-      fail('database_corrupt');
-    }
-  }
-}
-
 export function validateReleaseDatabase(database, { currentCatalog }) {
   validateSchema(database);
   try {
@@ -465,7 +459,7 @@ export function validateReleaseDatabase(database, { currentCatalog }) {
     validateIdentityColumns(database);
     validateHostAuthority(database);
     validateGameAdmission(database);
-    validateDeferredTablesEmpty(database);
+    validateDiagnostics(database);
     const games = database.prepare(`SELECT game_id,host_device_id,catalog_version,lifecycle,state,
       revision,participant_capacity,created_at,updated_at,terminal_at FROM games ORDER BY game_id`).all();
     for (const game of games) {
@@ -549,6 +543,7 @@ export class ReleaseStore {
   #gameAdmission;
   #audioSessions;
   #playbackCommands;
+  #diagnostics;
 
   constructor(database, { catalog, databasePath, statfs = statfsSync }) {
     this.#database = database;
@@ -602,6 +597,14 @@ export class ReleaseStore {
       retainHost: (input) => this.#hostAuthority.retainedSession(input),
       audioReady: (gameId) => Boolean(this.#database.prepare(`SELECT 1 FROM audio_sessions
         WHERE game_id=? AND state='active'`).get(gameId)),
+    });
+    this.#diagnostics = createDiagnostics(database, {
+      transaction: (work) => this.#transaction(() => {
+        try { return work(); } catch (error) { fail(error?.message ?? 'database_unavailable'); }
+      }),
+      validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+      authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
+      retainHost: (input) => this.#hostAuthority.retainedSession(input),
     });
   }
 
@@ -661,7 +664,8 @@ export class ReleaseStore {
       if (error instanceof ReleaseStoreError) throw error;
       const code = error?.message;
       if (['invalid_request', 'unauthorized', 'request_conflict', 'expired', 'already_used',
-        'capacity_reached', 'proof_rejected', 'database_unavailable', 'database_corrupt']
+        'capacity_reached', 'proof_rejected', 'upgrade_required',
+        'database_unavailable', 'database_corrupt']
         .includes(code)) fail(code);
       fail('invalid_request');
     }
@@ -709,7 +713,7 @@ export class ReleaseStore {
       const code = error?.message;
       if (['invalid_request', 'unauthorized', 'request_conflict', 'expired', 'already_used',
         'capacity_reached', 'duplicate_name', 'game_started', 'game_ended', 'stale_state',
-        'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
+        'upgrade_required', 'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
       fail('invalid_request');
     }
   }
@@ -789,6 +793,14 @@ export class ReleaseStore {
     return this.#audioCall(() => this.#audioSessions.authorizeParticipantStream(input));
   }
 
+  recordDiagnostic(input) {
+    return this.#diagnosticCall(() => this.#diagnostics.record(input));
+  }
+
+  exportDiagnostics(input) {
+    return this.#diagnosticCall(() => this.#diagnostics.exportDiagnostics(input));
+  }
+
   authorizeParticipantSession(input) {
     return this.#admissionCall(() => this.#gameAdmission.authorizeParticipant(input));
   }
@@ -836,7 +848,7 @@ export class ReleaseStore {
       const code = error?.message;
       if (['invalid_request', 'unauthorized', 'request_conflict', 'capacity_reached',
         'duplicate_name', 'game_ended', 'stale_state', 'operation_rejected',
-        'catalog_exhausted', 'database_unavailable', 'database_corrupt']
+        'catalog_exhausted', 'upgrade_required', 'database_unavailable', 'database_corrupt']
         .includes(code)) fail(code);
       fail('invalid_request');
     }
@@ -861,6 +873,16 @@ export class ReleaseStore {
       if (['invalid_request', 'unauthorized', 'request_conflict', 'game_inactive',
         'audio_session_open', 'audio_session_not_found', 'audio_busy', 'audio_capacity',
         'stale_generation', 'operation_rejected', 'transition_capacity',
+        'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
+      fail('database_unavailable');
+    }
+  }
+
+  #diagnosticCall(work) {
+    try { return work(); } catch (error) {
+      if (error instanceof ReleaseStoreError) throw error;
+      const code = error?.message;
+      if (['invalid_request', 'unauthorized', 'request_conflict', 'diagnostic_capacity',
         'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
       fail('database_unavailable');
     }
@@ -1213,6 +1235,8 @@ export function createReleaseStore(path, {
     }
     validateSchema(database);
     registerCatalog(database, catalog, now);
+    validateReleaseDatabase(database, { currentCatalog: catalog });
+    purgeExpiredDiagnostics(database, now);
     validateReleaseDatabase(database, { currentCatalog: catalog });
     interruptAudioSessionsOnStartup(database, now);
     validateReleaseDatabase(database, { currentCatalog: catalog });
