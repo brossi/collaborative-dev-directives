@@ -317,11 +317,29 @@ CREATE TABLE playback_commands (
   track_uri TEXT,
   state TEXT NOT NULL CHECK (state IN ('queued','claimed','executing','completed','failed','outcome_unknown','cancelled')),
   claim_generation TEXT,
+  execution_ambiguous INTEGER NOT NULL DEFAULT 0 CHECK (execution_ambiguous IN (0,1)),
   created_at INTEGER NOT NULL CHECK (created_at > 0),
   updated_at INTEGER NOT NULL CHECK (updated_at >= created_at),
   UNIQUE (game_id,request_id),
-  CHECK ((kind='play_track') = (track_uri IS NOT NULL))
+  CHECK ((kind='play_track') = (track_uri IS NOT NULL)),
+  CHECK (track_uri IS NULL OR (length(track_uri)=36 AND track_uri GLOB 'spotify:track:*')),
+  CHECK ((state='queued' AND claim_generation IS NULL)
+    OR (state IN ('claimed','executing','completed','failed','outcome_unknown')
+      AND claim_generation IS NOT NULL AND length(claim_generation)=36)
+    OR state='cancelled'),
+  CHECK ((state='queued' AND execution_ambiguous=0)
+    OR (state IN ('executing','outcome_unknown') AND execution_ambiguous=1)
+    OR state IN ('claimed','completed','failed','cancelled'))
 );
+CREATE UNIQUE INDEX playback_commands_one_open_per_game ON playback_commands(game_id)
+WHERE state IN ('queued','claimed','executing','outcome_unknown');
+CREATE TRIGGER playback_commands_identity_immutable BEFORE UPDATE ON playback_commands
+WHEN NEW.command_id <> OLD.command_id OR NEW.game_id <> OLD.game_id
+  OR NEW.request_id <> OLD.request_id OR NEW.kind <> OLD.kind
+  OR NEW.track_uri IS NOT OLD.track_uri OR NEW.created_at <> OLD.created_at
+BEGIN SELECT RAISE(ABORT, 'playback command identity is immutable'); END;
+CREATE TRIGGER playback_commands_immutable_delete BEFORE DELETE ON playback_commands
+BEGIN SELECT RAISE(ABORT, 'playback commands are retained'); END;
 
 CREATE TABLE playback_command_transitions (
   command_id TEXT NOT NULL REFERENCES playback_commands(command_id) ON DELETE RESTRICT,
@@ -329,13 +347,30 @@ CREATE TABLE playback_command_transitions (
   from_state TEXT,
   to_state TEXT NOT NULL CHECK (to_state IN ('queued','claimed','executing','completed','failed','outcome_unknown','cancelled')),
   claim_generation TEXT,
+  outcome TEXT CHECK (outcome IS NULL OR json_valid(outcome)),
   outcome_hash TEXT CHECK (outcome_hash IS NULL OR length(outcome_hash) = 64),
   reason_code TEXT CHECK (reason_code IS NULL OR reason_code IN (
-    'spotify_missing','spotify_signed_out','automation_denied','command_timeout',
-    'unexpected_track','response_lost','revoked','game_ended','unrecognized'
+    'spotify_missing','spotify_not_running','spotify_signed_out','automation_denied',
+    'command_timeout','unexpected_track','response_lost','game_ended','superseded','unrecognized'
   )),
   occurred_at INTEGER NOT NULL CHECK (occurred_at > 0),
-  PRIMARY KEY (command_id,sequence)
+  PRIMARY KEY (command_id,sequence),
+  CHECK ((to_state='queued' AND claim_generation IS NULL
+      AND outcome IS NULL AND outcome_hash IS NULL AND reason_code IS NULL)
+    OR (to_state IN ('claimed','executing') AND claim_generation IS NOT NULL
+      AND length(claim_generation)=36 AND outcome IS NULL
+      AND outcome_hash IS NULL AND reason_code IS NULL)
+    OR (to_state='completed' AND claim_generation IS NOT NULL
+      AND length(claim_generation)=36 AND outcome IS NOT NULL
+      AND outcome_hash IS NOT NULL AND reason_code IS NULL)
+    OR (to_state='failed' AND claim_generation IS NOT NULL
+      AND length(claim_generation)=36 AND outcome IS NULL
+      AND outcome_hash IS NULL AND reason_code IS NOT NULL)
+    OR (to_state='outcome_unknown' AND claim_generation IS NOT NULL
+      AND length(claim_generation)=36 AND outcome IS NULL AND outcome_hash IS NULL
+      AND reason_code IN ('command_timeout','response_lost','unrecognized'))
+    OR (to_state='cancelled' AND outcome IS NULL AND outcome_hash IS NULL
+      AND reason_code IN ('game_ended','superseded')))
 );
 CREATE TRIGGER playback_transitions_immutable_update BEFORE UPDATE ON playback_command_transitions
 BEGIN SELECT RAISE(ABORT, 'playback transitions are immutable'); END;

@@ -32,14 +32,16 @@ a global current-game identity.
 | Recoverable game | The one nonterminal game referenced by a live Host or unrevoked participant session |
 
 At `now == expires_at`, an invitation is expired. Participant authority has no
-time-based expiration: it ends only when the participant is removed or the
-game terminates. Secrets are
+absolute or inactivity-based expiration: an unfinished game can remain paused
+indefinitely, and participant authority ends only when the participant is
+removed or the game terminates. Secrets are
 caller-generated unpadded URL-safe base64 with at least 128 bits of randomness;
 only SHA-256 hashes are retained. The participant cookie is
 `__Host-cannabeats-participant` with `Secure`, `HttpOnly`, `SameSite=Strict`,
 `Path=/`, and no `Domain`. HTTP responses refresh a long-lived persistent cookie
-with a 400-day `Max-Age`, so browser retention does not become gameplay
-authority; browser/user eviction can still remove the local credential.
+with the browser-supported 400-day `Max-Age`. This is a rolling local-storage
+retention setting, not a game timeout or an authority lifetime; browser/user
+eviction can still remove the local credential.
 
 ## Admission and recovery
 

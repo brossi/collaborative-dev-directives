@@ -8,9 +8,17 @@ let package = Package(
     products: [
         .library(name: "CannaBeatsHostCore", targets: ["CannaBeatsHostCore"]),
         .executable(name: "CannaBeatsHostCoreVerifier", targets: ["CannaBeatsHostCoreVerifier"]),
+        .executable(
+            name: "CannaBeatsHostPlaybackVerifier",
+            targets: ["CannaBeatsHostPlaybackVerifier"]
+        ),
     ],
     targets: [
         .target(name: "CannaBeatsHostCore"),
         .executableTarget(name: "CannaBeatsHostCoreVerifier", dependencies: ["CannaBeatsHostCore"]),
+        .executableTarget(
+            name: "CannaBeatsHostPlaybackVerifier",
+            dependencies: ["CannaBeatsHostCore"]
+        ),
     ]
 )

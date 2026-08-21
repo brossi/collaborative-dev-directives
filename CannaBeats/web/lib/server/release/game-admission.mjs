@@ -131,7 +131,7 @@ function requestText({ identity, operation, expectedRevision, payload }) {
 }
 
 export function createGameAdmission(database, {
-  transaction, validate, authorizeHost, retainHost,
+  transaction, validate, authorizeHost, retainHost, onGameTerminal = () => {},
 }) {
   function run(work) {
     return transaction(() => {
@@ -372,10 +372,13 @@ export function createGameAdmission(database, {
           game, identity, operation, requestText: text, nextState: state,
           lifecycle: 'abandoned', now, events: [{ type: 'game_abandoned', detail: {} }],
           value: { code: 'game_terminated' },
-          effect: () => database.prepare(`UPDATE game_invites
-            SET closed_at=?,close_reason='revoked' WHERE game_id=? AND closed_at IS NULL`).run(
-            now, gameId,
-          ),
+          effect: () => {
+            database.prepare(`UPDATE game_invites
+              SET closed_at=?,close_reason='revoked' WHERE game_id=? AND closed_at IS NULL`).run(
+              now, gameId,
+            );
+            onGameTerminal({ gameId, now });
+          },
         });
       });
     },

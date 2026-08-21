@@ -16,6 +16,10 @@ import { createInitialGameState, normalizeRules, validateGameState } from './gam
 import { createGameAdmission, validateGameAdmission } from './game-admission.mjs';
 import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
 import {
+  appendTrackPlaybackCommand, cancelOpenPlaybackCommands, createPlaybackCommands,
+  validatePlaybackCommands,
+} from './playback-commands.mjs';
+import {
   RELEASE_SCHEMA_DIGEST, RELEASE_SCHEMA_GENERATION, RELEASE_SCHEMA_SQL,
   canonicalSchemaDigest,
 } from './schema.mjs';
@@ -440,10 +444,7 @@ function validateIdentityColumns(database) {
 }
 
 function validateDeferredTablesEmpty(database) {
-  const tables = [
-    'playback_commands', 'playback_command_transitions',
-    'audio_sessions', 'diagnostic_records',
-  ];
+  const tables = ['audio_sessions', 'diagnostic_records'];
   for (const table of tables) {
     if (database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count !== 0) {
       fail('database_corrupt');
@@ -495,6 +496,7 @@ export function validateReleaseDatabase(database, { currentCatalog }) {
       validateEventsAndReceipts(database, game, catalogs.get(game.catalog_version));
       validateTerminalProjection(database, game);
     }
+    validatePlaybackCommands(database);
     return Object.freeze({ status: 'valid', games: games.length });
   } catch (error) {
     if (error instanceof ReleaseStoreError) throw error;
@@ -540,6 +542,7 @@ export class ReleaseStore {
   #statfs;
   #hostAuthority;
   #gameAdmission;
+  #playbackCommands;
 
   constructor(database, { catalog, databasePath, statfs = statfsSync }) {
     this.#database = database;
@@ -557,6 +560,17 @@ export class ReleaseStore {
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
     });
     this.#gameAdmission = createGameAdmission(database, {
+      transaction: (work) => this.#transaction(() => {
+        try { return work(); } catch (error) { fail(error?.message ?? 'database_unavailable'); }
+      }),
+      validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+      authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
+      retainHost: (input) => this.#hostAuthority.retainedSession(input),
+      onGameTerminal: ({ gameId, now }) => cancelOpenPlaybackCommands(
+        this.#database, gameId, now, 'game_ended',
+      ),
+    });
+    this.#playbackCommands = createPlaybackCommands(database, {
       transaction: (work) => this.#transaction(() => {
         try { return work(); } catch (error) { fail(error?.message ?? 'database_unavailable'); }
       }),
@@ -589,6 +603,7 @@ export class ReleaseStore {
     } catch (error) {
       if (this.#database.isTransaction) this.#database.exec('ROLLBACK');
       if (error instanceof ReleaseStoreError) throw error;
+      if (error?.message === 'operation_rejected') fail('operation_rejected');
       fail('database_unavailable');
     }
   }
@@ -709,6 +724,14 @@ export class ReleaseStore {
     return this.#admissionCall(() => this.#gameAdmission.terminateGame(input));
   }
 
+  nextPlaybackCommand(input) {
+    return this.#playbackCall(() => this.#playbackCommands.next(input));
+  }
+
+  transitionPlaybackCommand(input) {
+    return this.#playbackCall(() => this.#playbackCommands.transition(input));
+  }
+
   authorizeParticipantSession(input) {
     return this.#admissionCall(() => this.#gameAdmission.authorizeParticipant(input));
   }
@@ -738,6 +761,17 @@ export class ReleaseStore {
         'catalog_exhausted', 'database_unavailable', 'database_corrupt']
         .includes(code)) fail(code);
       fail('invalid_request');
+    }
+  }
+
+  #playbackCall(work) {
+    try { return work(); } catch (error) {
+      if (error instanceof ReleaseStoreError) throw error;
+      const code = error?.message;
+      if (['invalid_request', 'unauthorized', 'request_conflict', 'game_ended',
+        'command_not_found', 'operation_rejected', 'stale_claim', 'playback_capacity',
+        'transition_capacity', 'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
+      fail('database_unavailable');
     }
   }
 
@@ -1011,6 +1045,15 @@ export class ReleaseStore {
           gameId, sequence, revision, event.type, event.outcome,
           actorType, actorId, requestId, canonicalJson(event.detail ?? {}), now,
         );
+      }
+      const trackEvents = events.filter(({ type }) => type === 'track_requested');
+      if (trackEvents.length > 1) fail('operation_rejected');
+      if (trackEvents.length === 1) {
+        appendTrackPlaybackCommand(this.#database, {
+          gameId, requestId, trackUri: trackEvents[0].detail.trackUri, now,
+        });
+      } else if (lifecycle === 'completed') {
+        cancelOpenPlaybackCommands(this.#database, gameId, now, 'game_ended');
       }
       validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog });
       return Object.freeze(result);

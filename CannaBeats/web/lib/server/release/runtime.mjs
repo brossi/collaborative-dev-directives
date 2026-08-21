@@ -93,6 +93,8 @@ export function createReleaseRuntime({
     recoverHostGame(input) { return owner().recoverHostGame(input); },
     applyHostGameAction(input) { return owner().applyHostGameAction(input); },
     applyParticipantGameAction(input) { return owner().applyParticipantGameAction(input); },
+    nextPlaybackCommand(input) { return owner().nextPlaybackCommand(input); },
+    transitionPlaybackCommand(input) { return owner().transitionPlaybackCommand(input); },
   });
 }
 

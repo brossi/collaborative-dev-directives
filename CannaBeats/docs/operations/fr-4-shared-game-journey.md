@@ -22,10 +22,12 @@ nonterminal game now, but no command or child identity relies on that fact.
 Lifting the partial unique index in a future checkpoint can therefore permit
 multiple games without replacing the game model or its APIs.
 
-An unfinished game has no inactivity deadline. Its state and participant
-authority survive browser closure, device sleep, process restart, and a
-multi-day pause. Only explicit participant removal or terminal game lifecycle
-ends participant authority.
+An unfinished game has no inactivity or absolute-time deadline. Its state and
+participant authority survive browser closure, device sleep, process restart,
+and an indefinite pause. Only explicit participant removal or terminal game
+lifecycle ends participant authority. The participant cookie's rolling browser
+retention setting is not consulted as server authority and does not terminate
+the game.
 
 ## Fixed command contract
 

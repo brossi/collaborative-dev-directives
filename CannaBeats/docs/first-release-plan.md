@@ -1,6 +1,6 @@
 # CannaBeats first-release plan
 
-- **Status:** FR-0 through FR-4 complete; FR-5 is next
+- **Status:** FR-0 through FR-5 complete; FR-6 is next
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -282,9 +282,11 @@ Tasks:
   URLs; close admission on game start, expiry, revocation, or eight seats.
 - Exchange the fragment token and normalized display name for a Secure,
   HttpOnly, SameSite participant cookie. The server credential has no clock
-  expiry; the 400-day browser cookie retention is refreshed on authenticated
-  snapshots and is not an authority boundary. Reject empty, unsafe-length, and
-  duplicate normalized names.
+  expiry, whether absolute or inactivity-based. The browser receives a
+  persistent cookie with the browser-supported 400-day `Max-Age`, refreshed on
+  authenticated snapshots; that value controls local browser retention only
+  and is not a game timeout or an authority boundary. Reject empty,
+  unsafe-length, and duplicate normalized names.
 - Restore the same game-scoped seat after refresh, browser sleep, or a
   multi-day disconnect. Never use a display name as identity.
 - Provide bearer-authenticated Host recovery and game-scoped snapshots with
@@ -336,6 +338,11 @@ not duplicate an effect; and all participant responses remain reveal-safe.
 
 ### FR-5 — Local Spotify control and readiness
 
+**Status:** Complete; independently reviewed with no open P0/P1/P2.
+
+Checkpoint specification and closure matrix:
+[FR-5 local Spotify playback](operations/fr-5-local-spotify-playback.md).
+
 **Invariant:** CannaBeats can command only the installed Spotify application
 with explicit macOS consent and always reports a finite playback outcome
 without storing or transmitting Spotify credentials.
@@ -361,9 +368,10 @@ Tasks:
 Matrix focus: duplicate, reorder, replay, conflict, concurrency, dependency
 failure, response loss, restart, and command-generation fencing.
 
-Gate: a fake driver proves every finite outcome; a real Spotify Premium account
-proves play/pause/track selection after fresh consent and after app restart;
-the app bundle and server contain no Spotify OAuth credential.
+Gate: a fake driver proves every finite outcome, timeout serialization, strict
+native response handling, and foreground polling through sequential commands;
+the core and server contain no Spotify OAuth credential. FR-9 owns signed-app
+consent and restart proof because that evidence requires its production bundle.
 
 ### FR-6 — Authenticated shared-audio path
 
@@ -484,10 +492,14 @@ Tasks:
   in this release.
 - Test installation, first consent, upgrade-in-place, local device-key
   preservation, uninstall/reinstall behavior, and revocation on a second Mac.
+- With a real Spotify Premium desktop session, prove play-track, pause, resume,
+  verified readback, fresh Automation consent, and Host restart under the
+  signed production bundle identity.
 
 Gate: a clean supported Mac accepts the downloaded DMG through Gatekeeper,
 permissions remain associated with the durable code identity across an
-upgrade, and an incompatible build fails before operating a game.
+upgrade, real Spotify control and readback survive Host restart, and an
+incompatible build fails before operating a game.
 
 ### FR-10 — Production-shaped rehearsal and release closure
 
