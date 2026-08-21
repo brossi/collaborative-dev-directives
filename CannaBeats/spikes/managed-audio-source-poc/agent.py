@@ -114,6 +114,8 @@ class Handler(BaseHTTPRequestHandler):
             file_path = STATIC_DIRECTORY / "index.html"
         elif path == "/app.js":
             file_path = STATIC_DIRECTORY / "app.js"
+        elif path == "/protocol.mjs":
+            file_path = STATIC_DIRECTORY / "protocol.mjs"
         elif path == "/styles.css":
             file_path = STATIC_DIRECTORY / "styles.css"
         else:
