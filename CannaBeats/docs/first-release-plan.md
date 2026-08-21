@@ -174,6 +174,9 @@ before the next boundary-bearing checkpoint begins.
 **Invariant:** The new release can be developed and deployed without mutating
 the retained PoC checkpoint or relying on any destroyed rehearsal resource.
 
+Checkpoint specification and closure matrix:
+[FR-0 release baseline](operations/fr-0-release-baseline.md).
+
 Tasks:
 
 - Inventory reusable code and tests from the web game, State invariants,
