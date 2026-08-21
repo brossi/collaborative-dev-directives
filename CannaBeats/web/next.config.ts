@@ -8,6 +8,9 @@ const basePath = configuredBasePath
 const nextConfig: NextConfig = {
   basePath,
   output: "standalone",
+  outputFileTracingIncludes: {
+    "/api/ready": ["./data/catalog.json", "./data/catalog-manifest.json"],
+  },
   typescript: { tsconfigPath: "tsconfig.do.json" },
   async headers() {
     return [{

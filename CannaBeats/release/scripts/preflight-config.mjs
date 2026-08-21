@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 export const RELEASE_CONFIG = Object.freeze({
   CANNABEATS_PUBLIC_ORIGIN: 'https://play.cannabeats.social',
+  CANNABEATS_RUNTIME: 'unified',
   CANNABEATS_COMPOSE_PROJECT: 'cannabeats',
   CANNABEATS_APP_BUNDLE_ID: 'social.cannabeats.host',
   CANNABEATS_APPLE_TEAM_ID: '6Z9D2757FY',

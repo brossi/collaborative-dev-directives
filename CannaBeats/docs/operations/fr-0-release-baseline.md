@@ -11,6 +11,7 @@
 | Item | Fixed value |
 | --- | --- |
 | Public origin | `https://play.cannabeats.social` |
+| Runtime topology | `unified` |
 | macOS bundle identifier | `social.cannabeats.host` |
 | Apple Developer Team | `6Z9D2757FY` |
 | Minimum macOS | `14.2` |
@@ -148,7 +149,7 @@ beside an otherwise valid production contract and be consumed accidentally.
   CannaBeats/release/tests/preflight-config.test.mjs` passed 6/6;
   `node CannaBeats/release/scripts/preflight-config.mjs --env-file
   CannaBeats/release/config/production.env.example` returned
-  `release_configuration_valid (18 variables)`; `git diff --check` passed.
+  `release_configuration_valid (19 variables)`; `git diff --check` passed.
 - **Counterexample pass:** Altered values under valid names, stale unknown PoC
   keys, malicious value text, unreadable input, and symbolic indirection were
   checked. Exact-value validation rejects the first two, output redaction covers

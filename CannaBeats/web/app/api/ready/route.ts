@@ -4,11 +4,22 @@ import { database } from "../../../lib/server/database";
 import { observeRoute } from "../../../lib/server/observability";
 import { accessGatewayConfigured } from "../../../lib/server/access-gateway.mjs";
 import { stateGatewayConfigured } from "../../../lib/server/state-client.mjs";
+import {
+  releaseRuntime,
+  unifiedRuntimeEnabled,
+} from "../../../lib/server/release/runtime.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function getReadiness() {
+  if (unifiedRuntimeEnabled()) {
+    const readiness = releaseRuntime().readiness();
+    return Response.json(readiness, {
+      status: readiness.ready ? 200 : 503,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
   try {
     let persistenceReady = false;
     if (stateGatewayConfigured() && accessGatewayConfigured()) {

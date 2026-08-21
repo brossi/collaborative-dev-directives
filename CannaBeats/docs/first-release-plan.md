@@ -195,9 +195,14 @@ release command addresses a PoC hostname or destroyed Droplet.
 
 ### FR-1 — Consolidate the server and clean schema
 
+**Status:** Complete; independently reviewed with no open P0/P1/P2.
+
 **Invariant:** One Node owner atomically validates every accepted mutation and
 can reconstruct the exact authoritative game state from one restart-validated
 SQLite database.
+
+Checkpoint specification and closure matrix:
+[FR-1 consolidated owner](operations/fr-1-consolidated-owner.md).
 
 Tasks:
 
