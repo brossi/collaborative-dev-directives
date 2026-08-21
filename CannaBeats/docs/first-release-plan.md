@@ -459,6 +459,10 @@ diagnostics pass secret and privacy scans.
 
 ### FR-8 — Reproducible deployment, backup, and recovery
 
+**Status:** In progress. Split into FR-8.1 topology/secrets, FR-8.2 immutable
+release/rollback, and FR-8.3 backup/restore/operator boundaries. See
+[FR-8 reproducible deployment, backup, and recovery](operations/fr-8-reproducible-deployment.md).
+
 **Invariant:** A clean Droplet can be built, updated, backed up, restored, and
 rolled back from documented inputs without reconstructing secrets or state from
 memory.

@@ -1,0 +1,43 @@
+{
+	servers {
+		timeouts {
+			read_header 5s
+			idle 2m
+		}
+	}
+}
+
+{$CANNABEATS_PUBLIC_ORIGIN} {
+	log {
+		output stdout
+		format filter {
+			request>uri delete
+			request>headers delete
+			request>remote_ip ip_mask 16 32
+			request>client_ip ip_mask 16 32
+		}
+	}
+
+	@ordinary `!path_regexp('^/api/games/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/audio/sessions/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/ingest$')`
+	request_body @ordinary {
+		max_size 1MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	@retired path /api/audio-source /api/audio-stream /api/diagnostics/* /api/game /desktop
+	respond @retired `{"code":"not_found"}` 404
+
+	reverse_proxy web:3000 {
+		transport http {
+			dial_timeout 3s
+			response_header_timeout 30s
+		}
+	}
+}

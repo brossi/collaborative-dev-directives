@@ -1,0 +1,129 @@
+name: cannabeats
+
+services:
+  caddy:
+    image: ${CANNABEATS_CADDY_IMAGE:?exact Caddy image digest required}
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      web:
+        condition: service_healthy
+        restart: true
+    environment:
+      CANNABEATS_PUBLIC_ORIGIN: https://play.cannabeats.social
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    networks: [edge]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${CANNABEATS_CADDY_DATA_DIR:?Caddy data path required}:/data
+      - ${CANNABEATS_CADDY_CONFIG_DIR:?Caddy config path required}:/config
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    healthcheck:
+      test: [CMD, caddy, validate, --config, /etc/caddy/Caddyfile, --adapter, caddyfile]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    pids_limit: 128
+    mem_limit: 192m
+    cpus: 0.50
+    logging:
+      driver: local
+      options: { max-size: 10m, max-file: "3" }
+
+  web:
+    image: ${CANNABEATS_WEB_IMAGE:?exact web image digest required}
+    restart: unless-stopped
+    read_only: true
+    init: true
+    user: 10001:10001
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      relay:
+        condition: service_healthy
+        restart: true
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      CANNABEATS_PUBLIC_ORIGIN: https://play.cannabeats.social
+      CANNABEATS_RUNTIME: unified
+      CANNABEATS_DATABASE_PATH: /var/lib/cannabeats/cannabeats.sqlite3
+      CANNABEATS_RELAY_ORIGIN: http://relay:8080
+      CANNABEATS_RELAY_INGEST_SECRET_FILE: /run/secrets/cannabeats-relay-ingest
+      CANNABEATS_RELAY_LISTEN_SECRET_FILE: /run/secrets/cannabeats-relay-listen
+    expose: ["3000"]
+    networks: [edge, audio]
+    volumes:
+      - ${CANNABEATS_DATA_DIR:?SQLite data path required}:/var/lib/cannabeats
+      - ${CANNABEATS_RELAY_INGEST_TOKEN_HOST_FILE:?ingest token path required}:/run/secrets/cannabeats-relay-ingest:ro
+      - ${CANNABEATS_RELAY_LISTEN_TOKEN_HOST_FILE:?listen token path required}:/run/secrets/cannabeats-relay-listen:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/api/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    stop_grace_period: 20s
+    pids_limit: 192
+    mem_limit: 768m
+    cpus: 1.50
+    logging:
+      driver: local
+      options: { max-size: 10m, max-file: "3" }
+
+  relay:
+    image: ${CANNABEATS_RELAY_IMAGE:?exact relay image digest required}
+    restart: unless-stopped
+    read_only: true
+    init: true
+    user: 10001:10001
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      CANNABEATS_RELAY_PORT: "8080"
+      CANNABEATS_RELAY_INGEST_SECRET_FILE: /run/secrets/cannabeats-relay-ingest
+      CANNABEATS_RELAY_LISTEN_SECRET_FILE: /run/secrets/cannabeats-relay-listen
+    expose: ["8080"]
+    networks: [audio]
+    volumes:
+      - ${CANNABEATS_RELAY_INGEST_TOKEN_HOST_FILE:?ingest token path required}:/run/secrets/cannabeats-relay-ingest:ro
+      - ${CANNABEATS_RELAY_LISTEN_TOKEN_HOST_FILE:?listen token path required}:/run/secrets/cannabeats-relay-listen:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=8m
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:8080/health',{headers:{'x-cannabeats-audio-contract':'1'}}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    stop_grace_period: 5s
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.75
+    logging:
+      driver: local
+      options: { max-size: 5m, max-file: "2" }
+
+networks:
+  edge: {}
+  audio:
+    internal: true
