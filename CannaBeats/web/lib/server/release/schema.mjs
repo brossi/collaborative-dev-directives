@@ -44,39 +44,104 @@ CREATE TABLE host_devices (
   public_key TEXT NOT NULL UNIQUE CHECK (length(public_key) BETWEEN 32 AND 512),
   label TEXT NOT NULL CHECK (length(label) BETWEEN 1 AND 80),
   authorized_at INTEGER NOT NULL CHECK (authorized_at > 0),
+  last_proved_at INTEGER CHECK (last_proved_at IS NULL OR last_proved_at >= authorized_at),
   revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= authorized_at)
 );
 CREATE TRIGGER host_devices_identity_immutable BEFORE UPDATE ON host_devices
 WHEN NEW.device_id <> OLD.device_id OR NEW.public_key <> OLD.public_key
   OR NEW.authorized_at <> OLD.authorized_at
 BEGIN SELECT RAISE(ABORT, 'host device identity is immutable'); END;
+CREATE TRIGGER host_devices_immutable_delete BEFORE DELETE ON host_devices
+BEGIN SELECT RAISE(ABORT, 'host devices are retained'); END;
 
 CREATE TABLE host_enrollments (
   enrollment_hash TEXT PRIMARY KEY CHECK (length(enrollment_hash) = 64),
   issued_by_device_id TEXT REFERENCES host_devices(device_id) ON DELETE RESTRICT,
   issued_at INTEGER NOT NULL CHECK (issued_at > 0),
   expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
+  revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at),
   redeemed_at INTEGER,
   redeemed_device_id TEXT UNIQUE REFERENCES host_devices(device_id) ON DELETE RESTRICT,
   CHECK ((redeemed_at IS NULL) = (redeemed_device_id IS NULL)),
   CHECK (redeemed_at IS NULL OR redeemed_at >= issued_at)
 );
+CREATE TRIGGER host_enrollments_identity_immutable BEFORE UPDATE ON host_enrollments
+WHEN NEW.enrollment_hash <> OLD.enrollment_hash
+  OR NEW.issued_by_device_id IS NOT OLD.issued_by_device_id
+  OR NEW.issued_at <> OLD.issued_at OR NEW.expires_at <> OLD.expires_at
+BEGIN SELECT RAISE(ABORT, 'host enrollment identity is immutable'); END;
+CREATE TRIGGER host_enrollments_immutable_delete BEFORE DELETE ON host_enrollments
+BEGIN SELECT RAISE(ABORT, 'host enrollments are retained'); END;
 
 CREATE TABLE host_challenges (
   challenge_hash TEXT PRIMARY KEY CHECK (length(challenge_hash) = 64),
   device_id TEXT NOT NULL REFERENCES host_devices(device_id) ON DELETE RESTRICT,
   issued_at INTEGER NOT NULL CHECK (issued_at > 0),
   expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
-  consumed_at INTEGER CHECK (consumed_at IS NULL OR consumed_at >= issued_at)
+  revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at),
+  consumed_at INTEGER CHECK (consumed_at IS NULL OR consumed_at >= issued_at),
+  outcome TEXT CHECK (outcome IS NULL OR outcome IN ('accepted','rejected')),
+  CHECK ((consumed_at IS NULL) = (outcome IS NULL))
 );
+CREATE TRIGGER host_challenges_identity_immutable BEFORE UPDATE ON host_challenges
+WHEN NEW.challenge_hash <> OLD.challenge_hash OR NEW.device_id <> OLD.device_id
+  OR NEW.issued_at <> OLD.issued_at OR NEW.expires_at <> OLD.expires_at
+BEGIN SELECT RAISE(ABORT, 'host challenge identity is immutable'); END;
+CREATE TRIGGER host_challenges_immutable_delete BEFORE DELETE ON host_challenges
+BEGIN SELECT RAISE(ABORT, 'host challenges are retained'); END;
 
 CREATE TABLE host_sessions (
   session_hash TEXT PRIMARY KEY CHECK (length(session_hash) = 64),
   device_id TEXT NOT NULL REFERENCES host_devices(device_id) ON DELETE RESTRICT,
+  kind TEXT NOT NULL CHECK (kind IN ('application','web')),
+  parent_session_hash TEXT REFERENCES host_sessions(session_hash) ON DELETE RESTRICT,
   issued_at INTEGER NOT NULL CHECK (issued_at > 0),
   expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
-  revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at)
+  revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at),
+  CHECK ((kind='web') = (parent_session_hash IS NOT NULL))
 );
+CREATE TRIGGER host_sessions_identity_immutable BEFORE UPDATE ON host_sessions
+WHEN NEW.session_hash <> OLD.session_hash OR NEW.device_id <> OLD.device_id
+  OR NEW.kind <> OLD.kind OR NEW.parent_session_hash IS NOT OLD.parent_session_hash
+  OR NEW.issued_at <> OLD.issued_at OR NEW.expires_at <> OLD.expires_at
+BEGIN SELECT RAISE(ABORT, 'host session identity is immutable'); END;
+CREATE TRIGGER host_sessions_immutable_delete BEFORE DELETE ON host_sessions
+BEGIN SELECT RAISE(ABORT, 'host sessions are retained'); END;
+
+CREATE TABLE host_web_tickets (
+  ticket_hash TEXT PRIMARY KEY CHECK (length(ticket_hash) = 64),
+  device_id TEXT NOT NULL REFERENCES host_devices(device_id) ON DELETE RESTRICT,
+  application_session_hash TEXT NOT NULL REFERENCES host_sessions(session_hash) ON DELETE RESTRICT,
+  issued_at INTEGER NOT NULL CHECK (issued_at > 0),
+  expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
+  revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at),
+  consumed_at INTEGER CHECK (consumed_at IS NULL OR consumed_at >= issued_at),
+  web_session_hash TEXT UNIQUE REFERENCES host_sessions(session_hash) ON DELETE RESTRICT,
+  CHECK ((consumed_at IS NULL) = (web_session_hash IS NULL))
+);
+CREATE TRIGGER host_web_tickets_identity_immutable BEFORE UPDATE ON host_web_tickets
+WHEN NEW.ticket_hash <> OLD.ticket_hash OR NEW.device_id <> OLD.device_id
+  OR NEW.application_session_hash <> OLD.application_session_hash
+  OR NEW.issued_at <> OLD.issued_at OR NEW.expires_at <> OLD.expires_at
+BEGIN SELECT RAISE(ABORT, 'host web ticket identity is immutable'); END;
+CREATE TRIGGER host_web_tickets_immutable_delete BEFORE DELETE ON host_web_tickets
+BEGIN SELECT RAISE(ABORT, 'host web tickets are retained'); END;
+
+CREATE TABLE host_action_receipts (
+  actor_type TEXT NOT NULL CHECK (actor_type IN ('operator','device','enrollment','session')),
+  actor_id TEXT NOT NULL CHECK (length(actor_id) BETWEEN 1 AND 64),
+  request_id TEXT NOT NULL CHECK (length(request_id) = 36),
+  operation TEXT NOT NULL CHECK (length(operation) BETWEEN 1 AND 64),
+  request TEXT NOT NULL CHECK (json_valid(request)),
+  request_hash TEXT NOT NULL CHECK (length(request_hash) = 64),
+  result TEXT NOT NULL CHECK (json_valid(result)),
+  accepted_at INTEGER NOT NULL CHECK (accepted_at > 0),
+  PRIMARY KEY (actor_type,actor_id,request_id)
+);
+CREATE TRIGGER host_action_receipts_immutable_update BEFORE UPDATE ON host_action_receipts
+BEGIN SELECT RAISE(ABORT, 'host action receipts are immutable'); END;
+CREATE TRIGGER host_action_receipts_immutable_delete BEFORE DELETE ON host_action_receipts
+BEGIN SELECT RAISE(ABORT, 'host action receipts are immutable'); END;
 
 CREATE TABLE games (
   game_id TEXT PRIMARY KEY CHECK (length(game_id) = 36),

@@ -228,9 +228,16 @@ and response-loss tests pass with no open P0/P1.
 
 ### FR-2 — Host device enrollment and web-view session
 
+**Status:** Complete; independently reviewed with no open P0/P1/P2.
+
 **Invariant:** Only possession of an enrolled device key can create Host
 authority, and every code, challenge, session, and web ticket is single-purpose,
 bounded, revocable, and replay-safe.
+
+Checkpoint specification and closure matrix:
+[FR-2 Host authority](operations/fr-2-host-authority.md).
+Operator and device recovery procedure:
+[Host device enrollment and recovery](operations/host-device-recovery.md).
 
 Tasks:
 

@@ -43,6 +43,10 @@ export function createReleaseRuntime({
     initializationReason = finiteReason(error);
   }
   let closed = false;
+  const owner = () => {
+    if (closed || !store) throw new ReleaseStoreError(initializationReason ?? 'database_unavailable');
+    return store;
+  };
   return Object.freeze({
     health() {
       return Object.freeze({ ok: true, service: 'cannabeats' });
@@ -68,6 +72,15 @@ export function createReleaseRuntime({
       store?.close();
       store = null;
     },
+    issueEnrollment(input) { return owner().issueEnrollment(input); },
+    redeemEnrollment(input) { return owner().redeemEnrollment(input); },
+    issueHostChallenge(input) { return owner().issueHostChallenge(input); },
+    proveHostChallenge(input) { return owner().proveHostChallenge(input); },
+    issueHostWebTicket(input) { return owner().issueHostWebTicket(input); },
+    exchangeHostWebTicket(input) { return owner().exchangeHostWebTicket(input); },
+    revokeHostDevice(input) { return owner().revokeHostDevice(input); },
+    authorizeHostSession(input) { return owner().authorizeHostSession(input); },
+    listHostDevices(input) { return owner().listHostDevices(input); },
   });
 }
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { generateKeyPairSync, randomBytes, randomUUID, sign } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import {
   linkSync, mkdtempSync, readFileSync, rmSync, symlinkSync,
@@ -15,6 +15,7 @@ import {
   loadCatalogArtifacts, validateCatalogArtifacts,
 } from '../../web/lib/server/release/catalog.mjs';
 import { normalizeRules } from '../../web/lib/server/release/game-state.mjs';
+import { hostProofBytes } from '../../web/lib/server/release/host-authority.mjs';
 import { RELEASE_SCHEMA_DIGEST, canonicalSchemaDigest } from '../../web/lib/server/release/schema.mjs';
 import {
   MINIMUM_DATABASE_FREE_BYTES, ReleaseStoreError, createReleaseStore,
@@ -25,6 +26,8 @@ const catalog = loadCatalogArtifacts({
   catalogPath: new URL('../../web/data/catalog.json', import.meta.url),
   manifestPath: new URL('../../web/data/catalog-manifest.json', import.meta.url),
 });
+const testKeys = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+const testPublicKey = testKeys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64');
 
 afterEach(() => {
   while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
@@ -55,30 +58,37 @@ function firstLine(stream) {
   });
 }
 
-function insertHost(path, deviceId, now = 1_000) {
-  const database = new DatabaseSync(path);
-  try {
-    database.exec('PRAGMA foreign_keys=ON');
-    database.prepare(`INSERT INTO host_devices
-      (device_id,public_key,label,authorized_at) VALUES (?,?,?,?)`).run(
-      deviceId, `p256-public-key-${deviceId}`, 'Test Host', now,
-    );
-  } finally {
-    database.close();
-  }
-}
-
 function setupHostStore(options = {}) {
   const location = temporaryDatabase();
-  const first = createReleaseStore(location.path, { catalog, now: 1_000, ...options });
-  first.close();
+  const store = createReleaseStore(location.path, { catalog, now: 1_000, ...options });
   const hostDeviceId = randomUUID();
-  insertHost(location.path, hostDeviceId);
+  const enrollmentCode = Buffer.alloc(16, 7).toString('base64url');
+  store.issueEnrollment({ enrollmentCode, requestId: randomUUID(), now: 1_000 });
+  store.redeemEnrollment({
+    enrollmentCode, requestId: randomUUID(), deviceId: hostDeviceId,
+    publicKey: testPublicKey, label: 'Test Host', now: 1_001,
+  });
   return {
     ...location,
     hostDeviceId,
-    store: createReleaseStore(location.path, { catalog, now: 1_001, ...options }),
+    store,
   };
+}
+
+function hostSession(setup, now = 1_100) {
+  const challenge = randomBytes(24).toString('base64url');
+  setup.store.issueHostChallenge({
+    deviceId: setup.hostDeviceId, challenge, requestId: randomUUID(), now,
+  });
+  const token = randomBytes(24).toString('base64url');
+  setup.store.proveHostChallenge({
+    deviceId: setup.hostDeviceId, challenge, sessionToken: token,
+    requestId: randomUUID(), now: now + 1,
+    signature: sign('sha256', hostProofBytes({
+      challenge, deviceId: setup.hostDeviceId, origin: 'https://play.cannabeats.social',
+    }), testKeys.privateKey).toString('base64'),
+  });
+  return token;
 }
 
 function createGame(store, hostDeviceId, overrides = {}) {
@@ -266,6 +276,7 @@ test('reducers cannot retain a syntactically valid song absent from the bound ca
 
 test('mutation response loss replays before authority and stale-state checks after restart', () => {
   const setup = setupHostStore();
+  const applicationSessionToken = hostSession(setup);
   const created = createGame(setup.store, setup.hostDeviceId);
   const action = {
     gameId: created.gameId,
@@ -279,12 +290,11 @@ test('mutation response loss replays before authority and stale-state checks aft
     reducer: configureReducer,
   };
   const accepted = setup.store.mutateGame(action);
+  setup.store.revokeHostDevice({
+    applicationSessionToken, targetDeviceId: setup.hostDeviceId,
+    requestId: randomUUID(), now: 3_001,
+  });
   setup.store.close();
-
-  const database = new DatabaseSync(setup.path);
-  database.prepare('UPDATE host_devices SET revoked_at=? WHERE device_id=?')
-    .run(3_001, setup.hostDeviceId);
-  database.close();
   const reopened = createReleaseStore(setup.path, { catalog });
   assert.deepEqual(reopened.mutateGame(action), accepted);
   expectCode(() => reopened.mutateGame({

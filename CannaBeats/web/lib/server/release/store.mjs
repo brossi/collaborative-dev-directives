@@ -9,6 +9,7 @@ import {
 } from './canonical.mjs';
 import { finiteCatalogSong } from './catalog.mjs';
 import { createInitialGameState, normalizeRules, validateGameState } from './game-state.mjs';
+import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
 import {
   RELEASE_SCHEMA_DIGEST, RELEASE_SCHEMA_GENERATION, RELEASE_SCHEMA_SQL,
   canonicalSchemaDigest,
@@ -332,8 +333,7 @@ function validateIdentityColumns(database) {
 
 function validateDeferredTablesEmpty(database) {
   const tables = [
-    'host_enrollments', 'host_challenges', 'host_sessions', 'game_invites',
-    'participant_sessions', 'playback_commands', 'playback_command_transitions',
+    'game_invites', 'participant_sessions', 'playback_commands', 'playback_command_transitions',
     'audio_sessions', 'game_results', 'diagnostic_records',
   ];
   for (const table of tables) {
@@ -350,6 +350,7 @@ export function validateReleaseDatabase(database, { currentCatalog }) {
         || database.prepare('PRAGMA foreign_key_check').all().length) fail('database_corrupt');
     const catalogs = validateCatalogRows(database, currentCatalog);
     validateIdentityColumns(database);
+    validateHostAuthority(database);
     validateDeferredTablesEmpty(database);
     const games = database.prepare(`SELECT game_id,host_device_id,catalog_version,lifecycle,state,
       revision,participant_capacity,created_at,updated_at,terminal_at FROM games ORDER BY game_id`).all();
@@ -425,12 +426,23 @@ export class ReleaseStore {
   #catalog;
   #databasePath;
   #statfs;
+  #hostAuthority;
 
   constructor(database, { catalog, databasePath, statfs = statfsSync }) {
     this.#database = database;
     this.#catalog = catalog;
     this.#databasePath = databasePath;
     this.#statfs = statfs;
+    this.#hostAuthority = createHostAuthority(database, {
+      transaction: (work) => this.#transaction(() => {
+        try {
+          return work();
+        } catch (error) {
+          fail(error?.message ?? 'database_unavailable');
+        }
+      }),
+      validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+    });
   }
 
   close() {
@@ -479,6 +491,55 @@ export class ReleaseStore {
     if (!device || device.revoked_at !== null || (game && game.host_device_id !== deviceId)) {
       fail('unauthorized');
     }
+  }
+
+  #hostCall(work) {
+    try {
+      return work();
+    } catch (error) {
+      if (error instanceof ReleaseStoreError) throw error;
+      const code = error?.message;
+      if (['invalid_request', 'unauthorized', 'request_conflict', 'expired', 'already_used',
+        'capacity_reached', 'proof_rejected', 'database_unavailable', 'database_corrupt']
+        .includes(code)) fail(code);
+      fail('invalid_request');
+    }
+  }
+
+  issueEnrollment(input) {
+    return this.#hostCall(() => this.#hostAuthority.issueEnrollment(input));
+  }
+
+  redeemEnrollment(input) {
+    return this.#hostCall(() => this.#hostAuthority.redeemEnrollment(input));
+  }
+
+  issueHostChallenge(input) {
+    return this.#hostCall(() => this.#hostAuthority.issueChallenge(input));
+  }
+
+  proveHostChallenge(input) {
+    return this.#hostCall(() => this.#hostAuthority.proveChallenge(input));
+  }
+
+  issueHostWebTicket(input) {
+    return this.#hostCall(() => this.#hostAuthority.issueWebTicket(input));
+  }
+
+  exchangeHostWebTicket(input) {
+    return this.#hostCall(() => this.#hostAuthority.exchangeWebTicket(input));
+  }
+
+  revokeHostDevice(input) {
+    return this.#hostCall(() => this.#hostAuthority.revokeDevice(input));
+  }
+
+  authorizeHostSession(input) {
+    return this.#hostCall(() => this.#hostAuthority.authorizeSession(input));
+  }
+
+  listHostDevices(input) {
+    return this.#hostCall(() => this.#hostAuthority.listDevices(input));
   }
 
   createGame({ gameId, requestId, hostDeviceId, catalogVersion, rules, now }) {
