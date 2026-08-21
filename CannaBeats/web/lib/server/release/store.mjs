@@ -9,6 +9,7 @@ import {
 } from './canonical.mjs';
 import { finiteCatalogSong } from './catalog.mjs';
 import { createInitialGameState, normalizeRules, validateGameState } from './game-state.mjs';
+import { createGameAdmission, validateGameAdmission } from './game-admission.mjs';
 import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
 import {
   RELEASE_SCHEMA_DIGEST, RELEASE_SCHEMA_GENERATION, RELEASE_SCHEMA_SQL,
@@ -18,7 +19,8 @@ import {
 export const MINIMUM_DATABASE_FREE_BYTES = 256 * 1024 * 1024;
 const ownershipLocks = new WeakMap();
 const EVENT_TYPES = new Set([
-  'game_created', 'participant_joined', 'participant_removed', 'game_configured',
+  'game_created', 'invitation_issued', 'invitation_revoked', 'invitation_closed',
+  'participant_joined', 'participant_removed', 'game_configured',
   'game_started', 'track_requested', 'placement_locked', 'placement_retracted',
   'answer_revealed', 'round_advanced', 'track_skipped', 'game_completed',
   'game_abandoned', 'playback_requested', 'playback_claimed', 'playback_completed',
@@ -252,7 +254,9 @@ function validateEventsAndReceipts(database, game, catalogSongs) {
           ? (receipt.revision !== 0 || request.catalogVersion !== game.catalog_version
             || receipt.actor_type !== 'host' || receipt.actor_id !== game.host_device_id
             || canonicalJson(request.rules) !== canonicalJson(result.state?.rules))
-          : request.expectedRevision !== receipt.revision - 1)
+          : receipt.operation === 'join_participant'
+            ? request.expectedRevision !== null
+            : request.expectedRevision !== receipt.revision - 1)
         || resultKeys.join('\0') !== expectedResultKeys.sort().join('\0')
         || result.gameId !== game.game_id || result.revision !== receipt.revision) {
       fail('database_corrupt');
@@ -333,7 +337,7 @@ function validateIdentityColumns(database) {
 
 function validateDeferredTablesEmpty(database) {
   const tables = [
-    'game_invites', 'participant_sessions', 'playback_commands', 'playback_command_transitions',
+    'playback_commands', 'playback_command_transitions',
     'audio_sessions', 'game_results', 'diagnostic_records',
   ];
   for (const table of tables) {
@@ -351,6 +355,7 @@ export function validateReleaseDatabase(database, { currentCatalog }) {
     const catalogs = validateCatalogRows(database, currentCatalog);
     validateIdentityColumns(database);
     validateHostAuthority(database);
+    validateGameAdmission(database);
     validateDeferredTablesEmpty(database);
     const games = database.prepare(`SELECT game_id,host_device_id,catalog_version,lifecycle,state,
       revision,participant_capacity,created_at,updated_at,terminal_at FROM games ORDER BY game_id`).all();
@@ -376,8 +381,11 @@ export function validateReleaseDatabase(database, { currentCatalog }) {
       const activeParticipants = database.prepare(`SELECT participant_id,join_order
         FROM participants WHERE game_id=? AND removed_at IS NULL ORDER BY join_order`).all(game.game_id);
       if (activeParticipants.length > game.participant_capacity
-          || activeParticipants.some((participant, index) =>
-            participant.join_order !== index + 1 || !UUID_PATTERN.test(participant.participant_id))) {
+          || activeParticipants.some((participant) => participant.join_order < 1
+            || participant.join_order > game.participant_capacity
+            || !UUID_PATTERN.test(participant.participant_id))
+          || new Set(activeParticipants.map(({ join_order: order }) => order)).size
+            !== activeParticipants.length) {
         fail('database_corrupt');
       }
       validateEventsAndReceipts(database, game, catalogs.get(game.catalog_version));
@@ -427,6 +435,7 @@ export class ReleaseStore {
   #databasePath;
   #statfs;
   #hostAuthority;
+  #gameAdmission;
 
   constructor(database, { catalog, databasePath, statfs = statfsSync }) {
     this.#database = database;
@@ -442,6 +451,14 @@ export class ReleaseStore {
         }
       }),
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+    });
+    this.#gameAdmission = createGameAdmission(database, {
+      transaction: (work) => this.#transaction(() => {
+        try { return work(); } catch (error) { fail(error?.message ?? 'database_unavailable'); }
+      }),
+      validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
+      authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
+      retainHost: (input) => this.#hostAuthority.retainedApplicationSession(input),
     });
   }
 
@@ -542,7 +559,64 @@ export class ReleaseStore {
     return this.#hostCall(() => this.#hostAuthority.listDevices(input));
   }
 
-  createGame({ gameId, requestId, hostDeviceId, catalogVersion, rules, now }) {
+  #admissionCall(work) {
+    try { return work(); } catch (error) {
+      if (error instanceof ReleaseStoreError) throw error;
+      const code = error?.message;
+      if (['invalid_request', 'unauthorized', 'request_conflict', 'expired', 'already_used',
+        'capacity_reached', 'duplicate_name', 'game_started', 'game_ended', 'stale_state',
+        'database_unavailable', 'database_corrupt'].includes(code)) fail(code);
+      fail('invalid_request');
+    }
+  }
+
+  createAuthorizedGame({ applicationSessionToken, ...input }) {
+    const authority = this.#hostAuthority.retainedApplicationSession({ token: applicationSessionToken });
+    return this.createGame({
+      ...input, hostDeviceId: authority.deviceId,
+      _authorize: () => this.authorizeHostSession({
+        token: applicationSessionToken, now: input.now,
+      }),
+    });
+  }
+
+  issueGameInvitation(input) {
+    return this.#admissionCall(() => this.#gameAdmission.issueInvitation(input));
+  }
+
+  revokeGameInvitation(input) {
+    return this.#admissionCall(() => this.#gameAdmission.revokeInvitation(input));
+  }
+
+  admitParticipant(input) {
+    return this.#admissionCall(() => this.#gameAdmission.admitParticipant(input));
+  }
+
+  removeParticipant(input) {
+    return this.#admissionCall(() => this.#gameAdmission.removeParticipant(input));
+  }
+
+  terminateGame(input) {
+    return this.#admissionCall(() => this.#gameAdmission.terminateGame(input));
+  }
+
+  authorizeParticipantSession(input) {
+    return this.#admissionCall(() => this.#gameAdmission.authorizeParticipant(input));
+  }
+
+  participantSnapshot(input) {
+    return this.#admissionCall(() => this.#gameAdmission.participantSnapshot(input));
+  }
+
+  hostGameSnapshot(input) {
+    return this.#admissionCall(() => this.#gameAdmission.hostSnapshot(input));
+  }
+
+  recoverHostGame(input) {
+    return this.#admissionCall(() => this.#gameAdmission.hostRecovery(input));
+  }
+
+  createGame({ gameId, requestId, hostDeviceId, catalogVersion, rules, now, _authorize = null }) {
     requestValue(() => {
       assertUuid(gameId, 'invalid_request');
       assertUuid(requestId, 'invalid_request');
@@ -559,16 +633,32 @@ export class ReleaseStore {
     const requestHash = sha256(request);
     const identity = { gameId, actorType: 'host', actorId: hostDeviceId, requestId };
     return this.#transaction(() => {
+      const decision = this.#database.prepare(`SELECT request_hash,result
+        FROM game_create_decisions WHERE host_device_id=? AND requested_game_id=? AND request_id=?`)
+        .get(hostDeviceId, gameId, requestId);
+      if (decision && decision.request_hash !== requestHash) fail('request_conflict');
       const replay = this.#replayOrConflict(identity, operation, requestHash);
-      if (replay) return replay;
       validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog });
+      if (decision) return Object.freeze(assertCanonical(decision.result));
+      if (replay) return replay;
+      _authorize?.();
       if (catalogVersion !== this.#catalog.version) fail('catalog_incompatible');
       this.#authorizedHost(hostDeviceId);
       const existingId = this.#database.prepare('SELECT game_id FROM games WHERE game_id=?').get(gameId);
       if (existingId) fail('request_conflict');
       const active = this.#database.prepare(`SELECT game_id FROM games
         WHERE lifecycle IN ('lobby','active')`).get();
-      if (active) return Object.freeze({ code: 'active_game_exists', gameId: active.game_id });
+      if (active) {
+        const result = { code: 'active_game_exists', gameId: active.game_id };
+        this.#database.prepare(`INSERT INTO game_create_decisions
+          (host_device_id,requested_game_id,request_id,target_game_id,request,request_hash,result,accepted_at)
+          VALUES (?,?,?,?,?,?,?,?)`).run(
+          hostDeviceId, gameId, requestId, active.game_id, request, requestHash,
+          canonicalJson(result), now,
+        );
+        validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog });
+        return Object.freeze(result);
+      }
       const state = createInitialGameState({
         gameId, catalogVersion, rules: normalizedRules,
       });
@@ -692,6 +782,12 @@ export class ReleaseStore {
         gameId, game.revision,
       );
       if (updated.changes !== 1) fail('stale_state');
+      if (game.lifecycle === 'lobby' && lifecycle !== 'lobby') {
+        this.#database.prepare(`UPDATE game_invites SET closed_at=?,close_reason=?
+          WHERE game_id=? AND closed_at IS NULL`).run(
+          now, lifecycle === 'active' ? 'started' : 'revoked', gameId,
+        );
+      }
       this.#database.prepare(`INSERT INTO action_receipts
         (game_id,actor_type,actor_id,request_id,operation,request,request_hash,result,revision,accepted_at)
         VALUES (?,?,?,?,?,?,?,?,?,?)`).run(

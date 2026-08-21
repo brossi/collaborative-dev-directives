@@ -81,6 +81,16 @@ export function createReleaseRuntime({
     revokeHostDevice(input) { return owner().revokeHostDevice(input); },
     authorizeHostSession(input) { return owner().authorizeHostSession(input); },
     listHostDevices(input) { return owner().listHostDevices(input); },
+    createAuthorizedGame(input) { return owner().createAuthorizedGame(input); },
+    issueGameInvitation(input) { return owner().issueGameInvitation(input); },
+    revokeGameInvitation(input) { return owner().revokeGameInvitation(input); },
+    admitParticipant(input) { return owner().admitParticipant(input); },
+    removeParticipant(input) { return owner().removeParticipant(input); },
+    terminateGame(input) { return owner().terminateGame(input); },
+    authorizeParticipantSession(input) { return owner().authorizeParticipantSession(input); },
+    participantSnapshot(input) { return owner().participantSnapshot(input); },
+    hostGameSnapshot(input) { return owner().hostGameSnapshot(input); },
+    recoverHostGame(input) { return owner().recoverHostGame(input); },
   });
 }
 

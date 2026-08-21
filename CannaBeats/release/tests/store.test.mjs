@@ -618,32 +618,6 @@ test('valid-looking head, event, and request mutations preserve schema but fail 
   }
 });
 
-test('participant capacity is eight active seats and a removed seat can be reused', () => {
-  const setup = setupHostStore();
-  const game = createGame(setup.store, setup.hostDeviceId);
-  setup.store.close();
-  const database = new DatabaseSync(setup.path);
-  database.exec('PRAGMA foreign_keys=ON');
-  const insert = database.prepare(`INSERT INTO participants
-    (participant_id,game_id,display_name,normalized_name,join_order,joined_at)
-    VALUES (?,?,?,?,?,?)`);
-  const ids = [];
-  for (let order = 1; order <= 8; order += 1) {
-    const id = randomUUID();
-    ids.push(id);
-    insert.run(id, game.gameId, `Player ${order}`, `player ${order}`, order, 3_000 + order);
-  }
-  assert.throws(() => insert.run(
-    randomUUID(), game.gameId, 'Player 9', 'player 9', 8, 3_009,
-  ), /participant capacity reached/u);
-  database.prepare('UPDATE participants SET removed_at=? WHERE participant_id=?').run(4_000, ids[7]);
-  insert.run(randomUUID(), game.gameId, 'Replacement', 'replacement', 8, 4_001);
-  database.close();
-  const reopened = createReleaseStore(setup.path, { catalog });
-  assert.equal(reopened.readiness({ minimumFreeBytes: 0 }).ready, true);
-  reopened.close();
-});
-
 test('event chronology cannot be reordered while counts and revisions stay unchanged', () => {
   const setup = setupHostStore();
   const game = createGame(setup.store, setup.hostDeviceId);

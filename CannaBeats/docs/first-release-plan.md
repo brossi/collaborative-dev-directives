@@ -1,6 +1,6 @@
 # CannaBeats first-release plan
 
-- **Status:** Architecture baseline accepted; implementation not started
+- **Status:** FR-0 through FR-3 complete; FR-4 is next
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -18,8 +18,9 @@ A family host can install a signed and notarized CannaBeats application on a
 Mac, authorize that Mac with a one-time enrollment code, use the Spotify desktop
 application where they are already signed in to Premium, create and run one
 game, and share an expiring link with at most eight browser participants. Every
-participant hears the same relayed Spotify output and can refresh or briefly
-disconnect without duplicating a seat or corrupting the game.
+participant hears the same relayed Spotify output and can refresh, close the
+browser, or resume a multi-day game without duplicating a seat or corrupting
+the game.
 
 The release is complete when that journey succeeds on the production-shaped
 DigitalOcean deployment, the server and Mac both survive their defined restart
@@ -119,9 +120,10 @@ release inputs, not by copying retained application rows.
 | `host_challenges` | Hashed one-use signing challenge with two-minute expiry |
 | `host_sessions` | Hashed bounded bearer session derived from a valid device proof |
 | `games` | Immutable `game_id`, lifecycle, configuration, catalog version, revision, and one-active-game constraint |
+| `game_create_decisions` | Immutable replay evidence when a create request resolves to the already-active game without creating a row |
 | `game_invites` | Hashed join secret, game binding, six-hour expiry, capacity, and closed state |
 | `participants` | Game-scoped seat, normalized display name, and join order |
-| `participant_sessions` | Hashed HttpOnly-session token, game/seat binding, expiry, and revocation |
+| `participant_sessions` | Hashed HttpOnly-session token, game/seat binding, and explicit lifecycle revocation |
 | `action_receipts` | Actor/game/request identity, canonical request hash, and original finite result |
 | `game_events` | Ordered significant mutations sufficient for restart validation and reconstruction |
 | `playback_commands` | Game-scoped desired operation, track URI where required, claim generation, and finite outcome |
@@ -261,9 +263,15 @@ fail closed; a clean Mac can enroll without a browser account ceremony.
 
 ### FR-3 — Game invitation, participant admission, and recovery
 
+**Status:** Complete; independently reviewed with no open P0/P1/P2.
+
 **Invariant:** An unexpired game invitation creates at most one bounded seat
-per participant session, while refresh and reconnect restore that same seat
-without revealing hidden game data.
+whose participant credential remains valid for that game's lifecycle, while
+refresh and reconnect restore that same seat without revealing hidden game
+data.
+
+Checkpoint specification and closure matrix:
+[FR-3 game admission](operations/fr-3-game-admission.md).
 
 Tasks:
 
@@ -273,10 +281,15 @@ Tasks:
 - Create six-hour, multi-use, hashed game invitations and fragment-token join
   URLs; close admission on game start, expiry, revocation, or eight seats.
 - Exchange the fragment token and normalized display name for a Secure,
-  HttpOnly, SameSite participant cookie. Reject empty, unsafe-length, and
+  HttpOnly, SameSite participant cookie. The server credential has no clock
+  expiry; the 400-day browser cookie retention is refreshed on authenticated
+  snapshots and is not an authority boundary. Reject empty, unsafe-length, and
   duplicate normalized names.
-- Restore the same game-scoped seat after refresh, browser sleep, or short
-  disconnect. Never use a display name as identity.
+- Restore the same game-scoped seat after refresh, browser sleep, or a
+  multi-day disconnect. Never use a display name as identity.
+- Provide bearer-authenticated Host recovery and game-scoped snapshots with
+  the complete canonical roster/state; participant snapshots remain
+  answer-filtered until reveal.
 - Implement Host invitation regeneration/revocation, roster removal before
   start, lobby readiness, explicit game termination, and bounded abandoned-game
   recovery.

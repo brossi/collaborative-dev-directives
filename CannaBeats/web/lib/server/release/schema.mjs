@@ -172,21 +172,51 @@ WHEN NOT (
 )
 BEGIN SELECT RAISE(ABORT, 'game lifecycle transition is invalid'); END;
 
+CREATE TABLE game_create_decisions (
+  host_device_id TEXT NOT NULL REFERENCES host_devices(device_id) ON DELETE RESTRICT,
+  requested_game_id TEXT NOT NULL CHECK (length(requested_game_id) = 36),
+  request_id TEXT NOT NULL CHECK (length(request_id) = 36),
+  target_game_id TEXT NOT NULL REFERENCES games(game_id) ON DELETE RESTRICT,
+  request TEXT NOT NULL CHECK (json_valid(request)),
+  request_hash TEXT NOT NULL CHECK (length(request_hash) = 64),
+  result TEXT NOT NULL CHECK (json_valid(result)),
+  accepted_at INTEGER NOT NULL CHECK (accepted_at > 0),
+  PRIMARY KEY (host_device_id,requested_game_id,request_id)
+);
+CREATE TRIGGER game_create_decisions_immutable_update BEFORE UPDATE ON game_create_decisions
+BEGIN SELECT RAISE(ABORT, 'game create decisions are immutable'); END;
+CREATE TRIGGER game_create_decisions_immutable_delete BEFORE DELETE ON game_create_decisions
+BEGIN SELECT RAISE(ABORT, 'game create decisions are immutable'); END;
+
 CREATE TABLE game_invites (
   invite_hash TEXT PRIMARY KEY CHECK (length(invite_hash) = 64),
   game_id TEXT NOT NULL REFERENCES games(game_id) ON DELETE RESTRICT,
   issued_by_device_id TEXT NOT NULL REFERENCES host_devices(device_id) ON DELETE RESTRICT,
-  capacity INTEGER NOT NULL CHECK (capacity BETWEEN 1 AND 8),
+  capacity INTEGER NOT NULL CHECK (capacity = 8),
   issued_at INTEGER NOT NULL CHECK (issued_at > 0),
   expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
   closed_at INTEGER CHECK (closed_at IS NULL OR closed_at >= issued_at),
-  close_reason TEXT CHECK (close_reason IS NULL OR close_reason IN ('started','expired','revoked','capacity')),
+  close_reason TEXT CHECK (close_reason IS NULL OR close_reason IN ('started','revoked','capacity')),
   CHECK ((closed_at IS NULL) = (close_reason IS NULL))
 );
+CREATE UNIQUE INDEX game_invites_one_open ON game_invites(game_id) WHERE closed_at IS NULL;
+CREATE TRIGGER game_invites_identity_immutable BEFORE UPDATE ON game_invites
+WHEN NEW.invite_hash <> OLD.invite_hash OR NEW.game_id <> OLD.game_id
+  OR NEW.issued_by_device_id <> OLD.issued_by_device_id
+  OR NEW.capacity <> OLD.capacity OR NEW.issued_at <> OLD.issued_at
+  OR NEW.expires_at <> OLD.expires_at
+BEGIN SELECT RAISE(ABORT, 'game invitation identity is immutable'); END;
+CREATE TRIGGER game_invites_closure_immutable BEFORE UPDATE ON game_invites
+WHEN OLD.closed_at IS NOT NULL
+  AND (NEW.closed_at IS NOT OLD.closed_at OR NEW.close_reason IS NOT OLD.close_reason)
+BEGIN SELECT RAISE(ABORT, 'game invitation closure is immutable'); END;
+CREATE TRIGGER game_invites_immutable_delete BEFORE DELETE ON game_invites
+BEGIN SELECT RAISE(ABORT, 'game invitations are retained'); END;
 
 CREATE TABLE participants (
   participant_id TEXT PRIMARY KEY CHECK (length(participant_id) = 36),
   game_id TEXT NOT NULL REFERENCES games(game_id) ON DELETE RESTRICT,
+  admitted_invite_hash TEXT NOT NULL REFERENCES game_invites(invite_hash) ON DELETE RESTRICT,
   display_name TEXT NOT NULL CHECK (length(display_name) BETWEEN 1 AND 24),
   normalized_name TEXT NOT NULL CHECK (length(normalized_name) BETWEEN 1 AND 64),
   join_order INTEGER NOT NULL CHECK (join_order BETWEEN 1 AND 8),
@@ -202,16 +232,36 @@ CREATE TRIGGER participants_capacity_guard BEFORE INSERT ON participants
 WHEN (SELECT COUNT(*) FROM participants WHERE game_id=NEW.game_id AND removed_at IS NULL)
   >= (SELECT participant_capacity FROM games WHERE game_id=NEW.game_id)
 BEGIN SELECT RAISE(ABORT, 'participant capacity reached'); END;
+CREATE TRIGGER participants_identity_immutable BEFORE UPDATE ON participants
+WHEN NEW.participant_id <> OLD.participant_id OR NEW.game_id <> OLD.game_id
+  OR NEW.admitted_invite_hash <> OLD.admitted_invite_hash
+  OR NEW.display_name <> OLD.display_name OR NEW.normalized_name <> OLD.normalized_name
+  OR NEW.join_order <> OLD.join_order OR NEW.joined_at <> OLD.joined_at
+BEGIN SELECT RAISE(ABORT, 'participant identity is immutable'); END;
+CREATE TRIGGER participants_removal_immutable BEFORE UPDATE ON participants
+WHEN OLD.removed_at IS NOT NULL AND NEW.removed_at IS NOT OLD.removed_at
+BEGIN SELECT RAISE(ABORT, 'participant removal is immutable'); END;
+CREATE TRIGGER participants_immutable_delete BEFORE DELETE ON participants
+BEGIN SELECT RAISE(ABORT, 'participants are retained'); END;
 
 CREATE TABLE participant_sessions (
   session_hash TEXT PRIMARY KEY CHECK (length(session_hash) = 64),
   game_id TEXT NOT NULL,
   participant_id TEXT NOT NULL,
   issued_at INTEGER NOT NULL CHECK (issued_at > 0),
-  expires_at INTEGER NOT NULL CHECK (expires_at > issued_at),
   revoked_at INTEGER CHECK (revoked_at IS NULL OR revoked_at >= issued_at),
+  UNIQUE (game_id,participant_id),
   FOREIGN KEY (game_id,participant_id) REFERENCES participants(game_id,participant_id) ON DELETE RESTRICT
 );
+CREATE TRIGGER participant_sessions_identity_immutable BEFORE UPDATE ON participant_sessions
+WHEN NEW.session_hash <> OLD.session_hash OR NEW.game_id <> OLD.game_id
+  OR NEW.participant_id <> OLD.participant_id OR NEW.issued_at <> OLD.issued_at
+BEGIN SELECT RAISE(ABORT, 'participant session identity is immutable'); END;
+CREATE TRIGGER participant_sessions_revocation_immutable BEFORE UPDATE ON participant_sessions
+WHEN OLD.revoked_at IS NOT NULL AND NEW.revoked_at IS NOT OLD.revoked_at
+BEGIN SELECT RAISE(ABORT, 'participant session revocation is immutable'); END;
+CREATE TRIGGER participant_sessions_immutable_delete BEFORE DELETE ON participant_sessions
+BEGIN SELECT RAISE(ABORT, 'participant sessions are retained'); END;
 
 CREATE TABLE action_receipts (
   game_id TEXT NOT NULL REFERENCES games(game_id) ON DELETE RESTRICT,
@@ -236,7 +286,8 @@ CREATE TABLE game_events (
   sequence INTEGER NOT NULL CHECK (sequence > 0),
   revision INTEGER NOT NULL CHECK (revision >= 0),
   event_type TEXT NOT NULL CHECK (event_type IN (
-    'game_created','participant_joined','participant_removed','game_configured','game_started',
+    'game_created','invitation_issued','invitation_revoked','invitation_closed',
+    'participant_joined','participant_removed','game_configured','game_started',
     'track_requested','placement_locked','placement_retracted','answer_revealed',
     'round_advanced','track_skipped','game_completed','game_abandoned',
     'playback_requested','playback_claimed','playback_completed','playback_failed',
