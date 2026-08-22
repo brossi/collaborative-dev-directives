@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import {
   HOST_CLIENT_HEADER, HOST_COOKIE, challengeIssueRoute, enrollmentIssueRoute,
-  webTicketExchangeRoute, webTicketIssueRoute,
+  enrollmentRedeemRoute, webTicketExchangeRoute, webTicketIssueRoute,
 } from '../../web/lib/server/release/host-routes.mjs';
 import { ReleaseStoreError } from '../../web/lib/server/release/store.mjs';
 
@@ -110,4 +110,27 @@ test('route failures are finite and never reflect supplied or native content', a
   }), () => { throw new ReleaseStoreError('capacity_reached'); });
   assert.equal(finite.status, 429);
   assert.deepEqual(await finite.json(), { ok: false, code: 'capacity_reached' });
+});
+
+test('enrollment preserves branded finite errors across duplicated module identity', async () => {
+  const { ReleaseStoreError: DuplicatedReleaseStoreError } = await import(
+    '../../web/lib/server/release/store.mjs?duplicated-route-module=1'
+  );
+  const input = {
+    deviceId: randomUUID(), enrollmentCode: 'XyxodeQysWzf4WPf7MB0wxz',
+    label: 'Verifier Mac', publicKey: 'malformed', requestId: randomUUID(),
+  };
+  const finite = await enrollmentRedeemRoute(request(input), {
+    redeemEnrollment() { throw new DuplicatedReleaseStoreError('invalid_request'); },
+  });
+  assert.equal(finite.status, 400);
+  assert.deepEqual(await finite.json(), { ok: false, code: 'invalid_request' });
+
+  const unbranded = await enrollmentRedeemRoute(request(input), {
+    redeemEnrollment() {
+      throw Object.assign(new Error('caller-authored'), { code: 'invalid_request' });
+    },
+  });
+  assert.equal(unbranded.status, 503);
+  assert.deepEqual(await unbranded.json(), { ok: false, code: 'database_unavailable' });
 });

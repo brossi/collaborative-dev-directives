@@ -2,7 +2,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadCatalogArtifacts } from './catalog.mjs';
-import { ReleaseStoreError, createReleaseStore } from './store.mjs';
+import {
+  ReleaseStoreError, createReleaseStore, releaseStoreErrorCode,
+} from './store.mjs';
 
 const serverDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultCatalogPath = resolve(serverDirectory, '../../../data/catalog.json');
@@ -18,7 +20,7 @@ export function unifiedRuntimeEnabled(environment = process.env) {
 }
 
 function finiteReason(error) {
-  const candidate = error instanceof ReleaseStoreError ? error.code : error?.message;
+  const candidate = releaseStoreErrorCode(error) ?? error?.message;
   return FINITE_REASONS.has(candidate) ? candidate : 'database_unavailable';
 }
 

@@ -97,6 +97,17 @@ test('the standalone Next process owns unified health and readiness', async () =
     assert.equal(readiness.body.schemaGeneration, 1);
     assert.match(readiness.body.catalogVersion, /^sha256:[0-9a-f]{64}$/u);
 
+    const malformedRedeem = await fetch(`${origin}/api/host/enrollments/redeem`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        enrollmentCode: 'XyxodeQysWzf4WPf7MB0wxz', requestId: randomUUID(),
+        deviceId: randomUUID(), publicKey, label: 'Standalone Host',
+      }),
+    });
+    const malformedRedeemBody = await malformedRedeem.json();
+    assert.equal(malformedRedeem.status, 400, JSON.stringify(malformedRedeemBody));
+    assert.deepEqual(malformedRedeemBody, { ok: false, code: 'invalid_request' });
+
     const redeem = await fetch(`${origin}/api/host/enrollments/redeem`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

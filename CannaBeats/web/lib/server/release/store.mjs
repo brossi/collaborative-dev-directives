@@ -34,6 +34,7 @@ import {
 } from './schema.mjs';
 
 export const MINIMUM_DATABASE_FREE_BYTES = 256 * 1024 * 1024;
+const RELEASE_STORE_ERROR_BRAND = Symbol.for('social.cannabeats.release-store-error');
 const ownershipLocks = new WeakMap();
 const EVENT_TYPES = new Set([
   'game_created', 'invitation_issued', 'invitation_revoked', 'invitation_closed',
@@ -53,7 +54,13 @@ export class ReleaseStoreError extends Error {
     super(code);
     this.name = 'ReleaseStoreError';
     this.code = code;
+    Object.defineProperty(this, RELEASE_STORE_ERROR_BRAND, { value: true });
   }
+}
+
+export function releaseStoreErrorCode(error) {
+  return error?.[RELEASE_STORE_ERROR_BRAND] === true && typeof error.code === 'string'
+    ? error.code : null;
 }
 
 function fail(code) {

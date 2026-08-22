@@ -158,7 +158,7 @@ label and device ID.
 | Concurrency | `runtime` + `schema`: the one synchronous owner and `BEGIN IMMEDIATE` serialize checks; unique constraints decide final-slot and one-use races. |
 | Expiry | `runtime`: every operation uses expired when `now >= expires_at`; child expiry never exceeds its parent. |
 | Restart | `runtime`: the shared release validator reconstructs every Host authority and receipt/effect relationship before publishing readiness. |
-| Dependency failure | `runtime`: malformed DER/signature, crypto failure, unavailable database, and response loss map to finite results without partial authority. |
+| Dependency failure | `runtime`: malformed DER/signature, crypto failure, unavailable database, and response loss map to finite results without partial authority. Store errors carry a process-global symbol brand so production module duplication cannot collapse a finite result into `database_unavailable`; unbranded/native errors still fail closed. |
 | Corruption | `runtime`: canonical receipts, hashes, parentage, timestamps, consumption, session kinds, and revocation cascades fail closed. |
 | Capacity | `schema` + `runtime`: fixed device/code/challenge/session/ticket limits and receipt cleanup reserve are checked inside the mutation transaction. |
 
@@ -198,6 +198,16 @@ device; web sessions without an inverse ticket; unreceipted revocation; mutable
 last-proof projection; noncanonical uppercase UUIDs from Swift; and enrollment
 response loss that did not survive native-client restart.
 
+The 2026-08-22 production enrollment pass found and closed a duplicated-module
+error-identity counterexample: a malformed bearer was correctly rejected by
+the store, but the route did not recognize the other bundled instance's
+`ReleaseStoreError` and reported `database_unavailable`. The shared symbol
+brand now preserves the finite result across bundled module identity while an
+unbranded object with the same public-looking fields still fails closed. The
+native verifier also retains, persists through its injected restart boundary,
+and re-emits an enrollment code ending in `-` byte-for-byte; no client code
+trims or normalizes the field.
+
 The first independent audit found no P0, five P1, and one P2. The remediation
 canonicalizes SPKI bytes, resolves session-token collisions before verification,
 keeps revocation valid across expired challenges, requires exact nullable child
@@ -233,6 +243,15 @@ Local verification before audit:
 The narrow independent re-audit reran all six original counterexamples and
 found no directly introduced regression. Final open findings: P0 0, P1 0,
 P2 0.
+
+The 2026-08-22 production correction was verified with:
+
+- `node --test release/tests/host-routes.test.mjs release/tests/runtime.test.mjs release/tests/operator-routes.test.mjs release/tests/audio-routes.test.mjs release/tests/playback-routes.test.mjs release/tests/game-admission-routes.test.mjs release/tests/game-journey-routes.test.mjs release/tests/host-experience-routes.test.mjs` — 32 passed.
+- `node --test release/tests/*.test.mjs` — passed.
+- `node --test release/tests/next-runtime.integration.mjs` — the standalone production build passed its complete integration, including the observed malformed enrollment.
+- `swift run CannaBeatsHostCoreVerifier` — 23 passed, including terminal-hyphen retention across restart/replay.
+- `npm test` in `web/` — production build and 333 tests passed.
+- `npm run lint` in `web/` and `git diff --check` — passed.
 
 ## Deferrals
 

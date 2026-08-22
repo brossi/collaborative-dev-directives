@@ -1,6 +1,6 @@
 import { PARTICIPANT_COOKIE, PARTICIPANT_COOKIE_MAX_AGE } from './game-admission-routes.mjs';
 import { HOST_COOKIE } from './host-routes.mjs';
-import { ReleaseStoreError } from './store.mjs';
+import { ReleaseStoreError, releaseStoreErrorCode } from './store.mjs';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const BODY_TIMEOUT_MS = 2_000;
@@ -62,7 +62,7 @@ async function body(request) {
       chunks.push(value);
     }
   } catch (error) {
-    if (error instanceof ReleaseStoreError) throw error;
+    if (releaseStoreErrorCode(error) !== null) throw error;
     throw new ReleaseStoreError('invalid_request');
   } finally {
     clearTimeout(deadline);
@@ -145,7 +145,7 @@ export async function gameActionRoute(request, runtime, gameId, now = Date.now()
     }
     throw new ReleaseStoreError('unauthorized');
   } catch (error) {
-    const candidate = error instanceof ReleaseStoreError ? error.code : 'database_unavailable';
+    const candidate = releaseStoreErrorCode(error) ?? 'database_unavailable';
     return failure(FINITE_CODES.has(candidate) ? candidate : 'database_unavailable');
   }
 }

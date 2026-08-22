@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { lstatSync, readFileSync } from 'node:fs';
 
-import { ReleaseStoreError } from './store.mjs';
+import { ReleaseStoreError, releaseStoreErrorCode } from './store.mjs';
 
 const MAX_BODY_BYTES = 4 * 1024;
 const BODY_TIMEOUT_MS = 2_000;
@@ -49,7 +49,7 @@ async function body(request) {
       chunks.push(Buffer.from(value));
     }
   } catch (error) {
-    if (error instanceof ReleaseStoreError) throw error;
+    if (releaseStoreErrorCode(error) !== null) throw error;
     throw new ReleaseStoreError('invalid_request');
   } finally { clearTimeout(deadline); }
   try {
@@ -88,7 +88,7 @@ async function route(request, tokenProvider, work) {
     authorize(request, tokenProvider);
     return success(await work());
   } catch (error) {
-    const code = error instanceof ReleaseStoreError ? error.code : error?.message;
+    const code = releaseStoreErrorCode(error) ?? 'operator_unavailable';
     return failure(code);
   }
 }

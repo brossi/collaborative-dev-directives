@@ -41,10 +41,17 @@ actor LostResponseTransport {
 
 final class PendingEnrollmentMemory: @unchecked Sendable {
     private let lock = NSLock()
-    private var value: HostPendingEnrollment?
+    private var value: Data?
 
-    func load() -> HostPendingEnrollment? { lock.withLock { value } }
-    func save(_ intent: HostPendingEnrollment) { lock.withLock { value = intent } }
+    func load() throws -> HostPendingEnrollment? {
+        try lock.withLock {
+            guard let value else { return nil }
+            return try JSONDecoder().decode(HostPendingEnrollment.self, from: value)
+        }
+    }
+    func save(_ intent: HostPendingEnrollment) throws {
+        try lock.withLock { value = try JSONEncoder().encode(intent) }
+    }
     func clear() { lock.withLock { value = nil } }
 }
 
@@ -109,14 +116,15 @@ func makeClient() -> HostAuthorityClient { HostAuthorityClient(
     },
     loadSession: { nil },
     saveSession: { _ in },
-    loadPendingEnrollment: { pendingEnrollment.load() },
-    savePendingEnrollment: { pendingEnrollment.save($0) },
+    loadPendingEnrollment: { try pendingEnrollment.load() },
+    savePendingEnrollment: { try pendingEnrollment.save($0) },
     clearPendingEnrollment: { pendingEnrollment.clear() }
 ) }
 let firstClient = makeClient()
+let terminalHyphenEnrollmentCode = "XyxodeQysWzf4WPf7MB0wxz-"
 do {
     _ = try await firstClient.enroll(
-        code: "ABCDEFGHIJKLMNOPQRSTUV", label: "Verifier Mac"
+        code: terminalHyphenEnrollmentCode, label: "Verifier Mac"
     )
     preconditionFailure("the simulated response loss should escape both immediate retries")
 } catch HostAuthorityClientError.transport {
@@ -129,6 +137,8 @@ precondition(retried.count == 3)
 precondition(retried.allSatisfy { $0 == retried[0] })
 let wireBody = String(decoding: retried[0], as: UTF8.self)
 precondition(wireBody.contains(#""deviceId":"12345678-1234-4234-8234-123456789abc""#))
+let enrollmentWire = try JSONSerialization.jsonObject(with: retried[0]) as! [String: Any]
+precondition(enrollmentWire["enrollmentCode"] as? String == terminalHyphenEnrollmentCode)
 
 let proofTransport = ProofLostResponseTransport()
 let pendingProof = PendingProofMemory()

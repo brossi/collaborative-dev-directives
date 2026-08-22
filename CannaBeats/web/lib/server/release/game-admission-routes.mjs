@@ -1,4 +1,4 @@
-import { ReleaseStoreError } from './store.mjs';
+import { ReleaseStoreError, releaseStoreErrorCode } from './store.mjs';
 import { HOST_COOKIE } from './host-routes.mjs';
 
 const MAX_BODY_BYTES = 16 * 1024;
@@ -59,7 +59,7 @@ async function body(request) {
       chunks.push(value);
     }
   } catch (error) {
-    if (error instanceof ReleaseStoreError) throw error;
+    if (releaseStoreErrorCode(error) !== null) throw error;
     throw new ReleaseStoreError('invalid_request');
   } finally {
     clearTimeout(deadline);
@@ -113,7 +113,7 @@ async function route(work) {
   try {
     return await work();
   } catch (error) {
-    const candidate = error instanceof ReleaseStoreError ? error.code : 'database_unavailable';
+    const candidate = releaseStoreErrorCode(error) ?? 'database_unavailable';
     return failure(FINITE_CODES.has(candidate) ? candidate : 'database_unavailable');
   }
 }
