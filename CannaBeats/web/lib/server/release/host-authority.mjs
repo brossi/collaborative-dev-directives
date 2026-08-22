@@ -471,7 +471,42 @@ export function createHostAuthority(database, {
           WHERE issued_by_device_id=? AND revoked_at IS NULL AND redeemed_at IS NULL`).run(
           now, targetDeviceId,
         );
-        onDeviceRevoked({ deviceId: targetDeviceId, now });
+        onDeviceRevoked({ deviceId: targetDeviceId, requestId, now });
+        const result = { code: 'device_revoked', deviceId: targetDeviceId, revokedAt: now };
+        storeReceipt(database, identity, operation, requestText, result, now);
+        validate();
+        return Object.freeze(result);
+      });
+    },
+
+    operatorRevokeDevice({ targetDeviceId, requestId, now }) {
+      assertUuid(targetDeviceId, 'invalid_request');
+      assertUuid(requestId, 'invalid_request');
+      assertTimestamp(now, 'invalid_request');
+      const operation = 'revoke_device';
+      const identity = { actorType: 'operator', actorId: 'operator', requestId };
+      const requestText = canonicalRequest({ operation, requestId, targetDeviceId });
+      return accepted(() => {
+        const prior = replay(database, identity, operation, sha256(requestText));
+        if (prior) return prior;
+        ensureReceiptCapacity(database, true);
+        const target = database.prepare('SELECT revoked_at FROM host_devices WHERE device_id=?')
+          .get(targetDeviceId);
+        if (!target) throw new Error('unauthorized');
+        if (target.revoked_at !== null) throw new Error('already_used');
+        database.prepare('UPDATE host_devices SET revoked_at=? WHERE device_id=?')
+          .run(now, targetDeviceId);
+        database.prepare(`UPDATE host_sessions SET revoked_at=?
+          WHERE device_id=? AND revoked_at IS NULL`).run(now, targetDeviceId);
+        database.prepare(`UPDATE host_challenges SET revoked_at=?
+          WHERE device_id=? AND revoked_at IS NULL`).run(now, targetDeviceId);
+        database.prepare(`UPDATE host_web_tickets SET revoked_at=?
+          WHERE device_id=? AND revoked_at IS NULL`).run(now, targetDeviceId);
+        database.prepare(`UPDATE host_enrollments SET revoked_at=?
+          WHERE issued_by_device_id=? AND revoked_at IS NULL AND redeemed_at IS NULL`).run(
+          now, targetDeviceId,
+        );
+        onDeviceRevoked({ deviceId: targetDeviceId, requestId, now });
         const result = { code: 'device_revoked', deviceId: targetDeviceId, revokedAt: now };
         storeReceipt(database, identity, operation, requestText, result, now);
         validate();
@@ -805,8 +840,9 @@ export function validateHostAuthority(database) {
         expires_at: expires, revoked_at: revoked }) => id === row.actor_id && kind === 'application'
         && issued <= row.accepted_at && row.accepted_at < expires
         && (revoked === null || row.accepted_at <= revoked));
-      effect = row.actor_type === 'device' && UUID_PATTERN.test(row.actor_id)
-        && Boolean(issuerSession && device && device.revoked_at === row.accepted_at
+      const authorizedActor = row.actor_type === 'operator' && row.actor_id === 'operator'
+        || row.actor_type === 'device' && UUID_PATTERN.test(row.actor_id) && issuerSession;
+      effect = Boolean(authorizedActor && device && device.revoked_at === row.accepted_at
           && result.deviceId === request.targetDeviceId && result.revokedAt === row.accepted_at);
     }
     if (!effect) throw new Error('database_corrupt');

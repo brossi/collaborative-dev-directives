@@ -60,12 +60,14 @@ services:
       CANNABEATS_RELAY_ORIGIN: http://relay:8080
       CANNABEATS_RELAY_INGEST_SECRET_FILE: /run/secrets/cannabeats-relay-ingest
       CANNABEATS_RELAY_LISTEN_SECRET_FILE: /run/secrets/cannabeats-relay-listen
+      CANNABEATS_OPERATOR_TOKEN_FILE: /run/secrets/cannabeats-operator
     expose: ["3000"]
     networks: [edge, audio]
     volumes:
       - ${CANNABEATS_DATA_DIR:?SQLite data path required}:/var/lib/cannabeats
       - ${CANNABEATS_RELAY_INGEST_TOKEN_HOST_FILE:?ingest token path required}:/run/secrets/cannabeats-relay-ingest:ro
       - ${CANNABEATS_RELAY_LISTEN_TOKEN_HOST_FILE:?listen token path required}:/run/secrets/cannabeats-relay-listen:ro
+      - ${CANNABEATS_OPERATOR_TOKEN_HOST_FILE:?operator token path required}:/run/secrets/cannabeats-operator:ro
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=32m
     healthcheck:

@@ -130,6 +130,40 @@ function requestText({ identity, operation, expectedRevision, payload }) {
   });
 }
 
+export function abandonGamesForRevokedHost(database, {
+  deviceId, requestId, now, onGameTerminal = () => {},
+}) {
+  assertUuid(deviceId, 'invalid_request');
+  assertUuid(requestId, 'invalid_request');
+  assertTimestamp(now, 'invalid_request');
+  const games = database.prepare(`SELECT game_id,host_device_id,lifecycle,state,revision
+    FROM games WHERE host_device_id=? AND lifecycle IN ('lobby','active')
+    ORDER BY created_at`).all(deviceId);
+  for (const game of games) {
+    const identity = {
+      actorId: deviceId, actorType: 'system', gameId: game.game_id, requestId,
+    };
+    const operation = 'terminate_game';
+    accept(database, {
+      game, identity, operation,
+      requestText: requestText({
+        identity, operation, expectedRevision: game.revision, payload: {},
+      }),
+      nextState: parsed(game.state), lifecycle: 'abandoned', now,
+      events: [{ type: 'game_abandoned', detail: {} }],
+      value: { code: 'game_terminated' },
+      effect: () => {
+        database.prepare(`UPDATE game_invites
+          SET closed_at=?,close_reason='revoked' WHERE game_id=? AND closed_at IS NULL`).run(
+          now, game.game_id,
+        );
+        onGameTerminal({ gameId: game.game_id, now });
+      },
+    });
+  }
+  return games.length;
+}
+
 export function createGameAdmission(database, {
   transaction, validate, authorizeHost, retainHost, onGameTerminal = () => {},
 }) {

@@ -7,11 +7,13 @@ Keychain.
 
 ## Add the first Mac
 
-1. On the server, create a random URL-safe enrollment code and invoke the
-   `host-admin.mjs bootstrap-enrollment` command with the release database,
-   catalog, manifest, a fresh request UUID, and `--code-fd 0`; provide the code
-   on standard input. Do not put the code in command arguments, shell history,
-   documentation, or logs.
+1. On the server, create a random URL-safe enrollment code and invoke
+   `/opt/cannabeats/operator/release/scripts/operator.mjs
+   bootstrap-enrollment` with a fresh request UUID and `--code-fd`; provide the
+   code through that already-open descriptor. Do not put the code in command
+   arguments, shell history, documentation, or logs. The CLI reads its
+   automatically managed server credential itself; there is no operator token
+   to copy or enter.
 2. Copy the code directly into the CannaBeats Host enrollment screen within 15
    minutes. The Mac creates its local key before redeeming the code; no browser
    account ceremony is involved.
@@ -26,7 +28,10 @@ device screen. Share it directly with the person enrolling the other Mac.
 From a remaining authorized Host, open the device list, identify the old Mac by
 its label and authorization time, and revoke it. Revocation immediately ends
 that device's application sessions, web sessions, pending challenges, web
-tickets, and unredeemed enrollment codes it issued.
+tickets, and unredeemed enrollment codes it issued. If that Mac owns an
+unfinished game, the same transaction retains a system termination receipt and
+abandons the game; participants lose authority and the one-game slot becomes
+available. Finish the game first when its state should be preserved.
 
 Do not erase local CannaBeats authority merely to troubleshoot connectivity.
 Local reset deletes the private signing key, device ID, and application session
@@ -38,8 +43,10 @@ device.
 
 Use server access to create one new operator bootstrap enrollment exactly as in
 “Add the first Mac,” then enroll a clean Mac. Once it has proved its key, inspect
-the device list and revoke every lost device. No database edit, emailed link,
-recovered private key, or temporary Host password is required.
+the device list and revoke every lost device. The same revocation rule safely
+abandons any unfinished game owned by a lost device. No database edit, emailed
+link, recovered private key, copied operator token, or temporary Host password
+is required.
 
 If the server database is unavailable or fails integrity validation, stop. Do
 not bypass validation or manually insert a device. Restore the database using

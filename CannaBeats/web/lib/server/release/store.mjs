@@ -17,7 +17,9 @@ import {
   createAudioSessions, endOpenAudioSession, interruptAudioSessionsOnStartup,
   validateAudioSessions,
 } from './audio-sessions.mjs';
-import { createGameAdmission, validateGameAdmission } from './game-admission.mjs';
+import {
+  abandonGamesForRevokedHost, createGameAdmission, validateGameAdmission,
+} from './game-admission.mjs';
 import {
   createDiagnostics, purgeExpiredDiagnostics, validateDiagnostics,
 } from './diagnostics.mjs';
@@ -559,12 +561,14 @@ export class ReleaseStore {
         }
       }),
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
-      onDeviceRevoked: ({ deviceId, now }) => {
-        const games = this.#database.prepare(`SELECT game_id FROM games
-          WHERE host_device_id=? AND lifecycle IN ('lobby','active')`).all(deviceId);
-        for (const game of games) {
-          endOpenAudioSession(this.#database, game.game_id, now, 'host_revoked');
-        }
+      onDeviceRevoked: ({ deviceId, requestId, now }) => {
+        abandonGamesForRevokedHost(this.#database, {
+          deviceId, requestId, now,
+          onGameTerminal: ({ gameId }) => {
+            cancelOpenPlaybackCommands(this.#database, gameId, now, 'game_ended');
+            endOpenAudioSession(this.#database, gameId, now, 'host_revoked');
+          },
+        });
       },
     });
     this.#gameAdmission = createGameAdmission(database, {
@@ -699,6 +703,10 @@ export class ReleaseStore {
     return this.#hostCall(() => this.#hostAuthority.revokeDevice(input));
   }
 
+  operatorRevokeHostDevice(input) {
+    return this.#hostCall(() => this.#hostAuthority.operatorRevokeDevice(input));
+  }
+
   authorizeHostSession(input) {
     return this.#hostCall(() => this.#hostAuthority.authorizeSession(input));
   }
@@ -799,6 +807,42 @@ export class ReleaseStore {
 
   exportDiagnostics(input) {
     return this.#diagnosticCall(() => this.#diagnostics.exportDiagnostics(input));
+  }
+
+  operatorPurgeDiagnostics(input) {
+    return this.#diagnosticCall(() => this.#diagnostics.purge(input));
+  }
+
+  operatorStatus() {
+    validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog });
+    const activeGames = this.#database.prepare(`SELECT COUNT(*) AS count FROM games
+      WHERE lifecycle IN ('lobby','active')`).get().count;
+    const activeDevices = this.#database.prepare(`SELECT COUNT(*) AS count FROM host_devices
+      WHERE revoked_at IS NULL`).get().count;
+    const diagnostics = this.#database.prepare(
+      'SELECT COUNT(*) AS count FROM diagnostic_records',
+    ).get().count;
+    const ready = this.readiness();
+    return Object.freeze({
+      code: 'operator_status', ready: ready.ready, reason: ready.reason,
+      schemaGeneration: ready.schemaGeneration ?? null,
+      catalogVersion: ready.catalogVersion ?? null,
+      activeGame: activeGames === 1, activeDevices, diagnostics,
+    });
+  }
+
+  operatorActiveGameSummary() {
+    validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog });
+    const rows = this.#database.prepare(`SELECT lifecycle,state,revision FROM games
+      WHERE lifecycle IN ('lobby','active') ORDER BY created_at`).all();
+    if (rows.length === 0) return Object.freeze({ code: 'active_game_absent' });
+    if (rows.length !== 1) fail('database_corrupt');
+    const state = assertCanonical(rows[0].state);
+    return Object.freeze({
+      code: 'active_game_summary', lifecycle: rows[0].lifecycle,
+      revision: rows[0].revision, phase: state.phase, round: state.round,
+      players: state.players.length,
+    });
   }
 
   authorizeParticipantSession(input) {

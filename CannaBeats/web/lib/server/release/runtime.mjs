@@ -79,6 +79,7 @@ export function createReleaseRuntime({
     issueHostWebTicket(input) { return owner().issueHostWebTicket(input); },
     exchangeHostWebTicket(input) { return owner().exchangeHostWebTicket(input); },
     revokeHostDevice(input) { return owner().revokeHostDevice(input); },
+    operatorRevokeHostDevice(input) { return owner().operatorRevokeHostDevice(input); },
     authorizeHostSession(input) { return owner().authorizeHostSession(input); },
     listHostDevices(input) { return owner().listHostDevices(input); },
     createAuthorizedGame(input) { return owner().createAuthorizedGame(input); },
@@ -107,6 +108,9 @@ export function createReleaseRuntime({
     },
     recordDiagnostic(input) { return owner().recordDiagnostic(input); },
     exportDiagnostics(input) { return owner().exportDiagnostics(input); },
+    operatorPurgeDiagnostics(input) { return owner().operatorPurgeDiagnostics(input); },
+    operatorStatus() { return owner().operatorStatus(); },
+    operatorActiveGameSummary() { return owner().operatorActiveGameSummary(); },
   });
 }
 

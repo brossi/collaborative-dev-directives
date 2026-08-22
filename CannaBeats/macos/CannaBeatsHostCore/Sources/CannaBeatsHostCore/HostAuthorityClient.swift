@@ -9,12 +9,13 @@ public enum HostAuthorityClientError: Error, Equatable {
     case transport
 }
 
-public struct HostDevice: Codable, Equatable, Sendable {
+public struct HostDevice: Codable, Equatable, Identifiable, Sendable {
     public let deviceId: UUID
     public let label: String
     public let authorizedAt: Int64
     public let lastProvedAt: Int64?
     public let revokedAt: Int64?
+    public var id: UUID { deviceId }
 }
 
 public struct HostEnrollment: Codable, Equatable, Sendable {

@@ -1,45 +1,29 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import {
-  closeSync, existsSync, lstatSync, openSync, readFileSync, readdirSync,
+  existsSync, lstatSync, readFileSync, readdirSync,
 } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import { DEPLOYMENT_PATHS, validateDeploymentEnvironment } from './deployment-config.mjs';
 import {
+  PRODUCTION_BACKUP_ROOT, PRODUCTION_INGEST_TOKEN, PRODUCTION_LISTEN_TOKEN,
+  createBackup, retainedBackupReleaseIds,
+} from './backup.mjs';
+import { withOperationsLock } from './operations-lock.mjs';
+import {
   MAX_CADDYFILE_BYTES, MAX_COMPOSE_BYTES, MAX_RELEASE_MANIFEST_BYTES,
-  ReleaseStateError, deployRelease, reconcileRelease, rollbackRelease,
+  ReleaseStateError, deployRelease, pruneReleaseRecords, reconcileRelease, rollbackRelease,
 } from './release-state.mjs';
 
-const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 export const PRODUCTION_RELEASE_ROOT = '/opt/cannabeats/releases';
 export const PRODUCTION_DATABASE = '/var/lib/cannabeats/cannabeats.sqlite3';
-export const PRODUCTION_LOCK = '/run/lock/cannabeats-operations.lock';
-const BACKUP_SCRIPT = join(scriptDirectory, 'backup.mjs');
-
-export async function withOperationsLock(work, {
-  lockPath = PRODUCTION_LOCK, open = openSync, close = closeSync, spawn = spawnSync,
-} = {}) {
-  let fd;
-  try {
-    fd = open(lockPath, 'a', 0o600);
-    const result = spawn('flock', ['--nonblock', '3'], {
-      stdio: ['ignore', 'ignore', 'ignore', fd], timeout: 5_000,
-    });
-    if (result.status !== 0) throw new ReleaseStateError(
-      result.status === 1 ? 'busy' : 'operations_unavailable',
-    );
-    return await work();
-  } catch (error) {
-    if (error instanceof ReleaseStateError) throw error;
-    throw new ReleaseStateError('operations_unavailable');
-  } finally {
-    if (fd !== undefined) close(fd);
-  }
-}
+export const PRODUCTION_RESTORE_JOURNAL = '/var/lib/cannabeats/.restore-journal.json';
+export { PRODUCTION_LOCK, withOperationsLock } from './operations-lock.mjs';
 
 export function readSchemaGeneration(path = PRODUCTION_DATABASE) {
   if (!existsSync(path)) return null;
@@ -117,10 +101,20 @@ export function loadBundle(path) {
   }
 }
 
-function productionBackup({ reason, releaseId }, { spawn = spawnSync } = {}) {
-  const result = spawn(process.execPath, [BACKUP_SCRIPT, 'create', '--reason', reason,
-    '--release-id', releaseId], { stdio: 'inherit', timeout: 120_000 });
-  if (result.status !== 0) throw new ReleaseStateError('backup_failed');
+export async function productionBackup({ reason, releaseId, stateSequence }, {
+  create = createBackup,
+} = {}) {
+  const requestId = `sha256:${createHash('sha256').update(JSON.stringify({
+    reason, releaseId, stateSequence,
+  })).digest('hex')}`;
+  try {
+    return await create({
+      root: PRODUCTION_BACKUP_ROOT, databasePath: PRODUCTION_DATABASE,
+      releaseRoot: PRODUCTION_RELEASE_ROOT, ingestTokenPath: PRODUCTION_INGEST_TOKEN,
+      listenTokenPath: PRODUCTION_LISTEN_TOKEN, requestId, reason,
+      operationReleaseId: releaseId, stateSequence,
+    });
+  } catch { throw new ReleaseStateError('backup_failed'); }
 }
 
 export async function executeReleaseCommand(argv, {
@@ -129,10 +123,21 @@ export async function executeReleaseCommand(argv, {
   backup = (input) => productionBackup(input),
   converge = createProductionConverger(),
   lock = withOperationsLock,
+  restorePending = () => existsSync(PRODUCTION_RESTORE_JOURNAL),
+  backupRoot = PRODUCTION_BACKUP_ROOT,
+  pruneRecords = () => {
+    if (!existsSync(join(root, 'records'))) {
+      return Object.freeze({ code: 'release_records_absent' });
+    }
+    const retained = existsSync(backupRoot) ? retainedBackupReleaseIds(backupRoot) : [];
+    return pruneReleaseRecords(root, retained, { reserve: 1 });
+  },
 } = {}) {
   return lock(async () => {
+    if (restorePending()) throw new ReleaseStateError('restore_pending');
     if (argv.length === 3 && argv[0] === 'deploy' && argv[1] === '--bundle') {
       const bundle = loadBundle(argv[2]);
+      await pruneRecords();
       return deployRelease({ root, ...bundle, readSchema, backup, converge });
     }
     if (argv.length === 1 && argv[0] === 'rollback') {

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import {
-  chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
+  chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync,
   symlinkSync, unlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ import test, { afterEach } from 'node:test';
 import {
   MAX_CADDYFILE_BYTES, MAX_COMPOSE_BYTES, MAX_RELEASE_RECORDS,
   ReleaseStateError, canonicalReleaseManifest, deployRelease, deploymentDigest,
-  readRelease, readReleaseState, reconcileRelease, registerRelease, rollbackRelease,
+  pruneReleaseRecords, readRelease, readReleaseState, reconcileRelease, registerRelease, rollbackRelease,
   validateReleaseDomain, writeReleaseState,
 } from '../scripts/release-state.mjs';
 
@@ -469,10 +470,53 @@ test('release record capacity proves max minus one, max, and max plus one withou
     registerRelease(directory, manifest(`release-${String(index).padStart(4, '0')}`), files);
   }
   assert.equal(validateReleaseDomain(directory).records.length, MAX_RELEASE_RECORDS - 1);
-  registerRelease(directory, manifest('release-0015'), files);
+  registerRelease(directory, manifest(`release-${String(MAX_RELEASE_RECORDS - 1).padStart(4, '0')}`), files);
   assert.equal(validateReleaseDomain(directory).records.length, MAX_RELEASE_RECORDS);
-  code(() => registerRelease(directory, manifest('release-0016'), files), 'release_capacity');
+  code(() => registerRelease(
+    directory, manifest(`release-${String(MAX_RELEASE_RECORDS).padStart(4, '0')}`), files,
+  ), 'release_capacity');
   assert.equal(validateReleaseDomain(directory).receipts.length, MAX_RELEASE_RECORDS);
+});
+
+test('record pruning preserves current, previous, every retained backup release, and one candidate slot', async () => {
+  const directory = root();
+  const common = {
+    root: directory, files, readSchema: async () => 1,
+    backup: async () => {}, converge: async () => {},
+  };
+  await deployRelease({ ...common, manifest: manifest('release-0000') });
+  await deployRelease({ ...common, manifest: manifest('release-0001') });
+  for (let index = 2; index < MAX_RELEASE_RECORDS; index += 1) {
+    registerRelease(directory, manifest(`release-${String(index).padStart(4, '0')}`), files);
+  }
+  const backupReleases = Array.from({ length: 15 }, (_, index) =>
+    `release-${String(index + 2).padStart(4, '0')}`);
+  const pruned = pruneReleaseRecords(directory, backupReleases, { reserve: 1 });
+  assert.deepEqual(pruned.removed, ['release-0017']);
+  const domain = validateReleaseDomain(directory);
+  assert.equal(domain.records.length, MAX_RELEASE_RECORDS - 1);
+  assert.equal(domain.receipts.length, MAX_RELEASE_RECORDS);
+  for (const releaseId of ['release-0000', 'release-0001', ...backupReleases]) {
+    assert.equal(domain.records.includes(releaseId), true);
+  }
+  registerRelease(directory, manifest('release-0018'), files);
+  assert.equal(validateReleaseDomain(directory).records.length, MAX_RELEASE_RECORDS);
+  code(() => pruneReleaseRecords(directory, [
+    ...backupReleases, 'release-0017', 'release-0018',
+  ], { reserve: 1 }), 'release_capacity');
+});
+
+test('restart completes only a safely renamed unreferenced record prune', () => {
+  const directory = root();
+  registerRelease(directory, manifest('release-0001'), files);
+  const discarded = `.tmp-release-0001-${randomUUID()}`;
+  const recordRoot = join(directory, 'records');
+  chmodSync(join(recordRoot, 'release-0001'), 0o700);
+  renameSync(join(recordRoot, 'release-0001'), join(recordRoot, discarded));
+  const domain = validateReleaseDomain(directory);
+  assert.deepEqual(domain.records, []);
+  assert.equal(domain.receipts.length, 1);
+  assert.deepEqual(readdirSync(recordRoot), []);
 });
 
 test('deployment file byte bounds prove max minus one, max, max plus one, and UTF-8 bytes', () => {

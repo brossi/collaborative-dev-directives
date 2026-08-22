@@ -10,6 +10,7 @@ import test, { afterEach } from 'node:test';
 
 import {
   createProductionConverger, executeReleaseCommand, loadBundle, withOperationsLock,
+  productionBackup,
 } from '../scripts/release-operations.mjs';
 import {
   MAX_CADDYFILE_BYTES, ReleaseStateError, deploymentDigest,
@@ -84,10 +85,11 @@ test('deploy CLI boundary holds lock and accepts only one absolute bundle shape'
     readSchema: async () => { order.push('schema'); return 1; },
     backup: async () => { order.push('backup'); },
     converge: async () => { order.push('converge'); },
+    pruneRecords: async () => { order.push('prune'); },
   };
   const result = await executeReleaseCommand(['deploy', '--bundle', bundlePath], dependencies);
   assert.equal(result.code, 'release_activated');
-  assert.deepEqual(order, ['lock', 'schema', 'backup', 'converge', 'schema']);
+  assert.deepEqual(order, ['lock', 'prune', 'schema', 'backup', 'converge', 'schema']);
   for (const argv of [[], ['deploy'], ['deploy', '--bundle', 'relative']]) {
     await assert.rejects(executeReleaseCommand(argv, dependencies),
       (error) => error instanceof ReleaseStateError
@@ -128,4 +130,26 @@ test('bundle loader accepts only the exact bounded regular file set', () => {
   symlinkSync(join(path, 'compose.yaml'), join(path, 'Caddyfile'));
   assert.throws(() => loadBundle(path), (error) => error instanceof ReleaseStateError
     && error.code === 'invalid_release');
+});
+
+test('release backup identity is deterministic for the exact state transition', async () => {
+  const calls = [];
+  await productionBackup({ reason: 'pre_release', releaseId: 'release-0001', stateSequence: 4 }, {
+    create: async (input) => { calls.push(input); return { code: 'backup_created' }; },
+  });
+  await productionBackup({ reason: 'pre_release', releaseId: 'release-0001', stateSequence: 4 }, {
+    create: async (input) => { calls.push(input); return { code: 'backup_created' }; },
+  });
+  assert.deepEqual(calls[0], calls[1]);
+  assert.match(calls[0].requestId, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(calls[0].stateSequence, 4);
+});
+
+test('every release command fails closed while restore recovery is pending', async () => {
+  let converged = false;
+  await assert.rejects(executeReleaseCommand(['reconcile'], {
+    lock: async (work) => work(), restorePending: () => true,
+    converge: async () => { converged = true; },
+  }), (error) => error instanceof ReleaseStateError && error.code === 'restore_pending');
+  assert.equal(converged, false);
 });

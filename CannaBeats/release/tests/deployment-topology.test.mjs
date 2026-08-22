@@ -17,6 +17,9 @@ const compose = readFileSync('release/deploy/compose.yaml', 'utf8');
 const caddy = readFileSync('release/deploy/Caddyfile', 'utf8');
 const initializer = 'release/scripts/initialize-host.sh';
 const initializerText = readFileSync(initializer, 'utf8');
+const backupService = readFileSync('release/deploy/cannabeats-backup.service', 'utf8');
+const backupTimer = readFileSync('release/deploy/cannabeats-backup.timer', 'utf8');
+const reconcileService = readFileSync('release/deploy/cannabeats-reconcile.service', 'utf8');
 const digest = (name, value) => `${name}@sha256:${value.repeat(64)}`;
 
 function serviceSection(name, next) {
@@ -50,6 +53,9 @@ test('each service has exact images, least mounts, health, and finite resources'
   assert.match(compose, /web:[\s\S]*CANNABEATS_DATABASE_PATH:[\s\S]*\/run\/secrets/u);
   assert.equal((compose.match(/\/run\/secrets\/cannabeats-relay-ingest:ro/gu) ?? []).length, 2);
   assert.equal((compose.match(/\/run\/secrets\/cannabeats-relay-listen:ro/gu) ?? []).length, 2);
+  assert.equal((compose.match(/\/run\/secrets\/cannabeats-operator:ro/gu) ?? []).length, 1);
+  assert.doesNotMatch(caddySection, /cannabeats-operator/u);
+  assert.doesNotMatch(relaySection, /cannabeats-operator/u);
 });
 
 test('deployment environment accepts only exact image digests and production paths', () => {
@@ -171,18 +177,24 @@ test('host initialization creates distinct private tokens and exact replay prese
     const secretDirectory = join(root, 'etc/cannabeats/secrets');
     const ingestPath = join(secretDirectory, 'relay-ingest-token');
     const listenPath = join(secretDirectory, 'relay-listen-token');
+    const operatorPath = join(secretDirectory, 'operator-token');
     const ingest = readFileSync(ingestPath, 'utf8');
     const listen = readFileSync(listenPath, 'utf8');
+    const operator = readFileSync(operatorPath, 'utf8');
     assert.match(ingest, /^[A-Za-z0-9_-]{43}$/u);
     assert.match(listen, /^[A-Za-z0-9_-]{43}$/u);
+    assert.match(operator, /^[A-Za-z0-9_-]{43}$/u);
     assert.notEqual(ingest, listen);
+    assert.equal(new Set([ingest, listen, operator]).size, 3);
     assert.equal(statSync(ingestPath).mode & 0o777, 0o640);
     assert.equal(statSync(listenPath).mode & 0o777, 0o640);
+    assert.equal(statSync(operatorPath).mode & 0o777, 0o640);
     assert.equal(statSync(ingestPath).uid, process.getuid());
     assert.equal(statSync(ingestPath).gid, process.getgid());
     execFileSync('bash', [initializer], { env: environment });
     assert.equal(readFileSync(ingestPath, 'utf8'), ingest);
     assert.equal(readFileSync(listenPath, 'utf8'), listen);
+    assert.equal(readFileSync(operatorPath, 'utf8'), operator);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -224,7 +236,7 @@ test('host initialization rejects wrong ownership, symlinked paths, and a held l
   }
 });
 
-test('concurrent initialization publishes one pair and leaves no temporary secret', async () => {
+test('concurrent initialization publishes one exact secret set and leaves no temporary secret', async () => {
   const root = mkdtempSync(join(tmpdir(), 'cannabeats-fr81-concurrent-'));
   const environment = { ...process.env, CANNABEATS_INSTALL_ROOT: root };
   try {
@@ -240,7 +252,9 @@ test('concurrent initialization publishes one pair and leaves no temporary secre
     assert.equal(results.every(({ status, stderr }) => status === 0
       || (status === 1 && stderr === 'host_initialization_busy\n')), true);
     const secrets = join(root, 'etc/cannabeats/secrets');
-    assert.deepEqual(readdirSync(secrets).sort(), ['relay-ingest-token', 'relay-listen-token']);
+    assert.deepEqual(readdirSync(secrets).sort(), [
+      'operator-token', 'relay-ingest-token', 'relay-listen-token',
+    ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -272,4 +286,25 @@ test('host initialization fails closed on retained secret or path conflict', () 
       rmSync(root, { recursive: true, force: true });
     }
   }
+});
+
+test('boot reconciliation precedes the exact persistent daily backup unit', () => {
+  assert.match(backupService, /^After=cannabeats-reconcile\.service$/mu);
+  assert.match(backupService, /^Requires=cannabeats-reconcile\.service$/mu);
+  assert.match(backupService,
+    /^ExecStart=\/usr\/bin\/node \/opt\/cannabeats\/operator\/release\/scripts\/backup\.mjs daily$/mu);
+  assert.match(backupService, /^ProtectSystem=strict$/mu);
+  assert.match(backupService,
+    /^ReadWritePaths=\/var\/backups\/cannabeats\/sqlite \/run\/lock$/mu);
+  assert.doesNotMatch(backupService, /\/bin\/(?:ba)?sh|docker\.service/u);
+  assert.match(backupTimer, /^OnCalendar=\*-\*-\* 05:00:00 UTC$/mu);
+  assert.match(backupTimer, /^Persistent=true$/mu);
+  assert.match(backupTimer, /^RandomizedDelaySec=20min$/mu);
+  const restore = reconcileService.indexOf('restore.mjs reconcile');
+  const release = reconcileService.indexOf('release-operations.mjs reconcile');
+  assert.ok(restore >= 0 && release > restore);
+  assert.match(reconcileService, /^After=docker\.service local-fs\.target$/mu);
+  assert.match(reconcileService, /^RemainAfterExit=yes$/mu);
+  assert.match(reconcileService, /^ProtectSystem=strict$/mu);
+  assert.doesNotMatch(reconcileService, /\/bin\/(?:ba)?sh/u);
 });

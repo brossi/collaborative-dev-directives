@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 export const RELEASE_MANIFEST_VERSION = 1;
 export const RELEASE_IDENTITY_LEDGER_VERSION = 1;
 export const MAX_RELEASE_IDENTITIES = 64;
-export const MAX_RELEASE_RECORDS = 16;
+export const MAX_RELEASE_RECORDS = 18;
 export const MAX_RELEASE_MANIFEST_BYTES = 16 * 1024;
 export const MAX_CADDYFILE_BYTES = 64 * 1024;
 export const MAX_COMPOSE_BYTES = 128 * 1024;
@@ -413,6 +413,43 @@ export function readRelease(root, releaseId) {
   return readReleaseRecord(root, releaseId, domain.receiptMap);
 }
 
+export function pruneReleaseRecords(root, retainedReleaseIds = [], { reserve = 1 } = {}) {
+  if (!Array.isArray(retainedReleaseIds) || !Number.isSafeInteger(reserve)
+      || reserve < 0 || reserve >= MAX_RELEASE_RECORDS) fail('invalid_release');
+  const domain = validateReleaseDomain(root);
+  const state = readReleaseState(root);
+  const protectedIds = new Set([state.current, state.previous, state.pending].filter(Boolean));
+  for (const releaseId of retainedReleaseIds) {
+    if (typeof releaseId !== 'string' || !RELEASE_ID.test(releaseId)) fail('invalid_release');
+    protectedIds.add(releaseId);
+  }
+  const records = new Set(domain.records);
+  const protectedRecords = [...protectedIds].filter((releaseId) => records.has(releaseId));
+  const target = MAX_RELEASE_RECORDS - reserve;
+  if (protectedRecords.length > target) fail('release_capacity');
+  const ordinal = new Map(domain.receipts.map((receipt) => [receipt.releaseId, receipt.ordinal]));
+  const candidates = domain.records.filter((releaseId) => !protectedIds.has(releaseId))
+    .sort((left, right) => ordinal.get(left) - ordinal.get(right));
+  const removed = [];
+  while (records.size > target && candidates.length > 0) {
+    const releaseId = candidates.shift();
+    const recordPath = join(paths(root).records, releaseId);
+    const discarded = join(paths(root).records, `.tmp-${releaseId}-${randomUUID()}`);
+    chmodSync(recordPath, 0o700);
+    renameSync(recordPath, discarded);
+    syncPath(paths(root).records);
+    rmSync(discarded, { recursive: true });
+    records.delete(releaseId);
+    removed.push(releaseId);
+  }
+  if (records.size > target) fail('release_capacity');
+  if (removed.length > 0) syncPath(paths(root).records);
+  validateReleaseDomain(root);
+  return Object.freeze({
+    code: 'release_records_pruned', removed: Object.freeze(removed), reserve,
+  });
+}
+
 function defaultState() {
   return INITIAL_STATE;
 }
@@ -565,7 +602,11 @@ export async function deployRelease({
   if (current && !schemaSupported(current.manifest, manifest.schema.target)) {
     fail('rollback_incompatible');
   }
-  try { await backup({ reason: 'pre_release', releaseId: manifest.releaseId }); }
+  try {
+    await backup({
+      reason: 'pre_release', releaseId: manifest.releaseId, stateSequence: state.sequence,
+    });
+  }
   catch { fail('backup_failed'); }
   const pendingState = {
     ...state, pending: manifest.releaseId, sequence: state.sequence + 1,
@@ -613,7 +654,11 @@ export async function rollbackRelease({
   let generation;
   try { generation = await readSchema(); } catch { fail('schema_unavailable'); }
   if (!schemaSupported(previous.manifest, generation)) fail('rollback_incompatible');
-  try { await backup({ reason: 'pre_rollback', releaseId: previous.releaseId }); }
+  try {
+    await backup({
+      reason: 'pre_rollback', releaseId: previous.releaseId, stateSequence: state.sequence,
+    });
+  }
   catch { fail('backup_failed'); }
   const pendingState = {
     ...state, pending: previous.releaseId, sequence: state.sequence + 1,

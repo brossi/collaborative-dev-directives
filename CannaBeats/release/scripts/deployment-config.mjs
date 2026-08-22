@@ -8,6 +8,8 @@ export const DEPLOYMENT_PATHS = Object.freeze({
     '/etc/cannabeats/secrets/relay-ingest-token',
   CANNABEATS_RELAY_LISTEN_TOKEN_HOST_FILE:
     '/etc/cannabeats/secrets/relay-listen-token',
+  CANNABEATS_OPERATOR_TOKEN_HOST_FILE:
+    '/etc/cannabeats/secrets/operator-token',
 });
 
 export const DEPLOYMENT_IMAGE_NAMES = Object.freeze([

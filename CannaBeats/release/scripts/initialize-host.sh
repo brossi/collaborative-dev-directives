@@ -86,8 +86,12 @@ create_or_preserve_token() {
 
 ingest="$secrets_dir/relay-ingest-token"
 listen="$secrets_dir/relay-listen-token"
+operator="$secrets_dir/operator-token"
 create_or_preserve_token "$ingest"
 create_or_preserve_token "$listen"
-[[ "$(<"$ingest")" != "$(<"$listen")" ]] || finite_fail secret_conflict
+create_or_preserve_token "$operator"
+[[ "$(<"$ingest")" != "$(<"$listen")" \
+  && "$(<"$ingest")" != "$(<"$operator")" \
+  && "$(<"$listen")" != "$(<"$operator")" ]] || finite_fail secret_conflict
 
 printf '%s\n' host_initialization_ready

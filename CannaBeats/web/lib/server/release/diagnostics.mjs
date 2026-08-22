@@ -56,6 +56,16 @@ export function createDiagnostics(database, {
   transaction, validate, authorizeHost, retainHost,
 }) {
   return Object.freeze({
+    purge({ now }) {
+      assertTimestamp(now, 'invalid_request');
+      return transaction(() => {
+        validate();
+        database.prepare('DELETE FROM diagnostic_records').run();
+        validate();
+        return Object.freeze({ code: 'diagnostics_purged' });
+      });
+    },
+
     record({ applicationSessionToken, gameId, recordId, kind, code, metricValue, now }) {
       assertUuid(gameId, 'invalid_request');
       assertUuid(recordId, 'invalid_request');

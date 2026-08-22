@@ -1,0 +1,17 @@
+[Unit]
+Description=CannaBeats verified daily backup
+After=cannabeats-reconcile.service
+Requires=cannabeats-reconcile.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/node /opt/cannabeats/operator/release/scripts/backup.mjs daily
+TimeoutStartSec=15min
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/cannabeats/sqlite /run/lock
+ReadOnlyPaths=/var/lib/cannabeats /etc/cannabeats/secrets /opt/cannabeats/releases /opt/cannabeats/operator

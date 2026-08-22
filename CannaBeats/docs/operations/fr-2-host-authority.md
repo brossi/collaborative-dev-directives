@@ -113,7 +113,10 @@ before readiness.
 - Device revocation atomically sets `revoked_at` and revokes every live session,
   challenge, ticket, and unredeemed enrollment issued by that device. Exact
   revocation replay returns the original result; unseen post-revocation work is
-  unauthorized.
+  unauthorized. If the device owns the one nonterminal game, the same
+  transaction retains a system `terminate_game` receipt/event, closes its
+  invitation, ends playback/audio authority, and abandons it so the global
+  game slot cannot remain inaccessible.
 
 ### Web view
 

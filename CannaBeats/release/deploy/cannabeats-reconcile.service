@@ -1,0 +1,23 @@
+[Unit]
+Description=CannaBeats interrupted operation reconciliation
+After=docker.service local-fs.target
+Requires=docker.service
+Before=cannabeats-backup.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/node /opt/cannabeats/operator/release/scripts/restore.mjs reconcile
+ExecStart=/usr/bin/node /opt/cannabeats/operator/release/scripts/release-operations.mjs reconcile
+RemainAfterExit=yes
+TimeoutStartSec=10min
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/cannabeats /etc/cannabeats/secrets /opt/cannabeats/releases /var/backups/cannabeats/sqlite /run/lock /run/docker.sock
+ReadOnlyPaths=/opt/cannabeats/operator
+
+[Install]
+WantedBy=multi-user.target

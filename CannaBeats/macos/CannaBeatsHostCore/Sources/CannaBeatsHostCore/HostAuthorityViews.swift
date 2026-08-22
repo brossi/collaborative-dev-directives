@@ -144,6 +144,7 @@ public final class HostDeviceSettingsModel: ObservableObject {
 
 public struct HostDeviceSettingsView: View {
     @StateObject private var model: HostDeviceSettingsModel
+    @State private var pendingRevocation: HostDevice?
 
     public init(
         model: @autoclosure @escaping () -> HostDeviceSettingsModel = HostDeviceSettingsModel()
@@ -174,7 +175,7 @@ public struct HostDeviceSettingsView: View {
                         Spacer()
                         if device.revokedAt == nil {
                             Button("Revoke", role: .destructive) {
-                                Task { await model.revoke(device) }
+                                pendingRevocation = device
                             }
                         } else {
                             Text("Revoked").foregroundStyle(.secondary)
@@ -198,6 +199,16 @@ public struct HostDeviceSettingsView: View {
             Button("Erase", role: .destructive) { model.resetLocalAuthority() }
         } message: {
             Text("This cannot be undone. This Mac will need a new enrollment code before it can host again.")
+        }
+        .alert(item: $pendingRevocation) { device in
+            Alert(
+                title: Text("Revoke \(device.label)?"),
+                message: Text("This immediately ends that Mac’s authority. If it owns an unfinished game, that game is abandoned so another Host can begin a new one."),
+                primaryButton: .cancel(),
+                secondaryButton: .destructive(Text("Revoke")) {
+                    Task { await model.revoke(device) }
+                }
+            )
         }
     }
 }

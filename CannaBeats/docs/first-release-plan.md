@@ -1,7 +1,7 @@
 # CannaBeats first-release plan
 
 - **Status:** FR-0 through FR-7 complete; FR-8.1 and FR-8.2 complete;
-  FR-8.3 is next
+  FR-8.3 complete; FR-8 aggregate audit is next
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -461,8 +461,11 @@ diagnostics pass secret and privacy scans.
 ### FR-8 — Reproducible deployment, backup, and recovery
 
 **Status:** In progress. FR-8.1 topology/secrets and FR-8.2 immutable
-release/rollback are complete; FR-8.3 backup/restore/operator is next. See
+release/rollback are complete; FR-8.3 backup/restore/operator is independently
+closed with no open P0/P1/P2; FR-8 aggregate audit is next. See
 [FR-8 reproducible deployment, backup, and recovery](operations/fr-8-reproducible-deployment.md).
+The operator procedure is
+[FR-8 backup, restore, and operator runbook](operations/fr-8-backup-restore-runbook.md).
 
 **Invariant:** A clean Droplet can be built, updated, backed up, restored, and
 rolled back from documented inputs without reconstructing secrets or state from
@@ -472,8 +475,10 @@ Tasks:
 
 - Build the three-service Compose deployment with pinned images, health checks,
   resource limits, an internal-only relay network, and explicit persistent
-  paths. The deployment generates relay and cookie/session secrets directly on
-  the server with restrictive permissions.
+  paths. The deployment generates two relay tokens and one server-local
+  operator token directly on the server with restrictive permissions; browser
+  and application sessions remain caller-generated opaque credentials stored
+  only as hashes.
 - Configure Caddy and DNS for `play.cannabeats.social`, including HTTPS,
   security headers, body/time limits, redacted access logs, and no PoC routes.
 - Add schema compatibility preflight, immutable release identifiers, atomic

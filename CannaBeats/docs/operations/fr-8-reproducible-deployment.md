@@ -1,6 +1,7 @@
 # FR-8 reproducible deployment, backup, and recovery
 
-**Status:** FR-8.1 and FR-8.2 complete. FR-8.3 pending.
+**Status:** FR-8.1 and FR-8.2 complete. FR-8.3 is implemented locally and
+awaiting its independent closure audit.
 
 FR-8 is intentionally split into three closure-sized boundaries. The product
 remains one privately operated Droplet, one public origin, one active game, and
@@ -15,12 +16,13 @@ application, or generalized migration system.
 
 The fixed topology is Caddy, web, and relay. Only Caddy publishes host ports.
 Web and relay share one internal network; relay has no public address. Web alone
-mounts the SQLite data directory and the two relay tokens read-only. Relay sees
-only its tokens. Caddy sees neither the database nor application secrets.
+mounts the SQLite data directory, the two relay tokens, and the server-local
+operator token read-only. Relay sees only its two tokens. Caddy sees neither
+the database nor application secrets.
 
 | Dimension | Disposition |
 | --- | --- |
-| Create | `runtime`: the installer creates only the fixed directories, networks, and two 32-byte token files with explicit owners and modes. |
+| Create | `runtime`: the installer creates only the fixed directories, networks, two 32-byte relay-token files, and one independent 32-byte server-local operator-token file with explicit owners and modes. |
 | Update | `runtime`: configuration preflight accepts only the documented exact keys, digest-pinned images, fixed origin, absolute paths, and finite limits. |
 | Delete | `structural`: normal Compose stop/removal does not remove bind-mounted data or server-owned secret files. |
 | Omit | `runtime`: preflight rejects every missing required value; Compose uses required-variable expansion for image and host-path inputs. |
@@ -57,7 +59,7 @@ only its tokens. Caddy sees neither the database nor application secrets.
 | Restart | `runtime`: monotonic state authority records an exact pending candidate before convergence; reconciliation stops that retained first candidate or restores current, proves its schema, and only then clears pending. |
 | Dependency failure | `runtime`: build, backup, Compose, health, or atomic-switch failure leaves or restores the prior active record and services. |
 | Corruption | `runtime`: one shared full-domain validator checks every retained record, identity copy, ledger ordinal, state transition, checksum, safe path, and bounded regular file before state use. |
-| Capacity | `runtime`: identity history accepts 64 immutable receipts, record storage accepts 16 complete bundles, manifests accept 16 KiB, Caddy configuration 64 KiB, and Compose configuration 128 KiB; FR-8.3 owns safe record pruning. |
+| Capacity | `runtime`: identity history accepts 64 immutable receipts, record storage accepts 18 complete bundles, manifests accept 16 KiB, Caddy configuration 64 KiB, and Compose configuration 128 KiB. FR-8.3 raises the provisional 16-record bound to 18 so 15 backup-referenced releases, current, previous, and one candidate all fit, and owns safe pruning. |
 
 ### FR-8.2 implementation status
 
@@ -69,7 +71,7 @@ Enforcement:
   and constructs one bundle bound to source revision, catalog digest, schema
   generation 1, exact image IDs/digests, and the exact Compose/Caddy bytes.
 - `release/scripts/release-state.mjs` owns immutable release identities and
-  records, full-domain canonical validation, 64/16 capacity, fixed byte bounds,
+  records, full-domain canonical validation, 64/18 capacity, fixed byte bounds,
   schema/rollback compatibility, pre-change backup ordering, durable pending
   ownership, post-start schema proof, failure reconvergence, rollback, and
   restart reconciliation. A monotonic `state-authority.json` commit precedes
@@ -137,30 +139,171 @@ shape and stale symlink/capacity documentation). The first narrow re-audit
 closed every P1 and left one P2 for identity-ordinal precision. After retaining
 and testing the ordinal in both identity copies, the final affected-perspective
 re-audit reported P0=0, P1=0, and P2=0 and reran the 33 focused tests. FR-8.2
-has no open finding; FR-8.3 remains the named backup/pruning deferral.
+had no open finding; FR-8.3 was its named backup/pruning deferral. FR-8.3 now
+implements that boundary and reopens only the affected record-capacity and
+operator-secret perspectives for its closure audit.
 
 ## FR-8.3 — Backup, restore, and operator boundary
 
 > Every retained backup is a complete integrity-checked SQLite snapshot bound
-> to its exact secrets and release metadata, and restore either installs that
-> complete offline set or leaves the prior installation untouched.
+> to its exact stateful relay secrets and release metadata, and restore either
+> installs that complete offline set or leaves the prior installation
+> untouched.
 
 | Dimension | Disposition |
 | --- | --- |
-| Create | `runtime`: SQLite `VACUUM INTO` creates a same-filesystem temporary snapshot which is integrity-checked, checksummed, and atomically renamed with its manifest. |
-| Update | `structural`: backup payloads and manifests are immutable after publication. |
-| Delete | `runtime`: retention removes only complete backup pairs older than the fixed keep count and never the newest verified pair. |
-| Omit | `runtime`: restore requires database, manifest, two token files, release record, and matching checksums. |
-| Duplicate | `runtime`: one timestamp/request identity creates one pair; exact retry returns the retained manifest and conflicting reuse fails. |
-| Reorder | `runtime`: restore validates while services run, stops writers, revalidates, stages every file, atomically replaces, then starts and proves readiness. |
-| Replay | `runtime`: exact backup and restore request identities return their retained finite result. |
-| Conflict | `runtime`: request reuse with different backup or target identity fails before mutation. |
-| Concurrency | `runtime`: the shared host lock excludes deployment, rollback, backup, and restore overlap. |
-| Expiry | `runtime`: daily retention is count-bounded; equality is defined by sorted immutable backup identity, not wall-clock deletion races. |
-| Restart | `runtime`: restore verification closes and reopens the real release owner before declaring success. |
-| Dependency failure | `runtime`: command/Compose/readiness failure restores the staged prior set and emits one finite operator code. |
-| Corruption | `runtime`: checksum, `quick_check`, schema generation, secret format, and manifest relationship validation fail before replacement. |
-| Capacity | `runtime`: 14 daily pairs plus one pre-release reserve are retained; creation proves free-space reserve before snapshot. |
+| Create | `runtime`: Node's SQLite online-backup API creates a private temporary database while the live owner remains available; database, two stateful relay secrets, exact release record, canonical manifest, and redundant receipt evidence are fsynced before publication. |
+| Update | `structural`: published backup payloads, manifests, and receipts are immutable. Restore replaces the complete live database/relay-secret set rather than editing a retained backup. |
+| Delete | `runtime`: `pruneBackups` first verifies every available bundle, then retains the newest 14 routine daily/manual bundles plus the newest `pre_release`/`pre_rollback` reserve. `pruneReleaseRecords` preserves current, previous, pending, every available-backup release, and one candidate slot; identity receipts are never deleted. |
+| Omit | `runtime`: one shared verifier requires the exact database, canonical manifest, both relay-token files, and exact four-file release record; backup payload/receipt/index reconstruction permits only one fully published tail, while sequenced restore receipt files and their redundant index repair either missing copy and expose internal gaps. |
+| Duplicate | `schema` + `runtime`: backup IDs, request IDs, receipt ordinals, restore receipt names, and release identities are unique; duplicate token values or duplicate authority evidence fail closed. |
+| Reorder | `runtime`: backup publishes payload before redundant receipt evidence. Restore verifies, retains a prepared journal before staging, records pending release authority, stops writers, re-verifies, installs, starts/proves, publishes release authority, records redundant completion evidence, durably removes rollback files, and only then removes the journal. Recovery stops both exact retained release configurations before mutating any live file. |
+| Replay | `runtime`: exact backup and restore request identities return the original retained result before current state, bundle retention, or authority evaluation. A published bundle can reconstruct a response-lost backup receipt tail. |
+| Conflict | `runtime`: request reuse with a different reason/state transition or backup ID fails before current-state evaluation or mutation. |
+| Concurrency | `runtime`: one FD-held Linux `flock` excludes deployment, rollback, backup mutation, restore, and reconciliation. Mutating backup maintenance refuses to run while a restore journal exists. |
+| Expiry | `runtime`: retention is count-based. Immutable creation time plus backup ID provides the equality tiebreak; no caller cutoff or deletion clock is accepted. |
+| Restart | `runtime`: the restore journal retains exact prior release state, existence bits, target release, request, backup, phase, and original completion time. Boot reconciliation either completes the exact authorized target or restores the prior file and release-authority set before ordinary backup runs. |
+| Dependency failure | `runtime`: snapshot, fsync, journal, Compose, schema/readiness, and response-loss failures normalize to finite codes. A journal-write failure removes every unowned staged file; failure after target authority publication performs a retained rollback transition before reconverging prior. |
+| Corruption | `runtime`: exact directory domains, canonical bytes, SHA-256, SQLite quick/full integrity and foreign-key checks, canonical schema digest, catalog/release binding, token shape/distinctness, journal shape/state schedule, and complete live-set comparison fail closed. |
+| Capacity | `runtime`: 14 routine daily/manual plus one pre-change payload are retained with one publication slot; backup receipts accept 1,024, restore receipts 64, database copies 1 GiB, and creation requires at least 256 MiB or twice the live database size. Eighteen release records fit the 15 backup references, current, previous, and one candidate. |
+
+### Operator route invariant
+
+> Every operator command is authorized by one automatically managed
+> server-local credential, executes inside the unified SQLite owner, and
+> returns only its fixed redacted result or a finite failure.
+
+The initializer creates a third independent 256-bit token at
+`/etc/cannabeats/secrets/operator-token`. It is mounted read-only into the web
+service only. Caddy and relay cannot read it, the CLI loads it locally, and the
+family operator never copies or stores it. Operator HTTP paths remain behind
+HTTPS and require the exact bearer before reading a body or entering the
+owner. Caddy deletes request URIs and headers from access logs.
+
+| Dimension | Disposition |
+| --- | --- |
+| Create | `runtime`: bootstrap enrollment uses the existing operator receipt transaction and stores only the code hash; no operator route creates another identity type. |
+| Update | `runtime`: device revocation uses one retained operator receipt and the shared revocation cascade. Revoking the owner of a nonterminal game atomically abandons that game with a system receipt/event so the one-game slot cannot become ownerless. |
+| Delete | `runtime`: diagnostic purge validates the complete database before and after one transaction and deletes only `diagnostic_records`; retained game, audio, playback, and authority evidence are untouched. |
+| Omit | `runtime`: every request and success/failure envelope has exact keys; status and active-game summaries validate every field against fixed types, bounds, and enums before rendering. |
+| Duplicate | `runtime`: one exact bearer header is required; enrollment/revocation receipt identities are unique, and purge is structurally idempotent. |
+| Reorder | `runtime`: token-file validation and constant-time bearer comparison precede body parsing, request dispatch, and retained-state evaluation. |
+| Replay | `runtime`: enrollment and revocation return their retained original result after response loss; status/summary are reads and repeated purge returns the same result without another retained effect. |
+| Conflict | `runtime`: mutation request-ID reuse with different canonical content fails before current enrollment/device state. |
+| Concurrency | `runtime`: commands execute in the existing synchronous owner; mutating commands use `BEGIN IMMEDIATE`. |
+| Expiry | `runtime`: bootstrap enrollment retains the FR-2 15-minute equality boundary; the server-local operator token has no clock expiry and is rotated only as an offline host action. |
+| Restart | `runtime`: enrollment/revocation receipts, revocation cascades, and system game-abandonment history pass the ordinary complete startup validator. Diagnostic purge has no process-only state. |
+| Dependency failure | `runtime`: missing/malformed token file, request timeout, malformed response, unknown remote failure, or owner failure maps to a whitelisted finite operator code without paths, native messages, or credentials. Enrollment and response streams stop as soon as their byte bounds are crossed. |
+| Corruption | `runtime`: every command enters the shared database validator; a malformed token path/type/value fails before dispatch. |
+| Capacity | `runtime`: operator bodies and responses are 4 KiB, calls time out after 15 seconds, Host receipt reserves remain available for revocation, and existing enrollment/diagnostic fixed limits remain authoritative. |
+
+### FR-8.3 implementation status
+
+**Status:** Closed. The first independent audit reported P0=0, five P1 groups,
+and one P2 group. Remediation and the two narrow affected-perspective re-audits
+closed every finding with final P0=0, P1=0, and P2=0.
+
+Enforcement locations:
+
+- `release/scripts/backup.mjs` owns online snapshot, exact bundle/receipt
+  validation, response-loss repair, fixed retention, free-space proof, and the
+  daily/manual/verify/prune CLI.
+- `release/scripts/restore.mjs` owns exact restore receipts, the durable
+  three-phase journal, complete file staging/replacement, release-state
+  switching, rollback/forward repair after interruption, and the restore CLI.
+- `release/scripts/operations-lock.mjs` is the shared process-bound lock used
+  by release, backup, restore, and reconciliation commands.
+- `release/scripts/release-state.mjs` retains 64 immutable release identities,
+  at most 18 materialized records, and the backup-aware one-slot prune.
+- `release/scripts/operator.mjs` calls only the fixed authenticated operator
+  routes. `web/lib/server/release/operator-routes.mjs` owns bearer/body/output
+  bounds; the existing store owns transactions and full validation.
+- `cannabeats-reconcile.service` runs restore reconciliation before release
+  reconciliation once per boot. `cannabeats-backup.timer` schedules the exact
+  daily backup only after that successful boot boundary.
+
+Operator commands installed at `/opt/cannabeats/operator` by FR-10 are:
+
+```text
+sudo node /opt/cannabeats/operator/release/scripts/operator.mjs status
+sudo node /opt/cannabeats/operator/release/scripts/operator.mjs active-game
+sudo node /opt/cannabeats/operator/release/scripts/operator.mjs bootstrap-enrollment --request-id UUIDv4 --code-fd 0
+sudo node /opt/cannabeats/operator/release/scripts/operator.mjs revoke-device --request-id UUIDv4 --device-id UUIDv4
+sudo node /opt/cannabeats/operator/release/scripts/operator.mjs purge-diagnostics
+sudo node /opt/cannabeats/operator/release/scripts/backup.mjs verify --backup-id BACKUP_ID
+sudo node /opt/cannabeats/operator/release/scripts/restore.mjs restore --backup-id BACKUP_ID --request-id sha256:64-lowercase-hex
+```
+
+The bootstrap code is supplied through an already-open descriptor, never an
+argument. The CLI reads the operator token itself and never prints it. Restore
+selects a deliberate backup, stops/restarts the exact recorded release, and
+needs no remembered relay secret or editable environment file.
+
+The complete operational and blank-host procedure is
+[FR-8 backup, restore, and operator runbook](fr-8-backup-restore-runbook.md).
+
+The local counterexample pass has closed these schedules before audit:
+
+1. bundle publication followed by receipt/index response loss reconstructs
+   only the exact contiguous tail;
+2. response loss after either backup or restore receipt publication converges
+   cleanup before returning the original retained result;
+3. loss of the prepared-journal write removes every staged file;
+4. request reuse with another backup conflicts before journal recovery or
+   target lookup, while an unrelated retained journal blocks replay;
+5. failure after restored release authority is published returns both live
+   files and release authority to the prior release, and a second crash during
+   either rollback transition resumes from its exact retained schedule;
+6. a blank host whose authorized restored files are damaged repairs forward
+   only from the still-verified backup;
+7. prune/daily/create refuse an interrupted restore, and restart completes
+   only payload deletion that first crossed the safe rename boundary;
+8. a symlinked live database or retained receipt namespace is rejected before
+   snapshot or restore mutation;
+9. backup and restore receipt limits prove max-1, max, and max+1;
+10. the record bound is 18 rather than the provisional 16 so every advertised
+    retained reference plus one candidate fits; and
+11. operator revocation of the active game's owner atomically abandons the game
+    rather than retaining an inaccessible global slot;
+12. a newer manual backup displaces only the oldest routine backup and cannot
+    consume the retained pre-release/pre-rollback reserve;
+13. restore intent is durable before any staged file exists, recovery stops
+    both exact release configurations before live-file mutation, and rollback
+    cleanup fsyncs each affected parent before journal removal;
+14. an initializer-created empty release root is initialized and restored while
+    any nonempty malformed release domain still fails closed;
+15. sequenced restore receipt files and their index repair either omitted copy,
+    including a missing non-tail file, before exact replay; and
+16. the operator CLI rejects malformed private fields, unknown failure codes,
+    and over-bound input or response streams with fixed local codes; and
+17. a different valid database retained at a request-scoped rollback path is
+    rejected before journal publication without changing the live database,
+    either token, or the stale evidence; dangling symlinks are occupied too.
+
+The first independent audit reported P0=0, P1=5, and P2=1. The affected local
+suite then passed 82/82. Its first narrow re-audit closed all six groups but
+found one P1 staging-collision regression introduced by the journal-order fix.
+Pre-journal and repeated staging preflight plus the valid-stale-database test
+closed it; the final narrow re-audit reported P0=0, P1=0, and P2=0. The final
+affected command passes 83/83.
+
+Final local verification:
+
+- `node --test --test-concurrency=1 release/tests/backup.test.mjs release/tests/operator.test.mjs release/tests/deployment-topology.test.mjs release/tests/release-state.test.mjs release/tests/release-operations.test.mjs` — 83/83 passed;
+- `node --test --test-concurrency=1 release/tests/*.test.mjs` — 227/227 passed;
+- `(cd web && npm test)` — production build and 333/333 tests passed;
+- `(cd web && npm run lint)` — passed;
+- `(cd macos/CannaBeatsHostCore && swift build)` — passed;
+- `node --check` for the backup, restore, and operator scripts — passed; and
+- `git diff --check` — passed.
+
+Open findings: P0=0, P1=0, P2=0.
+
+Named deferrals: FR-10 installs the immutable operator tree and systemd units,
+enables the timer and DigitalOcean automated Droplet backups, and performs the
+destructive blank-Droplet restore rehearsal. FR-8.3 owns and locally verifies
+all artifacts and disposable-filesystem restore schedules; it does not claim
+those external proofs early.
 
 ## Verification and counterexample pass
 

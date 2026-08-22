@@ -27,7 +27,9 @@ participant authority survive browser closure, device sleep, process restart,
 and an indefinite pause. Only explicit participant removal or terminal game
 lifecycle ends participant authority. The participant cookie's rolling browser
 retention setting is not consulted as server authority and does not terminate
-the game.
+the game. Explicit revocation of the owning Host device is an authority-ending
+operator action and atomically abandons its unfinished game with retained
+system history; it is not an elapsed-time rule.
 
 ## Fixed command contract
 
