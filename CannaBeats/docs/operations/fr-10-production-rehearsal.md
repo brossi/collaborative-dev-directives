@@ -1,8 +1,9 @@
 # FR-10 production rehearsal
 
-**Status:** In progress. The authorized production Droplet was created on
-2026-08-22. Installation, DNS cutover, enrollment, game-night schedules, and
-recovery rehearsal remain open.
+**Status:** In progress. The authorized production Droplet, installation, DNS
+cutover, and two-Mac enrollment were completed on 2026-08-22. System-audio
+capture, active-game, game-night schedule, and recovery rehearsal evidence
+remain open.
 
 The first release activation failed closed before DNS cutover because the web
 container's former `1.50` CPU ceiling exceeded the one-vCPU host's mechanical
@@ -11,6 +12,14 @@ container remained. The web ceiling is now `1.00`; Caddy and relay retain their
 `0.50` and `0.75` burst ceilings and share the single scheduler. FR-10's real
 eight-listener rehearsal remains the performance gate. A CPU/RAM-only Droplet
 resize is the reversible fallback and must not expand the root disk.
+
+The first correction candidate after enrollment also failed closed and restored
+the prior healthy release. Its web image had inherited Dockerfile's `/game`
+development base-path default, so the production `/api/ready` health probe
+correctly returned 404. Production web images must be built with
+`--build-arg NEXT_PUBLIC_CANNABEATS_BASE_PATH=` (an explicitly empty value).
+The corrected isolated image returned ready before activation, and
+`release-1.0.0-3-8602528` then activated with the prior release retained.
 
 ## Governing invariant
 
