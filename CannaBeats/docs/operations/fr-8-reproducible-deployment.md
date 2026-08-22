@@ -1,7 +1,7 @@
 # FR-8 reproducible deployment, backup, and recovery
 
-**Status:** FR-8.1 and FR-8.2 complete. FR-8.3 is implemented locally and
-awaiting its independent closure audit.
+**Status:** Complete. FR-8.1, FR-8.2, and FR-8.3 are independently closed, and
+the aggregate interaction audit is closed with no open P0/P1/P2.
 
 FR-8 is intentionally split into three closure-sized boundaries. The product
 remains one privately operated Droplet, one public origin, one active game, and
@@ -30,7 +30,7 @@ the database nor application secrets.
 | Reorder | `runtime`: dependency health gates web and Caddy startup; readiness, rather than container creation order, determines service availability. |
 | Replay | `runtime`: directory and secret initialization preserves an existing valid token byte-for-byte and reports the same finite result. |
 | Conflict | `runtime`: an existing malformed secret, wrong path type, or changed immutable public identity fails before Compose mutation. |
-| Concurrency | `runtime`: initialization and production start hold the same process-bound Linux `flock`; FR-8.2 and FR-8.3 commands must join it before their boundaries close. |
+| Concurrency | `runtime`: initialization, topology render, and every release/backup/restore mutation hold the same process-bound Linux `flock`. Only the retained release CLI can start services. |
 | Expiry | `not_applicable`: server relay tokens have no elapsed-time expiry in the family release; explicit rotation is an offline operator action. |
 | Restart | `runtime`: bind mounts and restart policies reconstruct the same database and tokens; health checks re-establish dependency order. |
 | Dependency failure | `runtime`: dependency health gates initial Compose startup. After startup, relay failure leaves web gameplay available while the Host readiness projection blocks shared audio; web failure is surfaced by Caddy as a finite proxy failure. |
@@ -51,7 +51,7 @@ the database nor application secrets.
 | Delete | `deferred`: FR-8.3 owns the only prune command and must preserve current, previous, every backup-referenced record, and all 64 identity receipts. FR-8.2 exposes no deletion. |
 | Omit | `runtime`: full-domain validation requires the exact record, identity-ledger, identity-file, and state domains; manifest validation requires images, source revision, catalog identity, schema generation, and configuration checksum. |
 | Duplicate | `runtime`: a used release ID with identical content replays; different content is `release_conflict`. |
-| Reorder | `runtime`: lock, preflight, pre-release backup, durable pending authority, candidate start, schema/health proof, then final authority publication is the only accepted order. |
+| Reorder | `runtime`: lock, preflight, durable pending preparation, pre-release backup, candidate start, schema/health proof, then final authority publication is the only accepted order. A failed/interrupted preparation clears only through a monotonic state transition before another snapshot identity can be used. |
 | Replay | `runtime`: retry of the active identical release returns `already_active` without another backup or restart. |
 | Conflict | `runtime`: release-ID reuse with different manifest bytes fails before current-state evaluation. |
 | Concurrency | `runtime`: the shared host lock permits one deployment/rollback/restore/backup mutation at a time. |
@@ -72,7 +72,7 @@ Enforcement:
   generation 1, exact image IDs/digests, and the exact Compose/Caddy bytes.
 - `release/scripts/release-state.mjs` owns immutable release identities and
   records, full-domain canonical validation, 64/18 capacity, fixed byte bounds,
-  schema/rollback compatibility, pre-change backup ordering, durable pending
+  schema/rollback compatibility, durable preparation and pre-change backup ordering,
   ownership, post-start schema proof, failure reconvergence, rollback, and
   restart reconciliation. A monotonic `state-authority.json` commit precedes
   its `state.json` projection; restart repairs only the one valid interrupted
@@ -305,6 +305,46 @@ destructive blank-Droplet restore rehearsal. FR-8.3 owns and locally verifies
 all artifacts and disposable-filesystem restore schedules; it does not claim
 those external proofs early.
 
+## FR-8 aggregate interaction audit
+
+The first aggregate audit reported P0=0, two P1 groups, and one P2 group. The
+local aggregate counterexample pass added one related blank-host reconciliation
+defect. All are remediated:
+
+1. the legacy topology wrapper could start caller-selected images without
+   retained release authority or restore-journal fencing; it is now render-only
+   and rejects `--start`, while deploy/reconcile alone start services from an
+   immutable record;
+2. pre-change backup ran before durable preparation, allowing an interrupted
+   candidate retry to reuse a pruned historical backup receipt after newer
+   SQLite mutations. Pending preparation now commits first, the snapshot is
+   bound to that new sequence, backup pruning is blocked while pending, and
+   reconciliation advances the sequence before any retry. The executable retry
+   test proves the replacement snapshot contains the intervening accepted
+   mutation;
+3. boot reconciliation rejected the exact empty release root created by host
+   initialization. It now initializes only an exact empty domain and returns
+   `release_uninitialized`; any nonempty malformed domain fails closed before
+   missing scaffolding is created;
+   and
+4. the header, shared-lock history, topology-helper role, and restore staging
+   order are aligned with the current implementation.
+
+The first affected-perspective re-audit reported P0=0, P1=0, and P2=2. It
+confirmed both original P1 groups closed, then identified mutation of a fresh
+malformed release root before rejection and missing rollback-specific evidence
+for the new preparation order. The smallest remediations moved the unknown-root
+check before scaffolding creation and added rollback failure/retry evidence for
+pending publication, exact release/sequence binding, monotonic clearing, no
+premature convergence, and a distinct retry identity.
+
+The final affected aggregate suite passes 84/84. The final narrow review of
+those two changes reported P0=0, P1=0, and P2=0, with its targeted tests passing
+2/2; syntax and diff checks also pass. The proportional checkpoint command
+`node --test --test-concurrency=1 release/tests/*.test.mjs` passes 234/234.
+FR-10 remains the named owner of the real Linux installation, DigitalOcean
+backup-control-plane check, and destructive blank-Droplet rehearsal.
+
 ## Verification and counterexample pass
 
 Matrix-derived tests, enforcement locations, exact commands, counterexamples,
@@ -321,8 +361,8 @@ The FR-8.1 local counterexample pass found and remediated six valid mutations:
 2. the unified image still contains retired prototype route modules, so Caddy
    now returns a fixed 404 for their complete public path set before dispatch;
 3. raw Compose invocation could bypass the exact-image/path library validator,
-   so one production start entrypoint now validates before it can dispatch
-   render or start;
+   so the production topology helper now performs render validation only;
+   service start is owned exclusively by retained release deploy/reconcile;
 4. the body-limit exception named a nonexistent audio path, so it now excludes
    only the exact game/audio-session/ingest UUID shape used by the Host;
 5. Caddy state was nested beneath the web-writable data mount, so TLS/config
@@ -330,8 +370,8 @@ The FR-8.1 local counterexample pass found and remediated six valid mutations:
 6. a correctly shaped token with wrong ownership or concurrent creation could
    replay or leave a temporary file, so initialization validates UID/GID, holds
    the shared process-bound operations lock, and removes every unpublished
-   temporary. Production start now holds that same lock across Compose
-   convergence, so two valid digest sets cannot race.
+   temporary. Topology render and every retained release operation now hold
+   that same lock, so validation and stateful convergence cannot race.
 
 ### FR-8.1 enforcement and verification
 
@@ -341,8 +381,10 @@ The FR-8.1 local counterexample pass found and remediated six valid mutations:
   expansion rejects omission before container creation.
 - `release/scripts/deployment-config.mjs` is the shared validator for exact
   image-digest syntax and the fixed production host paths.
-- `release/scripts/start-production.mjs` is the only production render/start
-  entrypoint and cannot invoke Compose until that validator succeeds.
+- `release/scripts/start-production.mjs` is a render-only topology validator;
+  `--start` is rejected without Compose dispatch. Only
+  `release-operations.mjs deploy` and retained reconciliation can start the
+  fixed Compose project.
 - `release/scripts/initialize-host.sh` creates or validates the fixed directory
   and token set. Exact retry preserves token bytes; conflict returns one finite
   code without a path or retained value.
@@ -356,8 +398,8 @@ The FR-8.1 local counterexample pass found and remediated six valid mutations:
 
 Local verification:
 
-- `node --test release/tests/deployment-topology.test.mjs` — 10/10 passed,
-  including held-lock and two-start contention.
+- `node --test release/tests/deployment-topology.test.mjs` — 11/11 passed,
+  including held-lock render and retired-start rejection.
 - Compose render with three synthetic digest references and the fixed host
   paths passed; the production wrapper's validator, exact arguments, and lock
   dispatch are covered by the focused suite. FR-10 owns execution on Linux.
@@ -380,6 +422,7 @@ re-audit then found and closed two remaining iterations of the shared-lock
 boundary: production start initially did not join the lock, and an environment
 sentinel could later bypass initialization locking.
 
-The final narrow re-audit reran the 10 focused tests and reported P0=0, P1=0,
+The final narrow re-audit reran the 10 then-current focused tests and reported P0=0, P1=0,
 and P2=0. FR-8.1 is closed with no named deferral inside its invariant; only
-the explicitly separate FR-8.2/FR-8.3 commands remain to join the shared lock.
+the then-separate FR-8.2/FR-8.3 commands remained. They now use the same lock,
+and the aggregate remediation retires all non-authoritative service start.

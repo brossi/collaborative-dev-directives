@@ -203,11 +203,15 @@ test('a clean first deployment without SQLite has no backup effect', async () =>
   mkdirSync(secrets);
   writeFileSync(join(secrets, 'ingest'), 'A'.repeat(43));
   writeFileSync(join(secrets, 'listen'), 'B'.repeat(43));
+  const state = readReleaseState(releaseRoot);
+  writeReleaseState(releaseRoot, {
+    ...state, pending: 'release-0001', sequence: state.sequence + 1,
+  });
   const result = await createBackup({
     root: join(parent, 'backups'), databasePath: join(parent, 'missing.sqlite3'), releaseRoot,
     ingestTokenPath: join(secrets, 'ingest'), listenTokenPath: join(secrets, 'listen'),
     requestId: request(1), reason: 'pre_release', operationReleaseId: 'release-0001',
-    stateSequence: 0, createdAt: 1_800_000_000_000,
+    stateSequence: state.sequence + 1, createdAt: 1_800_000_000_000,
     statfs: () => ({ bavail: 1_000_000, bsize: 4096 }),
   });
   assert.deepEqual(result, { code: 'backup_not_required', replayed: false });
@@ -266,6 +270,53 @@ test('mutating backup maintenance cannot run while restore recovery is pending',
     }), (error) => error instanceof BackupError && error.code === 'restore_pending');
     assert.equal(entered, false);
   }
+});
+
+test('backup pruning cannot discard preparation evidence while release authority is pending', async () => {
+  const base = await fixture();
+  const retained = await createBackup(options(base, 1, { reason: 'pre_release' }));
+  registerRelease(base.releaseRoot, releaseManifest('release-0002'), files);
+  const state = readReleaseState(base.releaseRoot);
+  writeReleaseState(base.releaseRoot, {
+    ...state, pending: 'release-0002', sequence: state.sequence + 1,
+  });
+  await assert.rejects(executeBackupCommand(['prune'], {
+    ...base, lock: async (work) => work(),
+  }), (error) => error instanceof BackupError && error.code === 'backup_unavailable');
+  assert.equal(existsSync(join(base.root, 'backups', retained.backupId)), true);
+});
+
+test('a retried deployment snapshots mutations under a new preparation identity', async () => {
+  const base = await fixture();
+  const candidate = releaseManifest('release-0002');
+  const backups = [];
+  const backup = async ({ reason, releaseId, stateSequence }) => {
+    const result = await createBackup({
+      ...base, requestId: hash(JSON.stringify({ reason, releaseId, stateSequence })),
+      reason, operationReleaseId: releaseId, stateSequence,
+      createdAt: 1_800_000_000_000 + stateSequence,
+      statfs: () => ({ bavail: 1_000_000, bsize: 4096 }),
+    });
+    backups.push(result.backupId);
+  };
+  await assert.rejects(deployRelease({
+    root: base.releaseRoot, manifest: candidate, files, readSchema: async () => 1, backup,
+    converge: async (release) => {
+      if (release.releaseId === 'release-0002') throw new Error('candidate failed');
+    },
+  }), (error) => error.code === 'candidate_failed');
+  addSecondEnrollment(base);
+  await deployRelease({
+    root: base.releaseRoot, manifest: candidate, files, readSchema: async () => 1, backup,
+    converge: async () => {},
+  });
+  assert.equal(backups.length, 2);
+  assert.notEqual(backups[0], backups[1]);
+  assert.equal(existsSync(join(base.root, 'backups', backups[0])), false);
+  const current = verifyBackupBundle(base.root, backups[1]);
+  const database = new DatabaseSync(join(current.path, 'database.sqlite3'), { readOnly: true });
+  assert.equal(database.prepare('SELECT COUNT(*) AS count FROM host_enrollments').get().count, 2);
+  database.close();
 });
 
 test('backup domain rejects a symlinked restore receipt namespace', async () => {

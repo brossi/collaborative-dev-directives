@@ -14,7 +14,7 @@ export function runProductionStart({
   argv = process.argv.slice(2), environment = process.env, spawn = spawnSync,
 } = {}) {
   const action = argv.length === 1 ? argv[0] : null;
-  if (action !== '--render' && action !== '--start') {
+  if (action !== '--render') {
     return Object.freeze({ status: 'invalid_arguments' });
   }
   const validation = validateDeploymentEnvironment(environment);
@@ -23,13 +23,12 @@ export function runProductionStart({
   }
   const composeArguments = ['compose', '--project-name', 'cannabeats',
     '-f', PRODUCTION_COMPOSE];
-  if (action === '--render') composeArguments.push('config', '--quiet');
-  else composeArguments.push('up', '--detach', '--wait', '--remove-orphans');
+  composeArguments.push('config', '--quiet');
   const result = spawn('flock', [
     '--nonblock', '--conflict-exit-code', '75', PRODUCTION_LOCK,
     'docker', ...composeArguments,
   ], {
-    env: environment, stdio: 'inherit', timeout: action === '--render' ? 30_000 : 180_000,
+    env: environment, stdio: 'inherit', timeout: 30_000,
   });
   return Object.freeze({
     status: result.status === 0 ? 'ready'

@@ -62,9 +62,9 @@ sudo node /opt/cannabeats/operator/release/scripts/restore.mjs restore \
 
 Do not mint a new request ID after response loss. Repeat the exact command; it
 returns the original receipt. Restore validates the bundle while service is
-available, stages files, records its journal, stops the exact release, verifies
-again, installs and proves the backed release, publishes release authority,
-and only then removes rollback files.
+available, records its journal before staging any file, stops the exact retained
+release configurations, verifies again, installs and proves the backed release,
+publishes release authority, and only then durably removes rollback files.
 
 If the command is interrupted or reports a rollback failure, preserve the
 backup and journal and run:

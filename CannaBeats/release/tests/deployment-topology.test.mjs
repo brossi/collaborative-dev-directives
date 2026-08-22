@@ -81,7 +81,7 @@ test('deployment environment accepts only exact image digests and production pat
   }).issues, [{ code: 'invalid', name: 'CANNABEATS_DATA_DIR' }]);
 });
 
-test('the sole production start entrypoint validates before Compose dispatch', () => {
+test('the topology renderer validates before Compose dispatch and cannot start services', () => {
   const environment = {
     ...DEPLOYMENT_PATHS,
     CANNABEATS_CADDY_IMAGE: digest('caddy', 'a'),
@@ -108,13 +108,16 @@ test('the sole production start entrypoint validates before Compose dispatch', (
     { ...environment, CANNABEATS_DATA_DIR: '/tmp/caller-authored' },
   ]) {
     assert.equal(runProductionStart({
-      argv: ['--start'], environment: invalid, spawn: invoke,
+      argv: ['--render'], environment: invalid, spawn: invoke,
     }).status, 'invalid_configuration');
   }
+  assert.equal(runProductionStart({
+    argv: ['--start'], environment, spawn: invoke,
+  }).status, 'invalid_arguments');
   assert.equal(calls.length, 1);
 });
 
-test('production start reports held-lock and two-start contention before Compose races', () => {
+test('production render reports held lock while the legacy starter stays retired', () => {
   const environment = {
     ...DEPLOYMENT_PATHS,
     CANNABEATS_CADDY_IMAGE: digest('caddy', 'a'),
@@ -122,22 +125,12 @@ test('production start reports held-lock and two-start contention before Compose
     CANNABEATS_RELAY_IMAGE: digest('cannabeats/relay', 'c'),
   };
   assert.deepEqual(runProductionStart({
-    argv: ['--start'], environment, spawn: () => ({ status: 75 }),
+    argv: ['--render'], environment, spawn: () => ({ status: 75 }),
   }), { status: 'busy' });
-
-  let nested;
-  const holdingSpawn = () => {
-    nested = runProductionStart({
-      argv: ['--start'],
-      environment: { ...environment, CANNABEATS_WEB_IMAGE: digest('cannabeats/web', 'd') },
-      spawn: () => ({ status: 75 }),
-    });
-    return { status: 0 };
-  };
   assert.deepEqual(runProductionStart({
-    argv: ['--start'], environment, spawn: holdingSpawn,
-  }), { status: 'ready' });
-  assert.deepEqual(nested, { status: 'busy' });
+    argv: ['--start'], environment,
+    spawn: () => { throw new Error('retired start must not dispatch'); },
+  }), { status: 'invalid_arguments' });
   assert.match(initializerText,
     /exec 9>"\$lock_directory"\n  flock --nonblock 9 \|\| finite_fail busy/u);
   assert.doesNotMatch(initializerText, /OPERATIONS_LOCK_HELD/u);

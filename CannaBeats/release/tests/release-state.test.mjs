@@ -80,7 +80,7 @@ test('deployment durably records pending before candidate convergence and publis
   });
   assert.equal(first.code, 'release_activated');
   assert.deepEqual(order, [
-    'schema', 'backup', 'publish:release-0001', 'converge:release-0001', 'schema',
+    'schema', 'publish:release-0001', 'backup', 'converge:release-0001', 'schema',
     'publish:release-0001',
   ]);
   assert.deepEqual(readReleaseState(directory), {
@@ -212,6 +212,108 @@ test('backup failure is finite and precedes candidate convergence', async () => 
     converge: async () => { converged = true; },
   }), 'backup_failed');
   assert.equal(converged, false);
+  assert.deepEqual(readReleaseState(directory), {
+    current: null, previous: null, pending: null, revision: 0, sequence: 2,
+  });
+});
+
+test('interrupted preparation advances identity before a retry can take another backup', async () => {
+  const directory = root();
+  const common = {
+    root: directory, files, readSchema: async () => 1, converge: async () => {},
+  };
+  await deployRelease({
+    ...common, manifest: manifest('release-0001'), backup: async () => {},
+  });
+  const sequences = [];
+  await rejects(deployRelease({
+    ...common, manifest: manifest('release-0002', { sourceRevision: 'f'.repeat(40) }),
+    backup: async ({ stateSequence }) => {
+      sequences.push(stateSequence);
+      throw new Error('lost preparation');
+    },
+  }), 'backup_failed');
+  assert.deepEqual(readReleaseState(directory), {
+    current: 'release-0001', previous: null, pending: null, revision: 1, sequence: 4,
+  });
+  await deployRelease({
+    ...common, manifest: manifest('release-0002', { sourceRevision: 'f'.repeat(40) }),
+    backup: async ({ stateSequence }) => { sequences.push(stateSequence); },
+  });
+  assert.deepEqual(sequences, [3, 5]);
+});
+
+test('rollback preparation is durable before backup and retry receives a new identity', async () => {
+  const directory = root();
+  const common = {
+    root: directory, files, readSchema: async () => 1, backup: async () => {},
+    converge: async () => {},
+  };
+  await deployRelease({ ...common, manifest: manifest('release-0001') });
+  await deployRelease({
+    ...common, manifest: manifest('release-0002', { sourceRevision: 'f'.repeat(40) }),
+  });
+  const order = [];
+  const sequences = [];
+  let converged = false;
+  await rejects(rollbackRelease({
+    ...common,
+    publishState: (releaseRoot, state) => {
+      order.push(`publish:${state.pending ?? 'clear'}:${state.sequence}`);
+      writeReleaseState(releaseRoot, state);
+    },
+    backup: async ({ reason, releaseId, stateSequence }) => {
+      order.push(`backup:${stateSequence}`);
+      sequences.push(stateSequence);
+      assert.equal(reason, 'pre_rollback');
+      assert.equal(releaseId, 'release-0001');
+      throw new Error('lost preparation');
+    },
+    converge: async () => { converged = true; },
+  }), 'backup_failed');
+  assert.equal(converged, false);
+  assert.deepEqual(order, ['publish:release-0001:5', 'backup:5', 'publish:clear:6']);
+  assert.deepEqual(readReleaseState(directory), {
+    current: 'release-0002', previous: 'release-0001', pending: null, revision: 2,
+    sequence: 6,
+  });
+  await rollbackRelease({
+    ...common,
+    backup: async ({ stateSequence }) => { sequences.push(stateSequence); },
+  });
+  assert.deepEqual(sequences, [5, 7]);
+  assert.deepEqual(readReleaseState(directory), {
+    current: 'release-0001', previous: 'release-0002', pending: null, revision: 3,
+    sequence: 8,
+  });
+});
+
+test('boot reconciliation initializes only an exact empty release root', async () => {
+  const directory = root();
+  let converged = false;
+  assert.deepEqual(await reconcileRelease({
+    root: directory, readSchema: async () => { throw new Error('no release schema'); },
+    converge: async () => { converged = true; },
+  }), { code: 'release_uninitialized', releaseId: null });
+  assert.equal(converged, false);
+  assert.deepEqual(readReleaseState(directory), {
+    current: null, previous: null, pending: null, revision: 0, sequence: 0,
+  });
+  writeFileSync(join(directory, 'unexpected'), 'retained corruption');
+  await rejects(reconcileRelease({
+    root: directory, readSchema: async () => null, converge: async () => {},
+  }), 'release_corrupt');
+});
+
+test('fresh malformed release root is rejected without creating scaffolding', async () => {
+  const directory = root();
+  writeFileSync(join(directory, 'unexpected'), 'retained corruption');
+  const before = readdirSync(directory);
+  await rejects(reconcileRelease({
+    root: directory, readSchema: async () => null, converge: async () => {},
+  }), 'release_corrupt');
+  assert.deepEqual(readdirSync(directory), before);
+  assert.equal(readFileSync(join(directory, 'unexpected'), 'utf8'), 'retained corruption');
 });
 
 test('release identity capacity proves max minus one, max, and max plus one', () => {

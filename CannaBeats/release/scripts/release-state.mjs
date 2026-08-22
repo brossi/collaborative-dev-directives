@@ -309,6 +309,12 @@ export function validateReleaseDomain(root, { create = false } = {}) {
     }
     ensureDirectory(root);
     const retainedPaths = paths(root);
+    const allowedRoot = new Set([
+      'records', 'identities', 'identities.json', 'state.json', 'state-authority.json',
+    ]);
+    if (readdirSync(root).some((name) => !allowedRoot.has(name) && !ROOT_TEMP.test(name))) {
+      fail('release_corrupt');
+    }
     if (!existsSync(retainedPaths.records)) {
       if (!create) fail('release_corrupt');
       ensureDirectory(retainedPaths.records);
@@ -318,9 +324,6 @@ export function validateReleaseDomain(root, { create = false } = {}) {
       ensureDirectory(retainedPaths.identityFiles);
     } else ensureDirectory(retainedPaths.identityFiles);
     cleanupInterruptedWrites(root);
-    const allowedRoot = new Set([
-      'records', 'identities', 'identities.json', 'state.json', 'state-authority.json',
-    ]);
     if (readdirSync(root).some((name) => !allowedRoot.has(name))) fail('release_corrupt');
     const identityDomain = reconcileIdentityEvidence(root, readIdentityLedger(root));
     const { receipts, receiptMap } = identityDomain;
@@ -602,16 +605,20 @@ export async function deployRelease({
   if (current && !schemaSupported(current.manifest, manifest.schema.target)) {
     fail('rollback_incompatible');
   }
-  try {
-    await backup({
-      reason: 'pre_release', releaseId: manifest.releaseId, stateSequence: state.sequence,
-    });
-  }
-  catch { fail('backup_failed'); }
   const pendingState = {
     ...state, pending: manifest.releaseId, sequence: state.sequence + 1,
   };
   try { publishState(root, pendingState); } catch { fail('release_unavailable'); }
+  try {
+    await backup({
+      reason: 'pre_release', releaseId: manifest.releaseId,
+      stateSequence: pendingState.sequence,
+    });
+  } catch {
+    try { clearPending(root, pendingState, publishState); }
+    catch { fail('release_unavailable'); }
+    fail('backup_failed');
+  }
   try {
     await converge(registered);
     await exactSchema(readSchema, manifest);
@@ -654,16 +661,20 @@ export async function rollbackRelease({
   let generation;
   try { generation = await readSchema(); } catch { fail('schema_unavailable'); }
   if (!schemaSupported(previous.manifest, generation)) fail('rollback_incompatible');
-  try {
-    await backup({
-      reason: 'pre_rollback', releaseId: previous.releaseId, stateSequence: state.sequence,
-    });
-  }
-  catch { fail('backup_failed'); }
   const pendingState = {
     ...state, pending: previous.releaseId, sequence: state.sequence + 1,
   };
   try { publishState(root, pendingState); } catch { fail('release_unavailable'); }
+  try {
+    await backup({
+      reason: 'pre_rollback', releaseId: previous.releaseId,
+      stateSequence: pendingState.sequence,
+    });
+  } catch {
+    try { clearPending(root, pendingState, publishState); }
+    catch { fail('release_unavailable'); }
+    fail('backup_failed');
+  }
   try {
     await converge(previous);
     await exactSchema(readSchema, previous.manifest);
@@ -691,6 +702,7 @@ export async function rollbackRelease({
 export async function reconcileRelease({
   root, readSchema, converge, publishState = writeReleaseState,
 }) {
+  validateReleaseDomain(root, { create: true });
   const state = readReleaseState(root);
   if (state.pending !== null) {
     const pending = readRelease(root, state.pending);
@@ -705,7 +717,7 @@ export async function reconcileRelease({
     try { clearPending(root, state, publishState); } catch { fail('release_unavailable'); }
     return Object.freeze({ code: 'release_reconciled', releaseId: current.releaseId });
   }
-  if (!state.current) fail('release_unavailable');
+  if (!state.current) return Object.freeze({ code: 'release_uninitialized', releaseId: null });
   const current = readRelease(root, state.current);
   await exactSchema(readSchema, current.manifest);
   try { await converge(current); } catch { fail('candidate_failed'); }

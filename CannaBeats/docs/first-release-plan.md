@@ -1,7 +1,6 @@
 # CannaBeats first-release plan
 
-- **Status:** FR-0 through FR-7 complete; FR-8.1 and FR-8.2 complete;
-  FR-8.3 complete; FR-8 aggregate audit is next
+- **Status:** FR-0 through FR-8 complete; FR-9 is next
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -460,9 +459,10 @@ diagnostics pass secret and privacy scans.
 
 ### FR-8 — Reproducible deployment, backup, and recovery
 
-**Status:** In progress. FR-8.1 topology/secrets and FR-8.2 immutable
-release/rollback are complete; FR-8.3 backup/restore/operator is independently
-closed with no open P0/P1/P2; FR-8 aggregate audit is next. See
+**Status:** Complete. FR-8.1 topology/secrets, FR-8.2 immutable
+release/rollback, and FR-8.3 backup/restore/operator are independently closed.
+The aggregate interaction audit and affected-perspective re-audits are also
+closed with no open P0/P1/P2. See
 [FR-8 reproducible deployment, backup, and recovery](operations/fr-8-reproducible-deployment.md).
 The operator procedure is
 [FR-8 backup, restore, and operator runbook](operations/fr-8-backup-restore-runbook.md).

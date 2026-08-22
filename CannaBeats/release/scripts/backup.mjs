@@ -449,7 +449,12 @@ export async function createBackup({
   if (domain.receipts.length >= MAX_BACKUP_RECEIPTS
       || domain.bundles.length >= MAX_BACKUP_SLOTS) fail('backup_capacity');
   const state = readReleaseState(releaseRoot);
-  if (state.pending !== null || state.sequence !== stateSequence) fail('backup_conflict');
+  const prechange = PRECHANGE_REASONS.has(reason);
+  const expectedOperationRelease = state.pending ?? state.current;
+  if (state.sequence !== stateSequence
+      || (prechange ? expectedOperationRelease !== operationReleaseId : state.pending !== null)) {
+    fail('backup_conflict');
+  }
   if (!existsSync(databasePath)) {
     if (state.current !== null) fail('backup_corrupt');
     return Object.freeze({ code: 'backup_not_required', replayed: false });
@@ -614,7 +619,10 @@ export async function executeBackupCommand(argv, {
       return Object.freeze({ code: 'backup_verified', backupId: verified.manifest.backupId });
     }
     if (restorePending()) fail('restore_pending');
-    if (parsed.command === 'prune') return pruneBackups(root);
+    if (parsed.command === 'prune') {
+      if (readReleaseState(releaseRoot).pending !== null) fail('backup_unavailable');
+      return pruneBackups(root);
+    }
     let values = parsed.values;
     if (parsed.command === 'daily') {
       const state = readReleaseState(releaseRoot);
