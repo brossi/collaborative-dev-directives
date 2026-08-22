@@ -1,6 +1,6 @@
 # CannaBeats first-release plan
 
-- **Status:** FR-0 through FR-8 complete; FR-9 is next
+- **Status:** FR-0 through FR-8 complete; FR-9 is in progress
 - **Created:** 2026-08-21
 - **Branch:** `feature/slice-2-macos-host`
 - **Purpose:** Replace the proof-of-concept deployment with the smallest complete
@@ -499,6 +499,11 @@ the documented procedure; a failed release rolls back without losing an
 accepted action; logs and support output contain no credentials.
 
 ### FR-9 — Signed family distribution
+
+**Status:** In progress. Local implementation and independent review are closed
+with no open P0/P1/P2. The real Developer ID/notarization artifact and
+interactive install evidence remain. See
+[FR-9 signed family distribution](operations/fr-9-signed-family-distribution.md).
 
 **Invariant:** Every distributed Host build has one durable bundle identity,
 declared permissions, verified release origin, and a server compatibility
