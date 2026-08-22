@@ -15,6 +15,7 @@ import { runProductionStart } from '../scripts/start-production.mjs';
 
 const compose = readFileSync('release/deploy/compose.yaml', 'utf8');
 const caddy = readFileSync('release/deploy/Caddyfile', 'utf8');
+const installer = readFileSync('release/scripts/install-production-host.sh', 'utf8');
 const initializer = 'release/scripts/initialize-host.sh';
 const initializerText = readFileSync(initializer, 'utf8');
 const backupService = readFileSync('release/deploy/cannabeats-backup.service', 'utf8');
@@ -36,6 +37,31 @@ test('production topology exposes only Caddy and keeps relay on the internal net
   assert.match(compose, /audio:\n    internal: true/u);
   assert.match(compose, /relay:[\s\S]*networks: \[audio\]/u);
   assert.doesNotMatch(serviceSection('relay', 'networks'), /edge/u);
+});
+
+test('blank-host installation binds the exact platform, runtime, source, and units before initialization', () => {
+  assert.equal(installer.includes('"${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04'), true);
+  assert.match(installer, /uname -m[\s\S]*x86_64/u);
+  assert.match(installer, /NODE_VERSION="24\.7\.0"/u);
+  assert.match(installer, /NODE_SHA256="[0-9a-f]{64}"/u);
+  assert.match(installer, /NODE_BINARY_SHA256="[0-9a-f]{64}"/u);
+  assert.equal((installer.match(/GIT_NO_REPLACE_OBJECTS=1/gu) ?? []).length, 3);
+  assert.match(installer, /rev-parse "\$source_revision\^\{commit\}"/u);
+  assert.match(installer, /archive --format=tar "\$source_revision:CannaBeats"/u);
+  assert.match(installer, /find "\$operator_staging" -type l/u);
+  assert.match(installer, /\.source-revision/u);
+  assert.match(installer, /flock --nonblock 9/u);
+  assert.match(installer, /mv -T "\$operator_staging" \/opt\/cannabeats\/operator/u);
+  assert.match(installer, /sha256sum \/usr\/bin\/node/u);
+  assert.match(installer, /metadata_digest[\s\S]*find "\$1" -printf/u);
+  assert.match(installer, /complete_installation[\s\S]*render_receipt/u);
+  assert.equal(installer.indexOf('complete_installation || fail retained_corrupt')
+    < installer.indexOf('apt-get update -qq'), true);
+  const initialized = installer.indexOf('initialize-host.sh');
+  const enabled = installer.indexOf(
+    'systemctl enable cannabeats-reconcile.service cannabeats-backup.timer',
+  );
+  assert.equal(initialized > 0 && enabled > initialized, true);
 });
 
 test('each service has exact images, least mounts, health, and finite resources', () => {
