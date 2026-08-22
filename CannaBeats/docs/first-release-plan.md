@@ -502,8 +502,9 @@ accepted action; logs and support output contain no credentials.
 
 **Status:** In progress. Local implementation and independent review are closed
 with no open P0/P1/P2, including the detached nested-repository remediation
-found by the first real signing attempt. The real Developer ID/notarization
-artifact and interactive install evidence remain. See
+found by the first real signing attempt. Release `1.0.0 (1)` is Developer-ID
+signed, notarized, stapled, and independently verified; interactive install,
+upgrade, revocation, and Spotify evidence remain. See
 [FR-9 signed family distribution](operations/fr-9-signed-family-distribution.md).
 
 **Invariant:** Every distributed Host build has one durable bundle identity,

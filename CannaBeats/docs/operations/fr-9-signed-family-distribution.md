@@ -1,8 +1,8 @@
 # FR-9 signed family distribution
 
-**Status:** Local implementation and independent review are closed with no open
-P0/P1/P2. The real Developer ID/notarization artifact and interactive install
-evidence remain.
+**Status:** Local implementation, the real `1.0.0 (1)` artifact, and independent
+review are closed with no open P0/P1/P2. Interactive install, upgrade,
+revocation, consent, and Spotify evidence remain.
 
 ## Governing invariant
 
@@ -135,8 +135,8 @@ then performed.
 
 The final one-perspective review reported P0=0, P1=0, and P2=0. Its targeted
 PID-publication test passed 1/1, and shell syntax and diff checks passed. Local
-FR-9 is therefore closed; only the explicitly unclaimed real signing,
-notarization, install/upgrade, consent, revocation, and Spotify evidence remains.
+FR-9 was therefore closed at that checkpoint; real signing, notarization,
+install/upgrade, consent, revocation, and Spotify evidence still remained then.
 
 ## First real-artifact attempt and nested-repository remediation
 
@@ -164,6 +164,44 @@ could escape the snapshot. The final remediation added canonical containment
 and project/verifier symlink counterexamples. The final narrow review reported
 P0=0, P1=0, and P2=0; the focused suite passed 19/19 and shell syntax and diff
 checks passed. No artifact was published by either failed attempt.
+
+## Accepted `1.0.0 (1)` artifact evidence
+
+The corrected release command ran from clean commit
+`ac0c0ca081ae708fb8a16f5c353a4f11fbdd3c37` with the installed Developer ID
+Application identity and Keychain profile `cannabeats-notary`. Apple initially
+reported `In Progress`, then accepted the one submission. The command stapled,
+verified, and published exactly these read-only files under
+`macos/.build/releases/1.0.0-1`:
+
+- `CannaBeats-Host-1.0.0-1-universal.dmg`;
+- `CannaBeats-Host-1.0.0-1-universal.dmg.sha256`;
+- `notary-result.json`; and
+- `source-revision.txt`.
+
+The retained SHA-256 is
+`8d2982abb6966f95a0c45e9b50dee5de76dd700715891956ddae8e8430cf3a08`.
+The retained notary result is `Accepted`, and both the source record and signed
+`CannaBeatsSourceRevision` equal the commit above.
+
+Post-publication verification:
+
+- `verify-host-release.sh <absolute paths> 1.0.0 1 <Developer ID identity>` —
+  `fr9_release_verified 1.0.0 1`;
+- `xcrun stapler validate <DMG>` — passed;
+- `spctl --assess --type open --context context:primary-signature <DMG>` —
+  passed; and
+- `shasum -a 256 -c CannaBeats-Host-1.0.0-1-universal.dmg.sha256` from the
+  retained directory — `OK`.
+
+The independent real-artifact audit reported P0=0, P1=0, and P2=0. It repeated
+checksum, notarization, stapler, Gatekeeper, disk-image, DMG signature, and app
+signature checks; mounted the image read-only; and independently confirmed the
+exact four-file publication, mounted root, application bundle/executable
+domains, Developer ID team, secure timestamp, Hardened Runtime, metadata,
+universal architectures, privacy keys, entitlements, and source-revision
+binding. The notary submission identifier and certificate fingerprint are
+intentionally omitted from documentation.
 
 ## Named external evidence
 
