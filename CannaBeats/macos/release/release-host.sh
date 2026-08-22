@@ -20,8 +20,11 @@ fr9_validate_version "$version"
 fr9_validate_build "$build_number"
 fr9_validate_identity "$identity"
 [[ "$notary_profile" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$ ]] || fr9_fail invalid_profile
-fr9_require_clean_source "$repo_root"
-source_revision="$(git -C "$repo_root" rev-parse --verify 'HEAD^{commit}' 2>/dev/null || true)"
+git_root="$(git -C "$repo_root" rev-parse --show-toplevel 2>/dev/null || true)"
+source_prefix="$(git -C "$repo_root" rev-parse --show-prefix 2>/dev/null || true)"
+[[ -n "$git_root" && -d "$git_root" ]] || fr9_fail source_unavailable
+fr9_require_clean_source "$git_root"
+source_revision="$(git -C "$git_root" rev-parse --verify 'HEAD^{commit}' 2>/dev/null || true)"
 fr9_validate_revision "$source_revision"
 mkdir -p "$release_root" 2>/dev/null || fr9_fail output_unavailable
 [[ ! -e "$final_dir" ]] || fr9_fail output_conflict
@@ -32,7 +35,7 @@ source_path=""
 source_attached=false
 cleanup() {
   if [[ "$source_attached" == true ]]; then
-    git -C "$repo_root" worktree remove --force "$source_path" >/dev/null 2>&1 || true
+    git -C "$git_root" worktree remove --force "$source_path" >/dev/null 2>&1 || true
   fi
   if [[ -n "$work_path" ]]; then rm -rf "$work_path"; fi
   rm -f "$lock_path/pid"
@@ -42,9 +45,13 @@ trap cleanup EXIT
 work_path="$(mktemp -d "${TMPDIR:-/tmp}/cannabeats-fr9-release.XXXXXX" 2>/dev/null)" \
   || fr9_fail staging_unavailable
 source_path="$work_path/source"
-git -C "$repo_root" worktree add --detach "$source_path" "$source_revision" \
+source_project_path="$(fr9_snapshot_project_path "$source_path" "$source_prefix")"
+git -C "$git_root" worktree add --detach "$source_path" "$source_revision" \
   >"$work_path/worktree.log" 2>&1 || fr9_fail source_snapshot_failed
 source_attached=true
+source_project="$source_project_path/macos/CannaBeatsHost.xcodeproj"
+snapshot_verifier="$source_project_path/macos/release/verify-host-release.sh"
+fr9_require_snapshot_paths "$source_path" "$source_project" "$snapshot_verifier"
 printf '%s\n' "$source_revision" >"$work_path/source-revision.txt" \
   || fr9_fail source_identity_unavailable
 fr9_require_space "$repo_root" 2097152
@@ -57,7 +64,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 archive_path="$work_path/CannaBeatsHost.xcarchive"
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild archive \
-  -quiet -project "$source_path/macos/CannaBeatsHost.xcodeproj" \
+  -quiet -project "$source_project" \
   -scheme CannaBeatsHostRelease -configuration Release -destination 'generic/platform=macOS' \
   -archivePath "$archive_path" MARKETING_VERSION="$version" \
   CURRENT_PROJECT_VERSION="$build_number" CODE_SIGN_STYLE=Manual \
@@ -98,7 +105,7 @@ checksum="$(shasum -a 256 "$dmg_path" 2>/dev/null | awk '{print $1}' || true)"
 [[ "$checksum" =~ ^[0-9a-f]{64}$ ]] || fr9_fail checksum_unavailable
 printf '%s  %s\n' "$checksum" "$expected_name" >"$checksum_path" \
   || fr9_fail checksum_unavailable
-"$script_dir/verify-host-release.sh" \
+"$snapshot_verifier" \
   "$dmg_path" "$checksum_path" "$work_path/source-revision.txt" \
   "$version" "$build_number" "$identity" >/dev/null
 

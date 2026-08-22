@@ -53,6 +53,40 @@ fr9_require_clean_source() {
   [[ -z "$status" ]] || fr9_fail source_dirty
 }
 
+fr9_snapshot_project_path() {
+  local snapshot_root="${1%/}" source_prefix="$2"
+  [[ -n "$snapshot_root" && "$source_prefix" != /* && "$source_prefix" != *$'\n'* ]] \
+    || fr9_fail source_unavailable
+  if [[ -n "$source_prefix" ]]; then
+    printf '%s/%s\n' "$snapshot_root" "${source_prefix%/}"
+  else
+    printf '%s\n' "$snapshot_root"
+  fi
+}
+
+fr9_require_snapshot_paths() {
+  local snapshot_root="$1" project_path="$2" verifier_path="$3"
+  local canonical_root canonical_project canonical_verifier_directory canonical_verifier
+  [[ -d "$snapshot_root" && -d "$project_path" && ! -L "$project_path" \
+    && -f "$verifier_path" && -x "$verifier_path" && ! -L "$verifier_path" ]] \
+    || fr9_fail source_snapshot_failed
+  canonical_root="$(cd "$snapshot_root" 2>/dev/null && pwd -P)" \
+    || fr9_fail source_snapshot_failed
+  canonical_project="$(cd "$project_path" 2>/dev/null && pwd -P)" \
+    || fr9_fail source_snapshot_failed
+  canonical_verifier_directory="$(cd "$(dirname "$verifier_path")" 2>/dev/null && pwd -P)" \
+    || fr9_fail source_snapshot_failed
+  canonical_verifier="$canonical_verifier_directory/$(basename "$verifier_path")"
+  case "$canonical_project" in
+    "$canonical_root"/*) ;;
+    *) fr9_fail source_snapshot_failed ;;
+  esac
+  case "$canonical_verifier" in
+    "$canonical_root"/*) ;;
+    *) fr9_fail source_snapshot_failed ;;
+  esac
+}
+
 fr9_publish_release() {
   local final_dir="$1" dmg_path="$2" checksum_path="$3" notary_result="$4"
   local source_revision_path="$5" expected_name="$6"

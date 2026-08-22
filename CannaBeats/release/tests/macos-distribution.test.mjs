@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
-  chmodSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync,
+  chmodSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
@@ -242,6 +243,59 @@ test('clean-source validator rejects an untracked mutation before release depend
   assert.equal(absent.stderr, 'fr9_source_unavailable\n');
 });
 
+test('snapshot resolver accepts root and nested projects and rejects omitted tools', () => {
+  const topLevel = runLibrary('fr9_snapshot_project_path /snapshot ""');
+  assert.equal(topLevel.status, 0);
+  assert.equal(topLevel.stdout, '/snapshot\n');
+  const nested = runLibrary('fr9_snapshot_project_path /snapshot CannaBeats/nested/');
+  assert.equal(nested.status, 0);
+  assert.equal(nested.stdout, '/snapshot/CannaBeats/nested\n');
+  const absolute = runLibrary('fr9_snapshot_project_path /snapshot /expanded');
+  assert.equal(absolute.status, 2);
+  assert.equal(absolute.stderr, 'fr9_source_unavailable\n');
+
+  const directory = temp();
+  const project = join(directory, 'CannaBeatsHost.xcodeproj');
+  const verifier = join(directory, 'verify-host-release.sh');
+  mkdirSync(project);
+  executable(verifier, 'exit 0');
+  assert.equal(runLibrary(
+    'fr9_require_snapshot_paths "$ROOT" "$PROJECT" "$VERIFIER"',
+    { ROOT: directory, PROJECT: project, VERIFIER: verifier },
+  ).status, 0);
+  for (const [candidateProject, candidateVerifier] of [
+    [join(directory, 'omitted.xcodeproj'), verifier],
+    [project, join(directory, 'omitted-verifier')],
+  ]) {
+    const result = runLibrary(
+      'fr9_require_snapshot_paths "$ROOT" "$PROJECT" "$VERIFIER"',
+      { ROOT: directory, PROJECT: candidateProject, VERIFIER: candidateVerifier },
+    );
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, 'fr9_source_snapshot_failed\n');
+  }
+
+  const outside = temp();
+  const outsideProject = join(outside, 'Outside.xcodeproj');
+  const outsideVerifier = join(outside, 'outside-verifier');
+  mkdirSync(outsideProject);
+  executable(outsideVerifier, 'exit 0');
+  const linkedProject = join(directory, 'Linked.xcodeproj');
+  const linkedVerifier = join(directory, 'linked-verifier');
+  symlinkSync(outsideProject, linkedProject, 'dir');
+  symlinkSync(outsideVerifier, linkedVerifier, 'file');
+  for (const [candidateProject, candidateVerifier] of [
+    [linkedProject, verifier], [project, linkedVerifier],
+  ]) {
+    const result = runLibrary(
+      'fr9_require_snapshot_paths "$ROOT" "$PROJECT" "$VERIFIER"',
+      { ROOT: directory, PROJECT: candidateProject, VERIFIER: candidateVerifier },
+    );
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, 'fr9_source_snapshot_failed\n');
+  }
+});
+
 test('checksum and artifact identity conflict before signature or mount evaluation', () => {
   const directory = temp();
   const name = 'CannaBeats-Host-1.0.0-1-universal.dmg';
@@ -264,7 +318,7 @@ test('release publication order is archive sign notarize staple verify checksum 
   const stages = [
     'source-revision.txt', 'xcodebuild archive', 'codesign --verify --deep', 'hdiutil create',
     'codesign --force --sign', 'notarytool submit', 'stapler staple',
-    'shasum -a 256', 'verify-host-release.sh', 'fr9_publish_release',
+    'shasum -a 256', '\n"$snapshot_verifier" \\', 'fr9_publish_release',
   ];
   let previous = -1;
   for (const stage of stages) {
@@ -309,9 +363,11 @@ test('checksum is published only after notarization and source evidence', () => 
 test('release builds a detached clean commit and verifies its signed revision', () => {
   const script = readFileSync(releaseScript, 'utf8');
   const stages = [
+    'rev-parse --show-toplevel', 'rev-parse --show-prefix',
     "rev-parse --verify 'HEAD^{commit}'", 'worktree add --detach',
+    'fr9_require_snapshot_paths "$source_path" "$source_project" "$snapshot_verifier"',
     'source-revision.txt', 'CANNABEATS_SOURCE_REVISION="$source_revision"',
-    'verify-host-release.sh',
+    '\n"$snapshot_verifier" \\',
   ];
   let previous = -1;
   for (const stage of stages) {
@@ -319,7 +375,23 @@ test('release builds a detached clean commit and verifies its signed revision', 
     assert.ok(current > previous, `${stage} must follow its predecessor`);
     previous = current;
   }
-  assert.match(script, /project "\$source_path\/macos\/CannaBeatsHost\.xcodeproj"/u);
+  assert.match(
+    script,
+    /project "\$source_project"/u,
+  );
+  assert.match(
+    script,
+    /"\$snapshot_verifier"/u,
+  );
+  const actualPrefix = execFileSync(
+    'git', ['-C', repo, 'rev-parse', '--show-prefix'], { encoding: 'utf8' },
+  ).trim();
+  assert.notEqual(actualPrefix, '', 'test must exercise a project below the Git root');
+  assert.equal(
+    resolve(repo, '..', actualPrefix),
+    repo,
+    'detached snapshot prefix must resolve back to the CannaBeats project root',
+  );
 });
 
 test('lock cleanup is installed before fallible staging and source snapshot work', () => {

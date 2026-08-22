@@ -79,10 +79,9 @@ tap.
 Local verification:
 
 - `node --test --test-concurrency=1 release/tests/macos-distribution.test.mjs`
-  — 18/18 passed after final audit remediation;
-- `node --test --test-concurrency=1 release/tests/*.test.mjs` — 251/251 passed
-  after the main audit remediation; the final added PID-failure test then passed
-  in the 18-test focused suite;
+  — 19/19 passed after the detached nested-repository remediation;
+- `node --test --test-concurrency=1 release/tests/*.test.mjs` — 253/253 passed
+  after the detached nested-repository remediation;
 - `swift build --package-path macos/CannaBeatsHostCore` — passed;
 - unsigned universal production-target build with Xcode 26.6 and explicit
   `CODE_SIGNING_ALLOWED=NO` — passed, with `x86_64 arm64` executable slices;
@@ -138,6 +137,33 @@ The final one-perspective review reported P0=0, P1=0, and P2=0. Its targeted
 PID-publication test passed 1/1, and shell syntax and diff checks passed. Local
 FR-9 is therefore closed; only the explicitly unclaimed real signing,
 notarization, install/upgrade, consent, revocation, and Spotify evidence remains.
+
+## First real-artifact attempt and nested-repository remediation
+
+After the original local checkpoint, the configured notary profile validated
+and a direct Developer-ID archive succeeded. The complete release command then
+failed finitely with `fr9_archive_failed` before producing an artifact. Its
+retained diagnostic reproduction showed that CannaBeats is a subdirectory of
+the enclosing Git repository: a detached worktree contains
+`source/CannaBeats/macos`, while the release script had assumed
+`source/macos`.
+
+The remediation derives both the enclosing Git root and CannaBeats prefix from
+Git, creates and removes the detached worktree through that root, and resolves
+the Xcode project and verifier beneath the prefixed snapshot. The verifier is
+now executed from the same detached commit instead of the mutable live
+worktree. One shared preflight supports both an empty top-level prefix and a
+nested prefix, requires the exact Xcode project and executable verifier, rejects
+linked endpoints and canonical path escape, and maps every omission or escape
+to `fr9_source_snapshot_failed`.
+
+The affected-perspective review first reported P0=0, P1=0, and P2=1 for missing
+top-level and exact-path omission evidence. After the root/nested resolver and
+omission tests were added, its re-review found P1=1 because symlink targets
+could escape the snapshot. The final remediation added canonical containment
+and project/verifier symlink counterexamples. The final narrow review reported
+P0=0, P1=0, and P2=0; the focused suite passed 19/19 and shell syntax and diff
+checks passed. No artifact was published by either failed attempt.
 
 ## Named external evidence
 

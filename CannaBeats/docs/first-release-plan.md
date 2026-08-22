@@ -501,8 +501,9 @@ accepted action; logs and support output contain no credentials.
 ### FR-9 — Signed family distribution
 
 **Status:** In progress. Local implementation and independent review are closed
-with no open P0/P1/P2. The real Developer ID/notarization artifact and
-interactive install evidence remain. See
+with no open P0/P1/P2, including the detached nested-repository remediation
+found by the first real signing attempt. The real Developer ID/notarization
+artifact and interactive install evidence remain. See
 [FR-9 signed family distribution](operations/fr-9-signed-family-distribution.md).
 
 **Invariant:** Every distributed Host build has one durable bundle identity,
