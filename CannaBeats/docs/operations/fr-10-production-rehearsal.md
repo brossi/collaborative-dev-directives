@@ -4,6 +4,14 @@
 2026-08-22. Installation, DNS cutover, enrollment, game-night schedules, and
 recovery rehearsal remain open.
 
+The first release activation failed closed before DNS cutover because the web
+container's former `1.50` CPU ceiling exceeded the one-vCPU host's mechanical
+per-container maximum. Release authority returned to its empty state and no
+container remained. The web ceiling is now `1.00`; Caddy and relay retain their
+`0.50` and `0.75` burst ceilings and share the single scheduler. FR-10's real
+eight-listener rehearsal remains the performance gate. A CPU/RAM-only Droplet
+resize is the reversible fallback and must not expand the root disk.
+
 ## Governing invariant
 
 Every production process starts only from the exact retained release artifacts
@@ -27,7 +35,7 @@ restart-valid state, or provisioning stops before the origin is exposed.
 | Restart | `runtime`: systemd enables reconciliation before backup, Docker uses restart policies, and retained release/SQLite state is validated on startup. |
 | Dependency failure | `runtime`: package, checksum, download, Docker, unit, initialization, Compose, and health failure stop with finite results before DNS cutover. |
 | Corruption | `runtime`: the operator tree is exported from the retained Git commit, source and installed symlinks are rejected, exact replay compares the complete tree, the checksum-pinned Node binary is reverified, and release/schema/Compose validation fails closed. |
-| Capacity | `runtime`: validated Compose CPU/memory/PID limits and application limits remain the advertised fixed capacity. |
+| Capacity | `runtime`: every per-container CPU ceiling fits the one-vCPU host; validated memory/PID limits and application limits remain fixed, and the eight-listener real rehearsal proves the shared scheduler before release closure. |
 
 ## Authorized infrastructure
 

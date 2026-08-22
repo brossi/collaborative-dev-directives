@@ -72,6 +72,13 @@ test('each service has exact images, least mounts, health, and finite resources'
   assert.equal((compose.match(/pids_limit:/gu) ?? []).length, 3);
   assert.equal((compose.match(/mem_limit:/gu) ?? []).length, 3);
   assert.equal((compose.match(/cpus:/gu) ?? []).length, 3);
+  assert.match(serviceSection('caddy', 'web'), /cpus: 0\.50/u);
+  assert.match(serviceSection('web', 'relay'), /cpus: 1\.00/u);
+  assert.match(serviceSection('relay', 'networks'), /cpus: 0\.75/u);
+  for (const value of [...compose.matchAll(/cpus: ([0-9]+\.[0-9]+)/gu)]
+    .map((match) => Number(match[1]))) {
+    assert.equal(value <= 1, true);
+  }
   const caddySection = serviceSection('caddy', 'web');
   const relaySection = serviceSection('relay', 'networks');
   assert.doesNotMatch(caddySection, /\/run\/secrets|CANNABEATS_DATABASE_PATH/u);
