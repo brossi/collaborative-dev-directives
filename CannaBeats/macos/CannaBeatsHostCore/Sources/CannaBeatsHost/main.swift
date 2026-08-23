@@ -50,13 +50,14 @@ final class HostAppModel: ObservableObject {
             }
         }
         needsEnrollment = false
-        await refresh()
+        await refresh(requestAudioCapture: true)
     }
 
-    func refresh() async {
+    func refresh(requestAudioCapture: Bool = false) async {
         guard !refreshInFlight else { return }
         refreshInFlight = true
         defer { refreshInFlight = false }
+        if requestAudioCapture { await requestCapturePermissionIfEligible() }
         let enrolled = (try? HostCredentials.applicationSession()) != nil
         var server: Result<HostServerReadiness, HostAuthorityClientError>
         do {
@@ -74,7 +75,19 @@ final class HostAppModel: ObservableObject {
         } catch let error as HostAuthorityClientError {
             server = .failure(error)
         } catch { server = .failure(.transport) }
-        await refreshLocal(server: server, enrolled: enrolled)
+        await refreshLocal(
+            server: server, enrolled: enrolled
+        )
+    }
+
+    private func requestCapturePermissionIfEligible() async {
+        let spotifyState = spotify.applicationState()
+        let readback = spotifyState == .running ? await spotify.readback() : nil
+        let audioCapture = capturePermission.readiness()
+        if spotifyState == .running, case .success = readback, audioCapture != .ready {
+            status = "Requesting System Audio Recording access…"
+            _ = await capturePermission.requestReadiness()
+        }
     }
 
     private func refreshLocal(
@@ -121,7 +134,7 @@ final class HostAppModel: ObservableObject {
             startMonitoring()
         } catch HostAuthorityClientError.server("upgrade_required") {
             status = HostReadinessRecovery.updateHost.message
-            await refresh()
+            await refresh(requestAudioCapture: true)
         } catch {
             status = "The authenticated game window could not be opened. Try again."
         }
@@ -162,7 +175,7 @@ final class HostAppModel: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 if error != nil { self.status = "Spotify could not be opened." }
-                else { await self.refresh() }
+                else { await self.refresh(requestAudioCapture: true) }
             }
         }
     }
@@ -297,7 +310,9 @@ struct HostReadinessView: View {
             }
             Text(model.status).foregroundStyle(.secondary)
             HStack {
-                Button("Recheck") { Task { await model.refresh() } }
+                Button("Recheck") {
+                    Task { await model.refresh(requestAudioCapture: true) }
+                }
                 if model.readiness.checks.first(where: { $0.name == .spotify })?.state == .blocked {
                     Button("Open Spotify") { model.openSpotify() }
                 }

@@ -12,9 +12,11 @@ the retired iPhone project, or a copy received from another source.
 3. Eject the DMG, then open **CannaBeats Host** from Applications. The first
    launch should identify it as software from the CannaBeats Developer ID
    publisher; do not bypass Gatekeeper if macOS rejects it.
-4. When the Host first controls Spotify, allow Automation access. When shared
-   audio first starts, allow system-audio capture. CannaBeats does not request
-   microphone capture and does not install an audio driver.
+4. When the Host first controls Spotify, allow Automation access. The initial
+   readiness check then briefly starts and stops its private Spotify audio tap
+   so macOS can request System Audio Recording access before game play.
+   CannaBeats does not request microphone capture and does not install an audio
+   driver.
 
 ## Upgrade
 

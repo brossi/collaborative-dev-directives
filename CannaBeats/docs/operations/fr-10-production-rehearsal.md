@@ -82,3 +82,27 @@ restart-valid state, or provisioning stops before the origin is exposed.
 
 Credentials, SSH fingerprints, enrollment codes, provider IDs, and tokens are
 intentionally omitted from this document.
+
+## GH#5 setup-time audio consent increment
+
+**Governing invariant:** An eligible initial readiness check or explicit
+recheck performs at most one local private-Spotify-tap permission probe at a
+time, completely tears it down before publishing a finite readiness result,
+and never opens a server audio session or mutates the active game.
+
+| Dimension | Disposition |
+| --- | --- |
+| Create | `runtime`: `SystemAudioCapturePermission.requestReadiness()` alone creates the bounded local capture probe. |
+| Update | `runtime`: only `ready` or `failed` is retained after the probe has stopped. |
+| Delete | `runtime`: checked native teardown retries three times and retains the capture owner for a later retry if Core Audio does not confirm destruction. |
+| Omit | `runtime`: setup probes only after Spotify and Automation readback succeed; other states retain their existing finite recovery. |
+| Duplicate | `runtime`: concurrent requests await the same retained probe task. |
+| Reorder | `runtime`: only the task owner may publish its generation, checked teardown completes first, and server readiness is fetched only after a potentially delayed consent probe. |
+| Replay | `runtime`: explicit Recheck may safely retry a failed probe; an already-ready check does not disturb capture. |
+| Conflict | `structural`: the probe has no server session, relay transport, playback gate, or game identity to conflict with. |
+| Concurrency | `runtime`: one generation-fenced task owns probe publication; `HostAppModel.refreshInFlight` also serializes UI refreshes. |
+| Expiry | `not_applicable`: macOS TCC authority is not time-bound by CannaBeats. |
+| Restart | `runtime`: the finite result remains in the existing bundle-scoped preferences and real game capture still revalidates it. |
+| Dependency failure | `runtime`: missing Spotify process, denial, malformed format, and Core Audio failure become `failed` after teardown. |
+| Corruption | `runtime`: no native error or caller-authored value is retained as readiness. |
+| Capacity | `structural`: exactly one process tap, aggregate device, IO proc, and bounded ring exist during the probe. |

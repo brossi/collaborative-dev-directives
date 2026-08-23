@@ -74,6 +74,17 @@ public final class SpotifyProcessCapture: SharedAudioCapturing, @unchecked Senda
     }
 
     public func stop() { tap.stop() }
+    public func stopChecked() throws {
+        for _ in 0..<3 {
+            do {
+                try tap.stopChecked()
+                return
+            } catch {
+                continue
+            }
+        }
+        throw SharedAudioFailure.unavailable
+    }
     deinit { tap.stop() }
 }
 

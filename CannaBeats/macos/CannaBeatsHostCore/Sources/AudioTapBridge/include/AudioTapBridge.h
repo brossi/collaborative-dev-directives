@@ -62,6 +62,7 @@ typedef void (^CBAudioPacketHandler)(NSData *pcmData);
              packetHandler:(CBAudioPacketHandler)packetHandler
                       error:(NSError **)error;
 - (void)stop;
+- (BOOL)stopAndReturnError:(NSError **)error NS_SWIFT_NAME(stopChecked());
 
 @end
 

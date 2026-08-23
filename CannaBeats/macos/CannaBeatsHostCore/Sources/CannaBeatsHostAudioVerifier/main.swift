@@ -641,10 +641,27 @@ private final class PermissionMemory: @unchecked Sendable {
     }
 }
 
-private func verifyCapturePermission() throws {
+private final class PermissionProbeCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private let started = DispatchSemaphore(value: 0)
+    private let release = DispatchSemaphore(value: 0)
+    private var value = 0
+    func probe() {
+        lock.withLock { value += 1 }
+        started.signal()
+        release.wait()
+    }
+    func waitUntilStarted() { started.wait() }
+    func finish() { release.signal() }
+    func snapshot() -> Int { lock.withLock { value } }
+}
+
+private func verifyCapturePermission() async throws {
     let memory = PermissionMemory()
+    let probes = PermissionProbeCounter()
     let permission = SystemAudioCapturePermission(
-        supported: { true }, loadResult: { memory.result }, saveResult: { memory.result = $0 }
+        supported: { true }, loadResult: { memory.result }, saveResult: { memory.result = $0 },
+        probe: { probes.probe() }
     )
     try require(permission.readiness() == .notDetermined, "capture permission initial")
     try require(permission.prepareCaptureAttempt() == .ready, "capture attempt permitted")
@@ -654,10 +671,31 @@ private func verifyCapturePermission() throws {
                 "capture failure retained without blocking retry")
     permission.recordCaptureResult(.ready)
     try require(permission.readiness() == .ready, "capture success retained")
+    memory.result = nil
+    let first = Task { await permission.requestReadiness() }
+    probes.waitUntilStarted()
+    let duplicate = Task { await permission.requestReadiness() }
+    await Task.yield()
+    probes.finish()
+    let firstResult = await first.value
+    let duplicateResult = await duplicate.value
+    try require(firstResult == .ready && duplicateResult == .ready,
+                "capture permission probe succeeds")
+    try require(probes.snapshot() == 1 && permission.readiness() == .ready,
+                "concurrent capture permission probes coalesce and retain success")
+    let failed = SystemAudioCapturePermission(
+        supported: { true }, loadResult: { nil }, saveResult: { _ in },
+        probe: { throw SharedAudioFailure.unavailable }
+    )
+    let failedResult = await failed.requestReadiness()
+    try require(failedResult == .failed, "capture permission probe normalizes failure")
     let unsupported = SystemAudioCapturePermission(
-        supported: { false }, loadResult: { .ready }, saveResult: { _ in }
+        supported: { false }, loadResult: { .ready }, saveResult: { _ in },
+        probe: { throw SharedAudioFailure.unavailable }
     )
     try require(unsupported.readiness() == .unsupported, "capture permission unsupported")
+    let unsupportedResult = await unsupported.requestReadiness()
+    try require(unsupportedResult == .unsupported, "unsupported capture does not probe")
 }
 
 private func verifyRelayedAudioPacketFence() throws {
@@ -1087,10 +1125,10 @@ private func verifySharedAudioOwner() async throws {
 do {
     try await verifyAudioControlClient()
     try verifyBoundedStreamingProtocol()
-    try verifyCapturePermission()
+    try await verifyCapturePermission()
     try verifyRelayedAudioPacketFence()
     try await verifySharedAudioOwner()
-    print("CannaBeats Host audio verifier: 82 checks passed")
+    print("CannaBeats Host audio verifier: 86 checks passed")
 } catch {
     fputs("CannaBeats Host audio verifier failed: \(error)\n", stderr)
     exit(1)

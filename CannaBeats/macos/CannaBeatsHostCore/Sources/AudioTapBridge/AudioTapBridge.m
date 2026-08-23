@@ -458,32 +458,48 @@ static OSStatus CBAudioTapIOProc(AudioObjectID device, const AudioTimeStamp *now
 }
 
 - (void)stop {
+    [self stopAndReturnError:NULL];
+}
+
+- (BOOL)stopAndReturnError:(NSError **)error {
     if (_aggregateID != kAudioObjectUnknown && _ioProcID) {
         AudioDeviceStop(_aggregateID, _ioProcID);
-        AudioDeviceDestroyIOProcID(_aggregateID, _ioProcID);
+        if (AudioDeviceDestroyIOProcID(_aggregateID, _ioProcID) == noErr) {
+            _ioProcID = NULL;
+        }
     }
-    _ioProcID = NULL;
-    if (_aggregateID != kAudioObjectUnknown) {
-        AudioHardwareDestroyAggregateDevice(_aggregateID);
-        _aggregateID = kAudioObjectUnknown;
+    if (_aggregateID != kAudioObjectUnknown && !_ioProcID) {
+        if (AudioHardwareDestroyAggregateDevice(_aggregateID) == noErr) {
+            _aggregateID = kAudioObjectUnknown;
+        }
     }
-    if (_tapID != kAudioObjectUnknown) {
-        AudioHardwareDestroyProcessTap(_tapID);
-        _tapID = kAudioObjectUnknown;
+    if (_tapID != kAudioObjectUnknown && _aggregateID == kAudioObjectUnknown) {
+        if (AudioHardwareDestroyProcessTap(_tapID) == noErr) {
+            _tapID = kAudioObjectUnknown;
+        }
     }
-    if (_drainSource) {
+    if (!_ioProcID && _drainSource) {
         dispatch_source_cancel(_drainSource);
         if (_drainQueue && !dispatch_get_specific(&CBAudioDrainQueueKey)) {
             dispatch_sync(_drainQueue, ^{});
         }
     }
-    _drainSource = nil;
-    _drainQueue = nil;
-    _packetHandler = nil;
-    _ring = nil;
-    self.running = NO;
-    self.sampleRate = 0;
-    self.channelCount = 0;
+    if (!_ioProcID) {
+        _drainSource = nil;
+        _drainQueue = nil;
+        _packetHandler = nil;
+        _ring = nil;
+        self.running = NO;
+        self.sampleRate = 0;
+        self.channelCount = 0;
+    }
+    BOOL stopped = !_ioProcID && _aggregateID == kAudioObjectUnknown
+        && _tapID == kAudioObjectUnknown;
+    if (!stopped && error) {
+        *error = [NSError errorWithDomain:CBAudioTapErrorDomain code:-5
+            userInfo:@{NSLocalizedDescriptionKey: @"audio_capture_cleanup_failed"}];
+    }
+    return stopped;
 }
 
 - (void)dealloc { [self stop]; }
