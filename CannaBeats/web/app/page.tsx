@@ -113,7 +113,7 @@ function RulesPanel({ rules, busy, onApply }: {
   </section>;
 }
 
-function Welcome({ busy, error, invite, name, onName, onJoin, onCreate }: {
+function Welcome({ busy, error, invite, name, onName, onJoin, onCreate, onReturnToHost }: {
   busy: boolean;
   error: string;
   invite: { gameId: string; token: string } | null;
@@ -121,6 +121,7 @@ function Welcome({ busy, error, invite, name, onName, onJoin, onCreate }: {
   onName: (name: string) => void;
   onJoin: (event: FormEvent) => void;
   onCreate: () => void;
+  onReturnToHost?: () => void;
 }) {
   return <main className="welcome-shell"><section className="welcome-copy">
     <p className="eyebrow">A family music timeline game</p>
@@ -134,6 +135,8 @@ function Welcome({ busy, error, invite, name, onName, onJoin, onCreate }: {
       <label>Your name<input value={name} onChange={(event) => onName(event.target.value)}
         maxLength={24} autoComplete="name" required /></label>
       <button className="primary-button" disabled={busy || !name.trim()}>Join game</button>
+      {onReturnToHost && <button className="text-button" disabled={busy}
+        onClick={onReturnToHost} type="button">Return to Host lobby</button>}
     </form> : <div className="entry-block"><p className="step-label">On the shared Mac</p>
       <h2>Host a game</h2><p>Open this screen from the CannaBeats Host app. If this Mac is already authorized, continue below.</p>
       <button className="primary-button" disabled={busy} onClick={onCreate} type="button">Create game</button>
@@ -147,6 +150,7 @@ export default function Home() {
   const [state, setState] = useState<ReleaseGameState | null>(null);
   const [lifecycle, setLifecycle] = useState<"lobby" | "active" | "completed" | "abandoned" | null>(null);
   const [invite, setInvite] = useState<{ gameId: string; token: string } | null>(null);
+  const [returnToHostSession, setReturnToHostSession] = useState<ReleaseSession | null>(null);
   const [inviteUrl, setInviteUrl] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [name, setName] = useState("");
@@ -212,6 +216,7 @@ export default function Home() {
     const inviteToken = fragment.get("invite");
     if (gameId && inviteToken) {
       setInvite({ gameId, token: inviteToken });
+      setReturnToHostSession(saved?.role === "host" && saved.gameId === gameId ? saved : null);
       setName(localStorage.getItem(PLAYER_NAME_KEY) ?? "");
       return;
     }
@@ -361,6 +366,18 @@ export default function Home() {
     finally { setBusy(false); }
   }
 
+  async function returnToHost() {
+    if (!returnToHostSession) return;
+    setBusy(true); setError("");
+    try {
+      const snapshot = await hostSnapshot(returnToHostSession.gameId);
+      window.history.replaceState({}, "", cannabeatsPath("/"));
+      setInvite(null); setReturnToHostSession(null); setSession(returnToHostSession);
+      acceptSnapshot(snapshot);
+    } catch (reason) { setError(message(reason)); }
+    finally { setBusy(false); }
+  }
+
   async function removePlayer(player: ReleasePlayer) {
     if (!state || !session) return;
     if (player.control === "host") { await act("remove_host_player", { playerId: player.id }); return; }
@@ -388,7 +405,8 @@ export default function Home() {
   </section></main>;
 
   if (!session || !state) return <Welcome busy={busy} error={error} invite={invite}
-    name={name} onName={setName} onJoin={join} onCreate={() => void createGame()} />;
+    name={name} onName={setName} onJoin={join} onCreate={() => void createGame()}
+    onReturnToHost={returnToHostSession ? () => void returnToHost() : undefined} />;
 
   if (state.phase === "lobby") return <main className="game-shell lobby-shell">
     <header className="game-header"><div><p className="eyebrow">CannaBeats lobby</p>
@@ -422,7 +440,8 @@ export default function Home() {
             <p className="helper">Create a link for family joining from their phones.</p>
             <button className="secondary-button" disabled={busy || state.players.length >= 8}
               type="button" onClick={() => void makeInvitation()}>{inviteUrl ? "Replace invitation" : "Create invitation"}</button>
-            {inviteUrl && <p><a href={inviteUrl}>Open invitation link</a></p>}</div></div>
+            {inviteUrl && <p><a href={inviteUrl} target="_blank" rel="noopener noreferrer">
+              Preview invitation in new tab</a></p>}</div></div>
         <button className="primary-button" disabled={busy || state.players.length === 0}
           onClick={() => void act("start_game")}>Set up game</button>
       </> : <p className="waiting-note"><i /> Waiting for the Host to start</p>}

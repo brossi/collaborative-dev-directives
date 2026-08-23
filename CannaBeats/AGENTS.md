@@ -117,6 +117,22 @@ parent/child rows, sequence gaps, replay receipts, and cleanup state. Add any
 valid counterexample to the matrix and tests before declaring the increment
 ready for audit.
 
+## GitHub issue traceability
+
+Once a working release is under playtest, record a reproducible product defect
+in GitHub before correcting it. Keep the record proportionate: observed and
+expected behavior, reproduction, impact, the governing invariant, applicable
+closure-matrix dispositions, and acceptance evidence are enough.
+
+- Prefix issue titles with `[CannaBeats]` because the GitHub repository contains
+  more than this project.
+- Reference the issue number in correcting commits and pull requests.
+- Record the exact verification result in the issue or linked pull request.
+- Close a defect only after its correction is present in the accepted or
+  deployed build, not merely because a local commit exists.
+- Do not require issues for exploratory questions, unreproduced observations,
+  or mechanical documentation edits unless traceability would be useful.
+
 ## Role of independent audit
 
 Independent audit confirms the invariant and matrix; it is not the normal place

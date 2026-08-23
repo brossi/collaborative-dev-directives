@@ -86,6 +86,16 @@ test("Host setup and mixed-control lobby use the fixed release journey", async (
   assert.doesNotMatch(page, /room\.inputMode|managedPlaybackActive/);
 });
 
+test("invitation preview preserves an explicit verified return to the Host lobby", async () => {
+  const [page] = await releaseSources();
+  assert.match(page, /saved\?\.role === "host" && saved\.gameId === gameId/);
+  assert.match(page, /Return to Host lobby/);
+  assert.match(page, /const snapshot = await hostSnapshot\(returnToHostSession\.gameId\)/);
+  assert.match(page, /setInvite\(null\); setReturnToHostSession\(null\); setSession\(returnToHostSession\)/);
+  assert.match(page, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(page, /Preview invitation in new tab/);
+});
+
 test("answer metadata appears only in reveal-aware UI and projections", async () => {
   const [page, client, journey] = await releaseSources();
   assert.match(page, /state\.phase === "placed"/);
