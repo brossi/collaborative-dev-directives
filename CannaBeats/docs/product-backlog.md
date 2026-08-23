@@ -2,7 +2,7 @@
 
 **Status:** Working document; unprioritized; not published
 **Purpose:** Preserve product and technical ideas as a starting point for future discovery and implementation planning.
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-23
 
 ## How to use this document
 
@@ -11,6 +11,7 @@
 - Do not restate work that is already complete or approaches that were deliberately rejected. Improvements to existing behavior remain valid backlog items when they describe a meaningful unresolved problem or opportunity.
 - Validate usefulness and expected behavior before implementation.
 - Track immediate playtest blockers in the active testing workflow rather than in this durable product backlog.
+- Track ordered, near-term user-facing improvements in the [feature backlog](feature-backlog.md).
 - When an idea is selected for work, give it acceptance criteria, dependencies, risks, and an implementation plan in a dedicated issue or design document.
 
 ## Intentional private-use scope

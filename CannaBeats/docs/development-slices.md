@@ -11,6 +11,7 @@
   It supersedes the deployment topology and sequencing proposed by the initial
   five slices while preserving their applicable verified invariants.
 - [Product backlog](product-backlog.md) records unresolved product and technical opportunities without implying priority.
+- [Feature backlog](feature-backlog.md) is the ordered queue of near-term user-facing improvements not yet selected into the active release plan.
 - [ADR 0001](architecture/0001-lobby-orchestrates-game-runs.md) defines the accepted lobby/game-run lifecycle and ownership boundaries.
 - [Slice 1 plan](slice-1-baseline-protection.md) turns the first recommended slice into implementation checkpoints and acceptance criteria, including the thin observability foundation.
 - This document groups backlog work by shared implementation seams and describes an efficient delivery shape. It does not replace feature-level acceptance criteria or implementation plans.
