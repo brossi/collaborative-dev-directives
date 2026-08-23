@@ -8,7 +8,7 @@ import { afterEach, test } from 'node:test';
 
 import { loadCatalogArtifacts } from '../../web/lib/server/release/catalog.mjs';
 import { hostProofBytes } from '../../web/lib/server/release/host-authority.mjs';
-import { canonicalJson } from '../../web/lib/server/release/canonical.mjs';
+import { canonicalJson, sha256 } from '../../web/lib/server/release/canonical.mjs';
 import { ReleaseStoreError, createReleaseStore } from '../../web/lib/server/release/store.mjs';
 
 const roots = [];
@@ -109,6 +109,30 @@ function activateAudio(setup, now = 2_500) {
 function restart(setup, now = 3_000) {
   setup.store.close();
   setup.store = createReleaseStore(setup.path, { catalog, now });
+}
+
+function completeNextPlayback(setup, playerState, now = 3_010) {
+  const next = setup.store.nextPlaybackCommand({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now,
+  });
+  assert.equal(next.code, 'command');
+  const generation = randomUUID();
+  setup.store.transitionPlaybackCommand({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    commandId: next.command.commandId, claimGeneration: generation,
+    targetState: 'claimed', now: now + 1,
+  });
+  const outcome = {
+    playerState, positionMilliseconds: 1_000,
+    trackUri: next.command.trackUri
+      ?? setup.store.gameSnapshot(setup.gameId).state.currentSong.uri,
+  };
+  setup.store.transitionPlaybackCommand({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    commandId: next.command.commandId, claimGeneration: generation,
+    targetState: 'completed', outcome, outcomeHash: sha256(canonicalJson(outcome)), now: now + 2,
+  });
+  return next.command;
 }
 
 function withoutTrigger(database, name, work) {
@@ -232,6 +256,96 @@ test('the first round requires active shared audio and exact accepted replay sur
   }), accepted);
   assert.equal(setup.store.gameSnapshot(setup.gameId).state.phase, 'playing');
   setup.store.close();
+});
+
+test('Host pause and resume remain global on a phone-controlled turn and project verified state', () => {
+  const setup = setupGame();
+  hostAction(setup, 'start_game');
+  const audio = activateAudio(setup);
+  hostAction(setup, 'begin_round');
+  completeNextPlayback(setup, 'playing');
+  assert.equal(setup.store.gameSnapshot(setup.gameId).state.players[0].control, 'phone');
+  expectCode(() => participantAction(setup, 'pause_playback'), 'unauthorized');
+
+  const pauseRequest = randomUUID();
+  const pauseRevision = setup.store.gameSnapshot(setup.gameId).revision;
+  const paused = hostAction(setup, 'pause_playback', {}, {
+    requestId: pauseRequest, expectedRevision: pauseRevision, now: 3_100,
+  });
+  assert.equal(paused.state.phase, 'playing');
+  assert.deepEqual(setup.store.hostGameSnapshot({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_101,
+  }).playback, { state: 'playing', pending: 'paused', failed: null });
+  restart(setup);
+  assert.equal(setup.store.hostGameSnapshot({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_102,
+  }).playback.pending, 'paused');
+  assert.deepEqual(hostAction(setup, 'pause_playback', {}, {
+    requestId: pauseRequest, expectedRevision: pauseRevision, now: 3_100,
+  }), paused);
+  expectCode(() => hostAction(setup, 'resume_playback', {}, { now: 3_102 }), 'audio_not_ready');
+  const recoveredConnectionId = randomUUID();
+  setup.store.claimAudioIngest({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId: audio.audioSessionId, connectionId: recoveredConnectionId, now: 3_103,
+  });
+  setup.store.activateAudioIngest({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId: audio.audioSessionId, connectionId: recoveredConnectionId, now: 3_104,
+  });
+  assert.equal(completeNextPlayback(setup, 'paused', 3_110).kind, 'pause');
+  assert.deepEqual(setup.store.hostGameSnapshot({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_113,
+  }).playback, { state: 'paused', pending: null, failed: null });
+  expectCode(() => hostAction(setup, 'pause_playback'), 'operation_rejected');
+
+  hostAction(setup, 'resume_playback', {}, { now: 3_200 });
+  assert.deepEqual(setup.store.hostGameSnapshot({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_201,
+  }).playback, { state: 'paused', pending: 'playing', failed: null });
+  const failedResume = setup.store.nextPlaybackCommand({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_210,
+  }).command;
+  const failedGeneration = randomUUID();
+  setup.store.transitionPlaybackCommand({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    commandId: failedResume.commandId, claimGeneration: failedGeneration,
+    targetState: 'claimed', now: 3_211,
+  });
+  setup.store.transitionPlaybackCommand({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    commandId: failedResume.commandId, claimGeneration: failedGeneration,
+    targetState: 'failed', reasonCode: 'unrecognized', now: 3_212,
+  });
+  assert.deepEqual(setup.store.hostGameSnapshot({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_213,
+  }).playback, { state: 'paused', pending: null, failed: 'playing' });
+  hostAction(setup, 'resume_playback', {}, { now: 3_300 });
+  assert.equal(completeNextPlayback(setup, 'playing', 3_310).kind, 'play');
+  assert.deepEqual(setup.store.hostGameSnapshot({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: 3_313,
+  }).playback, { state: 'playing', pending: null, failed: null });
+  setup.store.close();
+});
+
+test('restart rejects a playback control whose retained causal event names another command', () => {
+  const setup = setupGame();
+  hostAction(setup, 'start_game');
+  activateAudio(setup);
+  hostAction(setup, 'begin_round');
+  completeNextPlayback(setup, 'playing');
+  const requestId = randomUUID();
+  hostAction(setup, 'pause_playback', {}, { requestId, now: 3_100 });
+  setup.store.close();
+  const database = new DatabaseSync(setup.path);
+  withoutTrigger(database, 'game_events_immutable_update', () => {
+    database.prepare(`UPDATE game_events SET detail=?
+      WHERE game_id=? AND request_id=? AND event_type='playback_requested'`).run(
+      canonicalJson({ kind: 'play' }), setup.gameId, requestId,
+    );
+  });
+  database.close();
+  expectCode(() => createReleaseStore(setup.path, { catalog, now: 3_200 }), 'database_corrupt');
 });
 
 test('an exchanged HttpOnly Host web session owns the same game without exposing the application bearer', () => {

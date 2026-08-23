@@ -25,7 +25,8 @@ import {
 } from './diagnostics.mjs';
 import { createHostAuthority, validateHostAuthority } from './host-authority.mjs';
 import {
-  appendTrackPlaybackCommand, cancelOpenPlaybackCommands, createPlaybackCommands,
+  appendControlPlaybackCommand, appendTrackPlaybackCommand, cancelOpenPlaybackCommands,
+  createPlaybackCommands,
   validatePlaybackCommands,
 } from './playback-commands.mjs';
 import {
@@ -878,7 +879,11 @@ export class ReleaseStore {
   hostGameSnapshot(input) {
     return this.#admissionCall(() => {
       const snapshot = this.#gameAdmission.hostSnapshot(input);
-      return Object.freeze({ ...snapshot, audio: this.#activeAudioProjection(input.gameId) });
+      return Object.freeze({
+        ...snapshot,
+        audio: this.#activeAudioProjection(input.gameId),
+        playback: this.#playbackProjection(input.gameId),
+      });
     });
   }
 
@@ -892,11 +897,31 @@ export class ReleaseStore {
     }) : null;
   }
 
+  #playbackProjection(gameId) {
+    const rows = this.#database.prepare(`SELECT command.kind,command.state,event.sequence
+      FROM playback_commands command JOIN game_events event
+      ON event.game_id=command.game_id AND event.request_id=command.request_id
+      AND ((command.kind='play_track' AND event.event_type='track_requested')
+        OR (command.kind IN ('play','pause') AND event.event_type='playback_requested'))
+      WHERE command.game_id=? ORDER BY event.sequence`).all(gameId);
+    const completed = rows.filter(({ state }) => state === 'completed').at(-1);
+    const latest = rows.at(-1);
+    const target = (kind) => kind === 'pause' ? 'paused' : 'playing';
+    const open = new Set(['queued', 'claimed', 'executing', 'outcome_unknown']);
+    return Object.freeze({
+      state: completed ? target(completed.kind) : 'unknown',
+      pending: latest && open.has(latest.state) ? target(latest.kind) : null,
+      failed: latest?.state === 'failed' ? target(latest.kind) : null,
+    });
+  }
+
   recoverHostGame(input) {
     return this.#admissionCall(() => {
       const result = this.#gameAdmission.hostRecovery(input);
       return Object.freeze({ game: result.game ? Object.freeze({
-        ...result.game, audio: this.#activeAudioProjection(result.game.gameId),
+        ...result.game,
+        audio: this.#activeAudioProjection(result.game.gameId),
+        playback: this.#playbackProjection(result.game.gameId),
       }) : null });
     });
   }
@@ -907,7 +932,7 @@ export class ReleaseStore {
       const code = error?.message;
       if (['invalid_request', 'unauthorized', 'request_conflict', 'capacity_reached',
         'duplicate_name', 'game_ended', 'stale_state', 'operation_rejected',
-        'catalog_exhausted', 'audio_not_ready', 'upgrade_required',
+        'catalog_exhausted', 'audio_not_ready', 'playback_capacity', 'upgrade_required',
         'database_unavailable', 'database_corrupt']
         .includes(code)) fail(code);
       fail('invalid_request');
@@ -963,10 +988,18 @@ export class ReleaseStore {
         _authorize: () => this.#hostAuthority.authorizeSession({
           token: hostSessionToken, kind: hostSessionKind, now: input.now,
         }),
-        _precondition: command.operation === 'begin_round' ? () => {
+        _precondition: ['begin_round', 'pause_playback', 'resume_playback']
+          .includes(command.operation) ? () => {
           const ready = this.#database.prepare(`SELECT 1 FROM audio_sessions
             WHERE game_id=? AND state='active'`).get(input.gameId);
           if (!ready) fail('audio_not_ready');
+          if (command.operation !== 'begin_round') {
+            const playback = this.#playbackProjection(input.gameId);
+            const required = command.operation === 'pause_playback' ? 'playing' : 'paused';
+            if (playback.pending !== null || playback.state !== required) {
+              fail('operation_rejected');
+            }
+          }
         } : null,
         reducer: (state, normalizedPayload, context) => reduceGameJourneyCommand({
           state, operation: command.operation, payload: normalizedPayload,
@@ -1226,10 +1259,15 @@ export class ReleaseStore {
         );
       }
       const trackEvents = events.filter(({ type }) => type === 'track_requested');
-      if (trackEvents.length > 1) fail('operation_rejected');
+      const controlEvents = events.filter(({ type }) => type === 'playback_requested');
+      if (trackEvents.length + controlEvents.length > 1) fail('operation_rejected');
       if (trackEvents.length === 1) {
         appendTrackPlaybackCommand(this.#database, {
           gameId, requestId, trackUri: trackEvents[0].detail.trackUri, now,
+        });
+      } else if (controlEvents.length === 1) {
+        appendControlPlaybackCommand(this.#database, {
+          gameId, requestId, kind: controlEvents[0].detail.kind, now,
         });
       } else if (lifecycle === 'completed') {
         cancelOpenPlaybackCommands(this.#database, gameId, now, 'game_ended');

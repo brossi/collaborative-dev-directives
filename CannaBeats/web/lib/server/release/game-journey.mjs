@@ -8,7 +8,7 @@ import {
 export const GAME_JOURNEY_OPERATIONS = Object.freeze([
   'configure_game', 'add_host_player', 'remove_host_player', 'start_game',
   'begin_round', 'place_song', 'retract_placement', 'reveal_answer',
-  'advance_round', 'skip_track',
+  'advance_round', 'skip_track', 'pause_playback', 'resume_playback',
 ]);
 
 const OPERATIONS = new Set(GAME_JOURNEY_OPERATIONS);
@@ -280,6 +280,14 @@ export function reduceGameJourneyCommand({
       ];
       break;
     }
+    case 'pause_playback':
+      requireHost(actor); requirePhase(next, ['playing', 'placed', 'revealed']);
+      events = [event('playback_requested', { kind: 'pause' })];
+      break;
+    case 'resume_playback':
+      requireHost(actor); requirePhase(next, ['playing', 'placed', 'revealed']);
+      events = [event('playback_requested', { kind: 'play' })];
+      break;
     default:
       reject('invalid_request');
   }

@@ -7,7 +7,7 @@ import {
   RELEASE_PENDING_ACTION_KEY, ReleaseClientError, acceptReleaseAction,
   clearPendingReleaseAction,
   loadPendingReleaseAction, loadPendingReleaseRecovery, savePendingReleaseAction,
-  participantSnapshot, saveReleaseSession, sendReleaseAction,
+  hostSnapshot, participantSnapshot, saveReleaseSession, sendReleaseAction,
 } from "../lib/release-game-client.ts";
 
 const originalFetch = globalThis.fetch;
@@ -139,6 +139,27 @@ test("participant snapshots accept only the bounded active-audio projection", as
   assert.deepEqual((await participantSnapshot(action.gameId)).audio, snapshot.audio);
   globalThis.fetch = async () => new Response(JSON.stringify({
     ...snapshot, audio: { ...snapshot.audio, relayToken: "forbidden" },
+  }), { status: 200 });
+  await assert.rejects(() => participantSnapshot(action.gameId), (error) =>
+    error instanceof ReleaseClientError && error.code === "invalid_response");
+});
+
+test("Host snapshots require an exact playback projection that participants never receive", async () => {
+  const action = { ...intent(), role: "host" };
+  const snapshot = {
+    audio: null, code: "snapshot", gameId: action.gameId, lifecycle: "active",
+    playback: { failed: null, pending: "paused", state: "playing" },
+    revision: 5, state: { ...state(action), currentSong: null, placement: null, result: null },
+  };
+  globalThis.fetch = async () => new Response(JSON.stringify(snapshot), { status: 200 });
+  assert.deepEqual((await hostSnapshot(action.gameId)).playback, snapshot.playback);
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ...snapshot, playback: { ...snapshot.playback, nativeDetail: "forbidden" },
+  }), { status: 200 });
+  await assert.rejects(() => hostSnapshot(action.gameId), (error) =>
+    error instanceof ReleaseClientError && error.code === "invalid_response");
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    ...snapshot, participantId: randomUUID(),
   }), { status: 200 });
   await assert.rejects(() => participantSnapshot(action.gameId), (error) =>
     error instanceof ReleaseClientError && error.code === "invalid_response");

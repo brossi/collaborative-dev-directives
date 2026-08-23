@@ -14,7 +14,7 @@ import {
   recoverHostGame, recoverParticipantGame, releaseReadiness, removeReleaseParticipant,
   savePendingReleaseAction, saveReleaseSession, sendReleaseAction, terminateReleaseGame,
   uuid, RELEASE_SESSION_KEY, ReleaseClientError, type ReleaseActionIntent, type ReleaseGameState,
-  type ReleasePlayer, type ReleaseSession,
+  type ReleasePlaybackProjection, type ReleasePlayer, type ReleaseSession,
 } from "../lib/release-game-client";
 import { useReleaseAudioStream } from "../lib/use-release-audio-stream";
 
@@ -33,6 +33,7 @@ const ERROR_TEXT: Record<string, string> = {
   incompatible_client: "This page is out of date. Reload CannaBeats before continuing.",
   invalid_request: "That request could not be accepted.",
   operation_rejected: "That move is no longer available in the current game state.",
+  playback_capacity: "This game has reached its retained playback-command limit.",
   outcome_unknown: "The server may have accepted this action. Confirming it before another move…",
   request_conflict: "This action no longer matches its retained request identity.",
   stale_state: "The game changed on another device. The latest state has been restored.",
@@ -163,6 +164,10 @@ export default function Home() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [audioSessionId, setAudioSessionId] = useState<string | null>(null);
+  const [playback, setPlayback] = useState<ReleasePlaybackProjection>({
+    state: "unknown", pending: null, failed: null,
+  });
+  const [playbackControlBusy, setPlaybackControlBusy] = useState(false);
   const sharedAudio = useReleaseAudioStream({
     gameId: session?.gameId ?? "", audioSessionId,
   });
@@ -177,6 +182,7 @@ export default function Home() {
 
   const acceptSnapshot = useCallback((snapshot: {
     audio?: { audioSessionId: string; generation: number; state: "active" } | null;
+    playback?: ReleasePlaybackProjection;
     lifecycle: "lobby" | "active" | "completed" | "abandoned";
     state: ReleaseGameState;
   }) => {
@@ -184,6 +190,7 @@ export default function Home() {
       ? snapshot.state : current);
     setLifecycle(snapshot.lifecycle);
     if (snapshot.audio !== undefined) setAudioSessionId(snapshot.audio?.audioSessionId ?? null);
+    if (snapshot.playback !== undefined) setPlayback(snapshot.playback);
   }, []);
 
   const acceptActionState = useCallback((next: ReleaseGameState) => {
@@ -323,6 +330,16 @@ export default function Home() {
     } finally { setBusy(false); }
   }, [acceptActionState, busy, pending, refresh, session, state]);
 
+  async function controlPlayback(operation: string) {
+    if (playbackControlBusy) return;
+    setPlaybackControlBusy(true);
+    try {
+      if (await act(operation) && session) {
+        await refresh(session).catch((reason) => setError(message(reason)));
+      }
+    } finally { setPlaybackControlBusy(false); }
+  }
+
   async function createGame(rules: GameRules = rulesForPreset("family")) {
     setBusy(true); setError("");
     try {
@@ -331,6 +348,7 @@ export default function Home() {
       const next = { gameId: created.gameId, role: "host" as const };
       saveReleaseSession(localStorage, next); setSession(next);
       setAudioSessionId(null);
+      setPlayback({ state: "unknown", pending: null, failed: null });
       const snapshot = created.state
         ? { lifecycle: "lobby" as const, state: created.state } : await hostSnapshot(created.gameId);
       acceptSnapshot(snapshot); setInviteUrl(""); setQrCodeUrl("");
@@ -409,6 +427,7 @@ export default function Home() {
       localStorage.removeItem(RELEASE_SESSION_KEY);
       setSession(null); setState(null); setLifecycle(null); setInviteUrl("");
       setAudioSessionId(null);
+      setPlayback({ state: "unknown", pending: null, failed: null });
     } catch (reason) { setError(message(reason)); }
     finally { setBusy(false); }
   }
@@ -474,6 +493,14 @@ export default function Home() {
     ? state.placement ?? null : null;
   const hostLocked = session.role === "host" && hostControlsTurn && state.phase === "placed"
     ? state.placement ?? null : null;
+  const playbackTarget = playback.pending ?? playback.state;
+  const playbackOperation = playbackTarget === "paused" ? "resume_playback" : "pause_playback";
+  const playbackLabel = playbackControlBusy ? "Confirming music…"
+    : playback.pending === "paused" ? "Pausing music…"
+    : playback.pending === "playing" ? "Resuming music…"
+      : playback.state === "paused" ? "Resume music"
+        : playback.state === "playing" ? "Pause music" : "Playback unavailable";
+  const playbackControlsAvailable = ["playing", "placed", "revealed"].includes(state.phase);
 
   return <main className={`game-shell ${session.role === "host" ? "host-game-shell" : "player-shell"}`}>
     <header className="game-header"><div><p className="eyebrow">Round {state.round}</p>
@@ -524,6 +551,16 @@ export default function Home() {
           onClick={() => void act("advance_round")}>{state.winnerId ? "Finish game" : "Next player"}</button>}
         {(state.phase === "playing" || state.phase === "placed") && <button className="text-button"
           disabled={busy} onClick={() => void act("skip_track")}>Skip unavailable song</button>}
+        {playbackControlsAvailable && <><button className="secondary-button"
+          disabled={busy || playbackControlBusy || playback.pending !== null
+            || playback.state === "unknown"}
+          onClick={() => void controlPlayback(playbackOperation)} type="button">{playbackLabel}</button>
+          <small className="playback-control-status" role="status">{playbackControlBusy
+            ? "Loading authoritative Spotify state."
+            : playback.failed
+            ? `${playback.failed === "paused" ? "Pause" : "Resume"} failed. Try again.`
+            : playback.pending ? "Waiting for verified Spotify state."
+              : `Spotify verified ${playback.state}.`}</small></>}
         {state.phase === "placed" && hostControlsTurn && state.rules.allowRetraction && !state.retractionUsed
           && <button className="text-button" disabled={busy}
             onClick={() => void act("retract_placement")}>Change placement</button>}

@@ -140,6 +140,12 @@ test("answer metadata appears only in reveal-aware UI and projections", async ()
 test("playback authority is honestly assigned to the native Host app", async () => {
   const [page] = await releaseSources();
   assert.match(page, /Spotify playback is performed by the CannaBeats Host app/);
+  assert.match(page, /Pause music/);
+  assert.match(page, /Resume music/);
+  assert.match(page, /async function controlPlayback\(operation: string\) \{\s+if \(playbackControlBusy\) return;\s+setPlaybackControlBusy\(true\);\s+try \{\s+if \(await act\(operation\) && session\) \{\s+await refresh\(session\)\.catch\([\s\S]*?\);\s+\}\s+\} finally \{ setPlaybackControlBusy\(false\); \}\s+\}/u);
+  assert.match(page, /disabled=\{busy \|\| playbackControlBusy \|\| playback\.pending !== null\s+\|\| playback\.state === "unknown"\}/u);
+  assert.match(page, /onClick=\{\(\) => void controlPlayback\(playbackOperation\)\}/u);
+  assert.match(page, /playbackControlBusy\s+\? "Loading authoritative Spotify state\."/u);
   assert.doesNotMatch(page, /spotify\.play|useSpotifyPlayer|HostDiagnosticsPanel/);
 });
 

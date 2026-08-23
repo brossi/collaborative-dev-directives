@@ -126,6 +126,11 @@ test('action route failures are finite and never reflect request or native error
   }, gameId);
   assert.equal(audioBlocked.status, 409);
   assert.deepEqual(await audioBlocked.json(), { ok: false, code: 'audio_not_ready' });
+  const playbackFull = await gameActionRoute(request(), {
+    applyHostGameAction() { throw new ReleaseStoreError('playback_capacity'); },
+  }, gameId);
+  assert.equal(playbackFull.status, 409);
+  assert.deepEqual(await playbackFull.json(), { ok: false, code: 'playback_capacity' });
   const native = await gameActionRoute(request(), {
     applyHostGameAction() { throw new Error(secret); },
   }, gameId);

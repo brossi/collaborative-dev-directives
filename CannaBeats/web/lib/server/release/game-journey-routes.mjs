@@ -11,7 +11,7 @@ export const GAME_JOURNEY_ROLE_HEADER = 'x-cannabeats-game-role';
 const FINITE_CODES = new Set([
   'invalid_request', 'unauthorized', 'request_conflict', 'capacity_reached',
   'duplicate_name', 'game_ended', 'stale_state', 'operation_rejected',
-  'catalog_exhausted', 'audio_not_ready', 'incompatible_client', 'database_unavailable',
+  'catalog_exhausted', 'audio_not_ready', 'playback_capacity', 'incompatible_client', 'database_unavailable',
   'database_corrupt', 'catalog_incompatible', 'upgrade_required',
 ]);
 
@@ -21,7 +21,7 @@ function failure(code) {
       : code === 'game_ended' ? 410
         : ['request_conflict', 'capacity_reached', 'duplicate_name', 'stale_state',
           'operation_rejected', 'catalog_exhausted', 'incompatible_client',
-          'catalog_incompatible', 'audio_not_ready', 'upgrade_required'].includes(code) ? 409
+          'catalog_incompatible', 'audio_not_ready', 'playback_capacity', 'upgrade_required'].includes(code) ? 409
           : 503;
   return Response.json({ ok: false, code }, {
     status, headers: { 'Cache-Control': 'no-store' },

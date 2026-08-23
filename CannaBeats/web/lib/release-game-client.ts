@@ -49,12 +49,19 @@ export type ReleaseSnapshot = {
     generation: number;
     state: "active";
   } | null;
+  playback?: ReleasePlaybackProjection;
   code: "snapshot";
   gameId: string;
   lifecycle: "lobby" | "active" | "completed" | "abandoned";
   participantId?: string;
   revision: number;
   state: ReleaseGameState;
+};
+
+export type ReleasePlaybackProjection = {
+  state: "unknown" | "playing" | "paused";
+  pending: "playing" | "paused" | null;
+  failed: "playing" | "paused" | null;
 };
 
 export type ReleaseSession = {
@@ -148,6 +155,15 @@ function releaseSnapshot(value: unknown, role: ReleaseRole): ReleaseSnapshot {
         .test(audio.audioSessionId)
       && Number.isSafeInteger(audio.generation) && Number(audio.generation) > 0
       && audio.state === "active"))) throw new ReleaseClientError("invalid_response", 502);
+  const playback = value.playback;
+  const validPlayback = validRecord(playback)
+    && Object.keys(playback).sort().join("\0") === "failed\0pending\0state"
+    && ["unknown", "playing", "paused"].includes(String(playback.state))
+    && (playback.pending === null || ["playing", "paused"].includes(String(playback.pending)))
+    && (playback.failed === null || ["playing", "paused"].includes(String(playback.failed)));
+  if (role === "host" ? !validPlayback : playback !== undefined) {
+    throw new ReleaseClientError("invalid_response", 502);
+  }
   const state = releaseState(value.state, role);
   if (state.gameId !== value.gameId || state.revision !== value.revision
       || (role === "participant" && typeof value.participantId !== "string")) {

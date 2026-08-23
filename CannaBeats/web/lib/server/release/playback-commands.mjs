@@ -19,6 +19,10 @@ const FAILURE_REASONS = new Set([
   'unrecognized',
 ]);
 const UNKNOWN_REASONS = new Set(['command_timeout', 'response_lost', 'unrecognized']);
+const EVENT_KIND = Object.freeze({
+  playback_requested: Object.freeze({ play: 'play', pause: 'pause' }),
+  track_requested: Object.freeze({ play_track: 'play_track' }),
+});
 
 function reject(code) { throw new Error(code); }
 
@@ -106,12 +110,16 @@ export function cancelOpenPlaybackCommands(database, gameId, now, reasonCode) {
   return open.length;
 }
 
-export function appendTrackPlaybackCommand(database, {
-  gameId, requestId, trackUri, now, ordinal = 0,
+function appendPlaybackCommand(database, {
+  gameId, requestId, kind, trackUri = null, now, ordinal = 0,
 }) {
   assertUuid(gameId, 'invalid_request'); assertUuid(requestId, 'invalid_request');
   assertTimestamp(now, 'invalid_request');
-  if (!/^spotify:track:[0-9A-Za-z]{22}$/u.test(trackUri)) reject('invalid_request');
+  if (!['play_track', 'play', 'pause'].includes(kind)
+      || (kind === 'play_track') !== (trackUri !== null)
+      || (trackUri !== null && !/^spotify:track:[0-9A-Za-z]{22}$/u.test(trackUri))) {
+    reject('invalid_request');
+  }
   const ambiguous = database.prepare(`SELECT 1 FROM playback_commands WHERE game_id=?
     AND state IN ('claimed','executing','outcome_unknown') AND execution_ambiguous=1
     LIMIT 1`).get(gameId);
@@ -123,13 +131,24 @@ export function appendTrackPlaybackCommand(database, {
   const commandId = playbackCommandId(gameId, requestId, ordinal);
   database.prepare(`INSERT INTO playback_commands
     (command_id,game_id,request_id,kind,track_uri,state,created_at,updated_at)
-    VALUES (?,?,?,'play_track',?,'queued',?,?)`).run(
-    commandId, gameId, requestId, trackUri, now, now,
+    VALUES (?,?,?,?,?,'queued',?,?)`).run(
+    commandId, gameId, requestId, kind, trackUri, now, now,
   );
   database.prepare(`INSERT INTO playback_command_transitions
     (command_id,sequence,from_state,to_state,occurred_at)
     VALUES (?,1,NULL,'queued',?)`).run(commandId, now);
   return commandId;
+}
+
+export function appendTrackPlaybackCommand(database, input) {
+  return appendPlaybackCommand(database, { ...input, kind: 'play_track' });
+}
+
+export function appendControlPlaybackCommand(database, {
+  gameId, requestId, kind, now, ordinal = 0,
+}) {
+  if (!['play', 'pause'].includes(kind)) reject('invalid_request');
+  return appendPlaybackCommand(database, { gameId, requestId, kind, now, ordinal });
 }
 
 function normalizedOutcome(command, outcome, outcomeHash) {
@@ -284,20 +303,22 @@ export function validatePlaybackCommands(database) {
         || !Number.isSafeInteger(command.updated_at) || command.updated_at < command.created_at) {
       reject('database_corrupt');
     }
-    let commandEventSequence = null;
-    if (command.kind === 'play_track') {
-      const event = database.prepare(`SELECT detail,occurred_at,sequence FROM game_events
-        WHERE game_id=? AND request_id=? AND event_type='track_requested'`).get(
-        command.game_id, command.request_id,
-      );
-      let detail;
-      try { detail = JSON.parse(event?.detail); } catch { reject('database_corrupt'); }
-      if (!event || detail.trackUri !== command.track_uri || event.occurred_at !== command.created_at
-          || command.command_id !== playbackCommandId(command.game_id, command.request_id, 0)) {
-        reject('database_corrupt');
-      }
-      commandEventSequence = event.sequence;
+    const expectedEventType = command.kind === 'play_track'
+      ? 'track_requested' : 'playback_requested';
+    const event = database.prepare(`SELECT detail,occurred_at,sequence FROM game_events
+      WHERE game_id=? AND request_id=? AND event_type=?`).get(
+      command.game_id, command.request_id, expectedEventType,
+    );
+    let detail;
+    try { detail = parseCanonicalJson(event?.detail); } catch { reject('database_corrupt'); }
+    const causalDetail = command.kind === 'play_track'
+      ? detail?.trackUri === command.track_uri
+      : canonicalJson(detail) === canonicalJson({ kind: command.kind });
+    if (!event || !causalDetail || event.occurred_at !== command.created_at
+        || command.command_id !== playbackCommandId(command.game_id, command.request_id, 0)) {
+      reject('database_corrupt');
     }
+    const commandEventSequence = event.sequence;
     const transitions = database.prepare(`SELECT sequence,from_state,to_state,claim_generation,
       outcome,outcome_hash,reason_code,occurred_at FROM playback_command_transitions
       WHERE command_id=? ORDER BY sequence`).all(command.command_id);
@@ -356,16 +377,23 @@ export function validatePlaybackCommands(database) {
             || !['game_ended', 'superseded'].includes(row.reason_code)) {
           reject('database_corrupt');
         }
-        const nextEvent = database.prepare(`SELECT request_id,occurred_at FROM game_events
-          WHERE game_id=? AND event_type='track_requested' AND sequence>?
+        const nextEvent = database.prepare(`SELECT request_id,occurred_at,event_type,detail
+          FROM game_events WHERE game_id=?
+          AND event_type IN ('track_requested','playback_requested') AND sequence>?
           ORDER BY sequence LIMIT 1`).get(command.game_id, commandEventSequence);
         if (row.reason_code === 'game_ended') {
           if (!['completed', 'abandoned'].includes(game.lifecycle)
               || game.terminal_at !== row.occurred_at || nextEvent) reject('database_corrupt');
         } else {
+          let replacementKind = null;
+          try {
+            const nextDetail = parseCanonicalJson(nextEvent?.detail);
+            replacementKind = nextEvent?.event_type === 'track_requested'
+              ? 'play_track' : nextDetail?.kind;
+          } catch { reject('database_corrupt'); }
           const replacement = nextEvent && database.prepare(`SELECT command_id FROM playback_commands
-            WHERE game_id=? AND request_id=? AND kind='play_track' AND created_at=?`).get(
-            command.game_id, nextEvent.request_id, row.occurred_at,
+            WHERE game_id=? AND request_id=? AND kind=? AND created_at=?`).get(
+            command.game_id, nextEvent.request_id, replacementKind, row.occurred_at,
           );
           if (!nextEvent || nextEvent.occurred_at !== row.occurred_at || !replacement) {
             reject('database_corrupt');
@@ -384,12 +412,17 @@ export function validatePlaybackCommands(database) {
       reject('database_corrupt');
     }
   }
-  const trackEvents = database.prepare(`SELECT game_id,request_id FROM game_events
-    WHERE event_type='track_requested'`).all();
-  if (trackEvents.some((event) => !commands.some((command) => command.game_id === event.game_id
-    && command.request_id === event.request_id && command.kind === 'play_track'))) {
+  const commandEvents = database.prepare(`SELECT game_id,request_id,event_type,detail FROM game_events
+    WHERE event_type IN ('track_requested','playback_requested')`).all();
+  if (commandEvents.some((event) => {
+    let detail;
+    try { detail = parseCanonicalJson(event.detail); } catch { return true; }
+    const kind = event.event_type === 'track_requested' ? 'play_track' : detail?.kind;
+    return !EVENT_KIND[event.event_type]?.[kind]
+      || !commands.some((command) => command.game_id === event.game_id
+        && command.request_id === event.request_id && command.kind === kind);
+  })) {
     reject('database_corrupt');
   }
-  if (commands.some(({ kind }) => kind !== 'play_track')) reject('database_corrupt');
   return Object.freeze({ commands: commands.length });
 }
