@@ -218,14 +218,7 @@ public actor HostAuthorityClient {
             intent = proposed
             try savePendingEnrollment(intent)
         }
-        let result: EnrollResponse = try await mutation(
-            "/api/host/enrollments/redeem", EnrollRequest(intent)
-        )
-        try clearPendingEnrollment()
-        return HostDevice(
-            deviceId: result.deviceId, label: result.label, authorizedAt: result.authorizedAt,
-            lastProvedAt: nil, revokedAt: nil
-        )
+        return try await redeemPendingEnrollment(intent)
     }
 
     public func resumePendingEnrollment() async throws -> HostDevice? {
@@ -235,9 +228,20 @@ public actor HostAuthorityClient {
                 && intent.publicKey == identity.publicKeyDER.base64EncodedString() else {
             throw HostAuthorityClientError.pendingEnrollmentExists
         }
-        let result: EnrollResponse = try await mutation(
-            "/api/host/enrollments/redeem", EnrollRequest(intent)
-        )
+        return try await redeemPendingEnrollment(intent)
+    }
+
+    private func redeemPendingEnrollment(_ intent: HostPendingEnrollment) async throws -> HostDevice {
+        let result: EnrollResponse
+        do {
+            result = try await mutation(
+                "/api/host/enrollments/redeem", EnrollRequest(intent)
+            )
+        } catch HostAuthorityClientError.server(let code)
+            where ["expired", "already_used", "unauthorized", "request_conflict"].contains(code) {
+            try clearPendingEnrollment()
+            throw HostAuthorityClientError.server(code)
+        }
         try clearPendingEnrollment()
         return HostDevice(
             deviceId: result.deviceId, label: result.label, authorizedAt: result.authorizedAt,

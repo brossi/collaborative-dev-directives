@@ -104,6 +104,22 @@ actor TerminalProofTransport {
     }
 }
 
+actor EnrollmentFailureTransport {
+    let code: String
+
+    init(code: String) { self.code = code }
+
+    func send(_ request: URLRequest) -> (Data, URLResponse) {
+        (
+            Data(#"{"ok":false,"code":"\#(code)"}"#.utf8),
+            HTTPURLResponse(
+                url: request.url!, statusCode: 409,
+                httpVersion: "HTTP/1.1", headerFields: nil
+            )!
+        )
+    }
+}
+
 let lostResponse = LostResponseTransport()
 let pendingEnrollment = PendingEnrollmentMemory()
 func makeClient() -> HostAuthorityClient { HostAuthorityClient(
@@ -139,6 +155,36 @@ let wireBody = String(decoding: retried[0], as: UTF8.self)
 precondition(wireBody.contains(#""deviceId":"12345678-1234-4234-8234-123456789abc""#))
 let enrollmentWire = try JSONSerialization.jsonObject(with: retried[0]) as! [String: Any]
 precondition(enrollmentWire["enrollmentCode"] as? String == terminalHyphenEnrollmentCode)
+
+for code in ["expired", "already_used", "unauthorized", "request_conflict", "capacity_reached"] {
+    let failureTransport = EnrollmentFailureTransport(code: code)
+    let failurePending = PendingEnrollmentMemory()
+    let failureClient = HostAuthorityClient(
+        transport: { await failureTransport.send($0) },
+        identity: {
+            HostDeviceProofIdentity(
+                deviceID: deviceID, publicKeyDER: privateKey.publicKey.derRepresentation,
+                signer: { try privateKey.signature(for: $0).derRepresentation }
+            )
+        },
+        loadSession: { nil }, saveSession: { _ in },
+        loadPendingEnrollment: { try failurePending.load() },
+        savePendingEnrollment: { try failurePending.save($0) },
+        clearPendingEnrollment: { failurePending.clear() }
+    )
+    do {
+        _ = try await failureClient.enroll(
+            code: "ABCDEFGHIJKLMNOPQRSTUVWX", label: "Failure Mac"
+        )
+        preconditionFailure("enrollment failure should remain finite")
+    } catch HostAuthorityClientError.server(let received) {
+        precondition(received == code)
+        let shouldClear = ["expired", "already_used", "unauthorized", "request_conflict"]
+            .contains(code)
+        let retained = try failurePending.load()
+        precondition((retained == nil) == shouldClear)
+    }
+}
 
 let proofTransport = ProofLostResponseTransport()
 let pendingProof = PendingProofMemory()
