@@ -6,19 +6,24 @@ import {
 import { HOST_CLIENT_CONTRACT } from './host-contract.mjs';
 
 export const HOST_LIMITS = Object.freeze({
-  enrollmentTtl: 15 * 60 * 1_000,
+  enrollmentTtl: 24 * 60 * 60 * 1_000,
   challengeTtl: 2 * 60 * 1_000,
   applicationSessionTtl: 30 * 24 * 60 * 60 * 1_000,
   webTicketTtl: 60 * 1_000,
   webSessionTtl: 12 * 60 * 60 * 1_000,
-  devices: 8,
-  enrollments: 8,
+  devices: 100,
+  enrollments: 100,
   challengesPerDevice: 4,
   applicationSessionsPerDevice: 8,
   ticketsPerSession: 4,
   ordinaryReceipts: 3_840,
   reservedReceipts: 256,
 });
+
+const RETAINED_ENROLLMENT_TTLS = new Set([
+  15 * 60 * 1_000,
+  HOST_LIMITS.enrollmentTtl,
+]);
 
 const BEARER = /^[A-Za-z0-9_-]{22,128}$/u;
 const LABEL = /^.{1,80}$/u;
@@ -590,7 +595,7 @@ export function validateHostAuthority(database) {
     ORDER BY enrollment_hash`).all();
   for (const row of enrollments) {
     if (!SHA256_PATTERN.test(row.enrollment_hash)
-        || row.expires_at - row.issued_at !== HOST_LIMITS.enrollmentTtl
+        || !RETAINED_ENROLLMENT_TTLS.has(row.expires_at - row.issued_at)
         || (row.issued_by_device_id !== null && !deviceMap.has(row.issued_by_device_id))
         || ((row.redeemed_at === null) !== (row.redeemed_device_id === null))
         || (row.redeemed_device_id !== null && !deviceMap.has(row.redeemed_device_id))

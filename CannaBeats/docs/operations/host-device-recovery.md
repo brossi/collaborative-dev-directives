@@ -20,7 +20,7 @@ Keychain.
 3. After the Host proves its new key and shows the device list, discard the
    plaintext code. The server retains only its SHA-256 hash.
 
-An already authorized Host can create another 15-minute code from the Host
+An already authorized Host can create another 24-hour code from the Host
 device screen. Share it directly with the person enrolling the other Mac.
 
 ## Revoke a lost or replaced Mac

@@ -5,7 +5,7 @@ import SwiftUI
 public final class HostEnrollmentModel: ObservableObject {
     @Published public var enrollmentCode = ""
     @Published public var deviceLabel = Host.current().localizedName ?? "This Mac"
-    @Published public private(set) var status = "Paste a 15-minute enrollment code."
+    @Published public private(set) var status = "Paste a 24-hour enrollment code."
     @Published public private(set) var isWorking = false
     @Published public private(set) var enrolled = false
 
@@ -118,7 +118,7 @@ public final class HostDeviceSettingsModel: ObservableObject {
     public func issueEnrollment() async {
         do {
             enrollment = try await client.issueEnrollment()
-            status = "This code expires in 15 minutes."
+            status = "This code expires in 24 hours."
         } catch {
             status = "A new enrollment code could not be created."
         }
@@ -155,7 +155,7 @@ public struct HostDeviceSettingsView: View {
     public var body: some View {
         Form {
             Section("Add a Mac") {
-                Button("Create 15-minute enrollment code") {
+                Button("Create 24-hour enrollment code") {
                     Task { await model.issueEnrollment() }
                 }
                 if let enrollment = model.enrollment {

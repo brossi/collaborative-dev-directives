@@ -111,7 +111,7 @@ function validateResult(command, value) {
       && (value.schemaGeneration === null || safeInteger(value.schemaGeneration, 1))
       && (value.catalogVersion === null
         || (typeof value.catalogVersion === 'string' && DIGEST.test(value.catalogVersion)))
-      && typeof value.activeGame === 'boolean' && safeInteger(value.activeDevices, 0, 8)
+      && typeof value.activeGame === 'boolean' && safeInteger(value.activeDevices, 0, 100)
       && safeInteger(value.diagnostics)
     : command === 'active-game'
       ? (value.code === 'active_game_absent' && exact(value, ['code']))

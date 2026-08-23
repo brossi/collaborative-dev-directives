@@ -210,6 +210,20 @@ test('operator CLI rejects private fields, unknown failures, and over-bound stre
   }), (error) => error instanceof OperatorError
     && error.code === 'operator_response_invalid'
     && !error.message.includes('private'));
+  for (const activeDevices of [99, 100, 101]) {
+    const operation = executeOperatorCommand(['status'], {
+      origin: 'https://operator.example', tokenPath,
+      fetchImpl: async () => Response.json({
+        code: 'operator_status', ready: true, reason: 'ready', schemaGeneration: 1,
+        catalogVersion: catalog.version, activeGame: false, activeDevices, diagnostics: 0,
+      }),
+    });
+    if (activeDevices <= 100) assert.equal((await operation).activeDevices, activeDevices);
+    else {
+      await assert.rejects(operation, (error) => error instanceof OperatorError
+        && error.code === 'operator_response_invalid');
+    }
+  }
   await assert.rejects(executeOperatorCommand(['status'], {
     origin: 'https://operator.example', tokenPath,
     fetchImpl: async () => Response.json({ ok: false, code: 'private_internal_error' }, {

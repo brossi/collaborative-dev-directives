@@ -75,7 +75,7 @@ Apple signing, notarization, stapling, and Gatekeeper checks.
   Mac.
 - Initial recovery/bootstrap enrollment is created by a server CLI. An
   authorized Host can create subsequent enrollment codes from the application.
-  A code contains at least 128 bits of randomness, expires after 15 minutes,
+  A code contains at least 128 bits of randomness, expires after 24 hours,
   is stored only as a hash, and can authorize exactly one device key.
 - There are no Host passwords, passkeys, emailed links, participant accounts,
   or cross-device participant profiles in the first release. Loss of every
@@ -116,7 +116,7 @@ release inputs, not by copying retained application rows.
 | Record | Required purpose and limits |
 | --- | --- |
 | `host_devices` | Immutable device public key, label, authorization and revocation state |
-| `host_enrollments` | Hashed one-use code, issuer, 15-minute expiry, and redemption result |
+| `host_enrollments` | Hashed one-use code, issuer, 24-hour expiry, and redemption result |
 | `host_challenges` | Hashed one-use signing challenge with two-minute expiry |
 | `host_sessions` | Hashed bounded bearer session derived from a valid device proof |
 | `games` | Immutable `game_id`, lifecycle, configuration, catalog version, revision, and one-active-game constraint |

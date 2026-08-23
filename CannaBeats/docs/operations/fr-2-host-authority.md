@@ -30,13 +30,13 @@ or an explicit local-authority reset.
 
 | Identity | Lifetime/capacity |
 | --- | --- |
-| Enrollment code | 15 minutes; one redemption |
+| Enrollment code | 24 hours; one redemption |
 | Signing challenge | 2 minutes; one proof attempt |
 | Application session | 30 days; eight live sessions per device |
 | Web-view ticket | 1 minute; one exchange |
 | Web-view session | 12 hours and never beyond its parent application session |
-| Authorized devices | Eight non-revoked devices |
-| Active enrollment codes | Eight globally |
+| Authorized devices | 100 non-revoked devices |
+| Active enrollment codes | 100 globally |
 | Active challenges | Four per device |
 | Active web tickets | Four per application session |
 | Host action receipts | 3,840 ordinary slots plus 256 authority-reducing reserve slots |
@@ -156,11 +156,11 @@ label and device ID.
 | Replay | `runtime`: exact retained receipt is evaluated before current authority, expiry, use, or capacity; ticket exchange is explicitly one-use and replaced after lost response. |
 | Conflict | `runtime`: scoped request reuse with another canonical hash fails before state evaluation; altered key/code/challenge/session content cannot claim prior success. |
 | Concurrency | `runtime` + `schema`: the one synchronous owner and `BEGIN IMMEDIATE` serialize checks; unique constraints decide final-slot and one-use races. |
-| Expiry | `runtime`: every operation uses expired when `now >= expires_at`; child expiry never exceeds its parent. |
+| Expiry | `runtime`: every operation uses expired when `now >= expires_at`; child expiry never exceeds its parent. New enrollment codes use exactly 24 hours; the validator also recognizes the formerly issued 15-minute lifetime so retained production evidence remains restart-valid. |
 | Restart | `runtime`: the shared release validator reconstructs every Host authority and receipt/effect relationship before publishing readiness. |
 | Dependency failure | `runtime`: malformed DER/signature, crypto failure, unavailable database, and response loss map to finite results without partial authority. Store errors carry a process-global symbol brand so production module duplication cannot collapse a finite result into `database_unavailable`; unbranded/native errors still fail closed. |
 | Corruption | `runtime`: canonical receipts, hashes, parentage, timestamps, consumption, session kinds, and revocation cascades fail closed. |
-| Capacity | `schema` + `runtime`: fixed device/code/challenge/session/ticket limits and receipt cleanup reserve are checked inside the mutation transaction. |
+| Capacity | `schema` + `runtime`: 100 active devices, 100 live codes, and the fixed challenge/session/ticket limits and receipt cleanup reserve are checked inside the mutation transaction. Revoked-device history does not consume the active-device limit; redeemed, revoked, and expired codes do not consume the live-code limit. |
 
 ## Matrix-derived verification
 

@@ -112,6 +112,7 @@ test('bootstrap enrollment stores only hashes and replays before one-use state',
 });
 
 test('enrollment expiry is accepted before and rejected at and after equality', () => {
+  assert.equal(HOST_LIMITS.enrollmentTtl, 24 * 60 * 60 * 1_000);
   for (const offset of [-1, 0, 1]) {
     const place = location();
     const store = createReleaseStore(place.path, { catalog });
@@ -126,6 +127,41 @@ test('enrollment expiry is accepted before and rejected at and after equality', 
     if (offset < 0) assert.equal(work().code, 'device_enrolled');
     else expectCode(work, 'expired');
     store.close();
+  }
+});
+
+test('restart accepts retained 15-minute enrollment evidence but rejects another lifetime', () => {
+  for (const [ttl, accepted] of [[15 * 60 * 1_000, true], [16 * 60 * 1_000, false]]) {
+    const place = location();
+    const store = createReleaseStore(place.path, { catalog });
+    const action = { enrollmentCode: bearer(), requestId: randomUUID(), now: 1_000 };
+    store.issueEnrollment(action);
+    store.close();
+
+    const database = new DatabaseSync(place.path);
+    const enrollmentTrigger = database.prepare(`SELECT sql FROM sqlite_schema
+      WHERE name='host_enrollments_identity_immutable'`).get().sql;
+    const receiptTrigger = database.prepare(`SELECT sql FROM sqlite_schema
+      WHERE name='host_action_receipts_immutable_update'`).get().sql;
+    const receipt = database.prepare(`SELECT rowid,result FROM host_action_receipts
+      WHERE operation='issue_enrollment'`).get();
+    const expiresAt = action.now + ttl;
+    database.exec('DROP TRIGGER host_enrollments_identity_immutable');
+    database.exec('DROP TRIGGER host_action_receipts_immutable_update');
+    database.prepare('UPDATE host_enrollments SET expires_at=?').run(expiresAt);
+    database.prepare('UPDATE host_action_receipts SET result=? WHERE rowid=?')
+      .run(canonicalJson({ ...JSON.parse(receipt.result), expiresAt }), receipt.rowid);
+    database.exec(enrollmentTrigger);
+    database.exec(receiptTrigger);
+    database.close();
+
+    if (accepted) {
+      const reopened = createReleaseStore(place.path, { catalog });
+      assert.equal(reopened.issueEnrollment(action).expiresAt, expiresAt);
+      reopened.close();
+    } else {
+      expectCode(() => createReleaseStore(place.path, { catalog }), 'database_corrupt');
+    }
   }
 });
 
@@ -383,7 +419,7 @@ test('challenge and ticket capacity use the advertised final-slot boundary', () 
   second.store.close();
 });
 
-test('device and enrollment capacity are fixed at eight live identities', () => {
+test('enrollment capacity accepts 100 live codes and rejects a 101st', () => {
   const place = location();
   const store = createReleaseStore(place.path, { catalog });
   const codes = Array.from({ length: HOST_LIMITS.enrollments }, () => bearer());
@@ -393,17 +429,25 @@ test('device and enrollment capacity are fixed at eight live identities', () => 
   expectCode(() => store.issueEnrollment({
     enrollmentCode: bearer(), requestId: randomUUID(), now: 1_100,
   }), 'capacity_reached');
-  for (const [index, code] of codes.entries()) {
+  store.close();
+});
+
+test('device capacity accepts 100 live Hosts and rejects a 101st', () => {
+  const place = location();
+  const store = createReleaseStore(place.path, { catalog });
+  for (let index = 0; index < HOST_LIMITS.devices; index += 1) {
+    const code = bearer();
+    store.issueEnrollment({ enrollmentCode: code, requestId: randomUUID(), now: 2_000 + index });
     store.redeemEnrollment({
       enrollmentCode: code, requestId: randomUUID(), deviceId: randomUUID(),
-      publicKey: keyPair().publicKey, label: `Family Mac ${index + 1}`, now: 2_000 + index,
+      publicKey: keyPair().publicKey, label: `Family Mac ${index + 1}`, now: 3_000 + index,
     });
   }
-  const ninth = bearer();
-  store.issueEnrollment({ enrollmentCode: ninth, requestId: randomUUID(), now: 3_000 });
+  const overflow = bearer();
+  store.issueEnrollment({ enrollmentCode: overflow, requestId: randomUUID(), now: 4_000 });
   expectCode(() => store.redeemEnrollment({
-    enrollmentCode: ninth, requestId: randomUUID(), deviceId: randomUUID(),
-    publicKey: keyPair().publicKey, label: 'Ninth Mac', now: 3_001,
+    enrollmentCode: overflow, requestId: randomUUID(), deviceId: randomUUID(),
+    publicKey: keyPair().publicKey, label: 'Overflow Mac', now: 4_001,
   }), 'capacity_reached');
   store.close();
 });

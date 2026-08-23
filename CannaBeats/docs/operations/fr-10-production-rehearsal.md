@@ -29,6 +29,15 @@ public readiness probes passed after activation; the first settled resource
 sample reported 0.09% web CPU and approximately 96 MiB web memory. Live
 Host-to-family-client shared-audio acceptance remains open.
 
+The later Host-authority usability change raises both active Host devices and
+outstanding enrollment codes to 100 and makes newly issued enrollment codes
+valid for 24 hours. The production operator tree remains intentionally pinned
+to its original installation revision, whose status CLI accepts at most eight
+active devices. This does not constrain server enrollment or game authority,
+but a revision-bounded operator-tree upgrade is required before activating a
+ninth Host so the operational status command continues to accept the server's
+projection.
+
 ## Governing invariant
 
 Every production process starts only from the exact retained release artifacts

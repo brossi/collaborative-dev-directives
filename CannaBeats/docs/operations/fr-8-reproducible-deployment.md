@@ -191,7 +191,7 @@ owner. Caddy deletes request URIs and headers from access logs.
 | Replay | `runtime`: enrollment and revocation return their retained original result after response loss; status/summary are reads and repeated purge returns the same result without another retained effect. |
 | Conflict | `runtime`: mutation request-ID reuse with different canonical content fails before current enrollment/device state. |
 | Concurrency | `runtime`: commands execute in the existing synchronous owner; mutating commands use `BEGIN IMMEDIATE`. |
-| Expiry | `runtime`: bootstrap enrollment retains the FR-2 15-minute equality boundary; the server-local operator token has no clock expiry and is rotated only as an offline host action. |
+| Expiry | `runtime`: bootstrap enrollment retains the FR-2 24-hour equality boundary; the server-local operator token has no clock expiry and is rotated only as an offline host action. |
 | Restart | `runtime`: enrollment/revocation receipts, revocation cascades, and system game-abandonment history pass the ordinary complete startup validator. Diagnostic purge has no process-only state. |
 | Dependency failure | `runtime`: missing/malformed token file, request timeout, malformed response, unknown remote failure, or owner failure maps to a whitelisted finite operator code without paths, native messages, or credentials. Enrollment and response streams stop as soon as their byte bounds are crossed. |
 | Corruption | `runtime`: every command enters the shared database validator; a malformed token path/type/value fails before dispatch. |
