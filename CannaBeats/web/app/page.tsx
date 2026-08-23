@@ -132,8 +132,9 @@ function Welcome({ busy, error, invite, name, onName, onJoin, onCreate, onReturn
   </section><section className="entry-card">
     {invite ? <form className="entry-block" onSubmit={onJoin}>
       <p className="step-label">Private game invitation</p><h2>Join the game</h2>
-      <label>Your name<input value={name} onChange={(event) => onName(event.target.value)}
-        maxLength={24} autoComplete="name" required /></label>
+      <label>Your name<input className="player-name-input" value={name}
+        onChange={(event) => onName(event.target.value)} maxLength={24}
+        autoComplete="name" required /></label>
       <button className="primary-button" disabled={busy || !name.trim()}>Join game</button>
       {onReturnToHost && <button className="text-button" disabled={busy}
         onClick={onReturnToHost} type="button">Return to Host lobby</button>}

@@ -47,6 +47,18 @@ test("participant identity and unfinished-game recovery survive ordinary browser
   assert.doesNotMatch(page, /game timeout|inactive|expires in/i);
 });
 
+test("the remote player sees the exact capitalization submitted as their name", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(page, /className="player-name-input" value=\{name\}/);
+  assert.match(page, /onName\(event\.target\.value\)/);
+  assert.match(css, /\.entry-block \.player-name-input \{ text-transform: none;/);
+  assert.doesNotMatch(css,
+    /\.entry-block (?:label:first-of-type input|\.player-name-input) \{[^}]*text-transform: uppercase;/);
+});
+
 test("retryable journey commands retain one exact revision-bound action", async () => {
   const [page, client] = await releaseSources();
   assert.match(page, /savePendingReleaseAction\(localStorage, intent\)/);

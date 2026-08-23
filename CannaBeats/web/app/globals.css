@@ -33,7 +33,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .entry-block > p:not(.step-label), .helper { color: var(--muted); line-height: 1.55; }
 .entry-block label { display: grid; gap: .4rem; margin-top: 1rem; color: var(--muted); font-size: .84rem; font-weight: 650; }
 .entry-block input { width: 100%; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); font-size: 1rem; }
-.entry-block label:first-of-type input { text-transform: uppercase; font-family: var(--font-geist-mono), monospace; font-size: 1.3rem; letter-spacing: .2em; }
+.entry-block .player-name-input { text-transform: none; font-family: var(--font-geist-mono), monospace; font-size: 1.3rem; letter-spacing: .2em; }
 .or-rule { display: flex; align-items: center; gap: 1rem; margin: 1.8rem 0; color: #a19d94; font-size: .75rem; text-transform: uppercase; }
 .or-rule::before, .or-rule::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 .visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap !important; clip-path: inset(50%) !important; }
