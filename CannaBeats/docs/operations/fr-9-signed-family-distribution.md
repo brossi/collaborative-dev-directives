@@ -257,8 +257,11 @@ DMG SHA-256 is
 The installed artifact entered `Requesting System Audio Recording access…`
 during its initial readiness check, completed the private Spotify-tap probe,
 and then reported system audio capture ready without disturbing server,
-enrollment, Spotify, or relay readiness. This Mac already had CannaBeats Host
-enabled in macOS System Audio Recording, so macOS correctly did not present a
-new consent choice. A never-authorized Mac remains the required interactive
-evidence for the first-time Apple prompt; GH#5 stays open until that evidence
-is recorded.
+enrollment, Spotify, or relay readiness. The first pass correctly reused this
+Mac's existing authorization. The authorization and CannaBeats readiness cache
+were then reset only for bundle `social.cannabeats.host`; the next launch
+presented the first-time System Audio Recording choice. After the user allowed
+it, the same readiness screen reported host/server, enrollment, Spotify,
+Spotify control, system-audio capture, and relay all ready. The only remaining
+warning was the expected absence of an active game. This closes GH#5's signed
+first-consent and no-restart recovery evidence.
