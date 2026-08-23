@@ -21,6 +21,14 @@ correctly returned 404. Production web images must be built with
 The corrected isolated image returned ready before activation, and
 `release-1.0.0-3-8602528` then activated with the prior release retained.
 
+On 2026-08-23 the GH#6/GH#7 remediation activated as
+`release-1.0.0-5-0c144c3`. The transaction retained
+`release-1.0.0-4-9bc11af` as its rollback target, preserved the relay container,
+and health-gated the replacement web and Caddy containers. Eight consecutive
+public readiness probes passed after activation; the first settled resource
+sample reported 0.09% web CPU and approximately 96 MiB web memory. Live
+Host-to-family-client shared-audio acceptance remains open.
+
 ## Governing invariant
 
 Every production process starts only from the exact retained release artifacts

@@ -211,3 +211,17 @@ upgrade-in-place Keychain preservation, uninstall/reinstall, revocation, and
 real Spotify playback/readback are interactive evidence. They will be recorded
 here when run; FR-10 may reuse the same signed artifact but cannot substitute an
 unsigned or differently identified build.
+
+## Accepted `1.0.0 (2)` remediation artifact
+
+On 2026-08-23 the GH#6/GH#7 audio-liveness remediation was released from clean
+commit `0c144c37c415e6d6a63d03308985f75402104ade` as `1.0.0 (2)`. The retained
+notary result is `Accepted`; the release verifier, stapler validation,
+Gatekeeper assessment, and checksum verification passed. The retained DMG
+SHA-256 is
+`a9a30a2aff9d155c6bb26639ee7d25721c83e43e8c400e7aee4494f6134ededf`.
+
+This artifact separates AVFoundation teardown from packet-state locking and
+preserves a valid game runtime across transient readiness transport failures.
+Upgrade-in-place and live shared-audio acceptance on the enrolled Host remain
+interactive evidence; GH#6 and GH#7 stay open until that evidence is recorded.
