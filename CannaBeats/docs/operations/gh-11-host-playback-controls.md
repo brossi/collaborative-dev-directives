@@ -1,7 +1,8 @@
 # GH#11 Host-global playback controls
 
-**Status:** Implemented; local verification complete, independent review found
-no P0/P1 and its one P2 is remediated. Production activation is pending.
+**Status:** Implemented and activated in production. Local verification and
+independent review report no open P0/P1/P2. Interactive installed-Host
+acceptance remains pending.
 
 ## Governing invariant
 
@@ -69,6 +70,16 @@ The proportional regression gates also passed:
 - `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift run
   CannaBeatsHostPlaybackVerifier` — 20/20 native playback checks.
 
+## Production activation
+
+On 2026-08-23 commit `a5f5a88` activated as
+`release-1.0.0-8-a5f5a88`, retaining `release-1.0.0-7-ef977c0` as the rollback
+target. The transaction preserved the retained active game and long-running
+relay container while health-gating the replacement web and Caddy containers.
+Eight consecutive public readiness probes passed. The public production asset
+contains `Pause music`, `Resume music`, `Confirming music`, `pause_playback`,
+and `resume_playback`.
+
 ## Open findings and deferrals
 
 - P0: none.
@@ -79,6 +90,6 @@ The proportional regression gates also passed:
   re-audit found an evidence-precision gap; the strengthened source-contract
   assertions enumerate the complete fence lifecycle. Final narrow re-audit
   reports P0/P1/P2 none.
-- Named deferral: installed-artifact acceptance follows production activation;
-  the current native Host already executes and verifies the retained `play` and
+- Named deferral: interactive installed-Host acceptance remains open. The
+  current native Host already executes and verifies the retained `play` and
   `pause` command kinds, so this increment does not require a replacement DMG.

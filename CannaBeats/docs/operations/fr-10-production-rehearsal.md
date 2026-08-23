@@ -45,6 +45,15 @@ all three container health checks passed. A bootstrap issuance returned an
 exact 24-hour lifetime, and notarized Host `1.0.0 (5)` redeemed it to establish
 the third active device without disturbing the retained active game.
 
+The GH#11 Host-global pause/resume increment activated on 2026-08-23 as
+`release-1.0.0-8-a5f5a88`, retaining `release-1.0.0-7-ef977c0` as rollback.
+The transaction preserved the retained active game and relay process. Eight
+consecutive public readiness probes passed, the operator projection remained
+ready with three active Host devices, and the public asset contained the new
+pause/resume actions and UI states. Interactive installed-Host acceptance
+remains open; no replacement DMG is required because the installed native Host
+already supports and verifies both command kinds.
+
 ## Governing invariant
 
 Every production process starts only from the exact retained release artifacts
