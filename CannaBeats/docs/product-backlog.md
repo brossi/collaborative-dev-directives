@@ -150,6 +150,10 @@ Guests and gameplay seats are ephemeral and should not silently become durable i
 
 Define consent, profile claiming and recovery, guest-to-profile conversion, household or group membership, retention, and deletion before using personal history for difficulty or statistics.
 
+Near-term roster entry points for this model are tracked as
+[FB-001 and FB-002](feature-backlog.md#queue): link the authenticated host's
+default seat and host-added shared-screen seats to existing player accounts.
+
 ### Composable themes and game configuration
 
 Replace the current hard boundary between general presets and the combined stage-and-screen scope with four independently configurable layers.
