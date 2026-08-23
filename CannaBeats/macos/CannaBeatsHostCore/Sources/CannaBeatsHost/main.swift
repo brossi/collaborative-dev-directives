@@ -151,9 +151,20 @@ final class HostAppModel: ObservableObject {
     func showEnrollment() { needsEnrollment = true }
 
     func openSpotify() {
-        if let url = NSWorkspace.shared.urlForApplication(
+        guard let url = NSWorkspace.shared.urlForApplication(
             withBundleIdentifier: AppleEventSpotifyController.spotifyBundleIdentifier
-        ) { NSWorkspace.shared.openApplication(at: url, configuration: .init()) }
+        ) else { return }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = spotify.applicationState() == .running
+        configuration.addsToRecentItems = false
+        NSWorkspace.shared.openApplication(at: url, configuration: configuration) {
+            [weak self] _, error in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if error != nil { self.status = "Spotify could not be opened." }
+                else { await self.refresh() }
+            }
+        }
     }
 
     func openPrivacySettings() {

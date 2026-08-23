@@ -21,6 +21,11 @@ test('the Host executable owns one ephemeral fixed-origin web surface', () => {
   assert.match(app,
     /"\/api\/host\/web-tickets\/exchange"[\s\S]*request\.httpMethod = "POST"/u);
   assert.match(app, /request\.httpBody = try\? JSONSerialization\.data/u);
+  assert.match(app,
+    /configuration\.activates = spotify\.applicationState\(\) == \.running/u);
+  assert.match(app, /configuration\.addsToRecentItems = false/u);
+  assert.match(app,
+    /openApplication\(at: url, configuration: configuration\)[\s\S]*await self\.refresh\(\)/u);
   assert.match(app, /\.onDisappear \{ Task \{ await model\.shutdown\(\) \} \}/u);
 });
 
