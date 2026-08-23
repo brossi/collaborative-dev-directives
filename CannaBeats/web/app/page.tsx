@@ -22,6 +22,7 @@ const PLAYER_NAME_KEY = "cannabeats-player-name";
 const POLL_MS = 1_500;
 
 const ERROR_TEXT: Record<string, string> = {
+  audio_not_ready: "Start shared audio in the CannaBeats Host before beginning the round.",
   capacity_reached: "This game already has eight players.",
   catalog_exhausted: "No unused songs match these game settings.",
   database_corrupt: "The retained game could not be validated. The Host must check the server.",
@@ -461,6 +462,15 @@ export default function Home() {
       <h1>{winner ? `${winner.name} wins!` : `${activePlayer?.name ?? "Player"}’s turn`}</h1></div>
       {session.role === "host" && lifecycle !== "completed" && <button className="text-button"
         disabled={busy} onClick={() => void endGame()}>End game</button>}</header>
+    {session.role === "host" && state.phase === "ready" && <section
+      className="shared-audio-panel compact" aria-label="Host shared audio readiness">
+      <div><p className="step-label">Host audio</p><strong><i className={
+        audioSessionId ? "ready" : ""
+      } />{audioSessionId ? "Spotify and shared audio ready"
+          : "Preparing Spotify and shared audio"}</strong><small>{audioSessionId
+        ? "Remote players can start their audio before the first song."
+        : "Keep Spotify open and signed in. If macOS asks, allow System Audio Recording; use the Readiness tab if this does not become ready."}</small></div>
+    </section>}
     {session.role === "participant" && lifecycle === "active" && <section
       className="shared-audio-panel compact" aria-label="Shared audio controls">
       <div><p className="step-label">Game audio</p><strong><i className={
@@ -487,7 +497,8 @@ export default function Home() {
           ? <p className="host-answer"><strong>{state.currentSong.year}</strong> · {state.currentSong.title} · {state.currentSong.artist}</p>
           : <p className="helper">Spotify playback is performed by the CannaBeats Host app.</p>}</div>
       <div className="host-round-controls">
-        {state.phase === "ready" && <button className="primary-button" disabled={busy}
+        {state.phase === "ready" && <button className="primary-button"
+          disabled={busy || !audioSessionId}
           onClick={() => void act("begin_round")}>Start first song</button>}
         {state.phase === "placed" && <button className="primary-button" disabled={busy}
           onClick={() => void act("reveal_answer")}>Reveal answer</button>}

@@ -98,6 +98,14 @@ test("Host setup and mixed-control lobby use the fixed release journey", async (
   assert.doesNotMatch(page, /room\.inputMode|managedPlaybackActive/);
 });
 
+test("the first round waits for visible authoritative shared-audio readiness", async () => {
+  const [page] = await releaseSources();
+  assert.match(page, /Preparing Spotify and shared audio/);
+  assert.match(page, /Spotify and shared audio ready/);
+  assert.match(page, /disabled=\{busy \|\| !audioSessionId\}/);
+  assert.match(page, /audio_not_ready: "Start shared audio in the CannaBeats Host/);
+});
+
 test("invitation preview preserves an explicit verified return to the Host lobby", async () => {
   const [page] = await releaseSources();
   assert.match(page, /saved\?\.role === "host" && saved\.gameId === gameId/);

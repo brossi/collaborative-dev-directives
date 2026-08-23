@@ -251,7 +251,10 @@ test('process restart interrupts the retained generation before it can authorize
 
 test('playback execution is fenced until audio is active and is fenced again after interruption', () => {
   const setup = setupGame();
+  const session = open(setup).result.session;
+  const firstConnection = connect(setup, session.audioSessionId);
   hostAction(setup, 'begin_round');
+  interrupt(setup, session.audioSessionId, firstConnection.connectionId);
   const command = setup.store.nextPlaybackCommand({
     applicationSessionToken: setup.hostToken, gameId: setup.gameId, now: setup.now + 1,
   }).command;
@@ -260,7 +263,6 @@ test('playback execution is fenced until audio is active and is fenced again aft
     applicationSessionToken: setup.hostToken, gameId: setup.gameId,
     commandId: command.commandId, claimGeneration, targetState: 'claimed', now: setup.now + 1,
   }), 'audio_not_ready');
-  const session = open(setup).result.session;
   const connection = connect(setup, session.audioSessionId);
   setup.store.transitionPlaybackCommand({
     applicationSessionToken: setup.hostToken, gameId: setup.gameId,

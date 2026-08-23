@@ -899,7 +899,8 @@ export class ReleaseStore {
       const code = error?.message;
       if (['invalid_request', 'unauthorized', 'request_conflict', 'capacity_reached',
         'duplicate_name', 'game_ended', 'stale_state', 'operation_rejected',
-        'catalog_exhausted', 'upgrade_required', 'database_unavailable', 'database_corrupt']
+        'catalog_exhausted', 'audio_not_ready', 'upgrade_required',
+        'database_unavailable', 'database_corrupt']
         .includes(code)) fail(code);
       fail('invalid_request');
     }
@@ -954,6 +955,11 @@ export class ReleaseStore {
         _authorize: () => this.#hostAuthority.authorizeSession({
           token: hostSessionToken, kind: hostSessionKind, now: input.now,
         }),
+        _precondition: command.operation === 'begin_round' ? () => {
+          const ready = this.#database.prepare(`SELECT 1 FROM audio_sessions
+            WHERE game_id=? AND state='active'`).get(input.gameId);
+          if (!ready) fail('audio_not_ready');
+        } : null,
         reducer: (state, normalizedPayload, context) => reduceGameJourneyCommand({
           state, operation: command.operation, payload: normalizedPayload,
           actor: { id: authority.deviceId, type: 'host' },
@@ -1066,7 +1072,7 @@ export class ReleaseStore {
 
   mutateGame({
     gameId, actorType, actorId, requestId, operation, payload = {}, expectedRevision, now, reducer,
-    _authorize = null,
+    _authorize = null, _precondition = null,
   }) {
     requestValue(() => {
       assertUuid(gameId, 'invalid_request');
@@ -1105,6 +1111,7 @@ export class ReleaseStore {
       }
       if (['completed', 'abandoned'].includes(game.lifecycle)) fail('game_ended');
       if (game.revision !== expectedRevision) fail('stale_state');
+      _precondition?.();
       let reduced;
       try {
         reduced = reducer(

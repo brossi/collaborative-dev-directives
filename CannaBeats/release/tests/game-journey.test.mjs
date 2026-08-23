@@ -88,9 +88,27 @@ function participantAction(setup, operation, payload = {}, overrides = {}) {
   });
 }
 
-function restart(setup) {
+function activateAudio(setup, now = 2_500) {
+  const audioSessionId = randomUUID();
+  setup.store.openAudioSession({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId, requestId: randomUUID(), now,
+  });
+  const connectionId = randomUUID();
+  setup.store.claimAudioIngest({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId, connectionId, now: now + 1,
+  });
+  setup.store.activateAudioIngest({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId, connectionId, now: now + 2,
+  });
+  return { audioSessionId, connectionId };
+}
+
+function restart(setup, now = 3_000) {
   setup.store.close();
-  setup.store = createReleaseStore(setup.path, { catalog });
+  setup.store = createReleaseStore(setup.path, { catalog, now });
 }
 
 function withoutTrigger(database, name, work) {
@@ -118,6 +136,7 @@ test('the fixed journey completes, projects safely, survives restart, and replay
   for (const key of ['currentSong', 'placement', 'result']) assert.equal(key in hidden.state, false);
   assert.equal(JSON.stringify(hidden).includes(start.state.currentSong.title), false);
   restart(setup);
+  activateAudio(setup);
   hostAction(setup, 'begin_round');
   restart(setup);
   expectCode(() => hostAction(setup, 'place_song', { index: 0 }), 'unauthorized');
@@ -190,6 +209,31 @@ test('conflict precedes current state and two commands at one revision advance o
   setup.store.close();
 });
 
+test('the first round requires active shared audio and exact accepted replay survives interruption', () => {
+  const setup = setupGame();
+  hostAction(setup, 'start_game');
+  const expectedRevision = setup.store.gameSnapshot(setup.gameId).revision;
+  expectCode(() => hostAction(setup, 'begin_round', {}, {
+    expectedRevision, now: 3_000,
+  }), 'audio_not_ready');
+  assert.equal(setup.store.gameSnapshot(setup.gameId).state.phase, 'ready');
+
+  const audio = activateAudio(setup, 3_001);
+  const requestId = randomUUID();
+  const accepted = hostAction(setup, 'begin_round', {}, {
+    requestId, expectedRevision, now: 3_004,
+  });
+  setup.store.interruptAudioIngest({
+    gameId: setup.gameId, audioSessionId: audio.audioSessionId,
+    connectionId: audio.connectionId, reasonCode: 'ingest_lost', now: 3_005,
+  });
+  assert.deepEqual(hostAction(setup, 'begin_round', {}, {
+    requestId, expectedRevision, now: 3_004,
+  }), accepted);
+  assert.equal(setup.store.gameSnapshot(setup.gameId).state.phase, 'playing');
+  setup.store.close();
+});
+
 test('an exchanged HttpOnly Host web session owns the same game without exposing the application bearer', () => {
   const setup = setupGame();
   const webToken = token();
@@ -241,6 +285,7 @@ test('Host-controlled players share the eight-player game capacity and close adm
 test('restart rejects a valid-looking deterministic draw substitution in an intermediate receipt', () => {
   const setup = setupGame();
   const start = hostAction(setup, 'start_game');
+  activateAudio(setup);
   hostAction(setup, 'begin_round');
   setup.store.close();
   const database = new DatabaseSync(setup.path);
@@ -266,6 +311,7 @@ test('restart rejects a valid-looking deterministic draw substitution in an inte
 test('restart rejects a compact terminal result that remains valid JSON but changes one score', () => {
   const setup = setupGame();
   hostAction(setup, 'start_game');
+  activateAudio(setup);
   hostAction(setup, 'begin_round');
   for (let round = 0; round < 2; round += 1) {
     const state = setup.store.gameSnapshot(setup.gameId).state;
@@ -293,6 +339,8 @@ test('completion result identity remains game-scoped when two games reuse one re
   let clock = 3_000;
   const complete = () => {
     hostAction(setup, 'start_game', {}, { now: clock += 1 });
+    activateAudio(setup, clock += 1);
+    clock += 2;
     hostAction(setup, 'begin_round', {}, { now: clock += 1 });
     while (true) {
       const state = setup.store.gameSnapshot(setup.gameId).state;
