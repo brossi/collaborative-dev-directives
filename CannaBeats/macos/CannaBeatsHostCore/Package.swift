@@ -39,5 +39,9 @@ let package = Package(
             name: "CannaBeatsHostAudioVerifier",
             dependencies: ["AudioTapBridge", "CannaBeatsHostCore"]
         ),
+        .testTarget(
+            name: "CannaBeatsHostCoreTests",
+            dependencies: ["CannaBeatsHostCore"]
+        ),
     ]
 )

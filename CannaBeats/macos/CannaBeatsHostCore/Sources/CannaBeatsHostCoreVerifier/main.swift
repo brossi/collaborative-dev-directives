@@ -328,6 +328,21 @@ let blockedRuntimeProjection = HostReadinessBuilder.build(
 )
 precondition(blockedRuntimeProjection.primaryAction.enabled == false)
 precondition(blockedRuntimeProjection.sharedAudioRuntimeEnabled == false)
+precondition(HostGameRuntimeReconciler.directive(
+    serverReadinessConfirmed: false, readiness: blockedRuntimeProjection
+) == .preserve)
+precondition(HostGameRuntimeReconciler.lifecycleDecisionConfirmed(
+    by: Result<HostServerReadiness, HostAuthorityClientError>.failure(.transport)
+) == false)
+precondition(HostGameRuntimeReconciler.lifecycleDecisionConfirmed(
+    by: Result<HostServerReadiness, HostAuthorityClientError>.failure(.noApplicationSession)
+) == true)
+precondition(HostGameRuntimeReconciler.directive(
+    serverReadinessConfirmed: true, readiness: blockedRuntimeProjection
+) == .stop)
+precondition(HostGameRuntimeReconciler.directive(
+    serverReadinessConfirmed: true, readiness: readyProjection
+) == .start(serverReadiness.activeGame!.gameId))
 let upgradeProjection = HostReadinessBuilder.build(
     server: .failure(.server("upgrade_required")), enrolled: true,
     spotifyState: .running, spotifyReadback: nil, audioCapture: .ready

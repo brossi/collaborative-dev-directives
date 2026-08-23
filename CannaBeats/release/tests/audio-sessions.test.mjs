@@ -7,7 +7,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, test } from 'node:test';
 
 import {
-  MAX_AUDIO_SESSIONS_PER_GAME, MAX_AUDIO_TRANSITIONS_PER_SESSION,
+  AUDIO_AUTHORITY_RECHECK_MS, MAX_AUDIO_SESSIONS_PER_GAME,
+  MAX_AUDIO_TRANSITIONS_PER_SESSION,
 } from '../../web/lib/server/release/audio-sessions.mjs';
 import { loadCatalogArtifacts } from '../../web/lib/server/release/catalog.mjs';
 import { hostProofBytes } from '../../web/lib/server/release/host-authority.mjs';
@@ -247,6 +248,52 @@ test('process restart interrupts the retained generation before it can authorize
     session.audioSessionId,
   ).count, 1);
   database.close();
+});
+
+test('stream rechecks isolate exact authority while readiness owns unrelated corruption', () => {
+  const setup = setupGame({ participant: true });
+  const session = open(setup).result.session;
+  const connection = connect(setup, session.audioSessionId).connectionId;
+  const firstCheckAt = 10_000;
+  assert.equal(setup.store.recheckAudioHostStream({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId: session.audioSessionId, connectionId: connection,
+    requireActive: true, now: firstCheckAt,
+  }).state, 'active');
+
+  const database = new DatabaseSync(setup.path);
+  database.prepare('UPDATE games SET revision=revision+1 WHERE game_id=?').run(setup.gameId);
+  database.close();
+  for (const offset of [AUDIO_AUTHORITY_RECHECK_MS - 1, AUDIO_AUTHORITY_RECHECK_MS,
+    AUDIO_AUTHORITY_RECHECK_MS + 1]) {
+    assert.equal(setup.store.recheckAudioParticipantStream({
+      participantSessionToken: setup.participantToken, gameId: setup.gameId,
+      audioSessionId: session.audioSessionId, now: firstCheckAt + offset,
+    }).state, 'active');
+  }
+  assert.deepEqual(setup.store.readiness(), { ready: false, reason: 'database_corrupt' });
+  setup.store.close();
+});
+
+test('stream rechecks reject a game that reaches a terminal lifecycle', () => {
+  const setup = setupGame({ participant: true });
+  const session = open(setup).result.session;
+  const connection = connect(setup, session.audioSessionId).connectionId;
+  const database = new DatabaseSync(setup.path);
+  database.prepare(`UPDATE games SET lifecycle='completed',terminal_at=?
+    WHERE game_id=?`).run(9_000, setup.gameId);
+  database.close();
+
+  expectCode(() => setup.store.recheckAudioHostStream({
+    applicationSessionToken: setup.hostToken, gameId: setup.gameId,
+    audioSessionId: session.audioSessionId, connectionId: connection,
+    requireActive: true, now: 10_000,
+  }), 'unauthorized');
+  expectCode(() => setup.store.recheckAudioParticipantStream({
+    participantSessionToken: setup.participantToken, gameId: setup.gameId,
+    audioSessionId: session.audioSessionId, now: 10_000,
+  }), 'unauthorized');
+  setup.store.close();
 });
 
 test('playback execution is fenced until audio is active and is fenced again after interruption', () => {

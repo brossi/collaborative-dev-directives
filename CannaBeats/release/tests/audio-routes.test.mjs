@@ -7,7 +7,7 @@ import {
   AUDIO_CHANNELS_HEADER, AUDIO_CLIENT_CONTRACT, AUDIO_CLIENT_HEADER,
   AUDIO_CONNECTION_HEADER, AUDIO_ENCODING_HEADER, AUDIO_GENERATION_HEADER,
   AUDIO_RATE_HEADER, AUDIO_SESSION_HEADER, audioIngestRoute, audioListenRoute,
-  MAX_STREAM_CHUNK_BYTES,
+  AUTHORITY_RECHECK_MS, MAX_STREAM_CHUNK_BYTES,
   currentAudioSessionRoute, endAudioSessionRoute, openAudioSessionRoute,
 } from '../../web/lib/server/release/audio-routes.mjs';
 import { PARTICIPANT_COOKIE } from '../../web/lib/server/release/game-admission-routes.mjs';
@@ -26,6 +26,10 @@ const session = Object.freeze({
 });
 const relay = Object.freeze({
   origin: 'http://audio-relay.test:8090', ingestToken, listenToken,
+});
+
+test('production stream authority cadence is a fixed five-second bound', () => {
+  assert.equal(AUTHORITY_RECHECK_MS, 5_000);
 });
 
 function jsonRequest(path, {
@@ -240,14 +244,17 @@ test('listen accepts exactly one authority and injects the private token only up
   assert.deepEqual(await rejected.json(), { ok: false, code: 'unauthorized' });
 });
 
-test('open listener authority is rechecked even while the relay is silent', async () => {
-  let authorized = true;
+test('open listener authority and generation are rechecked while the relay is silent', async () => {
+  let generation = session.generation;
   let checks = 0;
   const runtime = {
     authorizeAudioHostStream() {
       checks += 1;
-      if (!authorized) throw new ReleaseStoreError('unauthorized');
       return session;
+    },
+    recheckAudioHostStream() {
+      checks += 1;
+      return { ...session, generation };
     },
   };
   const request = new Request(
@@ -266,8 +273,14 @@ test('open listener authority is rechecked even while the relay is silent', asyn
   const reader = response.body.getReader();
   assert.deepEqual((await reader.read()).value, new Uint8Array(0));
   const reading = reader.read();
-  authorized = false;
-  await assert.rejects(reading, /stream_interrupted/u);
+  generation += 1;
+  let deadline;
+  await Promise.race([
+    assert.rejects(reading, /stream_interrupted/u),
+    new Promise((_, reject) => {
+      deadline = setTimeout(() => reject(new Error('authority_recheck_timeout')), 1_000);
+    }),
+  ]).finally(() => clearTimeout(deadline));
   assert.ok(checks >= 3);
 });
 

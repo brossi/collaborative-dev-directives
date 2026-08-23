@@ -362,14 +362,14 @@ test('standalone Next isolates native-rate audio while preserving unified author
           authorization: `Bearer ${sessionToken}`,
           'x-cannabeats-audio-contract': '1',
         },
-        signal: AbortSignal.timeout(5_000),
+        signal: AbortSignal.timeout(10_000),
       },
     );
     assert.equal(audioListener.status, 200);
     audioListenerReader = audioListener.body.getReader();
     let listenerBytes = 0;
     const consumeListener = (async () => {
-      while (listenerBytes < packet.byteLength * 50) {
+      while (listenerBytes < packet.byteLength * 500) {
         const item = await audioListenerReader.read();
         if (item.done) break;
         listenerBytes += item.value.byteLength;
@@ -389,7 +389,7 @@ test('standalone Next isolates native-rate audio while preserving unified author
       { path: `/api/games/${gameId}/host-snapshot`, headers: { cookie: hostCookie } },
     ];
     const probe = async () => {
-      for (let index = 0; index < 20; index += 1) {
+      for (let index = 0; index < 24; index += 1) {
         const selected = probes[index % probes.length];
         const startedAt = performance.now();
         const response = await fetch(`${origin}${selected.path}`, {
@@ -399,18 +399,18 @@ test('standalone Next isolates native-rate audio while preserving unified author
         assert.equal(response.status, 200);
         await response.arrayBuffer();
         maximumProbeMs = Math.max(maximumProbeMs, performance.now() - startedAt);
-        await new Promise((resolveProbe) => setTimeout(resolveProbe, 40));
+        await new Promise((resolveProbe) => setTimeout(resolveProbe, 250));
       }
     };
     const publish = async () => {
-      for (let index = 1; index < 100; index += 1) {
+      for (let index = 1; index < 600; index += 1) {
         if (!audioRequest.write(packet)) await once(audioRequest, 'drain');
         await new Promise((resolvePacket) => setTimeout(resolvePacket, 10));
       }
     };
     await Promise.all([probe(), publish(), consumeListener]);
     assert.ok(maximumProbeMs < 750, `maximum ordinary probe ${maximumProbeMs} ms`);
-    assert.ok(listenerBytes >= packet.byteLength * 50, `${listenerBytes} listener bytes`);
+    assert.ok(listenerBytes >= packet.byteLength * 500, `${listenerBytes} listener bytes`);
     assert.equal(ingestResponseBytes, 0);
     await audioListenerReader.cancel();
     audioListenerReader = null;

@@ -25,7 +25,11 @@ test('the Host executable owns one ephemeral fixed-origin web surface', () => {
 });
 
 test('production runtime wires shared audio to the playback gate and fences rotation', () => {
-  assert.match(app,
+  assert.match(app, /HostGameRuntimeReconciler\.directive\(/u);
+  assert.match(app, /case \.preserve:\s*return/u);
+  assert.match(runtime,
+    /guard serverReadinessConfirmed else \{ return \.preserve \}/u);
+  assert.match(runtime,
     /guard readiness\.sharedAudioRuntimeEnabled, let game = readiness\.activeGame else/u);
   assert.match(app, /func reconnectAudio\(\) \{[\s\S]*guard readiness\.sharedAudioRuntimeEnabled/u);
   assert.match(app, /\.disabled\(!model\.readiness\.sharedAudioRuntimeEnabled\)/u);

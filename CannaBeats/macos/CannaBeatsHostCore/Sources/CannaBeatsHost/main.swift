@@ -89,16 +89,24 @@ final class HostAppModel: ObservableObject {
         status = readiness.primaryAction.enabled
             ? (readiness.activeGame == nil ? "Ready to create a game." : "Ready to resume the game.")
             : readiness.primaryAction.blockedBy?.message ?? "Finish the readiness checks."
-        await reconcileGameRuntime()
+        let serverReadinessConfirmed = HostGameRuntimeReconciler
+            .lifecycleDecisionConfirmed(by: server)
+        await reconcileGameRuntime(serverReadinessConfirmed: serverReadinessConfirmed)
         recordAudioChanges()
     }
 
-    private func reconcileGameRuntime() async {
-        guard readiness.sharedAudioRuntimeEnabled, let game = readiness.activeGame else {
-            if gameRuntime.gameID != nil { await gameRuntime.stop() }
+    private func reconcileGameRuntime(serverReadinessConfirmed: Bool) async {
+        switch HostGameRuntimeReconciler.directive(
+            serverReadinessConfirmed: serverReadinessConfirmed,
+            readiness: readiness
+        ) {
+        case .preserve:
             return
+        case .stop:
+            if gameRuntime.gameID != nil { await gameRuntime.stop() }
+        case .start(let gameID):
+            if gameRuntime.gameID != gameID { await gameRuntime.start(gameID: gameID) }
         }
-        if gameRuntime.gameID != game.gameId { await gameRuntime.start(gameID: game.gameId) }
     }
 
     func openGame() async {

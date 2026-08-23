@@ -597,7 +597,7 @@ export class ReleaseStore {
       validate: () => validateReleaseDatabase(this.#database, { currentCatalog: this.#catalog }),
       authorizeHost: (input) => this.#hostAuthority.authorizeSession(input),
       retainHost: (input) => this.#hostAuthority.retainedSession(input),
-      authorizeParticipant: (input) => this.#gameAdmission.authorizeParticipant(input),
+      recheckParticipant: (input) => this.#gameAdmission.recheckParticipant(input),
     });
     this.#playbackCommands = createPlaybackCommands(database, {
       transaction: (work) => this.#transaction(() => {
@@ -806,6 +806,14 @@ export class ReleaseStore {
 
   authorizeAudioParticipantStream(input) {
     return this.#audioCall(() => this.#audioSessions.authorizeParticipantStream(input));
+  }
+
+  recheckAudioHostStream(input) {
+    return this.#audioCall(() => this.#audioSessions.recheckHostStream(input));
+  }
+
+  recheckAudioParticipantStream(input) {
+    return this.#audioCall(() => this.#audioSessions.recheckParticipantStream(input));
   }
 
   recordDiagnostic(input) {

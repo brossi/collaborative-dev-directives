@@ -290,11 +290,12 @@ the web CPU saturated. The direct-route resource test bypassed both the Next
 response writer and real SQLite validation, so it did not represent the
 production boundary.
 
-The repaired response wraps the relay body with one empty stream item. This
+The first repair wrapped the relay body with one empty stream item. This
 causes Next to flush headers without adding any HTTP body bytes or changing the
 native protocol. Stream authority is validated once before forwarding and then
-by the existing fixed one-second timer; it is no longer coupled to PCM packet
-frequency.
+by a fixed timer; it is no longer coupled to PCM packet frequency. The later
+GH #6/#7 liveness remediation below supersedes that timer's original one-second
+cadence with the production-proven five-second bound.
 
 | Dimension | Disposition |
 | --- | --- |
@@ -307,16 +308,70 @@ frequency.
 | Replay | `not_applicable`: PCM is intentionally not replayed. |
 | Conflict | `runtime`: the retained one-publisher and connection-generation checks are unchanged. |
 | Concurrency | `runtime`: standalone-Next HTTP verification holds a native-rate publisher and Host listener open while mixed public-readiness, Host-readiness, and game-snapshot requests remain bounded and successful. |
-| Expiry | `runtime`: application-session expiry and revocation remain bounded by the fixed one-second authority recheck. |
+| Expiry | `runtime`: application-session expiry and revocation remain bounded by the fixed authority recheck. |
 | Restart | `structural`: the change retains no process-only authority decision; each new stream repeats claim and setup. |
 | Dependency failure | `runtime`: relay, request, and authority failure still cancel the guarded stream and append the finite interruption. |
-| Corruption | `runtime`: claim, activation, the one-second timer, and every ordinary retained-data operation still cross the canonical database validator. |
-| Capacity | `runtime`: 100 native-rate packets across the publisher and Host listener cause at most four interval validations while 20 mixed ordinary probes remain below their 750 ms bound. |
+| Corruption | `runtime`: claim, activation, and every ordinary retained-data operation cross the canonical database validator; the later GH #6/#7 remediation assigns periodic open-stream checks to exact live authority rather than unrelated retained rows. |
+| Capacity | `runtime`: packet frequency does not multiply authority validation while mixed ordinary probes remain below their 750 ms bound. |
 
 The smallest relationship-preserving counterexample is one valid publisher
 whose packet frequency grows while its identity, generation, format, and
 authority remain unchanged. Packet frequency must affect media work only; it
 must not multiply whole-database validation work.
+
+## GH #6 and GH #7 production liveness remediation
+
+**Invariant:** A valid media-rate Host session and any transient readiness
+failure leave ordinary server traffic responsive and the native Host main
+thread available; teardown retires exactly the current audio generation
+without holding packet state across AVFoundation calls.
+
+The production failure log joined the two independently useful boundaries.
+The one-vCPU web process performed the complete canonical database validation
+for both open stream directions every second, and an ordinary Host-readiness
+request eventually received a proxy `502`. The native Host treated that
+unconfirmed failure as proof that its active game had disappeared and stopped
+the runtime. `RelayedAudioPlayer.stop()` held its packet-state lock while
+`AVAudioPlayerNode.stop()` synchronously waited for a scheduled-buffer
+completion that needed the same lock, permanently blocking the main thread.
+
+The remediation keeps full canonical validation on every stream admission,
+every accepted mutation, startup, and ordinary server readiness. Open streams
+then check only their exact session, game, connection, and participant/Host
+authority at a fixed five-second bound. Fan-out therefore cannot multiply
+whole-database work. This remains a small, deterministic bound for expiry and
+revocation while leaving unrelated retained-data corruption with the canonical
+readiness owner. The single SQLite owner and post-mutation validation mean an
+accepted operation cannot create an invalid state between those readiness
+checks.
+A failed readiness request becomes non-authoritative for runtime lifecycle and
+preserves the last confirmed runtime. A successful readiness result can still
+start, replace, or stop it. Native packet state is retired under one lock;
+AVFoundation stop, disconnect, and detach execute only after that lock is
+released, and late completions are rejected by generation.
+
+| Dimension | Disposition |
+| --- | --- |
+| Create | `runtime`: only a successful readiness projection may create or replace the one game runtime; player start creates one new packet generation after prior hardware teardown. |
+| Update | `runtime`: every stream is fully validated at admission and exact authority is rechecked every five seconds; packet completion updates only its retained generation. |
+| Delete | `runtime`: only confirmed successful readiness, explicit shutdown, or game replacement tears down the runtime; teardown clears the complete current packet generation before hardware calls. |
+| Omit | `runtime`: transport/server readiness failure preserves the last confirmed runtime and visible failure projection instead of silently converting unknown state to absence. |
+| Duplicate | `structural`: one lifecycle lock serializes player start, append scheduling, and stop; one packet fence owns scheduled counts and generations. |
+| Reorder | `structural`: packet retirement happens before hardware teardown, and replacement generation creation happens only after prior hardware teardown. |
+| Replay | `runtime`: repeated stop is finite and idempotent; late or duplicate completion for a retired generation has no effect. |
+| Conflict | `runtime`: a completion token from an old generation cannot decrement a replacement generation; successful readiness replacement is keyed by exact game ID. |
+| Concurrency | `structural` + `runtime`: AVFoundation callbacks take only the packet fence and no AVFoundation call occurs while that fence is held; a scheduled completion racing stop therefore cannot form the observed lock cycle. |
+| Expiry | `runtime`: Host/participant stream expiry and revocation are detected by each targeted check at admission or within five seconds, including equality. |
+| Restart | `structural`: no player generation survives process loss; server stream admission repeats full retained-state validation after restart. |
+| Dependency failure | `runtime`: relay/readiness timeout, malformed response, proxy failure, and response loss expose finite blocked UI while preserving an already confirmed runtime; explicit shutdown remains authoritative. |
+| Corruption | `runtime`: stream admission, every accepted mutation, startup, and readiness invoke the one canonical database validator; periodic stream checks cannot authorize a different game/session/connection, and readiness fails closed for unrelated retained corruption. |
+| Capacity | `runtime`: open streams add only one bounded targeted authority query set each per five seconds and never add periodic whole-database validation; packet scheduling remains fixed at 64 and `max-1`, `max`, and `max+1` are verified. |
+
+The pre-remediation counterexample is a valid active stream whose ordinary
+readiness request fails once while an AVAudio scheduled-buffer completion is
+pending. It preserves game, session, generation, and network authority, yet
+used to convert uncertainty into teardown and invert the packet/AVFoundation
+lock order. The matrix-derived tests exercise that schedule directly.
 
 ## Named deferrals
 

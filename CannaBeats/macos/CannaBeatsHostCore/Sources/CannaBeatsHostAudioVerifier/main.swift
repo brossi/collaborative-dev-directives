@@ -660,6 +660,56 @@ private func verifyCapturePermission() throws {
     try require(unsupported.readiness() == .unsupported, "capture permission unsupported")
 }
 
+private func verifyRelayedAudioPacketFence() throws {
+    let fence = RelayedAudioPacketFence()
+    fence.begin()
+    let retired = fence.reserve(frames: 480, maximum: 64)!
+    let teardownFinished = DispatchSemaphore(value: 0)
+    DispatchQueue.global().async {
+        fence.retire {
+            // Models AVAudioPlayerNode.stop() synchronously waiting for the
+            // completion callback that used to need stop()'s held lock.
+            fence.complete(retired)
+        }
+        teardownFinished.signal()
+    }
+    try require(teardownFinished.wait(timeout: .now() + 1) == .success,
+                "player teardown releases packet lock before AV completion")
+    try require(fence.queuedPackets == 0, "retired generation clears scheduled packets")
+
+    fence.begin()
+    let replacement = fence.reserve(frames: 480, maximum: 64)!
+    fence.complete(retired)
+    try require(fence.queuedPackets == 1,
+                "late completion cannot mutate replacement generation")
+    fence.complete(replacement)
+
+    fence.retire {}
+    fence.begin()
+    for _ in 0..<(RelayedAudioPlayer.maximumScheduledPackets - 1) {
+        try require(fence.reserve(frames: 480, maximum: 64) != nil,
+                    "player accepts max-1 scheduled packets")
+    }
+    try require(fence.queuedPackets == 63
+                && fence.reserve(frames: 480, maximum: 64) != nil
+                && fence.queuedPackets == 64,
+                "player accepts the maximum scheduled packet")
+    try require(fence.reserve(frames: 480, maximum: 64) == nil
+                && fence.queuedPackets == 64
+                && fence.droppedPackets == 1
+                && fence.droppedFrames == 480,
+                "player drops max+1 with exact counters")
+
+    let repeatedFinished = DispatchSemaphore(value: 0)
+    DispatchQueue.global().async {
+        for _ in 0..<1_000 { fence.retire {} }
+        repeatedFinished.signal()
+    }
+    try require(repeatedFinished.wait(timeout: .now() + 1) == .success
+                && fence.queuedPackets == 0,
+                "repeated teardown is finite and idempotent")
+}
+
 @MainActor
 private func verifySharedAudioOwner() async throws {
     let log = AudioOrderLog()
@@ -1038,8 +1088,9 @@ do {
     try await verifyAudioControlClient()
     try verifyBoundedStreamingProtocol()
     try verifyCapturePermission()
+    try verifyRelayedAudioPacketFence()
     try await verifySharedAudioOwner()
-    print("CannaBeats Host audio verifier: 75 checks passed")
+    print("CannaBeats Host audio verifier: 82 checks passed")
 } catch {
     fputs("CannaBeats Host audio verifier failed: \(error)\n", stderr)
     exit(1)

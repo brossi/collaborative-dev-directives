@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { PARTICIPANT_COOKIE } from './game-admission-routes.mjs';
+import { AUDIO_AUTHORITY_RECHECK_MS } from './audio-sessions.mjs';
 import { ReleaseStoreError, releaseStoreErrorCode } from './store.mjs';
 
 export const AUDIO_CLIENT_CONTRACT = '1';
@@ -15,7 +16,7 @@ export const MAX_STREAM_CHUNK_BYTES = 16 * 1024;
 
 const MAX_BODY_BYTES = 4 * 1024;
 const BODY_TIMEOUT_MS = 2_000;
-const AUTHORITY_RECHECK_MS = 1_000;
+export const AUTHORITY_RECHECK_MS = AUDIO_AUTHORITY_RECHECK_MS;
 const RELAY_SETUP_TIMEOUT_MS = 5_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const SECRET_PATTERN = /^[0-9A-Za-z_-]{22,128}$/u;
@@ -354,10 +355,15 @@ export function audioIngestRoute(
       gameId, audioSessionId, connectionId, reasonCode, now: deps.clock(),
     });
     const guardedBody = authorityBoundStream(request.body, {
-      authorize: () => currentRuntime.authorizeAudioHostStream({
-        applicationSessionToken, gameId, audioSessionId, connectionId,
-        now: deps.clock(),
-      }),
+      authorize: () => {
+        const rechecked = currentRuntime.recheckAudioHostStream({
+          applicationSessionToken, gameId, audioSessionId, connectionId,
+          now: deps.clock(),
+        });
+        if (rechecked.generation !== claimed.generation) {
+          throw new ReleaseStoreError('unauthorized');
+        }
+      },
       onClose: () => interrupt('ingest_lost'),
       recheckMs: deps.recheckMs,
       maxChunkBytes: MAX_STREAM_CHUNK_BYTES,
@@ -426,6 +432,22 @@ export function audioListenRoute(
         audioSessionId: normalizedSessionId,
         now: authorizationNow,
       });
+    const recheck = (authorizationNow) => {
+      const rechecked = authority.kind === 'host'
+      ? currentRuntime.recheckAudioHostStream({
+        applicationSessionToken: authority.token, gameId,
+        audioSessionId: normalizedSessionId, requireActive: true,
+        now: authorizationNow,
+      })
+      : currentRuntime.recheckAudioParticipantStream({
+        participantSessionToken: authority.token, gameId,
+        audioSessionId: normalizedSessionId,
+        now: authorizationNow,
+      });
+      if (rechecked.generation !== session.generation) {
+        throw new ReleaseStoreError('unauthorized');
+      }
+    };
     const session = authorize(now);
     const deps = dependencies(dependencyOverrides);
     const relayAbort = new AbortController();
@@ -450,7 +472,7 @@ export function audioListenRoute(
     }
     authorize(deps.clock());
     const guarded = authorityBoundStream(upstream.body, {
-      authorize: () => authorize(deps.clock()),
+      authorize: () => recheck(deps.clock()),
       recheckMs: deps.recheckMs,
       maxChunkBytes: MAX_STREAM_CHUNK_BYTES,
     });

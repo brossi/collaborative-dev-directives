@@ -108,6 +108,10 @@ export function createReleaseRuntime({
     authorizeAudioParticipantStream(input) {
       return owner().authorizeAudioParticipantStream(input);
     },
+    recheckAudioHostStream(input) { return owner().recheckAudioHostStream(input); },
+    recheckAudioParticipantStream(input) {
+      return owner().recheckAudioParticipantStream(input);
+    },
     recordDiagnostic(input) { return owner().recordDiagnostic(input); },
     exportDiagnostics(input) { return owner().exportDiagnostics(input); },
     operatorPurgeDiagnostics(input) { return owner().operatorPurgeDiagnostics(input); },

@@ -424,6 +424,13 @@ export function createGameAdmission(database, {
       return Object.freeze({ gameId: row.game_id, participantId: row.participant_id });
     },
 
+    recheckParticipant({ token, now, gameId = null }) {
+      assertTimestamp(now, 'invalid_request');
+      const row = activeParticipantSession(database, token, gameId);
+      if (row.lifecycle !== 'active') throw new Error('unauthorized');
+      return Object.freeze({ gameId: row.game_id, participantId: row.participant_id });
+    },
+
     retainedParticipant({ token, gameId = null }) {
       const row = retainedParticipantSession(database, token, gameId);
       return Object.freeze({

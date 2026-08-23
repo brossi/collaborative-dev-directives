@@ -2,6 +2,7 @@ import { UUID_PATTERN, assertTimestamp, assertUuid } from './canonical.mjs';
 
 export const MAX_AUDIO_SESSIONS_PER_GAME = 512;
 export const MAX_AUDIO_TRANSITIONS_PER_SESSION = 16;
+export const AUDIO_AUTHORITY_RECHECK_MS = 5_000;
 
 const OPEN_STATES = new Set(['starting', 'connecting', 'active', 'interrupted']);
 const INTERRUPTION_REASONS = new Set([
@@ -109,7 +110,7 @@ export function interruptAudioSessionsOnStartup(database, now) {
 }
 
 export function createAudioSessions(database, {
-  transaction, validate, authorizeHost, retainHost, authorizeParticipant,
+  transaction, validate, authorizeHost, retainHost, recheckParticipant,
 }) {
   function retainedHost(token) {
     return retainHost({ token, kind: 'application' });
@@ -124,6 +125,37 @@ export function createAudioSessions(database, {
     return database.prepare(`SELECT audio_session_id,game_id,request_id,generation,state,
       connection_id,created_at,updated_at,ended_at FROM audio_sessions
       WHERE game_id=? AND state<>'ended'`).get(gameId);
+  }
+  function authorizeHostStream(input, validateDatabase) {
+    const {
+      applicationSessionToken, gameId, audioSessionId, connectionId = null,
+      requireActive = false, now,
+    } = input;
+    assertUuid(gameId, 'invalid_request'); assertUuid(audioSessionId, 'invalid_request');
+    if (connectionId !== null) assertUuid(connectionId, 'invalid_request');
+    assertTimestamp(now, 'invalid_request');
+    const host = authorizeHost({ token: applicationSessionToken, kind: 'application', now });
+    if (validateDatabase) validate();
+    const game = gameForHost(gameId, host.deviceId);
+    const session = row(database, audioSessionId, gameId);
+    if (game.lifecycle !== 'active' || !session || session.state === 'ended'
+        || (requireActive && session.state !== 'active')
+        || (connectionId !== null && (session.connection_id !== connectionId
+          || !['connecting', 'active'].includes(session.state)))) reject('unauthorized');
+    return projection(session);
+  }
+  function authorizeParticipantStream(input, validateDatabase) {
+    const { participantSessionToken, gameId, audioSessionId, now } = input;
+    assertUuid(gameId, 'invalid_request'); assertUuid(audioSessionId, 'invalid_request');
+    assertTimestamp(now, 'invalid_request');
+    const participantAuthority = {
+      token: participantSessionToken, gameId, now,
+    };
+    recheckParticipant(participantAuthority);
+    if (validateDatabase) validate();
+    const session = row(database, audioSessionId, gameId);
+    if (!session || session.state !== 'active') reject('unauthorized');
+    return projection(session);
   }
   return Object.freeze({
     open({ applicationSessionToken, gameId, audioSessionId, requestId, now }) {
@@ -289,30 +321,20 @@ export function createAudioSessions(database, {
       });
     },
 
-    authorizeHostStream({ applicationSessionToken, gameId, audioSessionId, connectionId = null,
-      requireActive = false, now }) {
-      assertUuid(gameId, 'invalid_request'); assertUuid(audioSessionId, 'invalid_request');
-      if (connectionId !== null) assertUuid(connectionId, 'invalid_request');
-      assertTimestamp(now, 'invalid_request');
-      const host = authorizeHost({ token: applicationSessionToken, kind: 'application', now });
-      validate();
-      const game = gameForHost(gameId, host.deviceId);
-      const session = row(database, audioSessionId, gameId);
-      if (game.lifecycle !== 'active' || !session || session.state === 'ended'
-          || (requireActive && session.state !== 'active')
-          || (connectionId !== null && (session.connection_id !== connectionId
-            || !['connecting', 'active'].includes(session.state)))) reject('unauthorized');
-      return projection(session);
+    authorizeHostStream(input) {
+      return authorizeHostStream(input, true);
     },
 
-    authorizeParticipantStream({ participantSessionToken, gameId, audioSessionId, now }) {
-      assertUuid(gameId, 'invalid_request'); assertUuid(audioSessionId, 'invalid_request');
-      assertTimestamp(now, 'invalid_request');
-      authorizeParticipant({ token: participantSessionToken, gameId, now });
-      validate();
-      const session = row(database, audioSessionId, gameId);
-      if (!session || session.state !== 'active') reject('unauthorized');
-      return projection(session);
+    authorizeParticipantStream(input) {
+      return authorizeParticipantStream(input, true);
+    },
+
+    recheckHostStream(input) {
+      return authorizeHostStream(input, false);
+    },
+
+    recheckParticipantStream(input) {
+      return authorizeParticipantStream(input, false);
     },
   });
 }

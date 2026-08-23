@@ -1,5 +1,37 @@
 import Foundation
 
+public enum HostGameRuntimeDirective: Equatable, Sendable {
+    case preserve
+    case stop
+    case start(UUID)
+}
+
+public enum HostGameRuntimeReconciler {
+    public static func lifecycleDecisionConfirmed(
+        by server: Result<HostServerReadiness, HostAuthorityClientError>
+    ) -> Bool {
+        switch server {
+        case .success:
+            true
+        case .failure(.noApplicationSession), .failure(.server("upgrade_required")):
+            true
+        case .failure:
+            false
+        }
+    }
+
+    public static func directive(
+        serverReadinessConfirmed: Bool,
+        readiness: HostReadinessProjection
+    ) -> HostGameRuntimeDirective {
+        guard serverReadinessConfirmed else { return .preserve }
+        guard readiness.sharedAudioRuntimeEnabled, let game = readiness.activeGame else {
+            return .stop
+        }
+        return .start(game.gameId)
+    }
+}
+
 @MainActor
 public final class PlaybackAudioGate {
     private let startPlayback: @MainActor @Sendable () -> Void
