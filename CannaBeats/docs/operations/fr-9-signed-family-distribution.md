@@ -244,3 +244,21 @@ remained running but inactive in every sample. The automatic refresh then
 reported Spotify ready, and a subsequent readiness check reported Spotify
 control ready. GH#9 and GH#10 therefore have installed-artifact acceptance;
 system-audio capture and live shared-audio acceptance remain separate evidence.
+
+## Accepted `1.0.0 (6)` setup-time audio-consent artifact
+
+On 2026-08-23 the GH#5 setup-time permission probe was released from clean
+commit `340948d174d193cc9084fa4486e6744266ed56fe` as `1.0.0 (6)`. Apple
+notarization returned `Accepted`; the release verifier, signature validation,
+stapling, Gatekeeper assessment, and checksum verification passed. The retained
+DMG SHA-256 is
+`174ed4cf5ade13b286950d9512f1e9abc88b1fac3eb0780c4a74d12997e5a793`.
+
+The installed artifact entered `Requesting System Audio Recording access…`
+during its initial readiness check, completed the private Spotify-tap probe,
+and then reported system audio capture ready without disturbing server,
+enrollment, Spotify, or relay readiness. This Mac already had CannaBeats Host
+enabled in macOS System Audio Recording, so macOS correctly did not present a
+new consent choice. A never-authorized Mac remains the required interactive
+evidence for the first-time Apple prompt; GH#5 stays open until that evidence
+is recorded.
