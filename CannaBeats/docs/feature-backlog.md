@@ -25,6 +25,7 @@ not part of the current first-release checkpoint.
 | --- | --- | --- | --- |
 | 1 | FB-001 | Proposed | Add the authenticated host as an account-linked player by default |
 | 2 | FB-002 | Proposed | Let the host add previously authenticated players |
+| 3 | FB-003 | Proposed | Hide raw web-ticket JSON during the native Host handoff ([GH#12](https://github.com/brossi/collaborative-dev-directives/issues/12)) |
 
 ## FB-001 — Add the authenticated host as an account-linked player by default
 
@@ -128,3 +129,30 @@ should be added only if an actual game-night need justifies its handoff and
 recovery rules. Persistent statistics also require the optional profile/history
 model described in the [product backlog](product-backlog.md); these two features
 should not invent a parallel identity store.
+
+## FB-003 — Hide raw web-ticket JSON during the native Host handoff
+
+### User outcome
+
+After selecting **Continue after enrollment**, the native Host keeps an
+intentional CannaBeats transition surface visible until the game setup page is
+ready. It never flashes the raw web-ticket exchange JSON.
+
+### Expected behavior
+
+- Preserve the current one-use ticket exchange, nonpersistent secure Host
+  cookie, trusted-origin restriction, and finite return-to-Readiness failure
+  path.
+- Do not expose the ticket or session authority through a visible URL, browser
+  history, referrer, log, rendered response, or caller-facing error.
+- Navigate to game setup only after the cookie exchange succeeds.
+- Repeated SwiftUI updates must not exchange the same ticket twice.
+- Keep this as a bounded native/WebKit handoff correction; do not introduce a
+  second authentication mechanism.
+
+### Confirmed cause
+
+`HostWebView` currently navigates its `WKWebView` directly to the JSON exchange
+endpoint. WebKit renders the successful bounded response before `didFinish`
+loads the game page. The response contains no credential material, so this is a
+visual defect rather than an observed authority disclosure.
