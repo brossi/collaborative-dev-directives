@@ -155,6 +155,7 @@ export default function Home() {
   const [returnToHostSession, setReturnToHostSession] = useState<ReleaseSession | null>(null);
   const [inviteUrl, setInviteUrl] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [name, setName] = useState("");
   const [hostPlayerName, setHostPlayerName] = useState("");
   const [selection, setSelection] = useState<{ round: number; index: number } | null>(null);
@@ -363,9 +364,20 @@ export default function Home() {
       const url = new URL(cannabeatsPath("/"), window.location.origin);
       url.searchParams.set("game", state.gameId);
       url.hash = new URLSearchParams({ invite: issued.inviteToken }).toString();
-      setInviteUrl(url.toString());
+      setInviteCopied(false); setInviteUrl(url.toString());
     } catch (reason) { setError(message(reason)); }
     finally { setBusy(false); }
+  }
+
+  async function copyInvitation() {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setInviteCopied(true);
+    } catch {
+      const field = document.getElementById("invite-share-url") as HTMLInputElement | null;
+      field?.focus(); field?.select();
+    }
   }
 
   async function returnToHost() {
@@ -442,8 +454,14 @@ export default function Home() {
             <p className="helper">Create a link for family joining from their phones.</p>
             <button className="secondary-button" disabled={busy || state.players.length >= 8}
               type="button" onClick={() => void makeInvitation()}>{inviteUrl ? "Replace invitation" : "Create invitation"}</button>
-            {inviteUrl && <p><a href={inviteUrl} target="_blank" rel="noopener noreferrer">
-              Preview invitation in new tab</a></p>}</div></div>
+            {inviteUrl && <div className="invite-share"><label htmlFor="invite-share-url">Share link</label>
+              <div className="invite-share-row"><input id="invite-share-url" readOnly value={inviteUrl}
+                onFocus={(event) => event.currentTarget.select()} aria-describedby="invite-share-help" />
+                <button className="secondary-button" type="button" onClick={() => void copyInvitation()}>
+                  {inviteCopied ? "Copied" : "Copy link"}</button></div>
+              <small id="invite-share-help">This is the same private invitation encoded by the QR code.</small>
+              <a href={inviteUrl} target="_blank" rel="noopener noreferrer">
+                Preview invitation in new tab</a></div>}</div></div>
         <button className="primary-button" disabled={busy || state.players.length === 0}
           onClick={() => void act("start_game")}>Set up game</button>
       </> : <p className="waiting-note"><i /> Waiting for the Host to start</p>}

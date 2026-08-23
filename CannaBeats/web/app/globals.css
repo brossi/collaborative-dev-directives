@@ -86,6 +86,12 @@ button:disabled { cursor: not-allowed; opacity: .42; transform: none !important;
 .qr-card img { display: block; width: 100%; height: auto; }
 .qr-placeholder { width: 100%; aspect-ratio: 1; background: repeating-linear-gradient(45deg, #efe5ad 0 8px, #fff5c9 8px 16px); }
 .join-invite .helper { margin: 0; }
+.invite-share { display: grid; min-width: 0; gap: .45rem; margin-top: 1rem; }
+.invite-share > label { color: var(--ink); font-size: .75rem; font-weight: 800; }
+.invite-share-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+.invite-share-row input { min-width: 0; width: 100%; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: white; font-family: var(--font-geist-mono), monospace; font-size: .72rem; }
+.invite-share-row .secondary-button { width: auto; margin-top: 0; white-space: nowrap; }
+.invite-share small { color: var(--muted); line-height: 1.35; }
 .waiting-note { display: flex; align-items: center; gap: .7rem; margin: 1.2rem 0 0; color: var(--muted); }
 .waiting-note i { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 5px rgba(232,119,62,.16); }
 .shared-audio-panel { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 1.25rem 0; padding: 1rem 1.1rem; border: 2px solid var(--ink); border-radius: 16px; background: #fff5c9; box-shadow: 4px 4px 0 var(--ink); }

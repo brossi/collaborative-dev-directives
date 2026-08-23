@@ -116,6 +116,15 @@ test("invitation preview preserves an explicit verified return to the Host lobby
   assert.match(page, /Preview invitation in new tab/);
 });
 
+test("the Host QR, visible share link, and clipboard copy use one invitation URL", async () => {
+  const [page] = await releaseSources();
+  assert.match(page, /QRCode\.toDataURL\(inviteUrl/);
+  assert.match(page, /id="invite-share-url" readOnly value=\{inviteUrl\}/);
+  assert.match(page, /navigator\.clipboard\.writeText\(inviteUrl\)/);
+  assert.match(page, /field\?\.focus\(\); field\?\.select\(\)/);
+  assert.match(page, /This is the same private invitation encoded by the QR code\./);
+});
+
 test("answer metadata appears only in reveal-aware UI and projections", async () => {
   const [page, client, journey] = await releaseSources();
   assert.match(page, /state\.phase === "placed"/);
