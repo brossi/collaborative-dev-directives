@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import {
   generateKeyPairSync, randomBytes, randomUUID, sign,
 } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { once } from 'node:events';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
+import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import test from 'node:test';
 
@@ -14,6 +16,7 @@ import { loadCatalogArtifacts } from '../../web/lib/server/release/catalog.mjs';
 import { DEFAULT_RULES } from '../../web/lib/server/release/game-state.mjs';
 import { hostProofBytes } from '../../web/lib/server/release/host-authority.mjs';
 import { createReleaseStore } from '../../web/lib/server/release/store.mjs';
+import { createAudioRelay } from '../relay/server.mjs';
 
 const releaseRoot = resolve(fileURLToPath(new URL('..', import.meta.url)), '..');
 const webRoot = resolve(releaseRoot, 'web');
@@ -47,7 +50,21 @@ async function waitFor(origin, path) {
   throw new Error(`standalone runtime did not answer (${last})`);
 }
 
-test('the standalone Next process owns unified health and readiness', async () => {
+async function stopChild(child) {
+  if (child.exitCode !== null) return;
+  child.kill('SIGTERM');
+  let deadline;
+  await Promise.race([
+    once(child, 'exit'),
+    new Promise((resolveStop) => { deadline = setTimeout(resolveStop, 2_000); }),
+  ]).finally(() => clearTimeout(deadline));
+  if (child.exitCode === null) {
+    child.kill('SIGKILL');
+    await once(child, 'exit');
+  }
+}
+
+test('standalone Next isolates native-rate audio while preserving unified authority', async () => {
   const build = spawnSync('npm', ['run', 'build:do'], {
     cwd: webRoot,
     env: { ...process.env, NEXT_PUBLIC_CANNABEATS_BASE_PATH: '' },
@@ -62,6 +79,18 @@ test('the standalone Next process owns unified health and readiness', async () =
   });
   const seedNow = Date.now();
   const seeded = createReleaseStore(databasePath, { catalog: sourceCatalog, now: seedNow });
+  const relayIngestToken = randomBytes(24).toString('base64url');
+  const relayListenToken = randomBytes(24).toString('base64url');
+  const relayIngestPath = join(temporary, 'relay-ingest-token');
+  const relayListenPath = join(temporary, 'relay-listen-token');
+  writeFileSync(relayIngestPath, `${relayIngestToken}\n`, { mode: 0o400 });
+  writeFileSync(relayListenPath, `${relayListenToken}\n`, { mode: 0o400 });
+  const relay = createAudioRelay({
+    ingestToken: relayIngestToken, listenToken: relayListenToken,
+  });
+  relay.listen(0, '127.0.0.1');
+  await once(relay, 'listening');
+  const relayOrigin = `http://127.0.0.1:${relay.address().port}`;
   const enrollmentCode = randomBytes(24).toString('base64url');
   const deviceId = randomUUID();
   const keys = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
@@ -81,11 +110,16 @@ test('the standalone Next process owns unified health and readiness', async () =
       PORT: String(port),
       CANNABEATS_RUNTIME: 'unified',
       CANNABEATS_DATABASE_PATH: databasePath,
+      CANNABEATS_RELAY_ORIGIN: relayOrigin,
+      CANNABEATS_RELAY_INGEST_SECRET_FILE: relayIngestPath,
+      CANNABEATS_RELAY_LISTEN_SECRET_FILE: relayListenPath,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', (chunk) => { output += chunk; });
   child.stderr.on('data', (chunk) => { output += chunk; });
+  let audioRequest = null;
+  let audioListenerReader = null;
   try {
     const health = await waitFor(origin, '/api/health');
     assert.equal(health.response.status, 200, output);
@@ -146,7 +180,7 @@ test('the standalone Next process owns unified health and readiness', async () =
     assert.equal(hostReadiness.status, 200, JSON.stringify(hostReadinessBody));
     assert.deepEqual(hostReadinessBody, {
       code: 'host_readiness', hostContract: '1', activeGame: null,
-      relay: { state: 'blocked', reason: 'relay_unavailable' },
+      relay: { state: 'ready', reason: 'ready' },
     });
 
     const devices = await fetch(`${origin}/api/host/devices`, {
@@ -263,6 +297,124 @@ test('the standalone Next process owns unified health and readiness', async () =
 
     const started = await action('host', hostCookie, 2, 'start_game');
     assert.equal(started.state.phase, 'ready');
+
+    const audioSessionId = randomUUID();
+    const audioOpen = await fetch(`${origin}/api/games/${gameId}/audio/sessions`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${sessionToken}`, 'content-type': 'application/json',
+        'x-cannabeats-audio-contract': '1',
+      },
+      body: JSON.stringify({ audioSessionId, requestId: randomUUID() }),
+    });
+    const audioOpenBody = await audioOpen.json();
+    assert.equal(audioOpen.status, 200, JSON.stringify(audioOpenBody));
+    assert.equal(audioOpenBody.session.state, 'starting');
+
+    const audioConnectionId = randomUUID();
+    const audioIngestPromise = new Promise((resolveIngest, rejectIngest) => {
+      audioRequest = httpRequest(
+        `${origin}/api/games/${gameId}/audio/sessions/${audioSessionId}/ingest`,
+        {
+          method: 'POST',
+          headers: {
+          authorization: `Bearer ${sessionToken}`,
+          'content-type': 'application/octet-stream',
+          'x-cannabeats-audio-contract': '1',
+          'x-cannabeats-audio-connection': audioConnectionId,
+          'x-cannabeats-audio-rate': '48000',
+          'x-cannabeats-audio-channels': '2',
+          'x-cannabeats-audio-encoding': 's16le',
+        },
+        },
+        resolveIngest,
+      );
+      audioRequest.once('error', rejectIngest);
+    });
+    const packet = new Uint8Array(480 * 2 * 2);
+    let awaitingHeaders = true;
+    const publishUntilHeaders = (async () => {
+      while (awaitingHeaders) {
+        if (!audioRequest.write(packet)) await once(audioRequest, 'drain');
+        await new Promise((resolvePacket) => setTimeout(resolvePacket, 10));
+      }
+    })();
+    let audioIngest;
+    try {
+      audioIngest = await Promise.race([
+        audioIngestPromise,
+        new Promise((_, reject) => setTimeout(
+          () => reject(new Error(`standalone audio ingest did not return headers\n${output}`)), 5_000,
+        )),
+      ]);
+    } finally {
+      awaitingHeaders = false;
+      await publishUntilHeaders;
+    }
+    assert.equal(audioIngest.statusCode, 200);
+    let ingestResponseBytes = 0;
+    audioIngest.on('data', (chunk) => { ingestResponseBytes += chunk.length; });
+
+    const audioListener = await fetch(
+      `${origin}/api/games/${gameId}/audio/sessions/${audioSessionId}/listen`,
+      {
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+          'x-cannabeats-audio-contract': '1',
+        },
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    assert.equal(audioListener.status, 200);
+    audioListenerReader = audioListener.body.getReader();
+    let listenerBytes = 0;
+    const consumeListener = (async () => {
+      while (listenerBytes < packet.byteLength * 50) {
+        const item = await audioListenerReader.read();
+        if (item.done) break;
+        listenerBytes += item.value.byteLength;
+      }
+    })();
+
+    let maximumProbeMs = 0;
+    const probes = [
+      { path: '/api/ready', headers: {} },
+      {
+        path: '/api/host/readiness',
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+          'x-cannabeats-host-contract': '1',
+        },
+      },
+      { path: `/api/games/${gameId}/host-snapshot`, headers: { cookie: hostCookie } },
+    ];
+    const probe = async () => {
+      for (let index = 0; index < 20; index += 1) {
+        const selected = probes[index % probes.length];
+        const startedAt = performance.now();
+        const response = await fetch(`${origin}${selected.path}`, {
+          headers: selected.headers,
+          signal: AbortSignal.timeout(750),
+        });
+        assert.equal(response.status, 200);
+        await response.arrayBuffer();
+        maximumProbeMs = Math.max(maximumProbeMs, performance.now() - startedAt);
+        await new Promise((resolveProbe) => setTimeout(resolveProbe, 40));
+      }
+    };
+    const publish = async () => {
+      for (let index = 1; index < 100; index += 1) {
+        if (!audioRequest.write(packet)) await once(audioRequest, 'drain');
+        await new Promise((resolvePacket) => setTimeout(resolvePacket, 10));
+      }
+    };
+    await Promise.all([probe(), publish(), consumeListener]);
+    assert.ok(maximumProbeMs < 750, `maximum ordinary probe ${maximumProbeMs} ms`);
+    assert.ok(listenerBytes >= packet.byteLength * 50, `${listenerBytes} listener bytes`);
+    assert.equal(ingestResponseBytes, 0);
+    await audioListenerReader.cancel();
+    audioListenerReader = null;
+
     const preReveal = await fetch(`${origin}/api/games/${gameId}/snapshot`, {
       headers: { cookie: participantCookie },
     });
@@ -273,6 +425,9 @@ test('the standalone Next process owns unified health and readiness', async () =
     assert.equal('result' in preRevealBody.state, false);
 
     const begun = await action('host', hostCookie, started.revision, 'begin_round');
+    audioRequest.end();
+    for await (const _chunk of audioIngest) {}
+    assert.equal(ingestResponseBytes, 0);
     const placed = await action('participant', participantCookie, begun.revision, 'place_song', {
       index: 0,
     });
@@ -288,8 +443,11 @@ test('the standalone Next process owns unified health and readiness', async () =
     assert.equal(recoveredBody.participantId, participantId);
     assert.equal(recoveredBody.state.currentSong.uri, revealed.state.currentSong.uri);
   } finally {
-    child.kill('SIGTERM');
-    if (child.exitCode === null) await new Promise((resolveExit) => child.once('exit', resolveExit));
+    await audioListenerReader?.cancel().catch(() => {});
+    audioRequest?.destroy();
+    await stopChild(child);
+    relay.closeAllConnections();
+    await new Promise((resolveClose) => relay.close(resolveClose));
     rmSync(temporary, { recursive: true, force: true });
   }
 });

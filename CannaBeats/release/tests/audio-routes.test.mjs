@@ -138,7 +138,7 @@ test('ingest reserves authority before the private hop and activates only an exa
   assert.equal(response.status, 200);
   assert.equal(response.headers.get(AUDIO_GENERATION_HEADER), '4');
   assert.equal(response.headers.has('authorization'), false);
-  assert.deepEqual(calls.slice(0, 3).map(([kind]) => kind), ['claim', 'authorize', 'activate']);
+  assert.deepEqual(calls.slice(0, 2).map(([kind]) => kind), ['claim', 'activate']);
   await relayReader.cancel();
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(calls.at(-1)[0], 'interrupt');
@@ -264,6 +264,7 @@ test('open listener authority is rechecked even while the relay is silent', asyn
   });
   assert.equal(response.status, 200);
   const reader = response.body.getReader();
+  assert.deepEqual((await reader.read()).value, new Uint8Array(0));
   const reading = reader.read();
   authorized = false;
   await assert.rejects(reading, /stream_interrupted/u);
@@ -277,9 +278,13 @@ test('authenticated proxy and private relay carry paced Host plus eight listener
   const origin = `http://127.0.0.1:${server.address().port}`;
   let sourceController;
   let active = false;
+  let hostAuthorizationChecks = 0;
   const runtime = {
     claimAudioIngest() { return { session: { ...session, state: 'connecting' } }; },
-    authorizeAudioHostStream() { return { ...session, state: active ? 'active' : 'connecting' }; },
+    authorizeAudioHostStream() {
+      hostAuthorizationChecks += 1;
+      return { ...session, state: active ? 'active' : 'connecting' };
+    },
     activateAudioIngest() { active = true; return { session }; },
     interruptAudioIngest() { active = false; return { code: 'interrupted' }; },
     authorizeAudioParticipantStream() {
@@ -312,6 +317,7 @@ test('authenticated proxy and private relay carry paced Host plus eight listener
   )));
   assert.deepEqual(listens.map(({ status }) => status), Array(9).fill(200));
   assert.equal(listens.every((listen) => !listen.headers.has('authorization')), true);
+  const authorizationChecksBeforePackets = hostAuthorizationChecks;
   const readers = listens.map((listen) => listen.body.getReader());
   const packet = new Uint8Array(480 * 4);
   const expectedBytes = packet.byteLength * 100;
@@ -343,6 +349,9 @@ test('authenticated proxy and private relay carry paced Host plus eight listener
   assert.ok(rssGrowth < 128 * 1_024 * 1_024, `RSS growth ${rssGrowth}`);
   assert.ok(cpu.user + cpu.system < 5_000_000,
     `CPU time ${cpu.user + cpu.system} microseconds`);
+  const packetIntervalChecks = hostAuthorizationChecks - authorizationChecksBeforePackets;
+  assert.ok(packetIntervalChecks <= 4,
+    `Host authority was revalidated ${packetIntervalChecks} times for 100 media packets`);
   await Promise.all(readers.map((reader) => reader.cancel()));
   sourceController.close();
   await ingest.body.cancel();

@@ -274,6 +274,50 @@ runtime contract. A recovery-current continuation cannot retain state after
 stop, and terminal I/O cannot begin before its request identity is durable.
 No P0, P1, or P2 remains open after remediation and narrow re-audit.
 
+## GH #6 production ingest isolation remediation
+
+**Invariant:** One authenticated, media-rate Host ingest remains isolated from
+ordinary game and readiness traffic within the one-vCPU production boundary.
+
+The first signed-Host production capture exposed a missing deployment-shaped
+counterexample. The authenticated proxy ran the complete retained-database
+validator once for every PCM chunk as well as on its fixed one-second authority
+timer. Independently, the relay's successful ingest response is intentionally
+header-only while the upload remains open, but standalone Next flushes route
+response headers only after the first body write. Caddy therefore waited for
+headers while Next continued forwarding and repeatedly validating PCM until
+the web CPU saturated. The direct-route resource test bypassed both the Next
+response writer and real SQLite validation, so it did not represent the
+production boundary.
+
+The repaired response wraps the relay body with one empty stream item. This
+causes Next to flush headers without adding any HTTP body bytes or changing the
+native protocol. Stream authority is validated once before forwarding and then
+by the existing fixed one-second timer; it is no longer coupled to PCM packet
+frequency.
+
+| Dimension | Disposition |
+| --- | --- |
+| Create | `runtime`: the existing ingest claim authenticates and binds one connection before the private relay hop. |
+| Update | `runtime`: activation and interruption remain the only retained stream-state mutations. |
+| Delete | `not_applicable`: stream isolation deletes no retained state. |
+| Omit | `runtime`: one empty response-stream item starts the HTTP response without wire bytes; the fixed authority timer continues while the stream is open and closes it on any failed check. |
+| Duplicate | `structural`: one timer owns periodic authority checks; PCM delivery no longer duplicates the same complete validation per chunk. |
+| Reorder | `runtime`: claim precedes relay setup, activation follows the exact relay response, and periodic authorization begins before body forwarding. |
+| Replay | `not_applicable`: PCM is intentionally not replayed. |
+| Conflict | `runtime`: the retained one-publisher and connection-generation checks are unchanged. |
+| Concurrency | `runtime`: standalone-Next HTTP verification holds a native-rate publisher and Host listener open while mixed public-readiness, Host-readiness, and game-snapshot requests remain bounded and successful. |
+| Expiry | `runtime`: application-session expiry and revocation remain bounded by the fixed one-second authority recheck. |
+| Restart | `structural`: the change retains no process-only authority decision; each new stream repeats claim and setup. |
+| Dependency failure | `runtime`: relay, request, and authority failure still cancel the guarded stream and append the finite interruption. |
+| Corruption | `runtime`: claim, activation, the one-second timer, and every ordinary retained-data operation still cross the canonical database validator. |
+| Capacity | `runtime`: 100 native-rate packets across the publisher and Host listener cause at most four interval validations while 20 mixed ordinary probes remain below their 750 ms bound. |
+
+The smallest relationship-preserving counterexample is one valid publisher
+whose packet frequency grows while its identity, generation, format, and
+authority remain unchanged. Packet frequency must affect media work only; it
+must not multiply whole-database validation work.
+
 ## Named deferrals
 
 - FR-7 owns the unified permission/readiness UI, production composition of the

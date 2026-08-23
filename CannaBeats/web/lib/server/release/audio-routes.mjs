@@ -222,6 +222,27 @@ function outputHeaders(session, format) {
   };
 }
 
+function responseStartingStream(source) {
+  const reader = source.getReader();
+  return new ReadableStream({
+    start(controller) {
+      // Next flushes route-handler response headers only after the first body
+      // write. An empty write starts the response without adding wire bytes.
+      controller.enqueue(new Uint8Array(0));
+    },
+    async pull(controller) {
+      try {
+        const item = await reader.read();
+        if (item.done) controller.close();
+        else controller.enqueue(item.value);
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    cancel() { return reader.cancel(); },
+  });
+}
+
 function authorityBoundStream(source, {
   authorize, onClose = () => {}, recheckMs, maxChunkBytes = null,
 }) {
@@ -255,7 +276,6 @@ function authorityBoundStream(source, {
     async pull(value) {
       if (closed) return;
       try {
-        authorize();
         const item = await reader.read();
         if (item.done) {
           closed = true;
@@ -376,7 +396,9 @@ export function audioIngestRoute(
       interrupt('ingest_lost');
       throw error;
     }
-    return new Response(upstream.body, { status: 200, headers: outputHeaders(active, format) });
+    return new Response(responseStartingStream(upstream.body), {
+      status: 200, headers: outputHeaders(active, format),
+    });
   });
 }
 
@@ -432,6 +454,8 @@ export function audioListenRoute(
       recheckMs: deps.recheckMs,
       maxChunkBytes: MAX_STREAM_CHUNK_BYTES,
     });
-    return new Response(guarded, { status: 200, headers: outputHeaders(session, format) });
+    return new Response(responseStartingStream(guarded), {
+      status: 200, headers: outputHeaders(session, format),
+    });
   });
 }
