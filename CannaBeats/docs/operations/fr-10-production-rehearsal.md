@@ -1,7 +1,7 @@
 # FR-10 production rehearsal
 
 **Status:** In progress. The authorized production Droplet, installation, DNS
-cutover, and two-Mac enrollment were completed on 2026-08-22. System-audio
+cutover, and three-Mac enrollment are complete. System-audio
 capture, active-game, game-night schedule, and recovery rehearsal evidence
 remain open.
 
@@ -37,6 +37,13 @@ active devices. This does not constrain server enrollment or game authority,
 but a revision-bounded operator-tree upgrade is required before activating a
 ninth Host so the operational status command continues to accept the server's
 projection.
+
+That server change activated on 2026-08-23 as
+`release-1.0.0-7-ef977c0`, retaining `release-1.0.0-6-a266365` as rollback.
+Eight consecutive public readiness probes, the redacted operator status, and
+all three container health checks passed. A bootstrap issuance returned an
+exact 24-hour lifetime, and notarized Host `1.0.0 (5)` redeemed it to establish
+the third active device without disturbing the retained active game.
 
 ## Governing invariant
 

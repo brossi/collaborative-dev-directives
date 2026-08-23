@@ -225,3 +225,22 @@ This artifact separates AVFoundation teardown from packet-state locking and
 preserves a valid game runtime across transient readiness transport failures.
 Upgrade-in-place and live shared-audio acceptance on the enrolled Host remain
 interactive evidence; GH#6 and GH#7 stay open until that evidence is recorded.
+
+## Accepted `1.0.0 (5)` Host usability artifact
+
+On 2026-08-23 the background-Spotify and terminal-enrollment remediations were
+released from clean commit `fa38e106feed4fec68b7ef2d89cb5b0e7b0545f9` as
+`1.0.0 (5)`. The retained notary result is `Accepted`; the release verifier,
+stapler validation, Gatekeeper assessment, and checksum verification passed.
+The retained DMG SHA-256 is
+`0b809cea1c4b63a69aea819412cb96f4df12fbb58e13ab51c508425a51f35968`.
+
+The notarized application was installed at `/Applications/CannaBeats Host.app`,
+cleared an expired pending enrollment after the server confirmed its terminal
+result, accepted a fresh 24-hour code, and established the third production
+Host device. With Spotify initially stopped, the installed Host launched it
+while remaining foreground in 15 consecutive 200-millisecond samples; Spotify
+remained running but inactive in every sample. The automatic refresh then
+reported Spotify ready, and a subsequent readiness check reported Spotify
+control ready. GH#9 and GH#10 therefore have installed-artifact acceptance;
+system-audio capture and live shared-audio acceptance remain separate evidence.
