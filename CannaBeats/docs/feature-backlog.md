@@ -3,7 +3,7 @@
 **Status:** Active delivery backlog
 **Purpose:** Keep a small, ordered queue of user-facing improvements that are
 not part of the current first-release checkpoint.
-**Last updated:** 2026-08-23
+**Last updated:** 2026-08-24
 
 ## How to use this document
 
@@ -26,6 +26,7 @@ not part of the current first-release checkpoint.
 | 1 | FB-001 | Proposed | Add the authenticated host as an account-linked player by default |
 | 2 | FB-002 | Proposed | Let the host add previously authenticated players |
 | 3 | FB-003 | Proposed | Hide raw web-ticket JSON during the native Host handoff ([GH#12](https://github.com/brossi/collaborative-dev-directives/issues/12)) |
+| 4 | FB-004 | Proposed | Start game infrastructure on demand with persistent state ([GH#13](https://github.com/brossi/collaborative-dev-directives/issues/13)) |
 
 ## FB-001 — Add the authenticated host as an account-linked player by default
 
@@ -156,3 +157,59 @@ ready. It never flashes the raw web-ticket exchange JSON.
 endpoint. WebKit renders the successful bounded response before `didFinish`
 loads the game page. The response contains no credential material, so this is a
 visual defect rather than an observed authority disclosure.
+
+## FB-004 — Start game infrastructure on demand with persistent state
+
+### User outcome
+
+An enrolled Host can request CannaBeats when a game is going to be played and
+shut its temporary compute down afterward. Active or unfinished games, history,
+and statistics remain durable while no game Droplet is running.
+
+### Proposed boundary
+
+- Keep the existing always-running general-purpose Droplet as the stable
+  control plane and reverse-proxy entry point. It authenticates Host requests,
+  retains lifecycle status, and prevents duplicate starts.
+- Use a secure DigitalOcean Function with narrowly scoped infrastructure
+  authority to initiate asynchronous create, attach, snapshot, detach, and
+  destroy operations.
+- Create temporary game Droplets from a verified same-region golden snapshot
+  containing the OS, containers, release, and service configuration.
+- Keep SQLite and other expensive-to-rebuild application state on one
+  persistent DigitalOcean Block Storage volume mounted locally by the active
+  game Droplet. Do not access the SQLite file remotely through NFS or SSHFS.
+- Route the stable public endpoint to the temporary Droplet only after state
+  validation, approved migrations, services, and health checks succeed.
+
+### Governing invariant
+
+Exactly one game server may mount and mutate the persistent CannaBeats state
+volume, activation converges on at most one healthy routed server from the
+approved image and durable state, and compute is destroyed only after SQLite is
+closed, the volume is cleanly detached, and a recoverable state snapshot is
+retained.
+
+### Acceptance intent
+
+1. Retry or concurrent activation cannot produce a second routed game Droplet
+   or volume attachment.
+2. Restoring the golden image with the persistent volume reconstructs an
+   unfinished game and its durable authority exactly.
+3. The stable public endpoint needs no DNS change and never routes before full
+   readiness.
+4. Lost DigitalOcean responses and control-plane restarts reconcile from
+   durable operation and resource identifiers before any effect is repeated.
+5. Shutdown cannot destroy compute before SQLite closes, the volume detaches,
+   and a recoverable volume snapshot is verified.
+6. A reversible rehearsal proves start, play, unfinished-game stop, restore,
+   resume, completed-game stop, and recovery from the retained snapshot before
+   replacing the current production deployment.
+
+### Deferrals
+
+The first version does not include automatic idle shutdown, simultaneous game
+servers, PostgreSQL migration, multi-region failover, or DigitalOcean
+credentials in distributed Host applications. The full proposed lifecycle and
+closure-matrix dispositions are recorded in
+[GH#13](https://github.com/brossi/collaborative-dev-directives/issues/13).
